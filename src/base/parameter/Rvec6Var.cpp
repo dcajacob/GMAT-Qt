@@ -206,6 +206,13 @@ const Rvector& Rvec6Var::EvaluateRvector()
    return EvaluateRvector6();
 }
 
+void Rvec6Var::SetRvector(const Rvector &value)
+{
+   if (value.GetSize() != 6)
+      throw ParameterException("A six-component Parameter requires a vector of size 6.\n");
+   SetRvector6(Rvector6(value[0], value[1], value[2], value[3], value[4], value[5]));
+}
+
 Integer Rvec6Var::GetParameterID(const std::string &str) const
 {
    if (str == "VectorSize")

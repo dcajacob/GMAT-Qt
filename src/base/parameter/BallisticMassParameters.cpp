@@ -107,7 +107,12 @@ bool DryMass::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* DryMass::Clone() const
 {
-   return new DryMass(*this);
+   return CompleteParameterClone(new DryMass(*this));
+}
+
+void DryMass::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DryMass>(source);
 }
 
 
@@ -181,7 +186,12 @@ bool DryCenterOfMassX::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* DryCenterOfMassX::Clone() const
 {
-   return new DryCenterOfMassX(*this);
+   return CompleteParameterClone(new DryCenterOfMassX(*this));
+}
+
+void DryCenterOfMassX::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DryCenterOfMassX>(source);
 }
 
 
@@ -255,7 +265,12 @@ bool DryCenterOfMassY::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* DryCenterOfMassY::Clone() const
 {
-   return new DryCenterOfMassY(*this);
+   return CompleteParameterClone(new DryCenterOfMassY(*this));
+}
+
+void DryCenterOfMassY::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DryCenterOfMassY>(source);
 }
 
 
@@ -329,7 +344,12 @@ bool DryCenterOfMassZ::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* DryCenterOfMassZ::Clone() const
 {
-   return new DryCenterOfMassZ(*this);
+   return CompleteParameterClone(new DryCenterOfMassZ(*this));
+}
+
+void DryCenterOfMassZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DryCenterOfMassZ>(source);
 }
 
 
@@ -403,7 +423,12 @@ bool DryMomentOfInertiaXX::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* DryMomentOfInertiaXX::Clone() const
 {
-   return new DryMomentOfInertiaXX(*this);
+   return CompleteParameterClone(new DryMomentOfInertiaXX(*this));
+}
+
+void DryMomentOfInertiaXX::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DryMomentOfInertiaXX>(source);
 }
 
 
@@ -477,7 +502,12 @@ bool DryMomentOfInertiaXY::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* DryMomentOfInertiaXY::Clone() const
 {
-   return new DryMomentOfInertiaXY(*this);
+   return CompleteParameterClone(new DryMomentOfInertiaXY(*this));
+}
+
+void DryMomentOfInertiaXY::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DryMomentOfInertiaXY>(source);
 }
 
 
@@ -551,7 +581,12 @@ bool DryMomentOfInertiaXZ::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* DryMomentOfInertiaXZ::Clone() const
 {
-   return new DryMomentOfInertiaXZ(*this);
+   return CompleteParameterClone(new DryMomentOfInertiaXZ(*this));
+}
+
+void DryMomentOfInertiaXZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DryMomentOfInertiaXZ>(source);
 }
 
 
@@ -625,7 +660,12 @@ bool DryMomentOfInertiaYY::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* DryMomentOfInertiaYY::Clone() const
 {
-   return new DryMomentOfInertiaYY(*this);
+   return CompleteParameterClone(new DryMomentOfInertiaYY(*this));
+}
+
+void DryMomentOfInertiaYY::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DryMomentOfInertiaYY>(source);
 }
 
 
@@ -699,7 +739,12 @@ bool DryMomentOfInertiaYZ::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* DryMomentOfInertiaYZ::Clone() const
 {
-   return new DryMomentOfInertiaYZ(*this);
+   return CompleteParameterClone(new DryMomentOfInertiaYZ(*this));
+}
+
+void DryMomentOfInertiaYZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DryMomentOfInertiaYZ>(source);
 }
 
 
@@ -773,7 +818,12 @@ bool DryMomentOfInertiaZZ::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* DryMomentOfInertiaZZ::Clone() const
 {
-   return new DryMomentOfInertiaZZ(*this);
+   return CompleteParameterClone(new DryMomentOfInertiaZZ(*this));
+}
+
+void DryMomentOfInertiaZZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DryMomentOfInertiaZZ>(source);
 }
 
 
@@ -845,7 +895,12 @@ bool DragCoeff::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* DragCoeff::Clone() const
 {
-   return new DragCoeff(*this);
+   return CompleteParameterClone(new DragCoeff(*this));
+}
+
+void DragCoeff::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DragCoeff>(source);
 }
 
 
@@ -917,7 +972,12 @@ bool ReflectCoeff::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* ReflectCoeff::Clone() const
 {
-   return new ReflectCoeff(*this);
+   return CompleteParameterClone(new ReflectCoeff(*this));
+}
+
+void ReflectCoeff::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ReflectCoeff>(source);
 }
 
 
@@ -989,7 +1049,12 @@ bool DragArea::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* DragArea::Clone() const
 {
-   return new DragArea(*this);
+   return CompleteParameterClone(new DragArea(*this));
+}
+
+void DragArea::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DragArea>(source);
 }
 
 
@@ -1061,7 +1126,12 @@ bool SRPArea::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SRPArea::Clone() const
 {
-   return new SRPArea(*this);
+   return CompleteParameterClone(new SRPArea(*this));
+}
+
+void SRPArea::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SRPArea>(source);
 }
 
 
@@ -1133,7 +1203,12 @@ bool TotalMass::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* TotalMass::Clone() const
 {
-   return new TotalMass(*this);
+   return CompleteParameterClone(new TotalMass(*this));
+}
+
+void TotalMass::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TotalMass>(source);
 }
 
 
@@ -1207,7 +1282,12 @@ bool SystemCenterOfMassX::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SystemCenterOfMassX::Clone() const
 {
-   return new SystemCenterOfMassX(*this);
+   return CompleteParameterClone(new SystemCenterOfMassX(*this));
+}
+
+void SystemCenterOfMassX::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SystemCenterOfMassX>(source);
 }
 
 
@@ -1281,7 +1361,12 @@ bool SystemCenterOfMassY::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SystemCenterOfMassY::Clone() const
 {
-   return new SystemCenterOfMassY(*this);
+   return CompleteParameterClone(new SystemCenterOfMassY(*this));
+}
+
+void SystemCenterOfMassY::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SystemCenterOfMassY>(source);
 }
 
 
@@ -1355,7 +1440,12 @@ bool SystemCenterOfMassZ::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SystemCenterOfMassZ::Clone() const
 {
-   return new SystemCenterOfMassZ(*this);
+   return CompleteParameterClone(new SystemCenterOfMassZ(*this));
+}
+
+void SystemCenterOfMassZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SystemCenterOfMassZ>(source);
 }
 
 
@@ -1429,7 +1519,12 @@ bool SystemMomentOfInertiaXX::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SystemMomentOfInertiaXX::Clone() const
 {
-   return new SystemMomentOfInertiaXX(*this);
+   return CompleteParameterClone(new SystemMomentOfInertiaXX(*this));
+}
+
+void SystemMomentOfInertiaXX::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SystemMomentOfInertiaXX>(source);
 }
 
 
@@ -1503,7 +1598,12 @@ bool SystemMomentOfInertiaXY::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SystemMomentOfInertiaXY::Clone() const
 {
-   return new SystemMomentOfInertiaXY(*this);
+   return CompleteParameterClone(new SystemMomentOfInertiaXY(*this));
+}
+
+void SystemMomentOfInertiaXY::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SystemMomentOfInertiaXY>(source);
 }
 
 
@@ -1577,7 +1677,12 @@ bool SystemMomentOfInertiaXZ::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SystemMomentOfInertiaXZ::Clone() const
 {
-   return new SystemMomentOfInertiaXZ(*this);
+   return CompleteParameterClone(new SystemMomentOfInertiaXZ(*this));
+}
+
+void SystemMomentOfInertiaXZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SystemMomentOfInertiaXZ>(source);
 }
 
 
@@ -1651,7 +1756,12 @@ bool SystemMomentOfInertiaYY::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SystemMomentOfInertiaYY::Clone() const
 {
-   return new SystemMomentOfInertiaYY(*this);
+   return CompleteParameterClone(new SystemMomentOfInertiaYY(*this));
+}
+
+void SystemMomentOfInertiaYY::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SystemMomentOfInertiaYY>(source);
 }
 
 
@@ -1725,7 +1835,12 @@ bool SystemMomentOfInertiaYZ::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SystemMomentOfInertiaYZ::Clone() const
 {
-   return new SystemMomentOfInertiaYZ(*this);
+   return CompleteParameterClone(new SystemMomentOfInertiaYZ(*this));
+}
+
+void SystemMomentOfInertiaYZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SystemMomentOfInertiaYZ>(source);
 }
 
 
@@ -1799,7 +1914,12 @@ bool SystemMomentOfInertiaZZ::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SystemMomentOfInertiaZZ::Clone() const
 {
-   return new SystemMomentOfInertiaZZ(*this);
+   return CompleteParameterClone(new SystemMomentOfInertiaZZ(*this));
+}
+
+void SystemMomentOfInertiaZZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SystemMomentOfInertiaZZ>(source);
 }
 
 
@@ -1871,7 +1991,12 @@ bool SpadDragScaleFactor::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SpadDragScaleFactor::Clone() const
 {
-   return new SpadDragScaleFactor(*this);
+   return CompleteParameterClone(new SpadDragScaleFactor(*this));
+}
+
+void SpadDragScaleFactor::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SpadDragScaleFactor>(source);
 }
 
 
@@ -1943,7 +2068,12 @@ bool SpadSRPScaleFactor::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SpadSRPScaleFactor::Clone() const
 {
-   return new SpadSRPScaleFactor(*this);
+   return CompleteParameterClone(new SpadSRPScaleFactor(*this));
+}
+
+void SpadSRPScaleFactor::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SpadSRPScaleFactor>(source);
 }
 
 
@@ -2015,7 +2145,12 @@ bool AtmosDensityScaleFactor::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* AtmosDensityScaleFactor::Clone() const
 {
-   return new AtmosDensityScaleFactor(*this);
+   return CompleteParameterClone(new AtmosDensityScaleFactor(*this));
+}
+
+void AtmosDensityScaleFactor::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AtmosDensityScaleFactor>(source);
 }
 
 
@@ -2087,7 +2222,12 @@ bool DragCoeffSigma::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* DragCoeffSigma::Clone() const
 {
-   return new DragCoeffSigma(*this);
+   return CompleteParameterClone(new DragCoeffSigma(*this));
+}
+
+void DragCoeffSigma::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DragCoeffSigma>(source);
 }
 
 
@@ -2159,7 +2299,12 @@ bool ReflectCoeffSigma::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* ReflectCoeffSigma::Clone() const
 {
-   return new ReflectCoeffSigma(*this);
+   return CompleteParameterClone(new ReflectCoeffSigma(*this));
+}
+
+void ReflectCoeffSigma::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ReflectCoeffSigma>(source);
 }
 
 
@@ -2231,7 +2376,12 @@ bool SpadDragScaleFactorSigma::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SpadDragScaleFactorSigma::Clone() const
 {
-   return new SpadDragScaleFactorSigma(*this);
+   return CompleteParameterClone(new SpadDragScaleFactorSigma(*this));
+}
+
+void SpadDragScaleFactorSigma::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SpadDragScaleFactorSigma>(source);
 }
 
 
@@ -2304,7 +2454,12 @@ bool SpadSRPScaleFactorSigma::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* SpadSRPScaleFactorSigma::Clone() const
 {
-   return new SpadSRPScaleFactorSigma(*this);
+   return CompleteParameterClone(new SpadSRPScaleFactorSigma(*this));
+}
+
+void SpadSRPScaleFactorSigma::Copy(const GmatBase *source)
+{
+   CopyParameterValue<SpadSRPScaleFactorSigma>(source);
 }
 
 
@@ -2376,7 +2531,12 @@ bool AtmosDensityScaleFactorSigma::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* AtmosDensityScaleFactorSigma::Clone() const
 {
-   return new AtmosDensityScaleFactorSigma(*this);
+   return CompleteParameterClone(new AtmosDensityScaleFactorSigma(*this));
+}
+
+void AtmosDensityScaleFactorSigma::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AtmosDensityScaleFactorSigma>(source);
 }
 
 

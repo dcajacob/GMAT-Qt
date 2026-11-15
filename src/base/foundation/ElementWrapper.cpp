@@ -35,11 +35,147 @@
 #include "GmatBase.hpp"
 #include "GmatBaseException.hpp"
 #include "ElementWrapper.hpp"
+#include "ArrayElementWrapper.hpp"
+#include "EquationWrapper.hpp"
+#include "MathTree.hpp"
+#include "MathNode.hpp"
+#include <typeinfo>
+#include <set>
 #include "StringUtil.hpp"          // for ReplaceName()
 #include "TextParser.hpp"          // for SeparateBrackets()
 #include "SolarSystem.hpp"         // for GetBody()
 #include "MessageInterface.hpp"
+#include "Parameter.hpp"
+#include "ParameterException.hpp"
+#include "RealVar.hpp"
 #include <cmath>
+#include <atomic>
+#include <map>
+#include <mutex>
+
+#ifdef DEBUG_MEMORY
+#include "MemoryTracker.hpp"
+#endif
+
+struct ElementWrapperInvocationLease
+{
+   ElementWrapper *wrapper = nullptr;
+   const ElementWrapper *identity = nullptr;
+   bool retired = false;
+   ~ElementWrapperInvocationLease() noexcept;
+};
+
+namespace
+{
+struct WrapperInvocationLeases
+{
+   std::mutex mutex;
+   std::map<const ElementWrapper*, std::weak_ptr<ElementWrapperInvocationLease>> wrappers;
+};
+
+std::atomic<WrapperInvocationLeases*> existingWrapperLeases{nullptr};
+
+WrapperInvocationLeases &InvocationLeases()
+{
+   static auto *leases = []()
+   {
+      auto *value = new WrapperInvocationLeases;
+      existingWrapperLeases.store(value);
+      return value;
+   }();
+   return *leases;
+}
+
+void DeleteReleasedWrapper(ElementWrapper *wrapper) noexcept
+{
+   if (!wrapper) return;
+   #ifdef DEBUG_MEMORY
+   try
+   {
+      MemoryTracker::Instance()->Remove(wrapper, wrapper->GetDescription(),
+            "ElementWrapper::ReleaseOwnedWrapper()", "deleting released wrapper");
+   }
+   catch (...) {}
+   #endif
+   delete wrapper;
+}
+
+void RetireWrapperIdentity(const ElementWrapper *wrapper) noexcept
+{
+   auto *leases = existingWrapperLeases.load();
+   if (!leases) return;
+   std::shared_ptr<ElementWrapperInvocationLease> retained;
+   {
+      std::lock_guard<std::mutex> lock(leases->mutex);
+      const auto found = leases->wrappers.find(wrapper);
+      if (found == leases->wrappers.end()) return;
+      retained = found->second.lock();
+      if (retained) retained->wrapper = nullptr;
+      leases->wrappers.erase(found);
+   }
+}
+}
+
+ElementWrapperInvocationLease::~ElementWrapperInvocationLease() noexcept
+{
+   if (!identity) return;
+   auto *leases = existingWrapperLeases.load();
+   if (leases)
+   {
+      std::lock_guard<std::mutex> lock(leases->mutex);
+      const auto found = leases->wrappers.find(identity);
+      if (found != leases->wrappers.end() && found->second.expired())
+         leases->wrappers.erase(found);
+   }
+   if (retired) DeleteReleasedWrapper(wrapper);
+}
+
+ElementWrapper::InvocationLease ElementWrapper::RetainInvocationWrapper(ElementWrapper *wrapper)
+{
+   if (!wrapper) return {};
+   auto &leases = InvocationLeases();
+   std::lock_guard<std::mutex> lock(leases.mutex);
+   const auto found = leases.wrappers.find(wrapper);
+   if (found != leases.wrappers.end())
+      if (auto previous = found->second.lock()) return previous;
+   auto lease = std::make_shared<ElementWrapperInvocationLease>();
+   // Allocate the registry entry before recording a live borrowed wrapper.
+   // Dropping an unretired lease never takes its caller's ownership away.
+   leases.wrappers[wrapper] = lease;
+   lease->identity = wrapper;
+   lease->wrapper = wrapper;
+   return lease;
+}
+
+ElementWrapper *ElementWrapper::GetInvocationWrapper(const InvocationLease &lease) noexcept
+{
+   auto *leases = existingWrapperLeases.load();
+   if (!leases || !lease) return nullptr;
+   std::lock_guard<std::mutex> lock(leases->mutex);
+   return lease->wrapper;
+}
+
+bool ElementWrapper::MatchesInvocationWrapper(const InvocationLease &lease,
+      const ElementWrapper *wrapper) noexcept
+{
+   return lease && lease->identity == wrapper;
+}
+
+void ElementWrapper::ReleaseOwnedWrapper(ElementWrapper *wrapper) noexcept
+{
+   if (!wrapper) return;
+   std::shared_ptr<ElementWrapperInvocationLease> retained;
+   if (auto *leases = existingWrapperLeases.load())
+   {
+      std::lock_guard<std::mutex> lock(leases->mutex);
+      const auto found = leases->wrappers.find(wrapper);
+      if (found != leases->wrappers.end()) retained = found->second.lock();
+      if (retained) retained->retired = true;
+   }
+   // A live invocation can keep this wrapper after its native owner releases
+   // it. The last lease deletes it; an ordinary unleased owner deletes now.
+   if (!retained) DeleteReleasedWrapper(wrapper);
+}
 
 //#define DEBUG_RENAME
 //#define DEBUG_EW_SET_VALUE
@@ -49,6 +185,70 @@
 // static data
 //---------------------------------
 const Real ElementWrapper::UNDEFINED_REAL = -999.99;
+
+namespace
+{
+Real evaluateParameterReal(Parameter *parameter, bool allowInfinity)
+{
+   if (!parameter)
+      throw ParameterException("A numerical calculation has no bound Parameter.");
+
+   Real value;
+   if (parameter->IsSystemParameter() &&
+       parameter->GetReturnType() == Gmat::REAL_TYPE &&
+       dynamic_cast<RealVar*>(parameter))
+   {
+      // Native system RealVar families implement Evaluate's success flag and
+      // expose the evaluated cache through GetReal. Read it once, without a
+      // second evaluation or comparing legitimate numbers to sentinels.
+      if (!parameter->Evaluate())
+         throw ParameterException("Parameter \"" + parameter->GetName() +
+               "\" could not be evaluated for a numerical calculation.");
+      value = parameter->GetReal();
+   }
+   else
+   {
+      // User Variables and non-RealVar plugin implementations retain their
+      // polymorphic value evaluator and its own error/ownership contract.
+      value = parameter->EvaluateReal();
+   }
+   if (std::isnan(value) || (!allowInfinity && !std::isfinite(value)))
+      throw ParameterException("Parameter \"" + parameter->GetName() +
+            "\" evaluated to a non-finite numerical value.");
+   return value;
+}
+}
+
+Real ElementWrapper::EvaluateParameterRealForCalculation(Parameter *parameter)
+{
+   return evaluateParameterReal(parameter, false);
+}
+
+Real ElementWrapper::EvaluateRealForCalculation()
+{
+   if (GetWrapperType() == Gmat::PARAMETER_WT)
+      return EvaluateParameterRealForCalculation(
+            dynamic_cast<Parameter*>(GetRefObject()));
+
+   // Number/Variable/Array-element/property wrappers, including the native
+   // scalar evaluation of a 1x1 Array, keep their own evaluation semantics.
+   const Real value = EvaluateReal();
+   if (!std::isfinite(value))
+      throw ParameterException("Operand \"" + GetDescription() +
+            "\" evaluated to a non-finite numerical value.");
+   return value;
+}
+
+Real ElementWrapper::EvaluateRealForRange()
+{
+   if (GetWrapperType() == Gmat::PARAMETER_WT)
+      return evaluateParameterReal(dynamic_cast<Parameter*>(GetRefObject()), true);
+   const Real value = EvaluateReal();
+   if (std::isnan(value))
+      throw ParameterException("Operand \"" + GetDescription() +
+            "\" evaluated to NaN in a numerical range.");
+   return value;
+}
 
 //------------------------------------------------------------------------------
 // public methods
@@ -68,6 +268,85 @@ ElementWrapper::ElementWrapper() :
    wrapperType  (Gmat::NUMBER_WT),
    allowOneDimArraySetting (false)
 {
+}
+
+void ElementWrapper::CheckCloneType(const ElementWrapper &source) const
+{
+   if (typeid(*this) != typeid(source) || wrapperType != source.wrapperType)
+      throw GmatBaseException("Incompatible retained expression wrapper.\n");
+}
+
+void ElementWrapper::RebindClonedReferences(const ElementWrapper &,
+      const std::function<GmatBase*(GmatBase*)> &)
+{
+   throw GmatBaseException("Expression provider must implement retained reference binding.\n");
+}
+
+namespace
+{
+std::vector<ElementWrapper*> OwnedWrapperChildren(const ElementWrapper *wrapper)
+{
+   std::vector<ElementWrapper*> children;
+   if (const auto *array = dynamic_cast<const ArrayElementWrapper*>(wrapper))
+   {
+      children.push_back(const_cast<ArrayElementWrapper*>(array)->GetRowWrapper());
+      children.push_back(const_cast<ArrayElementWrapper*>(array)->GetColumnWrapper());
+   }
+   if (const auto *equation = dynamic_cast<const EquationWrapper*>(wrapper))
+      for (RHSEquation *definition : equation->GetOwnedDefinitions())
+         for (const auto &entry : definition->GetMathWrapperMap()) children.push_back(entry.second);
+   return children;
+}
+}
+
+bool ElementWrapper::OwnsRefObject() const { return false; }
+
+void ElementWrapper::CollectOwnedReferences(ObjectArray &objects) const
+{
+   std::set<const ElementWrapper*> visited;
+   std::function<void(const ElementWrapper*)> collect = [&](const ElementWrapper *wrapper)
+   {
+      if (!wrapper || !visited.insert(wrapper).second) return;
+      if (wrapper->OwnsRefObject())
+      {
+         GmatBase *object = const_cast<ElementWrapper*>(wrapper)->GetRefObject();
+         if (object && std::find(objects.begin(), objects.end(), object) == objects.end())
+            objects.push_back(object);
+      }
+      if (const auto *equation = dynamic_cast<const EquationWrapper*>(wrapper))
+         for (RHSEquation *definition : equation->GetOwnedDefinitions())
+            if (auto *tree = definition->GetMathTree(false))
+            {
+               if (std::find(objects.begin(), objects.end(), tree) == objects.end()) objects.push_back(tree);
+               for (MathNode *node : tree->GetStructuralNodes())
+                  if (std::find(objects.begin(), objects.end(), node) == objects.end()) objects.push_back(node);
+            }
+      for (ElementWrapper *child : OwnedWrapperChildren(wrapper)) collect(child);
+   };
+   collect(this);
+}
+
+std::unique_ptr<ElementWrapper> ElementWrapper::CloneValue(const ElementWrapper *source,
+      const ElementWrapper *previous)
+{
+   if (!source) return {};
+   source->ValidateOwnedWrapperGraph();
+   std::unique_ptr<ElementWrapper> copy(source->Clone());
+   if (copy.get() == source || (previous && copy.get() == previous))
+   {
+      copy.release();
+      throw GmatBaseException("Expression Clone returned an existing wrapper.\n");
+   }
+   if (!copy) throw GmatBaseException("Expression Clone returned null.\n");
+   copy->CheckCloneType(*source);
+   return copy;
+}
+
+void ElementWrapper::CollectClonedOwnedReferences(const ElementWrapper &source,
+      ObjectArray &originals, ObjectArray &copies) const
+{
+   CollectClonedOwnedReferences(source, originals, copies, true);
+   CollectClonedOwnedReferences(source, originals, copies, false);
 }
 
 //---------------------------------------------------------------------------
@@ -121,6 +400,7 @@ const ElementWrapper& ElementWrapper::operator=(const ElementWrapper &er)
 //---------------------------------------------------------------------------
 ElementWrapper::~ElementWrapper()
 {
+   RetireWrapperIdentity(this);
    refObjectNames.clear();
 }
 
@@ -643,11 +923,25 @@ bool ElementWrapper::SetValue(ElementWrapper *lhsWrapper, ElementWrapper *rhsWra
             ("   RVECTOR_TYPE rhs rvec = %s   Now making one row or column matrix\n",
              rvec.ToString().c_str());
          #endif
-         if (lhsWrapperType == Gmat::ARRAY_WT)
+         if (lhsDataType == Gmat::RMATRIX_TYPE)
          {
-            GmatBase *lhsArr = lhsWrapper->GetRefObject();
-            Integer numRows = lhsArr->GetIntegerParameter("NumRows");
-            Integer numCols = lhsArr->GetIntegerParameter("NumCols");
+            Integer numRows, numCols;
+            if (lhsWrapperType == Gmat::ARRAY_WT)
+            {
+               GmatBase *lhsArr = lhsWrapper->GetRefObject();
+               if (!lhsArr)
+                  throw GmatBaseException("Cannot assign a vector to an unbound Array.\n");
+               numRows = lhsArr->GetIntegerParameter("NumRows");
+               numCols = lhsArr->GetIntegerParameter("NumCols");
+            }
+            else
+            {
+               // Matrix-valued properties/Parameters need the same native
+               // vector conversion as Arrays before SetArray receives data.
+               const Rmatrix &destination = lhsWrapper->EvaluateArray();
+               numRows = destination.GetNumRows();
+               numCols = destination.GetNumColumns();
+            }
             // Make it 1xN matrix if row > col
             if (numRows > numCols)
                rmat.MakeOneColumnMatrix(rvec);
@@ -1178,3 +1472,59 @@ void ElementWrapper::ShowObjectMaps(ObjectMap *objMap, ObjectMap *globalObjMap)
    }
 }
 
+
+// Owners are inventoried before native value clones of borrowed aliases, so a
+// real source owner's corresponding copy remains the canonical owner.
+void ElementWrapper::CollectClonedOwnedReferences(const ElementWrapper &source,
+      ObjectArray &originals, ObjectArray &copies, bool sourceOwnedOnly) const
+{
+   std::set<const ElementWrapper*> visiting;
+   std::map<const ElementWrapper*, std::set<const ElementWrapper*>> visited;
+   std::function<void(const ElementWrapper*, const ElementWrapper*)> collect =
+         [&](const ElementWrapper *from, const ElementWrapper *to)
+   {
+      if (!from && !to) return;
+      if (!from || !to) throw GmatBaseException("Missing copied expression child.\n");
+      if (visiting.count(from)) throw GmatBaseException("Cyclic expression wrapper ownership.\n");
+      if (!visited[from].insert(to).second) return;
+      to->CheckCloneType(*from);
+      if (from->OwnsRefObject() || (!sourceOwnedOnly && to->OwnsRefObject()))
+      {
+         GmatBase *original = const_cast<ElementWrapper*>(from)->GetRefObject();
+         GmatBase *copy = const_cast<ElementWrapper*>(to)->GetRefObject();
+         if (!original || !copy || original == copy || !to->OwnsRefObject())
+            throw GmatBaseException("Missing independently copied expression value.\n");
+         if (std::find(originals.begin(), originals.end(), original) == originals.end())
+         { originals.push_back(original); copies.push_back(copy); }
+      }
+      if (const auto *equation = dynamic_cast<const EquationWrapper*>(from))
+      {
+         const auto *value = dynamic_cast<const EquationWrapper*>(to);
+         equation->GetClonedOwnedObjects(*value, originals, copies, sourceOwnedOnly);
+         return; // That owner already traverses its definition children once.
+      }
+      visiting.insert(from);
+      const auto children = OwnedWrapperChildren(from);
+      const auto values = OwnedWrapperChildren(to);
+      if (children.size() != values.size())
+         throw GmatBaseException("Missing copied expression wrapper children.\n");
+      for (size_t i = 0; i < children.size(); ++i) collect(children[i], values[i]);
+      visiting.erase(from);
+   };
+   collect(&source, this);
+}
+
+void ElementWrapper::ValidateOwnedWrapperGraph() const
+{
+   std::set<const ElementWrapper*> visiting, visited;
+   std::function<void(const ElementWrapper*)> inspect = [&](const ElementWrapper *wrapper)
+   {
+      if (!wrapper || visited.count(wrapper)) return;
+      if (!visiting.insert(wrapper).second)
+         throw GmatBaseException("Cyclic expression wrapper ownership.\n");
+      for (ElementWrapper *child : OwnedWrapperChildren(wrapper)) inspect(child);
+      visiting.erase(wrapper);
+      visited.insert(wrapper);
+   };
+   inspect(this);
+}

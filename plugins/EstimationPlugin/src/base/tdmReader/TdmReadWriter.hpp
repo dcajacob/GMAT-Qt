@@ -71,6 +71,8 @@ private:
    TdmErrorHandler *theErrorHandler;
    /// Xerces DOM Parser
    XercesDOMParser *theDOMParser;
+   /// Parsed or cloned document owned independently of the parser
+   DOMDocument *theDocument;
    /// Is the Xerces initialized
    bool xercesInitialized;
    /// XML file consists of header and body
@@ -85,6 +87,8 @@ private:
    int observationIndex;
    /// map Transmit Band to a real number
    std::map<std::string, Real> mapTransmitBand;
+   /// Time scale declared by the current segment, before A1 normalization
+   std::string sourceTimeSystem;
 
    /// enumeration type for all data in Metadata
    enum MetaData
@@ -116,6 +120,7 @@ private:
 
    /// Convert Epoch data to date and time utility values
    GmatEpoch ParseEpoch(const std::string strEpoch);
+   GmatTime ParseEpochGT(const std::string &strEpoch);
    
 };
 

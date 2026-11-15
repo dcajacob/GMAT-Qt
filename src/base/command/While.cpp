@@ -111,8 +111,7 @@ While& While::operator=(const While &wc)
 //------------------------------------------------------------------------------
 While::~While()
 {
-   for (UnsignedInt i = 0; i < localParameters.size(); ++i)
-      delete localParameters[i];
+   ClearWrappers();
 }
 
 //------------------------------------------------------------------------------
@@ -606,3 +605,20 @@ const std::string& While::GetGeneratingString(Gmat::WriteMode mode,
 // protected methods
 //------------------------------------------------------------------------------
 // none
+
+void While::ClearWrappers()
+{
+   // Condition wrappers borrow the local elapsed-time Parameters. Retire
+   // wrappers before those owners, including on validation and assignment.
+   ConditionalBranch::ClearWrappers();
+   std::vector<Parameter*> previous;
+   previous.swap(localParameters);
+   for (Parameter *parameter : previous) delete parameter;
+}
+
+void While::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   ConditionalBranch::RetireFunctionBindings(store);
+   emptyLoopWarningPosted = false;
+}

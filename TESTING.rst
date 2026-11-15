@@ -1,81 +1,35 @@
-Qt desktop tester snapshot
-==========================
+GMAT Qt alpha testing
+=====================
 
-Branch: ``codex/stable-qt-preview-20261104``.
+Obtain the frozen source with::
 
-This is a frozen preview for exploratory testing. Development and the NASA
-acceptance campaign continue separately. The recorded campaign evidence covers
-1,052 of 1,158 original requirements; 95 percent acceptance and full scientific,
-platform and current-build qualification remain incomplete.
-
-Getting the source
-------------------
-
-Use the private repository URL supplied with this branch::
-
-  git clone --branch codex/stable-qt-preview-20261104 https://github.com/dcajacob/GMAT-Qt.git
+  git clone --branch codex/alpha-0.1.0 https://github.com/dcajacob/GMAT-Qt.git
   cd GMAT-Qt
 
-Build on Linux
---------------
+Native package builds use ``tools/preview/BuildPreviewPackage.py``. The
+``Alpha packages`` workflow supplies the platform dependencies and preserves
+diagnostics and matching compiled inputs for packaging retries.
 
-Install a C++17 compiler, CMake, Ninja, Qt 6.4 or newer (Widgets, OpenGLWidgets
-and Network development packages), OpenSceneGraph 3.6 development libraries and
-format plugins, Xerces-C development files and OpenGL development files.
-Install the NAIF CSPICE toolkit separately; its directory must contain
-``include/SpiceUsr.h`` and ``lib/cspice.a``.
+To build on Linux, install a C++17 compiler, CMake, Qt 6.4 or newer development
+packages for Widgets, OpenGLWidgets and Network, OpenSceneGraph 3.6, Xerces-C,
+OpenGL, and the NAIF CSPICE toolkit. Configure and build with the same options
+in the packaging script's ``build`` function, supplying your CSPICE directory.
 
-This configuration excludes the optional MATLAB, Python and wx frontends::
+The package probe runs a 600-second circular two-body mission with an
+independent analytic oracle, creates orbit, ground-track and data plots,
+writes a report, saves the spacecraft, and reopens its saved state. It retains
+the earlier probe bounds of 2e-5 km for position and 3e-8 km/s for velocity.
+Linux uses Xvfb with software OpenGL. Windows and Mac probes use Qt's offscreen
+platform, so their screenshots provide limited renderer coverage.
 
-  cmake -S . -B build/tester -G Ninja \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DGMAT_INCLUDE_QT_GUI=ON -DGMAT_INCLUDE_GUI=OFF \
-    -DGMAT_INCLUDE_API=OFF -DGMAT_QT_BUILD_TESTS=OFF \
-    -DPLUGIN_MATLABINTERFACE=OFF -DPLUGIN_FMINCONOPTIMIZER=OFF \
-    -DPLUGIN_PYTHONINTERFACE=OFF -DPLUGIN_OVTOOFI=OFF \
-    -DCSPICE_DIR=/absolute/path/to/cspice
-  cmake --build build/tester --target GmatQt --parallel 4
-  ./application/bin/GmatQt
+The original acceptance evidence and numerical failure receipts remain
+preserved. The release probes supplement those source-versioned results.
 
-The build generates its own Qt startup file. Runtime data remains under
-``application/data``. MATLAB is optional for ordinary mission editing and
-propagation; MATLAB calls and fmincon need a separately licensed installation
-and an explicitly enabled plugin build. VF13ad is distributed separately.
+For manual review, run a default mission, exercise playback and view controls,
+edit spacecraft properties, and save/reopen a copy of the mission. Try the
+satellite-import dialog using a local TLE or OMM before testing an external
+provider. Keep Space-Track credentials in the app's account dialog.
 
-Try these workflows
--------------------
-
-* Create a default mission and run it; inspect the orbit and ground track.
-* Change a spacecraft state or propagator, Apply, and try Undo and Redo.
-* Save a script, reopen it and run it again.
-* Open a report from the Output tree and compare its values with the script.
-
-Keep copies of your scripts before experimenting. For a bug report, include
-the branch commit (``git rev-parse HEAD``), operating system, exact steps,
-script and relevant messages or output. Use the private repository for reports
-that contain private mission data.
-
-Validation
-----------
-
-The current Linux ``QtGui.Workflow`` smoke passes both unattended and visibly.
-``QtGui.Mission`` retains a failure in its older assertion that Yukon bounds
-are disabled. Later campaign work deliberately enables and independently tests
-Yukon's documented bound support. The older assertion has not been changed.
-
-Windows and Mac packages are built by the ``Qt preview packages`` workflow.
-Only successful native package probes can reach the private preview release.
-The Windows build is x64; Mac builds cover Apple Silicon and Intel, targeting
-macOS 15 or newer. Mac previews are ad-hoc signed, without Apple notarization.
-
-On Windows, if startup reports a missing VCRUNTIME140 or MSVCP140 library,
-install Microsoft's x64 Visual C++ Redistributable from
-https://aka.ms/vc14/vc_redist.x64.exe and open the application again.
-
-The source is under active acceptance testing. Source-versioned campaign
-passes apply to their recorded builds and cases. They do not certify every
-feature in this snapshot or establish a current Windows/macOS build.
-
-The current campaign checkpoint and preserved limitations are recorded in
-``doc/DevelopersDocs/Qt6ParityValidation/coverage95-chat-handoff-20261102.md``.
-Detailed local acceptance artifacts are kept outside Git under ``build``.
+Report the package version and source commit, operating system, exact steps,
+and a small reproducing script at https://github.com/dcajacob/GMAT-Qt/issues.
+Remove credentials and private mission information from submitted logs.

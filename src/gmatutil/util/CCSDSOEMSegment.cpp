@@ -158,6 +158,9 @@ std::string CCSDSOEMSegment::GetMetaDataForWriting()
 {
    const bool b1 = formatVersion == "1.0";
    const bool hasInterpolation = !interpolationMethod.empty() && interpolationMethod != UNSET_STRING;
+   const bool hasDegree = !interpolationDegreeStr.empty() && interpolationDegreeStr != UNSET_STRING;
+   const bool hasUsableStart = !usableStartTimeStr.empty() && usableStartTimeStr != UNSET_STRING;
+   const bool hasUsableStop = !usableStopTimeStr.empty() && usableStopTimeStr != UNSET_STRING;
    if (b1)
    {
       for (const auto &field : {
@@ -165,16 +168,18 @@ std::string CCSDSOEMSegment::GetMetaDataForWriting()
          {"CENTER_NAME", centerName}, {"REF_FRAME", refFrame},
          {"TIME_SYSTEM", timeSystem}, {"START_TIME", startTimeStr}, {"STOP_TIME", stopTimeStr}})
          CcsdsOemB1Text::RequireValue(field.first, field.second);
-      if (!usableStartTimeStr.empty())
+      if (hasUsableStart)
          CcsdsOemB1Text::RequireValue("USEABLE_START_TIME", usableStartTimeStr);
-      if (!usableStopTimeStr.empty())
+      if (hasUsableStop)
          CcsdsOemB1Text::RequireValue("USEABLE_STOP_TIME", usableStopTimeStr);
       if (hasInterpolation)
       {
+         if (!hasDegree)
+            throw UtilityException("CCSDS OEM 1.0 INTERPOLATION_DEGREE is required when INTERPOLATION is set");
          CcsdsOemB1Text::RequireValue("INTERPOLATION", interpolationMethod);
          CcsdsOemB1Text::RequireValue("INTERPOLATION_DEGREE", interpolationDegreeStr);
       }
-      else if (!interpolationDegreeStr.empty())
+      else if (hasDegree)
          CcsdsOemB1Text::RequireValue("INTERPOLATION_DEGREE", interpolationDegreeStr);
    }
    std::stringstream ss("");
@@ -202,14 +207,14 @@ std::string CCSDSOEMSegment::GetMetaDataForWriting()
 
    ss << "TIME_SYSTEM          = " << timeSystem << std::endl;
    ss << "START_TIME           = " << startTimeStr << std::endl;
-   if (!b1 || !usableStartTimeStr.empty())
+   if (!b1 || hasUsableStart)
       ss << "USEABLE_START_TIME   = " << usableStartTimeStr << std::endl;
-   if (!b1 || !usableStopTimeStr.empty())
+   if (!b1 || hasUsableStop)
       ss << "USEABLE_STOP_TIME    = " << usableStopTimeStr << std::endl;
    ss << "STOP_TIME            = " << stopTimeStr << std::endl;
    if (!b1 || hasInterpolation)
       ss << "INTERPOLATION        = " << interpolationMethod << std::endl;
-   if (!b1 || !interpolationDegreeStr.empty())
+   if (!b1 || hasDegree)
       ss << "INTERPOLATION_DEGREE = " << interpolationDegreeStr << std::endl;
    ss << "META_STOP" << std::endl << std::endl;
    if (b1)

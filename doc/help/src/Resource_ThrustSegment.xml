@@ -694,6 +694,8 @@
   <refsection>
     <title>Remarks</title>
 
+    <para>File-thrust value copies include interpolation scratch and independent interpolator objects. Restoration for the same profile and propagation roles updates the current interpolators and numerical state while retaining selected profile, spacecraft and frame bindings. Prepare the force again after changing its profiles or propagation roles.</para>
+
     <refsection xml:id="ThrustSegment_Remarks_ThrustAngleEstimation">
       <title>Overview of Thrust Angle Corrections</title>
 

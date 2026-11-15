@@ -80,6 +80,7 @@
 
 #include "gmatdefs.hpp"
 #include "GmatBase.hpp"
+#include <functional>
 #include "PhysicalModel.hpp"
 #include "PropagatorException.hpp"      // Propagator Exceptions
 #include "PropagationStateManager.hpp"
@@ -229,6 +230,12 @@ public:
    };
 
    DEFAULT_TO_NO_CLONES
+
+   // Passive retained definition binding. Native preparation initializes the
+   // numerical/ephemeris engine only after its owning PropSetup is assembled.
+   virtual void RebindClonedReferences(const Propagator &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve, bool bindObjects = true);
+
 
 protected:
 

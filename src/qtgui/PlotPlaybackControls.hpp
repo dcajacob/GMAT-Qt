@@ -24,7 +24,6 @@ private:
    QLabel *position;
    QComboBox *speed;
    QComboBox *mode;
-   double remainder=0;
-   void seek(int value);
+   void seek(double value);
    void updateSpeedButtons();
 };

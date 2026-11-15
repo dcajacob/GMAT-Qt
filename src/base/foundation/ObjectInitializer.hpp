@@ -69,6 +69,9 @@ public:
    bool InitializeObjects(bool registerSubs = false,
                           UnsignedInt objType = Gmat::UNKNOWN_OBJECT,
                           StringArray *unusedGOL = NULL);
+   // Restore one copied station's body/frame bindings without reinitializing
+   // other local/global spacecraft, stations, regions or subscribers.
+   bool InitializeGroundStation(GmatBase *station);
    // Plugin GUI extension
    void SetWidgetCreator(GuiWidgetCreatorCallback creatorFun);
    

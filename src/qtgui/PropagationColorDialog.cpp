@@ -57,7 +57,7 @@ Parsed parse(const QString &source)
          for (int i=0;i<result.entries.size();++i) {
             const auto span=result.entries[i]; const auto entry=code.mid(span.first,span.second-span.first);
             if (entry.trimmed().isEmpty()) return result;
-            if (!QRegularExpression("^\\s*(?:StopTolerance|OrbitColor)\\s*=").match(entry).hasMatch()) result.optionsOnly=false;
+            if (!QRegularExpression("^\\s*(?:StopTolerance|OrbitColor|EphemerisPolicy)\\s*=").match(entry).hasMatch()) result.optionsOnly=false;
             const auto match=QRegularExpression("^\\s*OrbitColor\\s*=\\s*(.*?)\\s*$",QRegularExpression::DotMatchesEverythingOption).match(entry);
             if (!match.hasMatch()) continue;
             if (result.color>=0 || match.captured(1).isEmpty()) return result;

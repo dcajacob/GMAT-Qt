@@ -69,6 +69,13 @@ public:
                               RealArray         &start,
                               RealArray         &end);
 
+   // Coverage boundaries on the precise clock, without an absolute-MJD Real.
+   void GetCoverageStartAndEnd(StringArray &kernels, Integer forNaifId,
+                              GmatTime &start, GmatTime &end);
+   void GetCoverageSpans(StringArray &kernels, Integer forNaifId,
+                         std::vector<GmatTime> &start,
+                         std::vector<GmatTime> &end);
+
    /// method to return the state (position, velocity) of a planetary body or
    /// spacecraft at the specified time, with respect to the specified frame
    Rvector6  GetTargetState(const std::string &targetName,
@@ -102,8 +109,15 @@ protected:
    std::map<std::string, std::string> spiceErrorMSG;
 
    std::map<Integer, std::tuple<GmatTime, GmatTime>> objectCoverageRanges;
+   std::uint64_t coveragePoolRevision = 0;
 
    int gapsFound;
+
+   void GetCoverageSpansET(StringArray &kernels, Integer forNaifId,
+                           std::vector<SpiceDouble> &start,
+                           std::vector<SpiceDouble> &end);
+   Real CoverageEpoch(SpiceDouble et, bool start);
+   GmatTime CoverageEpochGT(SpiceDouble et, bool start);
 
    void PrintErrorMessage(const std::string &targetName);
    void PrintWarningMessage(const std::string &targetName);

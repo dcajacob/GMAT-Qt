@@ -91,8 +91,17 @@ PolyhedronBody::~PolyhedronBody()
 
 
 PolyhedronBody::PolyhedronBody(const PolyhedronBody& polybody):
+   bodyShapeFilename (polybody.bodyShapeFilename),
    verticesList  (polybody.verticesList),
    facesList 	  (polybody.facesList),
+   fn            (polybody.fn),
+   ic            (polybody.ic),
+   E             (polybody.E),
+   attachmentA   (polybody.attachmentA),
+   attachmentB   (polybody.attachmentB),
+   edgeMap       (polybody.edgeMap),
+   attachmentAMap(polybody.attachmentAMap),
+   attachmentBMap(polybody.attachmentBMap),
    isLoad        (polybody.isLoad)
 {
 #ifdef DEBUG_CONSTRUCTION
@@ -109,8 +118,17 @@ PolyhedronBody& PolyhedronBody::operator= (const PolyhedronBody& polybody)
    if (&polybody == this)
       return *this;
 
+   bodyShapeFilename = polybody.bodyShapeFilename;
    verticesList = polybody.verticesList;
    facesList 	 = polybody.facesList;
+   fn           = polybody.fn;
+   ic           = polybody.ic;
+   E            = polybody.E;
+   attachmentA  = polybody.attachmentA;
+   attachmentB  = polybody.attachmentB;
+   edgeMap      = polybody.edgeMap;
+   attachmentAMap = polybody.attachmentAMap;
+   attachmentBMap = polybody.attachmentBMap;
    isLoad       = polybody.isLoad;
 
    return *this;

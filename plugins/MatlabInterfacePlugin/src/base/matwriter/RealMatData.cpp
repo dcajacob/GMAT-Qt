@@ -35,6 +35,7 @@
 #include "MatlabLibraryExecutor.hpp"
 #endif
 #include "MessageInterface.hpp"
+#include "MatWriterValue.hpp"
 
 
 //------------------------------------------------------------------------------
@@ -48,7 +49,8 @@
  */
 //------------------------------------------------------------------------------
 RealMatData::RealMatData(const std::string &variable_name) :
-   MatData        (variable_name)
+   MatData        (variable_name),
+   data_tmp       (NULL)
 {
    dataType = Gmat::REAL_TYPE;
 }
@@ -74,7 +76,10 @@ RealMatData::~RealMatData()
  */
 //------------------------------------------------------------------------------
 RealMatData::RealMatData(const RealMatData &rd) :
-   MatData        (rd)
+   MatData        (rd),
+   realData       (rd.realData),
+   realData3D     (rd.realData3D),
+   data_tmp       (NULL)
 {
 }
 
@@ -92,6 +97,8 @@ RealMatData& RealMatData::operator=(const RealMatData &rd)
    if (this != &rd)
    {
       MatData::operator=(rd);
+      realData = rd.realData;
+      realData3D = rd.realData3D;
    }
 
    return *this;
@@ -267,4 +274,28 @@ void RealMatData::WriteData(MATFile *pmat, const std::string &obj_name,
 bool RealMatData::WriteData()
 {
    return false;
+}
+
+MatlabValue RealMatData::ToMatlabValue() const
+{
+   using namespace MatWriterValue;
+   if (numDim == 2U)
+   {
+      if (!isJagged) return Numbers(realData);
+      auto value = Cell(1, realData.size());
+      for (size_t i = 0; i < realData.size(); ++i)
+      {
+         auto column = Empty(); column.rows = Dimension(realData[i].size()); column.columns = 1;
+         column.numbers = realData[i]; value.children[i] = std::move(column);
+      }
+      return value;
+   }
+   if (numDim == 3U)
+   {
+      auto value = Cell(1, realData3D.size());
+      for (size_t i = 0; i < realData3D.size(); ++i)
+         value.children[i] = Numbers(realData3D[i]);
+      return value;
+   }
+   throw UtilityException("MATLAB writer data has no supported buffered dimensions");
 }

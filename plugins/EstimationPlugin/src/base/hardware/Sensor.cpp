@@ -26,6 +26,7 @@
  */
 //------------------------------------------------------------------------------
 #include "Sensor.hpp"
+#include <memory>
 #include "HardwareException.hpp"
 #include "MessageInterface.hpp"
 
@@ -112,24 +113,24 @@ Sensor::Sensor(const Sensor & sensor) :
    isTransmitted2  (sensor.isTransmitted2),
    sensorID        ("")
 {
-   signal1 = NULL;
-   if (sensor.signal1 != NULL)
+   signal1 = signal2 = NULL;
+   std::unique_ptr<Signal> first, second;
+   if (sensor.signal1)
    {
-      signal1 = new Signal();
-      signal1->SetEpoch(sensor.signal1->GetEpoch());
-      signal1->SetValue(sensor.signal1->GetValue());
+      first.reset(new Signal());
+      first->SetEpoch(sensor.signal1->GetEpoch());
+      first->SetValue(sensor.signal1->GetValue());
    }
-
-   signal2 = NULL;
-   if (sensor.signal2 != NULL)
+   if (sensor.signal2)
    {
-      signal2 = new Signal();
-      signal2->SetEpoch(sensor.signal2->GetEpoch());
-      signal2->SetValue(sensor.signal2->GetValue());
+      second.reset(new Signal());
+      second->SetEpoch(sensor.signal2->GetEpoch());
+      second->SetValue(sensor.signal2->GetValue());
    }
-
    for (Integer i = ImagerParamCount; i < SensorParamCount; ++i)
       parameterWriteOrder.push_back(i);
+   signal1 = first.release();
+   signal2 = second.release();
 }
 
 //-----------------------------------------------------------------------------
@@ -148,6 +149,10 @@ Sensor & Sensor::operator=(const Sensor & sensor)
 {
    if (this != &sensor)
    {
+      if (GmatBase::IsNativeRestorationCopy() &&
+          ((signal1 == nullptr) != (sensor.signal1 == nullptr) ||
+           (signal2 == nullptr) != (sensor.signal2 == nullptr)))
+         throw HardwareException("Restoration cannot replace active sensor signal storage.");
       Imager::operator=(sensor);
 
       hardwareDelay1 = sensor.hardwareDelay1;

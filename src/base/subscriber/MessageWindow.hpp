@@ -37,6 +37,7 @@
 class GMAT_API MessageWindow : public Subscriber
 {
 public:
+   bool HasSubscriberValueReferenceProvider() const override;
    MessageWindow(const std::string &name);
    MessageWindow(const MessageWindow &mw);
    virtual ~MessageWindow(void);

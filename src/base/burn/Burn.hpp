@@ -37,6 +37,7 @@
 #include "GmatBase.hpp"
 #include "Spacecraft.hpp"
 #include "TimeTypes.hpp"
+#include <functional>
 
 /**
  * All maneuver classes are derived from this base class.
@@ -91,6 +92,8 @@ public:
                         GetRefObjectTypeArray();
    virtual const StringArray&
                         GetRefObjectNameArray(const UnsignedInt type);
+   using GmatBase::GetRefObject;
+   GmatBase* GetRefObject(const UnsignedInt type, const std::string &name) override;
    virtual bool         SetRefObject(GmatBase *obj, const UnsignedInt type,
                                      const std::string &name = "");
    virtual bool         RenameRefObject(const UnsignedInt type,
@@ -123,6 +126,13 @@ public:
                              bool backwards = false) = 0;
 
    DEFAULT_TO_NO_CLONES
+
+   // Passive retained-value binding. Neither path fires or retargets a live
+   // maneuver through SetSpacecraftToManeuver. Providers must rebuild together.
+   virtual void RebindClonedReferences(const Burn &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+   virtual bool InitializeClonedResource();
+
     
 protected:
 
@@ -182,6 +192,7 @@ protected:
    /// Available local axes labels
    static StringArray   localAxesLabels;
    
+   void                 ClearLocalCoordinateSystem();
    CoordinateSystem*    CreateLocalCoordinateSystem();
    void                 TransformJ2kToBurnOrigin(const Real *scState, 
                                                  Real *state, Real epoch);

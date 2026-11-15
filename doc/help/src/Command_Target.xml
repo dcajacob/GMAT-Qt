@@ -472,6 +472,39 @@
     <refsection>
       <title>Content of a Target/EndTarget Sequence</title>
 
+      <para>Iteration rollback restores captured spacecraft and formation values
+      into their original live objects, including the originally selected
+      formation members. Native formation membership and packed-state changes
+      are prepared and checked before values are applied. Propagation prepares
+      its bindings again when the restored layout requires it. Original
+      spacecraft targets must still exist, and compatible spacecraft component
+      graphs and original origin bindings remain required.</para>
+
+      <para>Iteration rollback also selects the captured active transient forces
+      and restores spacecraft maneuvering and thruster firing flags. The original
+      force objects and force-list context must remain alive; rollback does not
+      create a replacement burn. Propagation checks force identities and order,
+      including a changed selection with the same number of forces, before
+      reusing its prepared model. Publisher and subscriber maneuvering flags
+      return to their captured values without generating another begin/end
+      maneuver event. A subscriber added since capture receives the restored
+      scene's maneuvering flag; retired subscribers are not accessed.</para>
+
+      <para>During initialization, <guilabel>Vary</guilabel> and
+      <guilabel>Achieve</guilabel> commands inside <guilabel>If</guilabel>,
+      <guilabel>For</guilabel>, or <guilabel>While</guilabel> branches are bound
+      to the enclosing target sequence's local solver. A nested
+      <guilabel>Target</guilabel> or <guilabel>Optimize</guilabel> sequence owns
+      its own solver controls. Apply Corrections follows the same scope.
+      Before nominal or perturbation passes, the solver also registers the
+      fixed variable/goal metadata from these controls in script order.
+      This registration does not evaluate branch conditions, initialize loop
+      indices, or execute ordinary statements in a branch. Metadata expressions
+      must therefore already have valid values at registration time. Control
+      flow must provide the same registered variables and goals consistently
+      on subsequent evaluation passes. A nested solver inside an ordinary
+      branch starts when that branch executes.</para>
+
       <para>A <guilabel>Target/EndTarget</guilabel> sequence must contain at
       least one <guilabel>Vary</guilabel> command and at least one
       <guilabel>Achieve</guilabel> Command. See the <guilabel>Vary</guilabel>

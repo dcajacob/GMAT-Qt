@@ -31,6 +31,9 @@
 
 
 #include "RunEstimator.hpp"
+#include "EphemerisIterationScope.hpp"
+#include <typeinfo>
+#include "NavigationCommandUpdates.hpp"
 #include "EstimatorException.hpp"
 #include "MessageInterface.hpp"
 #include "ODEModel.hpp"
@@ -111,6 +114,10 @@ std::uint64_t RunEstimator::GetSuccessfulExecutionSequence() const
 //------------------------------------------------------------------------------
 RunEstimator::~RunEstimator()
 {
+   SetCloneNotificationsEnabled(false);
+   for (auto *setup : propagators) delete setup;
+   propagators.clear();
+
    if (theEstimator)
       delete theEstimator;
 
@@ -169,43 +176,36 @@ RunEstimator::RunEstimator(const RunEstimator & rs) :
  * @return A reference to this instance
  */
 //------------------------------------------------------------------------------
-RunEstimator& RunEstimator::operator=(const RunEstimator & rs)
+RunEstimator& RunEstimator::operator=(const RunEstimator &rs)
 {
    if (&rs != this)
    {
+      ClearNavigationReferences(true);
+      SetCloneNotificationsEnabled(false);
+      pendingDefinition.reset();
+      for (auto *setup : propagators) delete setup;
+      propagators.clear();
+      p.clear(); fm.clear(); psm.clear();
+      delete theEstimator;
+      theEstimator = nullptr;
       RunSolver::operator=(rs);
-
-      if (theEstimator)
-      {
-         delete theEstimator;
-         theEstimator = NULL;
-      }
-
-      successfulExecutionSequence = 0;
-      commandRunning       = false;
-      commandComplete      = false;
-      overridePropInit     = true;
-
-      // It would be publishOnStep = rs.publishOnStep.
-      // This was done in PropagationEnableCommand copy constructor.
-      //publishOnStep        = false;
-
-      propPrepared         = false;
-      estimationOffset     = rs.estimationOffset;
-      bufferFilled         = false;
-      currentEvent         = NULL;
+      commandRunning = false;
+      commandComplete = false;
+      overridePropInit = true;
+      bufferFilled = false;
+      currentEvent = nullptr;
+      eventMan = nullptr;
       eventProcessComplete = false;
-	  solveMode		       = rs.solveMode;
-
-      if (eventMan)
-      {
-         eventMan->CleanUp();
-         // use delete eventMan causes a crash
-      }
+      successfulExecutionSequence = 0;
+      propPrepared = false;
+      startNewPass = false;
+      estimationOffset = rs.estimationOffset;
+      solveMode = rs.solveMode;
+      delayInitialization = true;
    }
-
    return *this;
 }
+
 
 //------------------------------------------------------------------------------
 // GmatBase *Clone() const
@@ -422,6 +422,7 @@ bool RunEstimator::Initialize()
    if (isInitialized)
       return true;
 
+   SetCloneNotificationsEnabled(false);
    bool retval = false;
 
    // First set the Estimator object
@@ -429,26 +430,17 @@ bool RunEstimator::Initialize()
       throw CommandException("Cannot initialize RunEstimator command -- the "
             "Estimator name is not specified.");
 
-   // Clear the old clone if it was set
-   if (theEstimator != NULL)
-   {
-      delete theEstimator;
-      theEstimator = NULL;
-   }
+   auto *estObj = pendingDefinition ? pendingDefinition.get() :
+      dynamic_cast<Estimator*>(FindObject(solverName));
+   if (!estObj)
+      throw CommandException("Cannot resolve the selected Estimator definition for " + solverName + ".\n");
+   const GmatBase *source = pendingDefinition ? pendingDefinition->GetCloneSource() : estObj;
+   auto prepared = NavigationCommandUpdates::Clone(*estObj, *this, source, GetCommandOwnedObjects());
+   ClearNavigationReferences(true);
+   commandRunning = false;
+   delete theEstimator;
+   theEstimator = prepared.release();
 
-   GmatBase *estObj = FindObject(solverName);
-   if (estObj == NULL)
-      throw CommandException("Cannot initialize RunEstimator command -- the "
-            "Estimator named " + solverName + " cannot be found.");
-
-   if (!estObj->IsOfType("Estimator"))
-      throw CommandException("Cannot initialize RunEstimator command -- the "
-            "object named " + solverName + " is not a Estimator.");
-
-   #ifdef DEBUG_INITIALIZATION
-      MessageInterface::ShowMessage("RunEstimator::Initialize():   step 1: create an Estimator and set value to the Estimator\n"); 
-   #endif
-   theEstimator = (Estimator*)(estObj->Clone());
    
    #ifdef DEBUG_INITIALIZATION
       MessageInterface::ShowMessage("RunEstimator::Initialize():   step 1.1: reset delay flag\n"); 
@@ -458,11 +450,13 @@ bool RunEstimator::Initialize()
    #ifdef DEBUG_INITIALIZATION
       MessageInterface::ShowMessage("RunEstimator::Initialize():   step 1.2: initialize the Estimator\n"); 
    #endif
-   theEstimator->Initialize();
+   if (!theEstimator->Initialize())
+      throw CommandException("Cannot initialize the command-owned Estimator.\n");
    // A sandbox solver can retain a terminal state after an earlier invocation.
    // A new command-local clone must start its own state machine from the
    // initialization state, before its fresh propagators are used.
-   theEstimator->TakeAction("Reset");
+   if (theEstimator->IsOfType("SeqEstimator")) theEstimator->TakeAction("RunForwards");
+   else theEstimator->TakeAction("Reset");
 
    theEstimator->TakeAction("ResetInstanceCount");
    theEstimator->TakeAction("IncrementInstanceCount"); 
@@ -484,7 +478,7 @@ bool RunEstimator::Initialize()
          if (obj->IsOfType(Gmat::DATASTREAM))
          {
             DataFile *df = (DataFile*)obj;
-            measman->SetStreamObject(df);
+            NavigationCommandUpdates::AttachStream(*measman, *theEstimator, *df, false);
          }
       }
       else
@@ -506,7 +500,7 @@ bool RunEstimator::Initialize()
          if (obj->IsOfType(Gmat::DATASTREAM))
          {
             DataFile *df = (DataFile*)obj;
-            measman->SetRampTableDataStreamObject(df);
+            NavigationCommandUpdates::AttachStream(*measman, *theEstimator, *df, true);
          }
          else
             MessageInterface::ShowMessage("Object '%s' is not Gmat::DATASTREAM\n", obj->GetName().c_str());
@@ -766,9 +760,22 @@ void RunEstimator::SetPropagationProperties(PropagationStateManager *psm)
 //------------------------------------------------------------------------------
 bool RunEstimator::PreExecution()
 {
+   successfulExecutionSequence = 0;
+   bool preparedSuccessfully = false;
+   const auto onFailure = [&](void*)
+   {
+      if (!preparedSuccessfully)
+      {
+         isInitialized = false;
+         SetCloneNotificationsEnabled(theEstimator || pendingDefinition);
+      }
+   };
+   std::unique_ptr<void, decltype(onFailure)> preparationGuard(this, onFailure);
+
    // This entry point begins a new invocation, including reentry from a
    // containing loop. Do not reuse the previous FINISHED solver clone while
    // constructing new propagation objects below.
+   SetCloneNotificationsEnabled(false);
    isInitialized = false;
 #ifdef DEBUG_INITIALIZATION
    MessageInterface::ShowMessage("Start RunEstimator::PreExecution()\n");
@@ -785,6 +792,7 @@ bool RunEstimator::PreExecution()
       MessageInterface::ShowMessage("PreExecution(): Step 2: re-initialize the Estimator\n");
 #endif
       retval = theEstimator->Reinitialize();
+      if (!retval) throw CommandException("Estimator reinitialization failed.\n");
 
 #ifdef DEBUG_INITIALIZATION
       MessageInterface::ShowMessage("PreExecution(): Step 3: set up event manager\n");
@@ -841,12 +849,13 @@ bool RunEstimator::PreExecution()
          propagators.clear();
          p.clear();
          fm.clear();
+         psm.clear();
       }
 
       propObjectNames.clear();
 
       std::map<PropSetup*, StringArray> satList;
-      std::map<std::string, PropSetup*> knownProps;
+      std::map<PropSetup*, PropSetup*> knownProps;
       
       // Setup new ones
       StringArray participants = measman->GetParticipantList();
@@ -868,16 +877,20 @@ bool RunEstimator::PreExecution()
             std::string propName = prop->GetName();
             PropSetup *ps = nullptr;
 
-            if (knownProps.find(propName) == knownProps.end())
+            if (knownProps.find(prop) == knownProps.end())
             {
-               ps = (PropSetup*)prop->Clone();
+               std::set<GmatBase*> forbidden{this, theEstimator};
+               for (auto *existing : propagators) forbidden.insert(existing);
+               auto preparedGroup = NavigationPropagationCopies::Clone(*prop, *this, true, forbidden);
+               ps = preparedGroup.get();
                ps->SetPrecisionTimeFlag(true);
                propagators.push_back(ps);
+               preparedGroup.release();
 
                StringArray satNames;
                satNames.push_back(participants[i]);
                satList[ps] = satNames;
-               knownProps[propName] = ps;
+               knownProps[prop] = ps;
 
 			   if (prop->GetPropagator()->IsOfType("EphemerisPropagator"))
 			   {
@@ -901,14 +914,18 @@ bool RunEstimator::PreExecution()
                // One Ephem Prop per spacecraft
                if (prop->GetPropagator()->IsOfType("EphemerisPropagator"))
                {
-                  ps = (PropSetup*)prop->Clone();
+                  std::set<GmatBase*> forbidden{this, theEstimator};
+                  for (auto *existing : propagators) forbidden.insert(existing);
+                  auto preparedGroup = NavigationPropagationCopies::Clone(*prop, *this, true, forbidden);
+                  ps = preparedGroup.get();
                   ps->SetPrecisionTimeFlag(true);
                   propagators.push_back(ps);
+                  preparedGroup.release();
 
                   StringArray satNames;
                   satNames.push_back(participants[i]);
                   satList[ps] = satNames;
-                  knownProps[propName] = ps;
+                  knownProps[prop] = ps;
                   ps->GetPropagator()->TakeAction("RunPastStartEnd");
 				      p.push_back(ps->GetPropagator());
                   fm.push_back(ps->GetODEModel());
@@ -919,7 +936,7 @@ bool RunEstimator::PreExecution()
                }
                else
                {
-                  ps = knownProps[propName];
+                  ps = knownProps[prop];
                   StringArray satNames = satList[ps];
                   if (find(satNames.begin(), satNames.end(), participants[i]) == satNames.end())
                      (satList[ps]).push_back(participants[i]);
@@ -1153,22 +1170,23 @@ bool RunEstimator::PreExecution()
 #endif
       // Now we can initialize the propagation subsystem by calling up the
       // inheritance tree.
-      try
-      {
-#ifdef DEBUG_INITIALIZATION
-         MessageInterface::ShowMessage("RunSolver::Initialize()\n");
-#endif
-         isInitialized = RunSolver::Initialize();
-      } catch(GmatBaseException e)
-      {
-         MessageInterface::ShowMessage(" *** message: %s\n", e.GetDetails().c_str());
-      }
+      isInitialized = RunSolver::Initialize();
+      if (!isInitialized) throw CommandException("Estimator propagation initialization failed.\n");
    }
 
 #ifdef DEBUG_INITIALIZATION
    MessageInterface::ShowMessage("End RunEstimator::PreExecution()\n");
 #endif
-   return retval;
+   if (retval && isInitialized)
+   {
+      pendingDefinition.reset();
+      commandRunning = false;
+      commandComplete = false;
+      propPrepared = false;
+      SetCloneNotificationsEnabled(true);
+   }
+   preparedSuccessfully = retval && isInitialized;
+   return retval && isInitialized;
 }
 
 
@@ -1188,6 +1206,15 @@ bool RunEstimator::PreExecution()
 //------------------------------------------------------------------------------
 bool RunEstimator::Execute()
 {
+   EphemerisIterationScope ephemerisScope([](const void *object)
+   {
+      const auto *command = static_cast<const RunEstimator*>(object);
+      return command->solveMode != "Solve" || !command->theEstimator ||
+            !command->theEstimator->IsOfType("BatchEstimator") ||
+            command->theEstimator->GetIntegerParameter(
+                  command->theEstimator->GetParameterID("IntegerSolverStatus")) == Gmat::CONVERGED;
+   }, this);
+
    #ifdef DEBUG_STATE
      MessageInterface::ShowMessage("*** Enter RunEstimator:Execute()\n");
    #endif
@@ -1196,13 +1223,14 @@ bool RunEstimator::Execute()
    // Steps to run before running Execute()
    //--------------------------------------------------------------------
    // Initialization step is moved here:
-   if (delayInitialization)
+   if (delayInitialization || pendingDefinition || !isInitialized || !theEstimator)
    {
       // A new execution cannot offer the preceding execution's filter data.
       successfulExecutionSequence = 0;
       // It needs to run initialization now
       delayInitialization = false;
-      PreExecution();
+      if (!PreExecution())
+         throw CommandException("Cannot prepare the command-owned estimator.\n");
    }
 
 
@@ -1550,6 +1578,9 @@ bool RunEstimator::Execute()
 //------------------------------------------------------------------------------
 void RunEstimator::RunComplete()
 {
+   ClearNavigationReferences(true);
+   SetCloneNotificationsEnabled(false);
+   pendingDefinition.reset();
    successfulExecutionSequence = 0;
    #ifdef DEBUG_EXECUTION
       MessageInterface::ShowMessage("Entered RunEstimator::RunComplete()\n");
@@ -1568,7 +1599,7 @@ void RunEstimator::RunComplete()
    {
       if (eventMan)
       {
-         eventMan->CleanUp();
+         // This command's event registrations were detached above.
 
          // This causes crash. Use CleanUp() instead
          //delete eventMan;
@@ -1677,12 +1708,70 @@ bool RunEstimator::HasLocalClones()
 //------------------------------------------------------------------------------
 void RunEstimator::UpdateClonedObject(GmatBase *obj)
 {
-   if (obj->IsOfType("Spacecraft"))
-      return;
-   if (obj->IsOfType("Parameter"))
-      return;
-   throw CommandException("To do: implement RunEstimator::UpdateClonedObject "
-         "for " + obj->GetTypeName() + " objects");
+   UpdateClonedObjectParameter(obj, -1);
+}
+
+void RunEstimator::UpdateClonedObjectParameter(GmatBase *obj, Integer parameterId)
+{
+   auto *selected = dynamic_cast<Estimator*>(FindObject(solverName));
+   auto prepared = NavigationCommandUpdates::Prepare(theEstimator, pendingDefinition.get(), selected,
+      propagators, *this, obj, parameterId, GetCommandOwnedObjects());
+   if (!prepared) return;
+   pendingDefinition = std::move(prepared);
+   successfulExecutionSequence = 0;
+   // Keep the current engine ready until Execute reaches its restart boundary.
+   // Its active subscription also receives later edits to this pending value.
+   SetCloneNotificationsEnabled(true);
+}
+
+ObjectArray RunEstimator::GetCommandOwnedObjects() const
+{
+   ObjectArray result = RunSolver::GetCommandOwnedObjects();
+   if (theEstimator) result.push_back(theEstimator);
+   if (pendingDefinition) result.push_back(pendingDefinition.get());
+   for (auto *setup : propagators) if (setup) result.push_back(setup);
+   return result;
+}
+
+void RunEstimator::ClearNavigationReferences(bool closeStreams)
+{
+   const bool closeFailed = closeStreams && commandRunning && theEstimator &&
+      !theEstimator->GetMeasurementManager()->ProcessingComplete();
+   if (eventMan)
+   {
+      for (auto *event : eventList) if (event) eventMan->ClearObject(event);
+      for (auto *setup : propagators) if (setup) eventMan->ClearObject(setup);
+   }
+   eventList.clear();
+   currentEvent = nullptr;
+   eventIndex = 0;
+   eventProcessComplete = false;
+   bufferFilled = false;
+   if (closeFailed)
+   {
+      isInitialized = false;
+      throw CommandException("Cannot close measurement streams before navigation restart.\n");
+   }
+}
+
+void RunEstimator::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   ClearNavigationReferences(true);
+   SetCloneNotificationsEnabled(false);
+   pendingDefinition.reset();
+   for (auto *setup : propagators) delete setup;
+   propagators.clear();
+   p.clear(); fm.clear(); psm.clear();
+   delete theEstimator;
+   theEstimator = nullptr;
+   eventMan = nullptr;
+   commandRunning = false;
+   commandComplete = true;
+   successfulExecutionSequence = 0;
+   propPrepared = false;
+   delayInitialization = true;
+   RunSolver::RetireFunctionBindings(store);
 }
 
 //------------------------------------------------------------------------------
@@ -2161,7 +2250,7 @@ void RunEstimator::Calculate()
                CreateNewSegments(currEpoch[0]);
          }
          publisher->SetSpacecraftPropertyChanged(this, currEpochGT[0].GetMjd(), 
-            (*sat)->GetName(), "RunEstimator");
+            (*sat)->GetName(), "RunEstimator", *sat);
       }
    }
 
@@ -2630,32 +2719,10 @@ void RunEstimator::PublishState()
    // (time synchonized). That means currEpochGT[i] = currEpoch[0].
    pubdata[0] = currEpochGT[0].GetMjd();
 
-   // 2. Publish all elements in propagation state manager
-   // Use propagation state manager instead of estimation state manager
-   //esm->PrepareStateDataToPublish(pubdata, pubdataSize, pubdataElements);
-   for(Integer idx = 0; idx < psm.size(); ++idx)
-      psm[idx]->PrepareStateDataToPublish(pubdata, pubdataSize, pubdataElements);
-
+   // Use the same registered ordinal group layout as propagation, including
+   // actual identities when scoped spacecraft share a display name.
+   PrepareElementDataToPublish(pubdata, pubdataSize, pubdataElements, covStartIndex, attStartIndex);
    Integer theDim = covStartIndex;
-
-   #ifdef DEBUG_PUBLISH_STATE_DATA
-      MessageInterface::ShowMessage(" theDim = %d\n", theDim);
-   #endif
-
-   // 3. Publish covariance and acceleration for each spacecraft
-   // We have to use propagation state manager instead of estimation state manager.
-   // Note that: estimation state manager only contains the estimation of
-   // the spacecraft's initial state and all other solve-for variable. It does not 
-   // contains spacecraft's state during the propagation.
-   // Propagation state manager contains all propagated variables at the current epoch
-   // it propagtes to. Therefore, we needs to get propagated elements there.
-   for (Integer idx = 0; idx < psm.size(); ++idx)
-      psm[idx]->PrepareCovAndAccelerationDataToPublish(pubdata, pubdataSize, pubdataElements, covStartIndex, hasPrecisionTime);
-
-   // 4. Publish attitude for each spacecraft
-   for (Integer idx = 0; idx < psm.size(); ++idx)
-      psm[idx]->PrepareAttitudeDataToPublish(pubdata, pubdataSize, pubdataElements, attStartIndex, hasPrecisionTime);
-
 
 #ifdef DEBUG_PUBLISH_STATE
    Solver::SolverState state = theEstimator->GetState();
@@ -2696,73 +2763,104 @@ void RunEstimator::PublishState()
 
 
    //publisher->Publish(this, streamID, pubdata, theDim +idx, direction);
+   const auto columns = GetPublicationColumns();
    std::vector<Publisher::CartesianSample> outputSamples;
 #ifdef __USE_SPICE__
    if (theEstimator->IsOfType("BatchEstimatorBase") && theEstimator->IsFinalPass())
    {
-      std::set<std::string> spkTargets;
+      std::set<const GmatBase*> publishedObjects;
+      for (const auto &column : columns)
+         if (!column.object || !publishedObjects.insert(column.object).second)
+            throw CommandException("SPK output publication has an invalid or repeated spacecraft.");
+      std::set<const GmatBase*> spkTargets;
       for (auto *subscriber : publisher->GetSubscriberList())
          if (subscriber->IsOfType("EphemerisFile") && subscriber->IsActive() &&
              subscriber->GetStringParameter("FileFormat") == "SPK" &&
              subscriber->GetBooleanParameter("WriteEphemeris"))
-            spkTargets.insert(subscriber->GetStringParameter("Spacecraft"));
+         {
+            auto *object = subscriber->GetRefObject(Gmat::SPACECRAFT, subscriber->GetStringParameter("Spacecraft"));
+            if (!object) throw CommandException("SPK output subscriber has no bound spacecraft.");
+            // Other active writers may belong to another command or function.
+            // Their spacecraft are not targets of this publication.
+            if (publishedObjects.count(object)) spkTargets.insert(object);
+         }
       if (!spkTargets.empty())
       {
          SpiceInterface clock;
-         GmatTime sampleEpoch;
-         clock.A1ToSpiceTime(currEpochGT[0], sampleEpoch);
-         const Real dt = (sampleEpoch - currEpochGT[0]).GetTimeInSec();
-         // This is local output sampling, not a propagator step or an event
-         // epoch change. Refuse dates whose encoded ET cell exceeds this range.
-         if (!std::isfinite(dt) || std::abs(dt) > 1.0e-6)
-            throw CommandException("SPK output sampling exceeds the supported one-microsecond time cell.");
-         std::set<const GmatBase *> sampled;
-         for (UnsignedInt index = 0; index < psm.size(); ++index)
+         for (const auto &column : columns)
          {
-            ObjectArray objects;
-            psm[index]->GetStateObjects(objects, Gmat::SPACECRAFT);
-            for (auto *object : objects)
+            if (!spkTargets.count(column.object)) continue;
+            const Integer group = column.propagationGroup;
+            // Publication metadata is a const view; the native getters retain
+            // their historical non-const signatures. Only the clone is edited.
+            auto *sat = const_cast<Spacecraft*>(dynamic_cast<const Spacecraft*>(column.object));
+            if (!sat || group < 0 || static_cast<size_t>(group) >= fm.size() || !fm[group] ||
+                !column.hasEpoch || !std::isfinite(column.epoch.GetMjd()) || !std::isfinite(column.epoch.GetFracSec()) ||
+                sat->GetEpochGT() != column.epoch ||
+                !GmatBase::IsLiveReference(column.frame, column.frameIdentity) ||
+                sat->GetInternalCoordSystem() != column.frame)
+               throw CommandException("SPK output sampling requires a coherent numerical spacecraft group.");
+            const auto identity = sat->GetLifetimeToken();
+            const GmatTime liveEpoch = sat->GetEpochGT();
+            const Rvector6 liveState = sat->GetLastState();
+            Rvector6 sourceState;
+            for (Integer j = 0; j < 6; ++j)
             {
-               if (!spkTargets.count(object->GetName()) || !sampled.insert(object).second)
-                  continue;
-               auto *sat = dynamic_cast<Spacecraft *>(object);
-               if (!sat || index >= fm.size() || !fm[index] ||
-                   sat->GetEpochGT() != currEpochGT[0])
-                  throw CommandException("SPK output sampling requires a synchronized numerical spacecraft.");
-               const GmatTime liveEpoch = sat->GetEpochGT();
-               const Rvector6 liveState = sat->GetLastState();
-               // Evaluate forces on a detached spacecraft. Unlike the ODE
-               // parameter helper, do not swallow unsupported force errors.
-               std::unique_ptr<Spacecraft> input(new Spacecraft(*sat));
-               Rvector3 acceleration(0.0, 0.0, 0.0);
-               for (Integer f = 0; f < fm[index]->GetNumForces(); ++f)
-               {
-                  const Rvector6 derivative = fm[index]->GetForce(f)->GetDerivativesForSpacecraft(input.get());
-                  for (Integer j = 0; j < 3; ++j)
-                  {
-                     if (!std::isfinite(derivative[j + 3]))
-                        throw CommandException("SPK output sampling encountered a nonfinite force derivative.");
-                     acceleration[j] += derivative[j + 3];
-                  }
-               }
-               if (sat->GetEpochGT() != liveEpoch || sat->GetLastState() != liveState)
-                  throw CommandException("SPK output sampling changed the live spacecraft.");
-               Rvector6 state(liveState);
+               const Integer index = column.indices[j];
+               if (index <= 0 || index >= pubdataSize || !std::isfinite(pubdata[index]))
+                  throw CommandException("SPK output sampling has an invalid Cartesian packet column.");
+               sourceState[j] = pubdata[index];
+            }
+            GmatTime sampleEpoch;
+            clock.A1ToSpiceTime(column.epoch, sampleEpoch);
+            const Real dt = (sampleEpoch - column.epoch).GetTimeInSec();
+            // Keep the existing local ET-cell sampling policy. This does not
+            // step a propagator or replace the source packet's time/state.
+            if (!std::isfinite(dt) || std::abs(dt) > 1.0e-6)
+               throw CommandException("SPK output sampling exceeds the supported one-microsecond time cell.");
+            std::unique_ptr<GmatBase> snapshot(sat->Clone());
+            auto *input = dynamic_cast<Spacecraft*>(snapshot.get());
+            if (!input || typeid(*input) != typeid(*sat) || input->GetEpochGT() != column.epoch ||
+                input->GetInternalCoordSystem() != column.frame)
+               throw CommandException("SPK output sampling could not retain the actual spacecraft value/frame.");
+            input->SetState(sourceState);
+            Rvector3 acceleration(0.0, 0.0, 0.0);
+            for (Integer f = 0; f < fm[group]->GetNumForces(); ++f)
+            {
+               auto *force = fm[group]->GetForce(f);
+               if (!force) throw CommandException("SPK output sampling has a null force provider.");
+               const Rvector6 derivative = force->GetDerivativesForSpacecraft(input);
                for (Integer j = 0; j < 3; ++j)
                {
-                  state[j] += liveState[j + 3] * dt + 0.5 * acceleration[j] * dt * dt;
-                  state[j + 3] += acceleration[j] * dt;
+                  if (!std::isfinite(derivative[j + 3]))
+                     throw CommandException("SPK output sampling encountered a nonfinite force derivative.");
+                  acceleration[j] += derivative[j + 3];
+                  if (!std::isfinite(acceleration[j]))
+                     throw CommandException("SPK output sampling acceleration is not finite.");
                }
-               outputSamples.push_back({sat, sampleEpoch, state});
             }
+            if (!GmatBase::IsLiveReference(sat,identity) ||
+                !GmatBase::IsLiveReference(column.frame,column.frameIdentity) ||
+                sat->GetEpochGT() != liveEpoch || sat->GetLastState() != liveState ||
+                sat->GetInternalCoordSystem() != column.frame)
+               throw CommandException("SPK output sampling changed the live spacecraft or frame.");
+            Rvector6 state(sourceState);
+            for (Integer j = 0; j < 3; ++j)
+            {
+               state[j] += sourceState[j + 3] * dt + 0.5 * acceleration[j] * dt * dt;
+               state[j + 3] += acceleration[j] * dt;
+               if (!std::isfinite(state[j]) || !std::isfinite(state[j + 3]))
+                  throw CommandException("SPK output sampling produced a nonfinite state.");
+            }
+            outputSamples.push_back({sat, sampleEpoch, state});
          }
          if (outputSamples.size() != spkTargets.size())
             throw CommandException("SPK output sampling could not resolve every requested spacecraft.");
       }
    }
 #endif
-   publisher->PublishWithSamples(this, streamID, pubdata, pubdataElements.size(),
-                                 currEpochGT[0], outputSamples, direction);
+   publisher->PublishWithSpacecraftColumns(this, streamID, pubdata, pubdataElements.size(),
+      columns, direction, &currEpochGT[0], &outputSamples);
    if (theEstimator->IsOfType("SeqEstimator") && esm->HasStateOffset())
    {
       // Remove the state offset from the reference trajectory

@@ -4,6 +4,12 @@
 #include <QDialogButtonBox>
 #include <QPointer>
 #include <QPushButton>
+#include <QBoxLayout>
+#include <QComboBox>
+#include <QLabel>
+#include <QLineEdit>
+#include <QPlainTextEdit>
+#include <QTableWidget>
 
 void EditablePanel::addOkCancelActions(QDialogButtonBox &buttons)
 {
@@ -11,9 +17,23 @@ void EditablePanel::addOkCancelActions(QDialogButtonBox &buttons)
    if (!apply || buttons.button(QDialogButtonBox::Ok) || buttons.button(QDialogButtonBox::Cancel)) return;
    auto *ok=buttons.addButton(QDialogButtonBox::Ok);
    auto *cancel=buttons.addButton(QDialogButtonBox::Cancel);
+   completionButtons=&buttons;
    ok->setObjectName("okPanel"); cancel->setObjectName("cancelPanel");
+   ok->setDefault(true);
+   cancel->setText("Discard changes");
    ok->setToolTip("Apply valid changes and close");
    cancel->setToolTip("Discard unapplied changes and close");
+   if (auto *close=buttons.button(QDialogButtonBox::Close)) close->hide();
+   completionStatus=new QLabel(this);
+   completionStatus->setObjectName("panelCompletionStatus");
+   completionStatus->setWordWrap(true);
+   if (auto *box=qobject_cast<QBoxLayout *>(layout())) box->insertWidget(box->indexOf(&buttons),completionStatus);
+   const auto refresh=[this] { refreshCompletionActions(); };
+   for (auto *input:findChildren<QLineEdit *>()) connect(input,&QLineEdit::textChanged,this,refresh);
+   for (auto *input:findChildren<QComboBox *>()) connect(input,&QComboBox::currentTextChanged,this,refresh);
+   for (auto *input:findChildren<QAbstractButton *>()) connect(input,&QAbstractButton::toggled,this,refresh);
+   for (auto *input:findChildren<QPlainTextEdit *>()) connect(input,&QPlainTextEdit::textChanged,this,refresh);
+   for (auto *input:findChildren<QTableWidget *>()) connect(input,&QTableWidget::itemChanged,this,refresh);
    connect(ok,&QPushButton::clicked,this,[this,apply] {
       QPointer<QMdiSubWindow> owner=qobject_cast<QMdiSubWindow *>(parentWidget());
       if (!owner) return;
@@ -36,6 +56,16 @@ void EditablePanel::addOkCancelActions(QDialogButtonBox &buttons)
       discardChanges();
       owner->close();
    });
+   refreshCompletionActions();
+}
+
+void EditablePanel::refreshCompletionActions()
+{
+   if (!completionButtons) return;
+   const bool pending=hasUnappliedInput();
+   completionButtons->button(QDialogButtonBox::Ok)->setText(pending ? "Apply and close" : "Close");
+   completionButtons->button(QDialogButtonBox::Cancel)->setVisible(pending);
+   completionStatus->setText(pending ? "Unapplied changes" : "Applied to the mission script. Save the script to update its file.");
 }
 
 void EditablePanel::appliedSuccessfully()

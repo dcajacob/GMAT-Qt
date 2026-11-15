@@ -155,7 +155,12 @@ void CurrA1MJD::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* CurrA1MJD::Clone(void) const
 {
-   return new CurrA1MJD(*this);
+   return CompleteParameterClone(new CurrA1MJD(*this));
+}
+
+void CurrA1MJD::Copy(const GmatBase *source)
+{
+   CopyParameterValue<CurrA1MJD>(source);
 }
 
 
@@ -273,7 +278,12 @@ void A1ModJulian::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* A1ModJulian::Clone(void) const
 {
-   return new A1ModJulian(*this);
+   return CompleteParameterClone(new A1ModJulian(*this));
+}
+
+void A1ModJulian::Copy(const GmatBase *source)
+{
+   CopyParameterValue<A1ModJulian>(source);
 }
 
 
@@ -384,7 +394,12 @@ void A1Gregorian::SetString(const std::string &val)
 //------------------------------------------------------------------------------
 GmatBase* A1Gregorian::Clone(void) const
 {
-   return new A1Gregorian(*this);
+   return CompleteParameterClone(new A1Gregorian(*this));
+}
+
+void A1Gregorian::Copy(const GmatBase *source)
+{
+   CopyParameterValue<A1Gregorian>(source);
 }
 
 
@@ -495,7 +510,12 @@ void TAIModJulian::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* TAIModJulian::Clone(void) const
 {
-   return new TAIModJulian(*this);
+   return CompleteParameterClone(new TAIModJulian(*this));
+}
+
+void TAIModJulian::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TAIModJulian>(source);
 }
 
 
@@ -606,7 +626,12 @@ void TAIGregorian::SetString(const std::string &val)
 //------------------------------------------------------------------------------
 GmatBase* TAIGregorian::Clone(void) const
 {
-   return new TAIGregorian(*this);
+   return CompleteParameterClone(new TAIGregorian(*this));
+}
+
+void TAIGregorian::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TAIGregorian>(source);
 }
 
 
@@ -717,7 +742,12 @@ void TTModJulian::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* TTModJulian::Clone(void) const
 {
-   return new TTModJulian(*this);
+   return CompleteParameterClone(new TTModJulian(*this));
+}
+
+void TTModJulian::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TTModJulian>(source);
 }
 
 
@@ -828,7 +858,12 @@ void TTGregorian::SetString(const std::string &val)
 //------------------------------------------------------------------------------
 GmatBase* TTGregorian::Clone(void) const
 {
-   return new TTGregorian(*this);
+   return CompleteParameterClone(new TTGregorian(*this));
+}
+
+void TTGregorian::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TTGregorian>(source);
 }
 
 
@@ -941,7 +976,12 @@ void TDBModJulian::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* TDBModJulian::Clone(void) const
 {
-   return new TDBModJulian(*this);
+   return CompleteParameterClone(new TDBModJulian(*this));
+}
+
+void TDBModJulian::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TDBModJulian>(source);
 }
 
 
@@ -1054,7 +1094,12 @@ void TDBGregorian::SetString(const std::string &val)
 //------------------------------------------------------------------------------
 GmatBase* TDBGregorian::Clone(void) const
 {
-   return new TDBGregorian(*this);
+   return CompleteParameterClone(new TDBGregorian(*this));
+}
+
+void TDBGregorian::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TDBGregorian>(source);
 }
 
 
@@ -1165,7 +1210,12 @@ void UTCModJulian::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* UTCModJulian::Clone(void) const
 {
-   return new UTCModJulian(*this);
+   return CompleteParameterClone(new UTCModJulian(*this));
+}
+
+void UTCModJulian::Copy(const GmatBase *source)
+{
+   CopyParameterValue<UTCModJulian>(source);
 }
 
 
@@ -1276,7 +1326,12 @@ void UTCGregorian::SetString(const std::string &val)
 //------------------------------------------------------------------------------
 GmatBase* UTCGregorian::Clone(void) const
 {
-   return new UTCGregorian(*this);
+   return CompleteParameterClone(new UTCGregorian(*this));
+}
+
+void UTCGregorian::Copy(const GmatBase *source)
+{
+   CopyParameterValue<UTCGregorian>(source);
 }
 
 
@@ -1415,7 +1470,12 @@ bool ElapsedDays::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* ElapsedDays::Clone(void) const
 {
-   return new ElapsedDays(*this);
+   return CompleteParameterClone(new ElapsedDays(*this));
+}
+
+void ElapsedDays::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ElapsedDays>(source);
 }
 
 
@@ -1709,7 +1769,12 @@ bool ElapsedDaysFromStart::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* ElapsedDaysFromStart::Clone(void) const
 {
-   return new ElapsedDaysFromStart(*this);
+   return CompleteParameterClone(new ElapsedDaysFromStart(*this));
+}
+
+void ElapsedDaysFromStart::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ElapsedDaysFromStart>(source);
 }
 
 
@@ -2004,7 +2069,12 @@ bool ElapsedSecs::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* ElapsedSecs::Clone(void) const
 {
-   return new ElapsedSecs(*this);
+   return CompleteParameterClone(new ElapsedSecs(*this));
+}
+
+void ElapsedSecs::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ElapsedSecs>(source);
 }
 
 
@@ -2298,7 +2368,12 @@ bool ElapsedSecsFromStart::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* ElapsedSecsFromStart::Clone(void) const
 {
-   return new ElapsedSecsFromStart(*this);
+   return CompleteParameterClone(new ElapsedSecsFromStart(*this));
+}
+
+void ElapsedSecsFromStart::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ElapsedSecsFromStart>(source);
 }
 
 

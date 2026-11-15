@@ -48,6 +48,8 @@ class MatlabInterface;
 class FMINCON_API FminconOptimizer : public ExternalOptimizer
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = ExternalOptimizer::NativeValueProviderDepth + 1;
+
    FminconOptimizer(const std::string &name);
    virtual ~FminconOptimizer();
    FminconOptimizer(const FminconOptimizer &opt);
@@ -60,6 +62,8 @@ public:
    
    // inherited from GmatBase
    virtual GmatBase*    Clone() const;
+   bool HasSolverValueReferenceProviderImpl() const;
+   void PrepareClonedSolverValueImpl(const Solver &source);
    virtual void         Copy(const GmatBase* orig);
    virtual bool         TakeAction(const std::string &action,
                                   const std::string &actionData = "");

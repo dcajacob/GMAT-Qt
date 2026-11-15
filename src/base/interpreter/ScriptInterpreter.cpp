@@ -27,7 +27,9 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ScriptStringLiteral.hpp"
 #include "ScriptInterpreter.hpp"
+#include "ScriptSourceCapture.hpp"
 #include "MessageInterface.hpp"
 #include "Moderator.hpp"
 #include "MathParser.hpp"
@@ -73,6 +75,32 @@
 #endif
 
 ScriptInterpreter *ScriptInterpreter::instance = NULL;
+
+namespace
+{
+   thread_local ScriptSourceCapture *activeSourceCapture = nullptr;
+}
+
+ScriptSourceCapture::ScriptSourceCapture() noexcept :
+   previous(activeSourceCapture)
+{
+   activeSourceCapture = this;
+}
+
+ScriptSourceCapture::~ScriptSourceCapture() noexcept
+{
+   activeSourceCapture = previous;
+}
+
+void ScriptSourceCapture::Record(const std::string &text, bool root)
+{
+   if (!activeSourceCapture || text.empty())
+      return;
+   if (root)
+      activeSourceCapture->rootBlock = text;
+   activeSourceCapture->blocks.push_back(
+         {text, activeSourceCapture->rootBlock, !root});
+}
 
 
 //------------------------------------------------------------------------------
@@ -868,6 +896,11 @@ bool ScriptInterpreter::SetOutStream(std::ostream *ostrm)
    return true;
 }
 
+std::ostream* ScriptInterpreter::GetOutStream() const
+{
+   return outStream;
+}
+
 
 //------------------------------------------------------------------------------
 // bool ReadFirstPass()
@@ -1043,6 +1076,11 @@ void ScriptInterpreter::InitializeScriptData()
 //------------------------------------------------------------------------------
 bool ScriptInterpreter::InterpretIncludeFile(GmatCommand *inCmd)
 {
+   // Check before changing parser/stream stacks so a policy error leaves them
+   // pointing at the caller. Nested includes inherit the current function.
+   if (currentFunction)
+      currentFunction->ValidateSourceFilePolicy(lastIncludeFile, true);
+
    #ifdef DEBUG_INCLUDE
    MessageInterface::ShowMessage
       ("ScriptInterpreter::InterpretIncludeFile() entered, inCmd=<%p>\n"
@@ -1294,6 +1332,8 @@ bool ScriptInterpreter::ReadScript(GmatCommand *inCmd, bool skipHeader,bool rein
    MessageInterface::ShowMessage("   Calling theReadWriter->ReadFirstBlock()\n");
    #endif
    theReadWriter->ReadFirstBlock(tempHeader, currentBlock, skipHeader);
+   if (currentFunction == nullptr)
+      ScriptSourceCapture::Record(tempHeader, scriptStack.empty());
    if (inCmd == NULL)
       headerComment = tempHeader;
    
@@ -1312,6 +1352,10 @@ bool ScriptInterpreter::ReadScript(GmatCommand *inCmd, bool skipHeader,bool rein
    {
       try
       {
+         // Observe original logical input once, before parser/include changes.
+         // Function bodies and delayed-block replay are not mission source.
+         if (currentFunction == nullptr)
+            ScriptSourceCapture::Record(currentBlock, scriptStack.empty());
          #if DBGLVL_SCRIPT_READING
          MessageInterface::ShowMessage("==========> Calling EvaluateBlock()\n");
          #endif
@@ -2848,7 +2892,7 @@ bool ScriptInterpreter::ParseAssignmentBlock(const StringArray &chunks,
    }
    
    // if RHS is not enclosed with single quotes, check for unexpected symbols or space
-   if (!GmatStringUtil::IsEnclosedWith(rhs, "'"))
+   if (!GmatScriptString::IsLiteral(rhs))
    {
       #ifdef DEBUG_PARSE_ASSIGNMENT
       MessageInterface::ShowMessage
@@ -2870,7 +2914,14 @@ bool ScriptInterpreter::ParseAssignmentBlock(const StringArray &chunks,
             MessageInterface::ShowMessage
                ("   [] removed from lhs, now lhs = '%s'\n", output.c_str());
             #endif
-            lhs = output;
+            // A whole native function call must retain authored brackets for
+            // RequireOutputBrackets. Arithmetic expressions still use the
+            // legacy scalar-assignment route with the brackets removed.
+            std::string arguments;
+            const std::string name = GmatStringUtil::ParseFunctionName(rhs, arguments);
+            GmatBase *function = GmatStringUtil::IsThereMathSymbol(rhs) ? NULL : FindObject(name);
+            if (!function || !function->IsOfType("GmatFunction"))
+               lhs = output;
          }
       }
       else if (lhs.find_first_of("=~<>[]{}\"") != lhs.npos ||
@@ -3946,7 +3997,7 @@ void ScriptInterpreter::WriteVariablesAndArrays(StringArray &objs,
                std::string rhs = genStr.substr(equalPos + 1);
                rhs = GmatStringUtil::Trim(rhs, GmatStringUtil::BOTH, true, true);
                // check if initial value is string literal or other String object
-               if (GmatStringUtil::IsEnclosedWith(rhs, "'"))
+               if (GmatScriptString::IsLiteral(rhs))
                   strWithValList.push_back(object);
             }
          }
@@ -4296,7 +4347,7 @@ void ScriptInterpreter::WriteCommandSequence(Gmat::WriteMode mode)
    
    // Write out the section delimiter comment if preface comment is blank
    // The first command is always NoOp, so get next command
-   cmd = cmd->GetNext();
+   cmd = cmd->GetNextWhileExecuting();
    
    // If there is no command after NoOp, return
    if (cmd == NULL)
@@ -4308,7 +4359,7 @@ void ScriptInterpreter::WriteCommandSequence(Gmat::WriteMode mode)
        cmd->GetTypeName().c_str(), cmd->GetCommentLine().c_str());
    #endif
    
-   GmatCommand *nextCmd = cmd->GetNext();
+   GmatCommand *nextCmd = cmd->GetNextWhileExecuting();
    bool writeMissionSeqDelim = false;
    
    // Since second command should be BeginMissionSequence, check for the next one for comment
@@ -4386,11 +4437,11 @@ void ScriptInterpreter::WriteCommandSequence(Gmat::WriteMode mode)
       
       inTextMode = (scriptEventCount == 0) ? false : true;
       
-      if (cmd == cmd->GetNext())
+      if (cmd == cmd->GetNextWhileExecuting())
          throw InterpreterException
             ("Self-reference found in command stream during write.\n");
       
-      cmd = cmd->GetNext();
+      cmd = cmd->GetNextWhileExecuting();
    }
 }
 

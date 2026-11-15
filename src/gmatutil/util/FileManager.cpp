@@ -41,6 +41,7 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <filesystem>
 
 #include <algorithm>                    // Required for GCC 4.3
 
@@ -256,7 +257,8 @@ bool FileManager::SetBinDirectory(const std::string &appName, const std::string 
       // Set absolute bin directory if it is not relative path and appName found
       if (appFullPath[0] != '.')
       {
-         std::string appPath = GmatFileUtil::ParsePathName(appFullPath);
+         std::string appPath = binDir.empty() ? GmatFileUtil::ParsePathName(appFullPath) :
+            std::filesystem::u8path(appFullPath).parent_path().u8string() + GmatFileUtil::GetPathSeparator();
          std::string newPath = appPath + appName; // HAS Windows name!!!
 
          if (GmatFileUtil::DoesFileExist(newPath))
@@ -3021,8 +3023,18 @@ void FileManager::AddGmatFunctionPath(const std::string &path, bool addFront)
    std::string pathname = path;
 
    // if path has full pathname (directory and filename), remove filename first
-   if (path.find(".") != path.npos)
-      pathname = GmatFileUtil::ParsePathName(path);
+   std::error_code pathError;
+   const auto filesystemPath = std::filesystem::u8path(path);
+   if (std::filesystem::is_directory(filesystemPath, pathError))
+   {
+      if (!pathname.empty() && pathname.back() != '/' && pathname.back() != '\\')
+         pathname += GmatFileUtil::GetPathSeparator();
+   }
+   else if (path.find(".") != path.npos)
+   {
+      pathname = filesystemPath.parent_path().u8string();
+      if (!pathname.empty()) pathname += GmatFileUtil::GetPathSeparator();
+   }
 
    std::list<std::string>::iterator pos =
       find(mGmatFunctionPaths.begin(), mGmatFunctionPaths.end(), pathname);
@@ -3463,7 +3475,8 @@ std::string FileManager::GetGmatPath(GmatPathType type,
    }
 
    if (fileFound)
-      fullPath = GmatFileUtil::ParsePathName(fullPath);
+      fullPath = std::filesystem::u8path(fullPath).parent_path().u8string() +
+         GmatFileUtil::GetPathSeparator();
    else
       fullPath = "";
 

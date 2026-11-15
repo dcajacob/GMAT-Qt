@@ -31,6 +31,7 @@
 //------------------------------------------------------------------------------
 
 #include "MatlabWorkspace.hpp"
+#include "SubscriberBindingState.hpp"
 #include "SubscriberException.hpp"
 #include "Parameter.hpp"
 #include "StringUtil.hpp"          // for ToString()
@@ -104,8 +105,10 @@ MatlabWorkspace::MatlabWorkspace(const MatlabWorkspace &copy) :
    mDataCount = 0;
    mSendCount = 0;
    
-   matlabIf = copy.matlabIf;
+   matlabIf = nullptr;
    //matlabIf = new MatlabInterface("MatlabWorkspace");
+   if (typeid(copy) == typeid(MatlabWorkspace)) ReconnectSubscriberCopy(copy);
+
 }
 
 
@@ -118,27 +121,30 @@ MatlabWorkspace::MatlabWorkspace(const MatlabWorkspace &copy) :
 //------------------------------------------------------------------------------
 MatlabWorkspace& MatlabWorkspace::operator=(const MatlabWorkspace& right)
 {
-   if (this == &right)
-      return *this;
-   
-   Subscriber::operator=(right);
-   
-   mParams = right.mParams; 
-   mNumParams = right.mNumParams;
-   mParamNames = right.mParamNames;
-   mUpdateFrequency = right.mUpdateFrequency;
-   mAllRefObjectNames = right.mAllRefObjectNames;
-   mDataCount = 0;
-   mSendCount = 0;
-   
-   matlabIf = right.matlabIf;
-   
-   //if (matlabIf != NULL)
-   //{
-   //   delete matlabIf;
-   //   matlabIf = new MatlabInterface("MatlabWorkspace");
-   //}
-   
+   if (this == &right) return *this;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = typeid(*this) == typeid(MatlabWorkspace) ? BeginSubscriberValueCopy(right) : SubscriberValueCopyToken{};
+   {
+      FunctionValueCopyGuard nativeCopy;
+      Subscriber::operator=(right);
+
+      mParams = right.mParams;
+      mNumParams = right.mNumParams;
+      mParamNames = right.mParamNames;
+      mUpdateFrequency = right.mUpdateFrequency;
+      mAllRefObjectNames = right.mAllRefObjectNames;
+      mDataCount = 0;
+      mSendCount = 0;
+
+      matlabIf = nullptr;
+
+      //if (matlabIf != NULL)
+      //{
+      //   delete matlabIf;
+      //   matlabIf = new MatlabInterface("MatlabWorkspace");
+      //}
+   }
+   if (typeid(*this) == typeid(MatlabWorkspace)) CompleteSubscriberValueCopy(right, transaction);
    return *this;
 }
 
@@ -177,7 +183,8 @@ bool MatlabWorkspace::Initialize()
    //-----------------------------------------------------------------
    MatlabInterface *matlabIf = MatlabInterface::Instance();
    //MatlabInterface *matlabIf = new MatlabInterface("MatlabWorkspace");
-   matlabIf->Open();
+   if (!matlabIf->Open())
+      throw SubscriberException("Cannot open the GMAT MATLAB engine session for " + instanceName + ".");
    
    for (int i=0; i < mNumParams; i++)
    {
@@ -228,9 +235,17 @@ bool MatlabWorkspace::Initialize()
  *
  */
 //------------------------------------------------------------------------------
-GmatBase* MatlabWorkspace::Clone(void) const
+GmatBase* MatlabWorkspace::Clone() const
 {
-   return (new MatlabWorkspace(*this));
+   if (typeid(*this) != typeid(MatlabWorkspace))
+      throw GmatBaseException("A derived MatlabWorkspace must provide its complete Clone.\n");
+   std::unique_ptr<MatlabWorkspace> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new MatlabWorkspace(*this));
+   }
+   value->ReconnectSubscriberCopy(*this);
+   return value.release();
 }
 
 
@@ -613,8 +628,8 @@ bool MatlabWorkspace::Distribute(const Real * dat, Integer len)
             // if using MATLAB, send it to workspace
             //--------------------------------------------------------
             MatlabInterface *matlabIf = MatlabInterface::Instance();
-            if (matlabIf == NULL)
-               return false;
+            if (matlabIf == NULL || !matlabIf->Open())
+               throw SubscriberException("Cannot select the GMAT MATLAB engine session for " + instanceName + ".");
             
             std::string countStr = GmatStringUtil::ToString(mSendCount, 1);
             
@@ -662,3 +677,51 @@ void MatlabWorkspace::ClearParameters()
    mNumParams = 0;
 }
 
+
+
+std::unique_ptr<FunctionInvocationState> MatlabWorkspace::SuspendFunctionBindings()
+{
+   auto native = std::make_shared<SubscriberBindingState>();
+   native->Capture(mParams);
+   native->Capture(matlabIf);
+   native->Require([this, role0 = mParamNames]
+   {
+      return role0 == mParamNames;
+   });
+   return WrapFunctionBindings(std::move(native), Subscriber::SuspendFunctionBindings());
+}
+
+
+void MatlabWorkspace::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const MatlabWorkspace*>(original);
+   if (!source || typeid(*source) != typeid(*this) || !HasSubscriberValueReferenceProvider())
+      throw GmatBaseException("Cannot copy an incompatible MatlabWorkspace value.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = BeginSubscriberValueCopy(*source);
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   CompleteSubscriberValueCopy(*source, transaction);
+}
+
+
+bool MatlabWorkspace::HasSubscriberValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(MatlabWorkspace);
+}
+
+
+void MatlabWorkspace::RebindSubscriberValueReferences(const Subscriber &original,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &source = dynamic_cast<const MatlabWorkspace&>(original);
+   std::vector<Parameter*> parameters;
+   parameters.reserve(source.mParams.size());
+   for (auto *parameter : source.mParams) parameters.push_back(MapSubscriberReference(parameter, resolve));
+   Subscriber::RebindSubscriberValueReferences(source, resolve);
+   mParams.swap(parameters);
+   matlabIf = nullptr; // Ordinary native use obtains the current Interface.
+}

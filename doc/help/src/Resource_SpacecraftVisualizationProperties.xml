@@ -457,8 +457,10 @@
           <row>
             <entry><guilabel>ModelFile</guilabel></entry>
 
-            <entry><para>Allows you to load spacecraft models that are in .3ds
-            model formats. </para> <variablelist>
+            <entry><para>Allows you to load a spacecraft's 3D model. The legacy
+            GUI supports .3ds models. The Qt viewer also supports static .pov
+            geometry as described in <xref linkend="SpacecraftVisualizationProperties_POVModels"/>.
+            </para> <variablelist>
                 <varlistentry>
                   <term>Data Type</term>
 
@@ -684,14 +686,165 @@
     <refsection>
       <title>Configuring Spacecraft Visualization Properties</title>
 
-      <para>GMAT lets you define any spacecraft model but currently GMAT
-      supports only .3ds model format. Several .3ds spacecraft model formats
+      <para>The legacy GUI supports .3ds spacecraft models. The Qt viewer also
+      supports the static POV geometry described below. Several .3ds spacecraft model formats
       are available <link
       xlink:href="http://www.nasa.gov/multimedia/3d_resources/models.html">here.</link>
       You can also download more .3ds models by clicking <link
       xlink:href="http://www.celestiamotherlode.net/">here.</link> Most of
       these models are in .3ds format, which can be read by most 3D
       programs.</para>
+
+      <refsection xml:id="SpacecraftVisualizationProperties_POVModels">
+        <title>Static POV Models in the Qt Viewer</title>
+        <para>A .pov file describes 3D geometry using POV-Ray's scene language.
+        Select it in ModelFile to use its supported geometry as the spacecraft's
+        visible model. The model offset, rotation and scale settings apply as
+        they do for other spacecraft models.</para>
+        <para>The Qt importer supports triangle and smooth_triangle surfaces,
+        mesh and mesh2 objects, boxes, spheres, cylinders, cones and tori, unions,
+        solid differences/intersections/merges and declared object instances.
+        It supports scalar/vector expressions,
+        translate/scale/rotate/matrix transforms, solid-color pigments and
+        ambient/diffuse/specular/phong finishes. Include files, scoped
+        declarations and supported string filename expressions can supply
+        shared model data. A mesh2 texture list can select one solid material
+        for a triangle or three materials blended across its corners. Pigment,
+        opacity and the supported finishes use the mission viewer's lighting.
+        Inside a mesh, triangle and smooth_triangle surfaces can also use a
+        texture_list containing three declared texture names, in corner order.</para>
+        <para>A difference subtracts subsequent solids from its first operand;
+        an intersection retains their common volume, and a merge removes
+        internal surfaces. These operations use the existing display
+        tessellation of closed primitives. Mesh and mesh2 solid operands require
+        a nonzero inside_vector and a closed surface with exactly two faces per
+        matching edge. The importer resolves connected face winding and inside
+        membership before clipping. Inverse complements a supported closed
+        solid. Object transforms, smooth normals and the original corner-material
+        interpolation travel with the clipped surfaces. A completely removed
+        object produces no visible surface.</para>
+        <para>A torus is centered at the origin about the Y axis and takes
+        major and minor radii. Ring, horn and spindle forms use smooth display
+        tessellation. For a spindle torus, union shows its outer and spindle
+        surfaces and includes the spindle in the solid; merge hides the internal
+        surface; difference excludes the spindle volume; intersection retains
+        only the spindle. The union mode is the default. An intersection mode
+        on a non-spindle torus has no visible surface. Each negative radius
+        toggles inversion, using its magnitude for dimensions. A zero major
+        radius has a spherical boundary; zero minor radius has no visible
+        surface. The optional sturm flag is accepted and has no effect on the
+        viewer's tessellation.</para>
+        <para>Static numeric expressions support trigonometric and hyperbolic
+        functions and their inverses, square roots, logarithms, exponentials,
+        powers, minimum/maximum, rounding, integer division and remainder,
+        and degree/radian conversion. Vector functions include
+        <literal>vdot</literal>, <literal>vlength</literal>,
+        <literal>vcross</literal>, <literal>vnormalize</literal>,
+        <literal>vrotate</literal> and <literal>vaxis_rotate</literal>.
+        Vector and color components can be selected with
+        <literal>.x/.y/.z/.t</literal>, <literal>.u/.v</literal> and
+        <literal>.red/.green/.blue/.filter/.transmit</literal>.
+        Invalid argument counts, invalid domains and nonfinite numeric
+        results fail with a source location.</para>
+        <para>Fixed-size arrays support one through five dimensions, nested
+        initializers, indexed reads and assignments, whole-array value copies,
+        <literal>#declare/#local</literal> scope and element
+        <literal>#undef</literal>. Elements use the supported numeric, string,
+        object, material, transform or nested-array values. An array's initialized
+        elements share one type; numeric vector widths and material kinds are
+        distinguished. Reading an uninitialized element or using an invalid
+        subscript fails. <literal>defined</literal>, <literal>dimensions</literal>
+        and <literal>dimension_size</literal> inspect declarations and arrays.
+        Indexed values can also supply include filenames. The
+        <literal>mixed</literal> keyword after <literal>array</literal> permits
+        different supported value types in different elements and later changes
+        to an element's type. Without it, the shared element type persists even
+        when an element is undefined.</para>
+        <para>An array declared without dimension brackets is a dynamic,
+        one-dimensional array. It starts empty unless initialized and grows just
+        enough to include an accessed index. Even a <literal>defined</literal>
+        or <literal>#ifdef</literal> check grows its nominal size; a missing
+        element remains uninitialized. Fixed arrays retain their bounds.
+        Whole-array copies preserve the dimensions, dynamic or fixed mode,
+        mixed or homogeneous mode, values and uninitialized positions independently.</para>
+        <para>Prefix an initializer block with <literal>optional</literal> to
+        allow empty positions or undeclared plain identifiers, for example
+        <literal>array[3] optional {1,,3}</literal>. Positions still count:
+        fixed arrays require their full positional structure. In a dynamic
+        initializer, a final comma adds no extra element. For multidimensional
+        arrays, place <literal>optional</literal> on the leaf-row initializer
+        blocks that contain omitted values; the flag does not implicitly pass
+        to nested rows. An uninitialized indexed value still reports its normal
+        read error. Completed rows and values accept the native optional commas.</para>
+        <para>Parenthesized expressions support numeric/vector and string
+        comparisons, logical <literal>!</literal>, <literal>&amp;</literal>
+        and <literal>|</literal>, and <literal>condition ? value : value</literal>.
+        Numeric equality and boolean conversion use the default POV epsilon.
+        Both conditional branches and both logical operands are evaluated, as
+        in the native scene parser. <literal>select</literal> supports its three
+        or four scalar arguments, and <literal>strcmp</literal> and
+        <literal>strlen</literal> supply string comparisons and lengths.</para>
+        <para>Conditional directives <literal>#if</literal>,
+        <literal>#ifdef</literal>, <literal>#ifndef</literal>,
+        <literal>#elseif</literal>, <literal>#else</literal> and
+        <literal>#end</literal> select sections of the model. Inactive sections
+        do not open include files or change declarations. Identifier checks
+        can inspect uninitialized array elements. Control-directive nesting is limited
+        to 200 levels; unmatched or duplicate branches fail with a source location.
+        Message directives report diagnostics, and an active
+        <literal>#error</literal> aborts the import with its message.</para>
+        <para><literal>#for</literal> and <literal>#while</literal> can generate
+        repeated model data and geometry. A for loop has a local scalar counter,
+        a bound and an optional step (default one); it supports increasing and
+        decreasing ranges. Bounds and steps are read once. A while loop re-reads
+        its condition after each body pass. Zero-iteration bodies are skipped,
+        and <literal>#break</literal> exits the nearest loop, switch or macro, including from a
+        nested conditional. Loop-body declarations persist in their normal
+        scopes. A running loop must end in its defining file; its counter must
+        remain scalar and its step must advance it.</para>
+        <para><literal>#switch</literal> reads its scalar selector once.
+        <literal>#case</literal> uses strict epsilon matching and
+        <literal>#range</literal> uses inclusive lower and upper bounds.
+        Unmatched clauses are skipped until another label or a default
+        <literal>#else</literal>. After selection, clauses fall through until
+        <literal>#break</literal> or <literal>#end</literal>; later label
+        expressions are still read. A switch must begin with a case or range
+        label and shares the control nesting limit.</para>
+        <para><literal>#macro</literal> defines a named source fragment, with
+        parentheses required for both definitions and calls, including calls
+        without parameters. Each call evaluates its arguments before creating
+        local parameter bindings and executes with access to its caller's scopes.
+        Bare initialized identifiers and array elements refer to caller values;
+        expressions supply private value copies. A local assignment to a reference
+        parameter changes its caller value. Undefining the parameter name removes
+        that local binding; undefining an indexed element clears the actual slot.
+        Optional parameters can be omitted or supplied as uninitialized identifiers;
+        absent parameters create no local binding. Calls must retain the parameter
+        positions, including commas. Definitions are global and can be replaced
+        or undefined. Definitions retain source text without executing their bodies
+        or opening included files. Nested control directives must balance inside
+        the definition. Reaching its end or an applicable
+        <literal>#break</literal> resumes the caller; call locals then expire.</para>
+        <para>POV models load in the background in the spacecraft preview and
+        orbit viewer. Changing the selected model or closing its owner cancels
+        the previous import; a completed earlier request cannot replace a newer
+        selection. Canceling the spacecraft model dialog discards its pending
+        validation. Source loops, token scanning, value copies and mesh building
+        check for interruption without imposing an iteration cutoff. A canceled
+        import supplies no partial model. Operating-system file operations and
+        individual library conversions can finish before an interruption is
+        observed. Plot image export asks you to wait while a selected model is
+        loading instead of saving a frame without it.</para>
+        <para>This is a static geometry import. Dictionaries, infinite CSG
+        operands, open-cylinder/cone CSG operands, cutaway_textures and
+        image/procedural/layered textures are not supported. A closed CSG mesh
+        must use matching edge subdivisions; nonmanifold surfaces and unmatched
+        edges are rejected. An unsupported
+        construct fails the import with its source location; it is not silently
+        omitted from the spacecraft. Camera, light and background scene settings
+        do not replace the mission viewer's controls. Materials use the viewer's
+        lighting rather than a POV-Ray rendered image.</para>
+      </refsection>
 
       <para>GMAT lets you apply fixed rotation to the attitude orientation of
       the spacecraft model or translate the model in any of the X, Y and Z

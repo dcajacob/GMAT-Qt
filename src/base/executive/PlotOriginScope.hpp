@@ -10,6 +10,7 @@ class SpaceObject;
 class GMAT_API PlotOriginScope
 {
 public:
+   static void CollectReferences(CoordinateSystem *frame, std::vector<SpaceObject*> &objects);
    // Index the view dependencies once for the entire immutable publication.
    class GMAT_API Packet
    {
@@ -22,7 +23,9 @@ public:
       Integer count;
       std::vector<SpaceObject*> objects;
       const std::vector<Publisher::IntegrationStep> *steps;
+      const std::vector<Publisher::CartesianColumns> *columns;
       std::map<SpaceObject*,std::map<GmatTime,const Rvector6*>> byObject;
+      std::map<SpaceObject*,std::map<GmatTime,Rvector6>> ordinaryStates;
    };
    PlotOriginScope(const Packet &packet, const GmatTime &epoch);
    ~PlotOriginScope();

@@ -284,6 +284,13 @@ protected:
    static const Real NOMINAL_SUN_UPPER_BOUND;
 
 private:
+   Real EvaluateShadow(Real epoch, Real *state, Rvector3 *gradient);
+   Rmatrix SphericalStateJacobian(Real epoch, Real *state, Real reflectivity,
+                                 Real surfaceArea, Real spacecraftMass);
+   Rmatrix NPlateStateJacobian(Real epoch, Real *state, Spacecraft *spacecraft,
+         Real spacecraftMass);
+   Rmatrix SampledStateJacobian(Spacecraft *spacecraft,
+         const Real *modelState = nullptr, Real atEpoch = 0.0);
 
    /// Parameter IDs
    enum

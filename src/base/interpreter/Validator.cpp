@@ -34,6 +34,7 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ScriptStringLiteral.hpp"
 #include "Validator.hpp"
 #include "Moderator.hpp"
 #include "InterpreterException.hpp"
@@ -107,6 +108,60 @@ Validator* Validator::Instance()
 //------------------------------------------------------------------------------
 // void SetInterpreter(Interpreter *interp)
 //------------------------------------------------------------------------------
+ValidatorContext::ValidatorContext(std::function<void()> action) : restore(std::move(action))
+{
+}
+
+ValidatorContext::~ValidatorContext() noexcept
+{
+   Restore();
+}
+
+void ValidatorContext::Restore() noexcept
+{
+   auto action = std::move(restore);
+   restore = {};
+   if (!action) return;
+   try { action(); }
+   catch (...)
+   {
+      try { MessageInterface::ShowMessage("Validator context restoration failed.\n"); }
+      catch (...) {}
+   }
+}
+
+std::unique_ptr<ValidatorContext> Validator::CaptureContext(bool restoreDiagnostics)
+{
+   // The snapshot owns copied scratch/diagnostic storage, never the services.
+   auto saved = std::shared_ptr<Validator>(new Validator(*this),
+         [](Validator *value) { delete value; });
+   auto moderator = theModerator->CaptureInterpreterContext();
+   auto restore = [this, saved, restoreDiagnostics, moderator = std::move(moderator)]() mutable noexcept
+   {
+      std::swap(theInterpreter, saved->theInterpreter);
+      std::swap(theModerator, saved->theModerator);
+      std::swap(theSolarSystem, saved->theSolarSystem);
+      std::swap(theCommand, saved->theCommand);
+      std::swap(theFunction, saved->theFunction);
+      std::swap(theObjectMap, saved->theObjectMap);
+      theParameterList.swap(saved->theParameterList);
+      theDescription.swap(saved->theDescription);
+      std::swap(createDefaultStringWrapper, saved->createDefaultStringWrapper);
+      std::swap(lhsParamType, saved->lhsParamType);
+      std::swap(continueOnError, saved->continueOnError);
+      std::swap(skipErrorMessage, saved->skipErrorMessage);
+      std::swap(isFinalError, saved->isFinalError);
+      std::swap(allowObjectProperty, saved->allowObjectProperty);
+      if (restoreDiagnostics)
+      {
+         validatorErrorList.swap(saved->validatorErrorList);
+         theErrorMsg.swap(saved->theErrorMsg);
+      }
+      moderator();
+   };
+   return std::make_unique<ValidatorContext>(std::move(restore));
+}
+
 void Validator::SetInterpreter(Interpreter *interp)
 {
    theInterpreter = interp;
@@ -753,11 +808,11 @@ Validator::CreateElementWrapper(const std::string &desc, bool parametersFirst,
    
    // first, check to see if it is enclosed with single quotes
    // or if it is an array of strings, enclosed in braces
-   if (GmatStringUtil::IsEnclosedWith(theDescription, "'") ||
+   if (GmatScriptString::IsLiteral(theDescription) ||
        GmatStringUtil::IsEnclosedWithBraces(theDescription))
    {
       bool createObjectWrapper = false;
-      std::string withoutQuotes = GmatStringUtil::RemoveEnclosingString(theDescription, "'");
+      std::string withoutQuotes = GmatScriptString::Decode(theDescription);
       #if DBGLVL_WRAPPERS > 1
       MessageInterface::ShowMessage("   withoutQuotes='%s'\n", withoutQuotes.c_str());
       #endif
@@ -1383,7 +1438,7 @@ bool Validator::CreateAssignmentWrappers(GmatCommand *cmd, Integer manage)
       if (createDefaultStringWrapper)
       {
          if (leftEw && leftEw->GetDataType() == Gmat::FILENAME_TYPE &&
-             !GmatStringUtil::IsEnclosedWith(name, "'"))
+             !GmatScriptString::IsLiteral(name))
          {
             // Check if name is not an object name (Bug 2148 fix)
             if (FindObject(name) == NULL)
@@ -2372,7 +2427,7 @@ Parameter* Validator::CreateSystemParameter(bool &paramCreated,
    }
    
    // Check if string enclosed with single quotes (LOJ: 2010.08.09)
-   if (GmatStringUtil::IsEnclosedWith(str, "'"))
+   if (GmatScriptString::IsLiteral(str))
    {
       #ifdef DEBUG_CREATE_PARAM
       MessageInterface::ShowMessage
@@ -2899,8 +2954,11 @@ ElementWrapper* Validator::CreateValidWrapperWithDot(GmatBase *obj,
             }
             else
             {
+               // HA also accepts a frame-qualified state. Keep its established
+               // body-qualified syntax and factory dependency metadata.
+               const bool haFrame = type == "HA" && depObjPtr->IsOfType(Gmat::COORDINATE_SYSTEM);
                if ((depType == GmatParam::COORD_SYS && !depObjPtr->IsOfType(Gmat::COORDINATE_SYSTEM)) ||
-                   (depType == GmatParam::ORIGIN && !depObjPtr->IsOfType(Gmat::CELESTIAL_BODY)))
+                   (depType == GmatParam::ORIGIN && !depObjPtr->IsOfType(Gmat::CELESTIAL_BODY) && !haFrame))
                   isParameterValid = false;
             }
          }
@@ -3936,6 +3994,9 @@ void Validator::ShowObjectMap(const std::string &label)
 //------------------------------------------------------------------------------
 Validator::Validator()
 {
+   theInterpreter = nullptr;
+   lhsParamType = Gmat::UNKNOWN_PARAMETER_TYPE;
+   allowObjectProperty = true;
    theModerator = Moderator::Instance();
    StringArray parms = theModerator->GetListOfFactoryItems(Gmat::PARAMETER);
    copy(parms.begin(), parms.end(), back_inserter(theParameterList));

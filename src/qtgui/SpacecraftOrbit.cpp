@@ -6,6 +6,7 @@
 #include "CelestialBody.hpp"
 #include "Moderator.hpp"
 #include "StateConversionUtil.hpp"
+#include "OrbitStateConversion.hpp"
 #include "GmatConstants.hpp"
 #include <cmath>
 #include <stdexcept>
@@ -125,9 +126,15 @@ QSet<QString> applySpacecraftOrbitProperties(GmatBase &object,const QMap<QString
    // Submit the six elements together. Changing eccentricity or inclination one
    // scalar at a time can make otherwise valid paired state edits fail midway.
    auto *body=dynamic_cast<CelestialBody *>(frame->GetOrigin());
-   const auto cartesian=StateConversionUtil::Convert(input,representation.toStdString(),"Cartesian",
-      body ? body->GetGravitationalConstant() : 0,body ? body->GetFlattening() : 0,body ? body->GetEquatorialRadius() : 0,
-      spacecraft->GetStringParameter("AnomalyType"));
+   const Real mu=body ? body->GetGravitationalConstant() : 0;
+   const Real flattening=body ? body->GetFlattening() : 0;
+   const Real radius=body ? body->GetEquatorialRadius() : 0;
+   const auto anomaly=spacecraft->GetStringParameter("AnomalyType");
+   const auto cartesian=spacecraft->HasPrecisionTime() ?
+      OrbitStateConversion::Convert(spacecraft->GetEpochGT(),input,representation.toStdString(),"Cartesian",
+         frame,mu,flattening,radius,anomaly) :
+      OrbitStateConversion::Convert(A1Mjd(spacecraft->GetEpoch()),input,representation.toStdString(),"Cartesian",
+         frame,mu,flattening,radius,anomaly);
    auto *internal=spacecraft->GetInternalCoordSystem();
    if (!internal) throw std::runtime_error("The spacecraft has no internal coordinate system. Rebuild the mission.");
    Rvector6 converted;

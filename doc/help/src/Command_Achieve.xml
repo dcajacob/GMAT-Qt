@@ -34,6 +34,18 @@
   <refsection>
     <title>Description</title>
 
+    <para>During nominal and perturbation passes, the goal, desired value and
+    tolerance must evaluate successfully to finite real values. The tolerance
+    must be positive. A failed parameter evaluation stops the command with an
+    error.</para>
+
+    <para>Equal numeric literals in the goal, desired-value and tolerance
+    fields are independent values. Updating one numerical setting through the
+    command API does not update another field with the same numeric spelling.
+    Explicit references to the same named Variable, array element or parameter
+    continue to share that resource. A numeric measured goal still requires
+    <literal>AllowConstantGoal = true</literal>.</para>
+
     <para>The <guilabel>Achieve</guilabel> command is used in conjunction with
     the <guilabel>Target</guilabel> command as part of the
     <guilabel>Target</guilabel> sequence. The purpose of the
@@ -80,7 +92,8 @@
                   <term>Accepted Data Types</term>
 
                   <listitem>
-                    <para>Array, ArrayElement, Variable, String</para>
+                    <para>Finite real number, Array element, Variable, or
+                    scalar numeric parameter</para>
                   </listitem>
                 </varlistentry>
 
@@ -180,13 +193,29 @@
             <entry><guilabel>Goal</guilabel></entry>
 
             <entry><para>Allows you to select any single element user defined
-            parameter, except a number, as a targeter goal. </para>
+            parameter as a targeter goal. Numeric literals require the explicit
+            <literal>AllowConstantGoal = true</literal> option; the default is
+            <literal>false</literal> and retains reference-based goals.</para>
+            <para>Goal and desired values must be finite when evaluated.
+            Tolerances must remain finite and greater than zero on every pass,
+            including when supplied by a changing Variable, array element or
+            Parameter. Invalid values stop the command before its solver
+            results are updated.</para>
+            <para>A finite constant goal has a constant measured value. It
+            cannot respond to changes in solver control variables. If it differs
+            from the desired value by more than the tolerance, changing controls
+            cannot make that goal converge. This option does not alter the
+            desired-value or tolerance rules, or introduce a variable for the
+            literal. For example:
+            <literal>Achieve DC(17 = 17, {Tolerance = 0.1, AllowConstantGoal = true});</literal>.
+            The Qt command editor exposes the Boolean with Add default options;
+            its enabled Goal picker then accepts a finite real number.</para>
             <variablelist>
                 <varlistentry>
                   <term>Accepted Data Types</term>
 
                   <listitem>
-                    <para>Object parameter, ArrayElement, Variable</para>
+                    <para>Object parameter, ArrayElement, Variable; finite real number with AllowConstantGoal</para>
                   </listitem>
                 </varlistentry>
 
@@ -197,7 +226,8 @@
                     <para><guilabel>Spacecraft</guilabel> parameter,
                     <guilabel>Array</guilabel> element,
                     <guilabel>Variable</guilabel>, or any other single element
-                    user defined parameter, excluding numbers</para>
+                    user defined parameter; a finite numeric literal with
+                    <literal>AllowConstantGoal = true</literal></para>
                   </listitem>
                 </varlistentry>
 

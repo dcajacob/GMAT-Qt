@@ -13,12 +13,14 @@ class PropagationGroupsDialog final : public QDialog
 public:
    PropagationGroupsDialog(const QString &source,const QStringList &propagators,const QStringList &objects,QWidget *parent=nullptr,std::function<QString(const QString &)> validate={});
    static bool supports(const QString &source);
+   static QString appendGroup(const QString &source,const QString &propagator,const QString &spacecraft);
    QString statement() const;
 private:
    QString source;
    int start=0,length=0;
    QTableWidget *table;
    QComboBox *mode;
+   QComboBox *ephemerisPolicy;
    QCheckBox *backward;
    QCheckBox *stm;
    QCheckBox *aMatrix;

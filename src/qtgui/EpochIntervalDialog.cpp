@@ -1,4 +1,5 @@
 #include "EpochIntervalDialog.hpp"
+#include "ResourceProperties.hpp"
 #include "GmatBase.hpp"
 #include "BaseException.hpp"
 #include "TimeSystemConverter.hpp"
@@ -101,8 +102,15 @@ EpochIntervalDialog::EpochIntervalDialog(GmatBase &object,const QMap<QString,QSt
    auto *form=new QFormLayout; layout->addLayout(form); format=new QComboBox(this); format->setObjectName("intervalEpochFormat");
    for (const auto &name:TimeSystemConverter::Instance()->GetValidTimeRepresentations()) format->addItem(QString::fromStdString(name));
    format->setCurrentText(values["EpochFormat"]); previousFormat=values["EpochFormat"]; form->addRow("Epoch format",format);
-   start=new QLineEdit(values["InitialEpoch"],this); start->setObjectName("intervalInitialEpoch"); form->addRow("Initial epoch",start);
-   finish=new QLineEdit(values["FinalEpoch"],this); finish->setObjectName("intervalFinalEpoch"); form->addRow("Final epoch",finish);
+   start=new QLineEdit(values["InitialEpoch"],this); start->setObjectName("intervalInitialEpoch");
+   finish=new QLineEdit(values["FinalEpoch"],this); finish->setObjectName("intervalFinalEpoch");
+   auto *startLabel=new QLabel(this),*finishLabel=new QLabel(this);
+   form->addRow(startLabel,start); form->addRow(finishLabel,finish);
+   auto updateUnits=[this,startLabel,finishLabel] {
+      const auto unit=epochInputUnit(format->currentText());
+      startLabel->setText("Initial epoch ("+unit+")"); finishLabel->setText("Final epoch ("+unit+")");
+   };
+   updateUnits();
    error=new QLabel(this); error->setObjectName("epochIntervalError"); error->setWordWrap(true); layout->addWidget(error);
    connect(format,&QComboBox::currentTextChanged,this,[this](const QString &next) {
       try {
@@ -111,6 +119,7 @@ EpochIntervalDialog::EpochIntervalDialog(GmatBase &object,const QMap<QString,QSt
       } catch (BaseException &failure) { const QSignalBlocker blocker(format); format->setCurrentText(previousFormat); error->setText(QString::fromStdString(failure.GetFullMessage())); }
       catch (const std::exception &failure) { const QSignalBlocker blocker(format); format->setCurrentText(previousFormat); error->setText(QString::fromUtf8(failure.what())); }
    });
+   connect(format,&QComboBox::currentTextChanged,this,[updateUnits] { updateUnits(); });
    auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,this); layout->addWidget(buttons); connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);
    connect(buttons,&QDialogButtonBox::accepted,this,[this,&object] {
       try { std::unique_ptr<GmatBase> copy(object.Clone()); applyEpochIntervalProperties(*copy,settings()); accept(); }

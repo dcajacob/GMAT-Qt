@@ -178,6 +178,9 @@ public:
       FROM_SPACECRAFT
    };
 
+   void RebindClonedReferences(const Propagator &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve, bool bindObjects = true) override;
+
 protected:
    /// The ephemeris used for propagation  (Note: Refactoring needed for some types)
    Ephemeris                  *theEphem;

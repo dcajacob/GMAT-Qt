@@ -155,18 +155,37 @@ QString propagationKey(const QString &code)
    if (body.hasMatch()) {
       auto entries=body.captured(1).split(',');
       if (entries.size()>1 && entries.first().trimmed().isEmpty()) entries.removeFirst();
-      bool singleStep=!entries.isEmpty(); QSet<QString> seen; QString color;
+      bool singleStep=!entries.isEmpty(); QSet<QString> seen; QString color,ephemerisPolicy;
       for (const auto &entry:entries) {
-         const auto option=QRegularExpression(R"(^\s*(StopTolerance|OrbitColor)\s*=\s*(.+?)\s*$)").match(entry);
+         const auto option=QRegularExpression(R"(^\s*(StopTolerance|OrbitColor|EphemerisPolicy)\s*=\s*(.+?)\s*$)").match(entry);
          if (!option.hasMatch() || seen.contains(option.captured(1))) { singleStep=false; break; }
          seen.insert(option.captured(1));
          if (option.captured(1)=="OrbitColor") color=option.captured(2);
+         if (option.captured(1)=="EphemerisPolicy") {
+            const auto policy=propagationEphemerisPolicy(code);
+            if (!policy.valid) { singleStep=false; break; }
+            ephemerisPolicy=policy.value;
+         }
       }
-      if (singleStep) rest=color.isEmpty() ? QString(";") : "{OrbitColor = "+color+"};";
+      if (singleStep) {
+         QStringList options;
+         if (!color.isEmpty()) options.append("OrbitColor = "+color);
+         if (!ephemerisPolicy.isEmpty()) options.append("EphemerisPolicy = "+ephemerisPolicy);
+         rest=options.isEmpty() ? QString(";") : "{"+options.join(", ")+"};";
+      }
    }
    if (flags.contains("Covariance")) flags.remove("STM");
    auto ordered=flags.values(); ordered.sort();
-   return key(header+rest)+"|variational="+ordered.join(',');
+   auto canonical=header+rest;
+   // Native serialization emits this enum without quotes. Keep the join
+   // between authored stopped commands and their native command objects when
+   // the source used the equally valid quoted spelling.
+   const auto policy=propagationEphemerisPolicy(canonical);
+   if (policy.valid && policy.present && policy.valueStart>0 && canonical[policy.valueStart-1]=='\'') {
+      canonical.remove(policy.valueStart+policy.valueLength,1);
+      canonical.remove(policy.valueStart-1,1);
+   }
+   return key(canonical)+"|variational="+ordered.join(',');
 }
 QString pythonCallKey(const QString &code)
 {
@@ -351,7 +370,9 @@ int missionBranchEnd(const MissionSnapshot &snapshot,int index)
    for (auto child:branch.children) {
       if (child<0 || child>=snapshot.nodes.size()) continue;
       const auto &node=snapshot.nodes[child];
-      if (node.parent==index && node.type==ending && node.start>=branch.start &&
+      const bool matchesEnding=node.type==ending ||
+         (branch.type=="Optimize" && node.type=="EndTarget");
+      if (node.parent==index && matchesEnding && node.start>=branch.start &&
           node.end>node.start && node.end<=branch.end) return child;
    }
    return -1;
@@ -463,7 +484,14 @@ QString editMission(const MissionSnapshot &snapshot,int index,MissionEdit operat
          candidate.replace(node.start,node.end-node.start,original.left(begin)+text+original.mid(end));
       } else candidate.replace(node.start,node.end-node.start,text+"\n");
    }
-   else if (operation==MissionEdit::InsertBefore) candidate.insert(node.start,replacement.trimmed()+"\n");
-   else if (operation==MissionEdit::InsertAfter) candidate.insert(node.end,replacement.trimmed()+"\n");
+   else if (operation==MissionEdit::InsertBefore || operation==MissionEdit::InsertAfter) {
+      const auto position=operation==MissionEdit::InsertBefore ? node.start : node.end;
+      auto insertion=replacement.trimmed()+"\n";
+      // The last source command need not have a semicolon or final newline.
+      // Separate it from the inserted command, including any trailing comment.
+      // Mapped inline commands also need a line boundary before new text.
+      if (position>0 && candidate[position-1]!='\n') insertion.prepend('\n');
+      candidate.insert(position,insertion);
+   }
    return candidate;
 }

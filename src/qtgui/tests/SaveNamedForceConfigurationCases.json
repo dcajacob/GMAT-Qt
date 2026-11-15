@@ -1,0 +1,126 @@
+{
+  "cases": [
+    {
+      "key": "PointMassForce",
+      "setup": "Create PointMassForce Subject;\nSubject.BodyName = Mars;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create PointMassForce Subject"
+      ],
+      "filename": "Subject.PointMassForce.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyName",
+          "type": "Object",
+          "expected": "Mars"
+        }
+      ],
+      "expected_native_type": "PointMassForce",
+      "source_seed_type": "PointMassForce",
+      "configuration_only_fields": true
+    },
+    {
+      "key": "FiniteThrust",
+      "setup": "Create FiniteThrust Subject;\nSubject.BodyName = Mars;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create FiniteThrust Subject"
+      ],
+      "filename": "Subject.FiniteThrust.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyName",
+          "type": "Object",
+          "expected": "Mars"
+        }
+      ],
+      "expected_native_type": "FiniteThrust",
+      "source_seed_type": "FiniteThrust",
+      "configuration_only_fields": true
+    },
+    {
+      "key": "RelativisticCorrection",
+      "setup": "Create RelativisticCorrection Subject;\nSubject.BodyName = Mars;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create RelativisticCorrection Subject"
+      ],
+      "filename": "Subject.RelativisticCorrection.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyName",
+          "type": "Object",
+          "expected": "Mars"
+        }
+      ],
+      "expected_native_type": "RelativisticCorrection",
+      "source_seed_type": "RelativisticCorrection",
+      "configuration_only_fields": true
+    },
+    {
+      "key": "ExternalModel",
+      "setup": "Create ExternalModel Subject;\nSubject.BodyName = Mars;\nSubject.ExcludeOtherForces = true;\nSubject.ScriptFileName = '@FILES@/force_probe.py';\nSubject.DerivativesFunction = 'saved_force';\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create ExternalModel Subject"
+      ],
+      "filename": "Subject.ExternalModel.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyName",
+          "type": "Object",
+          "expected": "Mars"
+        },
+        {
+          "object": "Subject",
+          "field": "ExcludeOtherForces",
+          "type": "Boolean",
+          "expected": true
+        },
+        {
+          "object": "Subject",
+          "field": "ScriptFileName",
+          "type": "Filename",
+          "expected": "@FILES@/force_probe.py"
+        },
+        {
+          "object": "Subject",
+          "field": "DerivativesFunction",
+          "type": "String",
+          "expected": "saved_force"
+        }
+      ],
+      "expected_native_type": "ExternalModel",
+      "source_seed_type": "ExternalModel",
+      "configuration_only_fields": true,
+      "fixture_files": {
+        "force_probe.py": "def saved_force(state, epoch, order):\n    return [0.0] * 6\n"
+      }
+    }
+  ],
+  "scope": "Four named physical models expose script-configurable fields through read-only native descriptors. Their full relevant literal configuration is checked on both actual instances, with the existing Save and exact reload assertions."
+}

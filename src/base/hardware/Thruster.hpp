@@ -34,6 +34,7 @@
 #define Thruster_hpp
 
 #include "Hardware.hpp"
+#include <functional>
 #include "FuelTank.hpp"
 #include "CoordinateSystem.hpp"
 #include "CelestialBody.hpp"
@@ -46,7 +47,13 @@ class Spacecraft;
  */
 class GMAT_API Thruster : public Hardware
 {
+   friend class Spacecraft;
+   std::vector<FuelTank*> ResolveTankReferences(const ObjectArray &availableTanks, bool allowUnbound = false) const;
+   std::vector<FuelTank*> ResolveTankReferences(const StringArray &names,
+      const ObjectArray &availableTanks, bool allowUnbound) const;
 public:
+   using Hardware::SetField;
+   void SetField(const Integer id, const StringArray &value) override;
    
    static const Integer AXES_COUNT = 4;
    
@@ -55,9 +62,14 @@ public:
    Thruster(const Thruster& th);
    Thruster&            operator=(const Thruster& th);
    
+   // Resolve configured tanks against one current owner without consulting
+   // old borrowed tank addresses. Names and mixture ratios stay unchanged.
+   void BindTankReferences(const ObjectArray &availableTanks);
+
    Real                 GetMassFlowRate();
    Real                 GetThrustMagnitude();
    Real                 GetIsp();
+   Rvector3             GetDirection() const override;
    
    // Parameter access methods - overridden from GmatBase
    virtual std::string  GetParameterText(const Integer id) const;
@@ -128,6 +140,8 @@ public:
    virtual bool         SetRefObject(GmatBase *obj, 
                                      const UnsignedInt type,
                                      const std::string &name = "");
+   virtual GmatBase*    GetRefObject(const UnsignedInt type,
+                                     const std::string &name);
    virtual ObjectArray& GetRefObjectArray(const UnsignedInt type);
    virtual ObjectArray& GetRefObjectArray(const std::string& typeString);
    
@@ -136,11 +150,15 @@ public:
                                    const std::string &actionData = "");
    virtual void         SetSolarSystem(SolarSystem *ss);
    virtual bool         Initialize();
+   bool InitializeClonedResource();
+   void RebindClonedReferences(const Thruster &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
    virtual void         SetDerivativeState(Real *state, CelestialBody *origin);
    virtual bool         SetPower(Real allocatedPower);
    virtual Real         CalculateMassFlow() = 0;
    
 protected:
+   void RetireLocalCoordinateSystem();
    /// Finite burn instances access thruster data directly
    friend class FiniteBurn;
    
@@ -218,6 +236,10 @@ protected:
 
    /// Temporary buffer used to get ref objects
    ObjectArray                tempArray;
+
+   // Commanded force direction in coordSystem/localAxes, independent of the
+   // inherited primary direction used to construct a hardware sensor frame.
+   Real                       thrustDirection[3] = {1.0, 0.0, 0.0};
    
    /// Available local axes labels
    static  StringArray        localAxesLabels;

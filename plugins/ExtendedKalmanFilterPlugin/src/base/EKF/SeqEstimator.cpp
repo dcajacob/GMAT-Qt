@@ -30,6 +30,21 @@
 //------------------------------------------------------------------------------
 
 #include "SeqEstimator.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration seqEstimatorValueProvider({
+   SeqEstimator::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const SeqEstimator*>(object) != nullptr; },
+   [](const GmatBase *object) { return dynamic_cast<const SeqEstimator*>(object)->GetFunctionValueOwnedObjectsImpl(); },
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<SeqEstimator*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   [](GmatBase *object, const Solver &source) { dynamic_cast<SeqEstimator*>(object)->PrepareClonedSolverValueImpl(source); }
+});
+}
+#include "NavigationMeasurementCopies.hpp"
 
 #include "GmatConstants.hpp"
 #include "FileUtil.hpp"
@@ -136,7 +151,10 @@ SeqEstimator::SeqEstimator(const std::string &type,
    inputDataFile           (""),
    restartEpochFormat      ("TAIModJulian"),
    restartEpoch            ("FirstMeasurement"),
-   outputDataFile          ("")
+   outputDataFile          (""),
+   measCount               (0),
+   isSmoothing             (false),
+   forwardFilterInfo       (nullptr)
 
 // End EKF mod
 {
@@ -157,6 +175,8 @@ SeqEstimator::SeqEstimator(const std::string &type,
 //------------------------------------------------------------------------------
 SeqEstimator::~SeqEstimator()
 {
+   forwardFilterInfo = nullptr;
+   NavigationMeasurementCopies::DeleteOwned(esmObjBuffer);
    if (dataFile.is_open())
       dataFile.close();
 }
@@ -186,10 +206,17 @@ SeqEstimator::SeqEstimator(const SeqEstimator & se) :
    inputDataFile           (se.inputDataFile),
    restartEpochFormat      (se.restartEpochFormat),
    restartEpoch            (se.restartEpoch),
-   outputDataFile          (se.outputDataFile)
+   outputDataFile          (se.outputDataFile),
+   measCount               (0),
+   isSmoothing             (false),
+   forwardFilterInfo       (nullptr)
 // End EKF mod
 {
+   auto buffer = NavigationMeasurementCopies::CloneValues(se.esmObjBuffer, this, {}, true);
+   updateStats = se.updateStats;
    hiLowData.push_back(&sigma);
+   esmObjBuffer = NavigationMeasurementCopies::BorrowValues(buffer);
+   NavigationMeasurementCopies::ReleaseValues(buffer);
 }
 
 
@@ -209,6 +236,8 @@ SeqEstimator& SeqEstimator::operator=(
 {
    if (this != &se)
    {
+      auto buffer = NavigationMeasurementCopies::CloneValues(se.esmObjBuffer, this, esmObjBuffer, true);
+      auto stats = se.updateStats;
       Estimator::operator=(se);
       processNoiseStep = se.processNoiseStep;
       nextNoiseUpdateGT = se.nextNoiseUpdateGT;
@@ -222,6 +251,12 @@ SeqEstimator& SeqEstimator::operator=(
       restartEpochFormat = se.restartEpochFormat;
       restartEpoch = se.restartEpoch;
       outputDataFile = se.outputDataFile;
+      if (dataFile.is_open()) dataFile.close();
+      isSmoothing = false; forwardFilterInfo = nullptr;
+      processNoiseModels.clear(); measCount = 0;
+      hiLowData.clear(); hiLowData.push_back(&sigma);
+      updateStats.swap(stats);
+      NavigationMeasurementCopies::PublishValues(esmObjBuffer, buffer);
    }
    return *this;
 }
@@ -3575,4 +3610,30 @@ std::string SeqEstimator::GetMeasurementResidualTitles()
       return "RecNum  UTCGregorian-Epoch        Obs-Type            " + GmatStringUtil::GetAlignmentString("Participants", pcolumnLen) + " Edit          Observed (O)          Computed (C)     Pre-Update (O-C)  Elev.\n";
    else
       return "RecNum  UTCGregorian-Epoch        TAIModJulian-Epoch Obs Type            Units  " + GmatStringUtil::GetAlignmentString("Participants", pcolumnLen) + " Edit               Obs (O)    Obs-Correction (O)               Cal (C)     Pre-Update (O-C)            Weight (W)             W*(O-C)^2         sqrt(W)*|O-C|    Elevation-Angle    Partial-Derivatives";
+}
+
+ObjectArray SeqEstimator::GetFunctionValueOwnedObjectsImpl() const
+{
+   ObjectArray result = Estimator::GetFunctionValueOwnedObjectsImpl();
+   result.insert(result.end(), esmObjBuffer.begin(), esmObjBuffer.end());
+   return result;
+}
+
+void SeqEstimator::PrepareClonedSolverValueImpl(const Solver &source)
+{
+   Estimator::PrepareClonedSolverValueImpl(source);
+   if (dataFile.is_open()) dataFile.close();
+   processNoiseModels.clear();
+   measSize = measCount = 0;
+   isSmoothing = false; forwardFilterInfo = nullptr;
+   hiLowData.clear(); hiLowData.push_back(&sigma);
+}
+
+bool SeqEstimator::RebindFunctionValueReferencesImpl(const GmatBase &source, SolarSystem *system,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   Estimator::RebindFunctionValueReferencesImpl(source, system, resolve);
+   processNoiseModels.clear();
+   isSmoothing = false; forwardFilterInfo = nullptr;
+   return true;
 }

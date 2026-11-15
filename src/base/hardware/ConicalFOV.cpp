@@ -25,6 +25,7 @@
  */
 //------------------------------------------------------------------------------
 #include "gmatdefs.hpp"
+#include <memory>
 #include "ConicalFOV.hpp"
 #include "GmatConstants.hpp"
 #include "FieldOfViewException.hpp"
@@ -151,7 +152,9 @@ GmatBase* ConicalFOV::Clone() const
    #ifdef DEBUG_CONICAL_FOV_INIT
       MessageInterface::ShowMessage("Entered ConicalFOV::Clone()\n");
    #endif
-	return new ConicalFOV(*this);
+	std::unique_ptr<ConicalFOV> value(new ConicalFOV(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 //------------------------------------------------------------------------------
@@ -427,5 +430,8 @@ void ConicalFOV::Copy(const GmatBase* source)
    if (!typed || typed->GetTypeName() != GetTypeName())
       throw GmatBaseException("Cannot copy into " + GetTypeName() +
                              " from a null or incompatible object");
+   if (typed == this) return;
+   const auto previousContext = GetFunctionValueContext();
    operator=(*typed);
+   RebindFunctionValueContext(*typed);
 }

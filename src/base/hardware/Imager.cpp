@@ -29,6 +29,22 @@
 //------------------------------------------------------------------------------
 
 #include "Imager.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration imagerValueProvider({
+   Imager::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const Imager*>(object) != nullptr; },
+   [](const GmatBase *object) { return dynamic_cast<const Imager*>(object)->GetFunctionValueOwnedObjectsImpl(); },
+   nullptr,
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
+#include "NativeRestoration.hpp"
+#include <memory>
 #include "GmatBaseException.hpp"
 #include <typeinfo>
 #include "HardwareException.hpp"
@@ -66,12 +82,33 @@ Imager::PARAMETER_TYPE[ImagerParamCount - HardwareParamCount] =
  * @param typeStr String label for the actual object type for the component.
  * @param withName Name of the component.
  */
+namespace
+{
+std::unique_ptr<FieldOfView> CloneOwnedImagerField(const FieldOfView *source)
+{
+   if (!source) return {};
+   GmatBase::FunctionValueCopyGuard nativeChild;
+   std::unique_ptr<GmatBase> value(source->Clone());
+   if (value.get() == source)
+   {
+      value.release();
+      throw GmatBaseException("Owned Imager FOV Clone returned its source.");
+   }
+   auto *field = dynamic_cast<FieldOfView*>(value.get());
+   if (!field || field->GetTypeName() != source->GetTypeName())
+      throw GmatBaseException("Incompatible owned Imager FOV copy.");
+   value.release();
+   return std::unique_ptr<FieldOfView>(field);
+}
+}
+
 //------------------------------------------------------------------------------
 Imager::Imager(UnsignedInt typeId, const std::string &ofType, const std::string &withName) :
    Hardware          (typeId, ofType, withName),
    fovIsModeled      (false),
    fov               (nullptr),
-   fovName           ("")
+   fovName           (""),
+   naifID            (0.0)
 {
    objectTypes.push_back(Gmat::IMAGER);
    objectTypeNames.push_back("Imager");
@@ -96,20 +133,22 @@ Imager::Imager(std::string FOVFileName, std::string &withName) :
    Hardware(Gmat::IMAGER, "Imager", withName),
    fovIsModeled(false),
    fov(nullptr),
-   fovName("")
+   fovName(""),
+   naifID(0.0)
 {
    objectTypes.push_back(Gmat::IMAGER);
    objectTypeNames.push_back("Imager");
+   parameterCount = ImagerParamCount;
    direction[0] = 0.0;
    direction[2] = 1.0;
    secondDirection[0] = -1.0;
    secondDirection[1] = 0.0;
    fovIsModeled = true;
    fovName = withName + "Mask";
-   CustomFOV maskFOV(fovName);
-   maskFOV.SetStringParameter("FOVFileName",FOVFileName);
-   maskFOV.Initialize();
-   fov = (FieldOfView*)maskFOV.Clone();
+   ownedFov.reset(new CustomFOV(fovName));
+   ownedFov->SetStringParameter("FOVFileName",FOVFileName);
+   ownedFov->Initialize();
+   fov = ownedFov.get();
    for (Integer i = HardwareParamCount; i < ImagerParamCount; ++i)
       parameterWriteOrder.push_back(i);
 }
@@ -138,8 +177,11 @@ Imager::Imager(const Imager &other) :
    Hardware          (other),
    fovIsModeled      (other.fovIsModeled),
    fov               (other.fov),
-   fovName           (other.fovName)
+   fovName           (other.fovName),
+   ownedFov          (CloneOwnedImagerField(other.ownedFov.get())),
+   naifID            (other.naifID)
 {
+   if (ownedFov) fov = ownedFov.get();
    for (Integer i = HardwareParamCount; i < ImagerParamCount; ++i)
       parameterWriteOrder.push_back(i);
 }
@@ -159,14 +201,41 @@ Imager& Imager::operator=(const Imager &other)
 {
    if (this != &other)
    {
+      if (GmatBase::IsNativeRestorationCopy())
+      {
+         if (static_cast<bool>(ownedFov) != static_cast<bool>(other.ownedFov) ||
+             fovName != other.fovName)
+            throw GmatBaseException("Restoration cannot change an active imager FOV role.");
+         const ObjectArray source = other.ownedFov ? ObjectArray{other.ownedFov.get()} : ObjectArray{};
+         const ObjectArray target = ownedFov ? ObjectArray{ownedFov.get()} : ObjectArray{};
+         NativeRestoration::Validate(source, target);
+         const bool ready = isInitialized;
+         try
+         {
+            Hardware::operator=(other);
+            fovIsModeled = other.fovIsModeled;
+            fovName = other.fovName;
+            naifID = other.naifID;
+            NativeRestoration::Copy(source, target);
+            NativeRestoration::RebindCovariance(*this, source, target);
+            // Keep both owned and borrowed FOV identities selected by this
+            // active imager. Restoration changes values within that graph.
+            if (ownedFov) fov = ownedFov.get();
+            isInitialized = ready;
+         }
+         catch (...) { isInitialized = false; throw; }
+         return *this;
+      }
+      auto mask = CloneOwnedImagerField(other.ownedFov.get());
       Hardware::operator=(other);
       fovIsModeled = other.fovIsModeled;
 
-      // The FOV is a borrowed reference, as in the copy constructor. Whole
-      // object assignment (including function outputs) must preserve it along
-      // with its name; clearing it leaves a configured but unusable imager.
-      fov = other.fov;
+      // Ordinary configured FOVs stay borrowed. A generated station mask is
+      // private to its imager and must survive destruction of the source copy.
+      ownedFov = std::move(mask);
+      fov = ownedFov ? ownedFov.get() : other.fov;
       fovName      = other.fovName;
+      naifID       = other.naifID;
    }
 
    return *this;
@@ -183,7 +252,9 @@ Imager& Imager::operator=(const Imager &other)
 //------------------------------------------------------------------------------
 GmatBase* Imager::Clone() const
 {
-   return new Imager(*this);
+   std::unique_ptr<Imager> value(new Imager(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 //------------------------------------------------------------------------------
@@ -933,6 +1004,7 @@ bool Imager::SetRefObject(GmatBase *obj, const UnsignedInt type,
 
    if ( (obj->IsOfType(Gmat::FIELD_OF_VIEW)) && (fovName == name)  )
    {
+      if (obj != ownedFov.get()) ownedFov.reset();
       fov = (FieldOfView*) obj;
       return true;
    }
@@ -1117,5 +1189,13 @@ void Imager::Copy(const GmatBase *original)
       throw GmatBaseException("Cannot copy incompatible object into Imager");
    if (source == this)
       return;
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
    operator=(*source);
+   RebindFunctionValueContext(*source);
+}
+
+ObjectArray Imager::GetFunctionValueOwnedObjectsImpl() const
+{
+   return ownedFov ? ObjectArray{ownedFov.get()} : ObjectArray{};
 }

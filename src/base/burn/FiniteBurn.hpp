@@ -55,6 +55,11 @@ public:
    virtual bool         Fire(Real *burnData = NULL, Real epoch = GmatTimeConstants::MJD_OF_J2000,
                              bool backwards = false);
    virtual bool         IsFiring();
+   // Evaluate a private burn copy on caller-owned scratch spacecraft. Binding
+   // does not invoke the maneuver-start setter's extra Fire. The scratch
+   // spacecraft may receive normal throttle/hardware evaluation caches.
+   bool EvaluateForSpacecraft(Spacecraft *sample, Real *burnData, Real epoch) const;
+
    
    // Inherited (GmatBase) methods
    virtual std::string  GetParameterText(const Integer id) const;
@@ -106,6 +111,10 @@ public:
    
    virtual bool         DepletesMass();
 
+   void RebindClonedReferences(const Burn &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
+   bool InitializeClonedResource() override;
+
 protected:
 
    /// List of thrusters used in the maneuver
@@ -130,6 +139,7 @@ protected:
    CelestialBody           *burnOrigin;
    
    bool SetThrustersFromSpacecraft();
+   bool RefreshThrusterBindings(bool bindTanks);
    
    /// Published parameters for thrusters
    enum

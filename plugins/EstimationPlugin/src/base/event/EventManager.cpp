@@ -69,12 +69,8 @@ void EventManager::CleanUp()
 {
    eventNames.clear();
    
-   // clean up ObjectArray events;
-   for (Integer i = 0; i < events.size(); ++i)
-   {
-      if (events[i])
-         delete events[i];
-   }
+   // SetObject borrows measurement-owned events; releasing registrations must
+   // not delete events still owned by tracking/measurement models.
    events.clear();
 
    // clean up EstimationRootFinder locater;
@@ -115,6 +111,7 @@ EventManager& EventManager::operator=(const EventManager& em)
 {
    if (this != &em)
    {
+      CleanUp();
       TriggerManager::operator=(em);
    }
 
@@ -136,6 +133,7 @@ EventManager& EventManager::operator=(const EventManager& em)
 //-----------------------------------------------------------------------------
 void EventManager::SetObject(GmatBase* obj)
 {
+   if (!obj) return;
    UnsignedInt type = obj->GetType();
 
    switch (type)
@@ -173,7 +171,7 @@ void EventManager::ClearObject(GmatBase* obj)
       switch (type)
       {
          case Gmat::PROP_SETUP:
-            locater.SetPropSetup(NULL);
+            locater.ClearPropSetup(static_cast<PropSetup*>(obj));
             break;
 
          case Gmat::EVENT:
@@ -186,7 +184,11 @@ void EventManager::ClearObject(GmatBase* obj)
                      MessageInterface::ShowMessage("EventManager removing a "
                            "%s event\n", obj->GetTypeName().c_str());
                   #endif
+                  const auto index = static_cast<size_t>(object - events.begin());
                   events.erase(object);
+                  if (index < eventNames.size()) eventNames.erase(eventNames.begin() + index);
+                  if (index < eventStatus.size()) eventStatus.erase(eventStatus.begin() + index);
+                  if (index < activated.size()) activated.erase(activated.begin() + index);
                }
             }
             break;
@@ -199,6 +201,9 @@ void EventManager::ClearObject(GmatBase* obj)
    {
       locater.SetPropSetup(NULL);
       events.clear();
+      eventNames.clear();
+      eventStatus.clear();
+      activated.clear();
    }
 }
 

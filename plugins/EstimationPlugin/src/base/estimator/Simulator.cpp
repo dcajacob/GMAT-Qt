@@ -30,6 +30,23 @@
 //------------------------------------------------------------------------------
 
 #include "Simulator.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration simulatorValueProvider({
+   Simulator::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const Simulator*>(object) != nullptr; },
+   [](const GmatBase *object) { return dynamic_cast<const Simulator*>(object)->GetFunctionValueOwnedObjectsImpl(); },
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<Simulator*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   [](const GmatBase *object) { return dynamic_cast<const Simulator*>(object)->HasSolverValueReferenceProviderImpl(); },
+   [](GmatBase *object, const Solver &source) { dynamic_cast<Simulator*>(object)->PrepareClonedSolverValueImpl(source); }
+});
+}
+#include "ObjectScriptExportScope.hpp"
+#include "NavigationPropagationCopies.hpp"
+#include "NavigationMeasurementCopies.hpp"
 #include "EstimatorException.hpp"
 #include "GmatState.hpp"
 #include "PropagationStateManager.hpp"
@@ -124,6 +141,8 @@ Simulator::Simulator(const std::string& name) :
 
    // Turn off writting progress report for simulation    // fix bug GMT-5713 RunSimulator command creates an empty file
    showProgress = false;                                  // fix bug GMT-5713 RunSimulator command creates an empty file
+   measManager.SetOwner(this);
+   SetCloneNotificationsEnabled(true);
 }
 
 
@@ -164,9 +183,11 @@ Simulator::Simulator(const Simulator& sim) :
    // SatPropMap needs built if there is a propagator to satellite mapping
    needsSatPropMap = (propagatorSatMap.size() > 0);
 
-   if (sim.propagators.size() > 0)
-      for (UnsignedInt i = 0; i < sim.propagators.size(); ++i)
-         propagators.push_back((PropSetup*)(sim.propagators[i]->Clone()));
+   auto pendingDefinitions = NavigationPropagationCopies::CloneAll(sim.propagators, *this);
+   propagators = NavigationPropagationCopies::Borrow(pendingDefinitions);
+   measManager.SetOwner(this);
+   measManager.SetPropagators(&propagators, &propagatorSatMap);
+   NavigationPropagationCopies::Release(pendingDefinitions);
 }
 
 
@@ -186,17 +207,11 @@ Simulator& Simulator::operator=(const Simulator& sim)
 {
    if (&sim != this)
    {
+      auto pendingDefinitions = NavigationPropagationCopies::CloneAll(sim.propagators, *this, propagators);
       Solver::operator=(sim);
 
-      // Remove current PropSetups
-      for (UnsignedInt i = 0; i < propagators.size(); ++i)
-         delete propagators[i];
-      propagators.clear();
-
-      // Clone the ones from sim
-      if (sim.propagators.size() > 0)
-         for (UnsignedInt i = 0; i < sim.propagators.size(); ++i)
-            propagators.push_back((PropSetup*)(sim.propagators[i]->Clone()));
+      NavigationPropagationCopies::Publish(propagators, pendingDefinitions);
+      satPropMap.clear();
 
       propagatorNames     = sim.propagatorNames;
       propagatorSatMap    = sim.propagatorSatMap;
@@ -214,6 +229,8 @@ Simulator& Simulator::operator=(const Simulator& sim)
       timeStep            = sim.timeStep;
       locatingEvent       = false;
       measManager         = sim.measManager;
+      measManager.SetOwner(this);
+      measManager.SetPropagators(&propagators, &propagatorSatMap);
       measList            = sim.measList;
       addNoise            = sim.addNoise;
       isEpochFormatSet    = sim.isEpochFormatSet;
@@ -269,7 +286,9 @@ Simulator::~Simulator()
 //------------------------------------------------------------------------------
 GmatBase* Simulator::Clone() const
 {
-   return new Simulator(*this);
+   std::unique_ptr<Simulator> value(new Simulator(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -284,7 +303,13 @@ GmatBase* Simulator::Clone() const
 //---------------------------------------------------------------------------
 void  Simulator::Copy(const GmatBase* orig)
 {
-   operator=(*((Simulator*)(orig)));
+   const auto *source = dynamic_cast<const Simulator*>(orig);
+   if (!source || typeid(*source) != typeid(Simulator) || typeid(*this) != typeid(Simulator))
+      throw SolverException("Incompatible native Simulator copy.\n");
+   if (source == this) return;
+   const auto previous = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -743,6 +768,22 @@ bool Simulator::SetStringParameter(const Integer id, const std::string &value)
 
    if (id == PROPAGATOR)
    {
+      if (value == "{}")
+      {
+         // A complete definition reset retires owned PropSetup clones through
+         // the same native publisher used for definition replacement.
+         isInitialized = false;
+         currentState = INITIALIZING;
+         needsSatPropMap = true;
+         currentPropagator.clear();
+         propagatorNames.clear();
+         propagatorSatMap.clear();
+         satPropMap.clear();
+         NavigationPropagationCopies::Values empty;
+         NavigationPropagationCopies::Publish(propagators, empty);
+         measManager.SetPropagators(&propagators, &propagatorSatMap);
+         return true;
+      }
       if (!GmatStringUtil::IsValidIdentity(value))
          throw SolverException("Error: '" + value + "' set to " +
                instanceName + ".Propagator is an invalid GMAT object name.\n");
@@ -902,9 +943,18 @@ bool Simulator::SetStringParameter(const Integer id, const std::string &value,
 
    if (id == MEASUREMENTS)
    {
-      // No measurement is added when an empty list is set to Add Measurement parameter 
+      // Retire definitions and prepared measurement borrowers together.
       if (index == -1)
+      {
+         isInitialized = false;
+         currentState = INITIALIZING;
+         activeEvents.clear(); measModelList.clear();
+         simState = nullptr; locatingEvent = false; simEpochCounter = 0;
+         satPropMap.clear(); needsSatPropMap = true;
+         measManager.ClearMeasurements();
+         measList.clear();
          return true;
+      }
 
       if (!GmatStringUtil::IsValidIdentity(value))
          throw SolverException("Error: '" + value + "' set to " + GetName() + ".Measurements parameter is an invalid object name.\n");
@@ -1300,7 +1350,7 @@ GmatBase* Simulator::GetRefObject(const UnsignedInt type,
    {
       for (UnsignedInt i = 0; i < propagators.size(); ++i)
       {
-         if (propagators[i]->GetName() == name)
+         if (propagators[i] && propagators[i]->GetName() == name)
             return propagators[i];
       }
    }
@@ -1355,6 +1405,7 @@ GmatBase* Simulator::GetRefObject(const UnsignedInt type,
 bool Simulator::SetRefObject(GmatBase *obj, const UnsignedInt type,
       const std::string & name)
 {
+   if (!obj) return false;
    #ifdef DEBUG_SIMULATOR_INITIALIZATION
       MessageInterface::ShowMessage("Setting ref object %s with type %s\n",
             name.c_str(), obj->GetTypeName().c_str());
@@ -1366,24 +1417,29 @@ bool Simulator::SetRefObject(GmatBase *obj, const UnsignedInt type,
       {
          if (type == Gmat::PROP_SETUP)
          {
-            PropSetup *propagator = (PropSetup*)obj->Clone();
-            if (propagators.size() <= i)
-               propagators.push_back(propagator);
-            else
-            {
-               PropSetup *oldProp = propagators[i];
-               propagators[i] = propagator;
-               delete oldProp;
-            }
-
-            // Set the spacecraft - propagator map
-            if (propagatorSatMap.find(name) != propagatorSatMap.end())
-            {
-               StringArray propSats = propagatorSatMap[name];
-               for (UnsignedInt i = 0; i < propSats.size(); ++i)
-                  satPropMap[propSats[i]] = propagator;
-            }
-
+            auto *definition = dynamic_cast<PropSetup*>(obj);
+            if (!definition) throw SolverException("A navigation propagator reference requires a PropSetup.\n");
+            PropSetup *oldProp = i < propagators.size() ? propagators[i] : nullptr;
+            std::set<GmatBase*> forbidden{this};
+            for (auto *value : propagators) forbidden.insert(value);
+            auto pending = NavigationPropagationCopies::Clone(*definition, *this,
+                  definition != oldProp, forbidden);
+            auto replacement = propagators;
+            replacement.resize(std::max(replacement.size(), static_cast<size_t>(i + 1)), nullptr);
+            replacement[i] = pending.get();
+            auto replacementMap = satPropMap;
+            for (auto &entry : replacementMap)
+               if (oldProp && entry.second == oldProp) entry.second = pending.get();
+            const auto configured = propagatorSatMap.find(name);
+            if (configured != propagatorSatMap.end())
+               for (const auto &satellite : configured->second) replacementMap[satellite] = pending.get();
+            isInitialized = false;
+            needsSatPropMap = true;
+            if (oldProp) NavigationPropagationCopies::Retarget(*oldProp, *pending);
+            propagators.swap(replacement);
+            satPropMap.swap(replacementMap);
+            pending.release();
+            delete oldProp;
             measManager.SetPropagators(&propagators, &propagatorSatMap);
             return true;
          }
@@ -1400,7 +1456,12 @@ bool Simulator::SetRefObject(GmatBase *obj, const UnsignedInt type,
             MessageInterface::ShowMessage("SetRefObject for object type Gmat::MEASUREMENT_MODEL.\n");
          #endif
 
-         measManager.AddMeasurement((TrackingFileSet*)obj);
+         auto *definition = dynamic_cast<TrackingFileSet*>(obj);
+         if (!definition) throw SolverException("A tracking reference requires a TrackingFileSet.\n");
+         measManager.SetOwner(this);
+         measManager.BindMeasurement(definition, name);
+         measManager.ReleaseRetiredDefinitions();
+         isInitialized = false;
          return true;
       }
    }
@@ -1544,6 +1605,7 @@ bool Simulator::Initialize()
        throw SolverException(
             "Simulator error - " + GetName() + ".AddData was not defined in your script.\n");
 
+   NavigationPropagationCopies::Validate(propagators);
    for (int i = 0; i < propagators.size(); i++)
    {
       if (propagators[i]->GetPropagator()->IsOfType("Code500Propagator"))
@@ -1780,39 +1842,39 @@ bool Simulator::HasLocalClones()
 //------------------------------------------------------------------------------
 void Simulator::UpdateClonedObject(GmatBase *obj)
 {
-   if (obj->IsOfType("Spacecraft"))
-      return;
-   if (obj->IsOfType("Parameter"))
-      return;
-   throw SolverException("To do: implement Simulator::UpdateClonedObject "
-         "for " + obj->GetTypeName() + " objects");
+   ApplyOwnedCloneUpdate(obj);
 }
 
-
-//------------------------------------------------------------------------------
-// void UpdateClonedObjectParameter(GmatBase *obj, Integer updatedParameterId)
-//------------------------------------------------------------------------------
-/**
- * Added method to remove message in the Message window.
- *
- * The current implementation needs to be updated to actually process parameters
- * when they are updated in the system.  For now, it is just overriding the base
- * class "do nothing" method so that the message traffic is not shown to the
- * user.
- *
- * Turn on the debug to figure out the updates being requested.
- *
- * @param obj The master object holding the new parameter value
- * @param updatedParameterId The ID of the updated parameter
- */
-//------------------------------------------------------------------------------
-void Simulator::UpdateClonedObjectParameter(GmatBase *obj, Integer updatedParameterId)
+void Simulator::UpdateClonedObjectParameter(GmatBase *obj, Integer parameterId)
 {
-#ifdef DEBUG_CLONED_PARAMETER_UPDATES
-   MessageInterface::ShowMessage("Simulator updating parameter %d (%s) using "
-         "object %s\n", updatedParameterId, obj->GetParameterText(updatedParameterId).c_str(),
-         obj->GetName().c_str());
-#endif
+   if (parameterId >= 0) ApplyOwnedCloneUpdate(obj, parameterId);
+}
+
+bool Simulator::ApplyPropagationCloneUpdate(GmatBase *obj, Integer parameterId)
+{
+   if (!obj) return false;
+   bool changed = false;
+   try
+   {
+      changed = NavigationPropagationCopies::Apply(propagators, obj, parameterId);
+   }
+   catch (...)
+   {
+      isInitialized = false;
+      needsSatPropMap = true;
+      throw;
+   }
+   if (changed)
+   {
+      isInitialized = false;
+      needsSatPropMap = true;
+   }
+   return changed;
+}
+
+const std::vector<PropSetup*> &Simulator::GetOwnedPropagationDefinitions() const
+{
+   return propagators;
 }
 
 
@@ -2230,6 +2292,7 @@ std::string Simulator::GetProgressString()
 //------------------------------------------------------------------------------
 void Simulator::BuildSatPropMap()
 {
+   NavigationPropagationCopies::Validate(propagators);
    satPropMap.clear();
    for (std::map<std::string, StringArray>::iterator i = propagatorSatMap.begin();
          i != propagatorSatMap.end(); ++i)
@@ -2283,6 +2346,10 @@ void Simulator::WriteStringArrayValue(Gmat::WriteMode mode, std::string &prefix,
 {
    if (id == PROPAGATOR)
    {
+      if (ObjectScriptExportScope::IsActive() &&
+            (mode == Gmat::SCRIPTING || mode == Gmat::OWNED_OBJECT ||
+             mode == Gmat::NO_COMMENTS || mode == Gmat::OBJECT_EXPORT))
+         stream << prefix << GetParameterText(id) << " = {};\n";
       std::stringstream propstr;
 
       if (mode != Gmat::OBJECT_EXPORT)
@@ -2495,6 +2562,7 @@ void Simulator::ValidateMediaCorrection(const MeasurementData* measData)
  //------------------------------------------------------------------------------
 bool Simulator::DoesSatUseEphemerisPropagator(std::string satName)
 {
+   NavigationPropagationCopies::Validate(propagators);
    //if only one propagator, just check that
    if (propagators.size() == 1)
       if (propagators[0]->GetPropagator()->IsOfType("EphemerisPropagator"))
@@ -2569,4 +2637,123 @@ std::string Simulator::GetUnit(const std::string type) const
       unit = "km";
 
    return unit;
+}
+
+bool Simulator::HasOwnedDefinitionSource(const GmatBase *source) const
+{
+   if (!source) return false;
+   if (measManager.HasDefinitionSource(source)) return true;
+   for (auto *setup : propagators)
+   {
+      if (!setup) continue;
+      if (setup == source || setup->IsCloneOf(*source)) return true;
+      for (GmatBase *child : {static_cast<GmatBase*>(setup->GetPropagator()),
+                             static_cast<GmatBase*>(setup->GetODEModel())})
+         if (child && (child == source || child->IsCloneOf(*source))) return true;
+   }
+   return false;
+}
+
+bool Simulator::ApplyOwnedCloneUpdate(GmatBase *source, Integer parameterId)
+{
+   if (!source) return false;
+   bool changed = false;
+   try
+   {
+      changed = ApplyPropagationCloneUpdate(source, parameterId);
+      if (measManager.ApplyDefinitionUpdate(source, parameterId))
+      {
+         measManager.ReleaseRetiredDefinitions();
+         changed = true;
+      }
+   }
+   catch (...)
+   {
+      isInitialized = false;
+      throw;
+   }
+   if (changed) isInitialized = false;
+   return changed;
+}
+
+bool Simulator::HasSolverValueReferenceProviderImpl() const
+{
+   return typeid(*this) == typeid(Simulator);
+}
+
+ObjectArray Simulator::GetFunctionValueOwnedObjectsImpl() const
+{
+   ObjectArray result(propagators.begin(), propagators.end());
+   const auto &tracking = measManager.GetAllTrackingFileSets();
+   result.insert(result.end(), tracking.begin(), tracking.end());
+   return result;
+}
+
+void Simulator::PrepareClonedSolverValueImpl(const Solver &original)
+{
+   CheckSolverValueType(original);
+   const auto &source = dynamic_cast<const Simulator&>(original);
+   if (propagators.size() != source.propagators.size() ||
+       measManager.GetAllTrackingFileSets().size() != source.measManager.GetAllTrackingFileSets().size())
+      throw SolverException("Incompatible retained Simulator definition collections.\n");
+   CopySolverValueData(source);
+   // A resource value carries configuration. Native RunSimulator starts a new
+   // invocation; a copied value does not resume an active integration or I/O.
+   currentState = INITIALIZING;
+   simState = nullptr;
+   activeEvents.clear();
+   locatingEvent = false;
+   simEpochCounter = 0;
+   currentEpochGT = nextSimulationEpochGT = simulationStartGT;
+   currentPropagator.clear();
+   satPropMap.clear();
+   measModelList.clear();
+   isInitialized = false;
+}
+
+bool Simulator::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const Simulator*>(&original);
+   if (!source) throw SolverException("Incompatible retained Simulator reference source.\n");
+   CheckSolverValueType(*source);
+   const auto &tracking = measManager.GetAllTrackingFileSets();
+   const auto &fromTracking = source->measManager.GetAllTrackingFileSets();
+   if (propagators.size() != source->propagators.size() || tracking.size() != fromTracking.size())
+      throw SolverException("Incompatible retained Simulator definition shape.\n");
+   NavigationMeasurementCopies::Aliases setups, participants, models;
+   for (size_t i = 0; i < propagators.size(); ++i)
+   {
+      auto *from = source->propagators[i];
+      if (!from && !propagators[i]) continue;
+      if (!from || !propagators[i] || resolve(from) != propagators[i])
+         throw SolverException("Simulator propagator ownership was not registered before binding.\n");
+      setups.Add(*from, *propagators[i]);
+   }
+   for (size_t i = 0; i < tracking.size(); ++i)
+   {
+      if (!fromTracking[i] || !tracking[i] || resolve(fromTracking[i]) != tracking[i])
+         throw SolverException("Simulator tracking ownership was not registered before binding.\n");
+      models.Add(*fromTracking[i], *tracking[i]);
+      const ObjectArray references = fromTracking[i]->GetRefObjectArray(Gmat::SPACE_POINT);
+      for (auto *from : references)
+      {
+         auto *value = from ? resolve(from) : nullptr;
+         if (!value) throw SolverException("Unresolved retained Simulator participant.\n");
+         participants.Add(*from, *value);
+      }
+   }
+   auto roles = NavigationMeasurementCopies::MapPropagationRoles(source->propagatorSatMap, setups, participants);
+   auto names = source->propagatorNames;
+   for (auto &name : names) name = setups.Map(name);
+   auto measurements = source->measList;
+   for (auto &name : measurements) name = models.Map(name);
+   propagatorSatMap.swap(roles);
+   propagatorNames.swap(names);
+   measList.swap(measurements);
+   needsSatPropMap = !propagatorSatMap.empty();
+   measManager.SetOwner(this);
+   measManager.SetPropagators(&propagators, &propagatorSatMap);
+   isInitialized = false;
+   return true;
 }

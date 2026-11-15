@@ -37,6 +37,13 @@ bool propagatorUsesForceModel(const QString &type)
    return propagator->UsesODEModel();
 }
 
+QMap<QString,QString> defaultOrbitViewCameraSettings()
+{
+   return {{"ViewPointVector","[12000 -16000 10000]"},
+           {"ViewUpCoordinateSystem","EarthFixed"},
+           {"ViewUpAxis","Z"}};
+}
+
 QtResourcePreview resourceDraft(const QString &type,const QString &name)
 {
    auto *factory=FactoryManager::Instance();
@@ -53,6 +60,11 @@ QtResourcePreview resourceDraft(const QString &type,const QString &name)
    // their absence; registration/defaults belong to the accepted source build.
    if (paths) files->RestoreState(*paths);
    if (!draft) throw std::runtime_error("The runtime cannot prepare this resource type.");
+   if (type=="OrbitView") {
+      const auto camera=defaultOrbitViewCameraSettings();
+      for (auto it=camera.cbegin();it!=camera.cend();++it)
+         draft->SetStringParameter(it.key().toStdString(),it.value().toStdString());
+   }
    auto *moderator=Moderator::Instance();
    if (auto *setup=dynamic_cast<PropSetup *>(draft.get())) {
       // Like wx CreateDefaultPropSetup, preview the ordinary Earth/JGM2

@@ -53,6 +53,9 @@ public:
    virtual ~VariableWrapper();
    
    virtual ElementWrapper*     Clone() const;
+   void RebindClonedReferences(const ElementWrapper &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
+   bool OwnsRefObject() const override;
    virtual Gmat::ParameterType GetDataType() const;
    virtual std::string         ToString();  
    
@@ -68,6 +71,7 @@ protected:
 
    // pointer to the Variable object
    Variable      *var;
+   bool ownsVariable;
    
    virtual void  SetupWrapper();
 };

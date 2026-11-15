@@ -30,6 +30,7 @@
 //------------------------------------------------------------------------------
 
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <iomanip>
 #include "Attitude.hpp"
@@ -194,7 +195,9 @@ bool Spinner::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* Spinner::Clone() const
 {
-   return (new Spinner(*this));
+   std::unique_ptr<Spinner> value(new Spinner(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -285,5 +288,7 @@ void Spinner::Copy(const GmatBase *original)
       throw GmatBaseException("Cannot copy incompatible object into Spinner");
    if (source == this)
       return;
+   const auto previousContext = GetFunctionValueContext();
    operator=(*source);
+   RebindFunctionValueContext(*source);
 }

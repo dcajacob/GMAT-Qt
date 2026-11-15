@@ -1,0 +1,41 @@
+# These license bytes are checked against the upstream SHA-256 receipts.
+/tools/preview/licenses/*.txt -text
+
+# Tutorial reference hashes use the original bytes on every host.
+/application/docs/help/files/scripts/ForceModelsTutorial.script -text
+/application/docs/help/files/scripts/FormationRendezvousTutorial.script -text
+/application/docs/help/files/scripts/MarsBPlaneTutorial.script -text
+/application/docs/help/files/scripts/ReportTutorial.script -text
+/application/samples/Ex_LEOStationKeeping.script -text
+/application/samples/Ex_LibrationPointStationKeeping_ESM.script -text
+/application/samples/Navigation/Ex_FilterSmoother_GpsPosVec.script -text
+/application/samples/NeedVF13ad/Tut_MultipleShootingTutorial_Step5.script -text
+/application/samples/Tut_ElectricPropulsionModelling.script -text
+/application/samples/Tut_Inter_Spacecraft_Tracking.script -text
+/application/samples/Tut_Mars_B_Plane_Targeting.script -text
+/application/samples/Tut_Orbit_Estimation_using_DSN_Range_and_Doppler_Data.script -text
+/application/samples/Tut_SimpleOrbitTransfer.script -text
+/application/samples/Tut_Simulate_DSN_Range_and_Doppler_Data_3_weeks.script -text
+/application/samples/Tut_SimulatingAnOrbit.script -text
+/application/samples/Tut_Target_Finite_Burn_to_Raise_Apogee.script -text
+/application/samples/Tut_UsingGMATFunctions.script -text
+/doc/help/src/Part_Tutorials.xml -text
+/doc/help/src/Tut_ACEStationKeeping.xml -text
+/doc/help/src/Tut_CreatingReport.xml -text
+/doc/help/src/Tut_ElectricPropulsion.xml -text
+/doc/help/src/Tut_EventLocation.xml -text
+/doc/help/src/Tut_FilterSmoother_GpsPosVec.xml -text
+/doc/help/src/Tut_ForceModels.xml -text
+/doc/help/src/Tut_FormationRendezvous.xml -text
+/doc/help/src/Tut_LEOStationKeeping.xml -text
+/doc/help/src/Tut_MarsB-PlaneTargeting.xml -text
+/doc/help/src/Tut_Mars_B_Plane_Targeting.xml -text
+/doc/help/src/Tut_OptimalLunarFlyby.xml -text
+/doc/help/src/Tut_Orbit_Estimation_using_DSN_Range_and_Doppler_Data.xml -text
+/doc/help/src/Tut_SimpleOrbitTransfer.xml -text
+/doc/help/src/Tut_Simulate_DSN_Range_and_Doppler_Data.xml -text
+/doc/help/src/Tut_Simulate_and_Estimate_Inter_Spacecraft_Tracking.xml -text
+/doc/help/src/Tut_SimulatingAnOrbit.xml -text
+/doc/help/src/Tut_TargetFiniteBurn.xml -text
+/doc/help/src/Tut_UsingGMATFunctions.xml -text
+/src/qtgui/tests/tutorials/*.json -text

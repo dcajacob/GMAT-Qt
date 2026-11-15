@@ -53,16 +53,16 @@ static void sharedPlaybackButtonChecks(MainWindow &window)
    for (int i=0;i<40;++i) receiver.UpdateXyPlotCurve("ButtonXY",0,i,i*i);
    receiver.missionFinished(); QApplication::processEvents(); acceptanceView(*controls);
    require(controls->isEnabled(),"Retained data did not enable shared playback");
-   mode->setCurrentIndex(0); speed->setCurrentIndex(2);
+   mode->setCurrentIndex(0); speed->setCurrentIndex(speed->findData(1.));
    auto position=[&](int value) {
-      require(receiver.replayPosition()==value && slider->value()==value,"Shared button did not set expected percentage");
+      require(receiver.replayPosition() && qRound(*receiver.replayPosition())==value && slider->value()==value,"Shared button did not set expected percentage");
       for (const auto &name:{"ButtonOrbit","ButtonGround","ButtonXY"}) {
          require(plot(receiver,name)->findChild<QSlider *>("plotTimeline")->value()==value,"Child timeline did not follow the shared button");
          require(!plot(receiver,name)->findChild<QTimer *>("plotReplayTimer")->isActive(),"Shared button left a competing local timer");
       }
    };
-   button("allPlotReplayFaster")->click(); require(speed->currentIndex()==3,"Faster widget did not increase speed");
-   button("allPlotReplaySlower")->click(); require(speed->currentIndex()==2,"Slower widget did not decrease speed");
+   button("allPlotReplayFaster")->click(); require(speed->currentData().toDouble()==2.,"Faster widget did not increase speed");
+   button("allPlotReplaySlower")->click(); require(speed->currentData().toDouble()==1.,"Slower widget did not decrease speed");
    button("allPlotReplayLatest")->click(); position(1000);
    const auto latest=plot(receiver,"ButtonXY")->canvas()->captureImage(); require(!latest.isNull(),"Latest XY image unavailable");
    button("allPlotReplayStart")->click(); position(0);
@@ -70,6 +70,7 @@ static void sharedPlaybackButtonChecks(MainWindow &window)
    slider->setValue(500); position(500);
    require(plot(receiver,"ButtonOrbit")->canvas()->frame()==10 && plot(receiver,"ButtonGround")->canvas()->frame()==15 && plot(receiver,"ButtonXY")->canvas()->frame()==20,"Shared scrub did not map unequal history lengths");
    speed->setCurrentIndex(0); require(!button("allPlotReplaySlower")->isEnabled(),"Minimum speed still permits Slower");
+   speed->setCurrentIndex(speed->findData(.25));
    button("allPlotReplayStart")->click(); button("allPlotReplayPlay")->click(); require(timer->isActive(),"Play widget did not start the real timer");
    QElapsedTimer deadline; deadline.start();
    while (slider->value()<20 && deadline.elapsed()<2000) { QApplication::processEvents(); QThread::msleep(5); }
@@ -85,7 +86,10 @@ static void sharedPlaybackButtonChecks(MainWindow &window)
    mode->setCurrentIndex(1); require(receiver.replayMode()==PlotReplayMode::InterpolatedSteps,"Interpolated mode did not reach receiver");
    mode->setCurrentIndex(0); require(receiver.replayMode()==PlotReplayMode::PropagationSteps,"Retained-step mode did not return");
    require(receiver.model("ButtonOrbit")->curves[0].points.size()==20 && receiver.model("ButtonGround")->curves[0].points.size()==30 && receiver.model("ButtonXY")->curves[0].points.size()==40,"Playback widgets mutated retained history lengths");
-   const auto &last=receiver.model("ButtonXY")->curves[0].points.back(); require(last.x==39 && last.y==1521,"Playback widgets mutated the final XY sample");
+   const auto retained=receiver.model("ButtonXY");
+   const auto curve=retained->curves.constFind(0);
+   require(curve!=retained->curves.cend()&&!curve->points.empty(),"Retained XY sample missing");
+   const auto &last=curve->points.back(); require(last.x==39 && last.y==1521,"Playback widgets mutated the final XY sample");
    receiver.clear(); require(!controls->isEnabled() && !timer->isActive(),"Clear did not disable and stop shared transport");
    const QJsonObject proof{{"kind","shared-playback-buttons"},{"outcome","passed"},{"controls",QJsonArray{"allPlotReplayStart","allPlotReplayPlay","allPlotReplayLatest","allPlotReplaySlower","allPlotReplayFaster"}},
       {"checks",QJsonArray{"widget-clicks","known-frames","unequal-histories","real-timer","paused-image","speed","mode","preserved-samples","clear"}}};
@@ -151,11 +155,11 @@ int main(int argc,char **argv)
       for (int i=0;i<10;++i) receiver.UpdateXyPlotCurve("XY",0,i,i*i);
       receiver.missionFinished(); app.processEvents();
       require(controls->isEnabled(),"Plot transport disabled");
-      faster->trigger(); require(speed->currentIndex()==3,"Faster button did not increase playback speed");
-      slower->trigger(); require(speed->currentIndex()==2,"Slower button did not decrease playback speed");
+      faster->trigger(); require(speed->currentData().toDouble()==2.,"Faster button did not increase playback speed");
+      slower->trigger(); require(speed->currentData().toDouble()==1.,"Slower button did not decrease playback speed");
       speed->setCurrentIndex(0); require(!slower->isEnabled() && faster->isEnabled(),"Minimum-speed button state incorrect");
-      speed->setCurrentIndex(4); require(!faster->isEnabled() && slower->isEnabled(),"Maximum-speed button state incorrect");
-      speed->setCurrentIndex(2);
+      speed->setCurrentIndex(speed->findData(4.)); require(!faster->isEnabled() && slower->isEnabled(),"Maximum-speed button state incorrect");
+      speed->setCurrentIndex(speed->findData(1.));
       for (const auto &name:{"Orbit","Ground","XY"}) require(!receiver.model(name)->curves[0].points.empty(),"Synthetic plot has no history");
       auto checkPosition=[&](int value) {
          require(receiver.replayPosition()==value,"Receiver lost shared position");
@@ -173,15 +177,26 @@ int main(int argc,char **argv)
       require(plot(receiver,"Orbit")->canvas()->frame()==10 && plot(receiver,"Ground")->canvas()->frame()==20 && plot(receiver,"XY")->canvas()->frame()==5,"Unequal histories mapped incorrectly");
       play->trigger(); require(timer->isActive() && play->isChecked(),"Master playback did not start");
       QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection); checkPosition(510);
-      speed->setCurrentIndex(4); QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection); checkPosition(550);
+      speed->setCurrentIndex(speed->findData(4.)); QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection); checkPosition(550);
       play->trigger(); require(!timer->isActive(),"Master pause failed");
       play->trigger(); require(slider->value()==550,"Resume reset position"); play->trigger();
       slider->setValue(990); play->trigger(); QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection);
       checkPosition(1000); require(!timer->isActive() && !play->isChecked(),"Playback did not finish at Latest");
       play->trigger(); checkPosition(0); play->trigger();
-      speed->setCurrentIndex(0); play->trigger();
-      QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection); checkPosition(2);
+      speed->setCurrentIndex(speed->findData(.25)); play->trigger();
+      QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection);
+      require(receiver.replayPosition()==2.5 && slider->value()==3,"Quarter-speed fraction was rounded away");
       QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection); checkPosition(5); play->trigger();
+      mode->setCurrentIndex(1); start->trigger();
+      speed->setCurrentIndex(speed->findData(.001));
+      require(speed->currentIndex()>=0,"Slow shared rate missing");
+      play->trigger();
+      for (int i=0;i<25;++i) QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection);
+      require(std::abs(*receiver.replayPosition()-.25)<1e-9 && slider->value()==0,"Slow shared progress lost sub-slider precision");
+      require(receiver.model("Orbit")->replayCursor && receiver.model("Orbit")->replayCursor->fraction>0,"Slow shared playback did not interpolate between slider positions");
+      play->trigger(); play->trigger(); QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection);
+      require(std::abs(*receiver.replayPosition()-.26)<1e-9,"Slow shared resume snapped to slider position");
+      play->trigger(); mode->setCurrentIndex(0);
       slider->setValue(750);
       auto *closed=dynamic_cast<QMdiSubWindow *>(plot(receiver,"Orbit")->parentWidget());
       require(closed && closed->close(),"Plot close failed"); app.processEvents();

@@ -30,9 +30,14 @@
  //------------------------------------------------------------------------------
 #include <stdio.h>
 #include <sstream>
+#include <memory>
+#include <limits>
+#include <exception>
+#include <utility>
 
 #include "SpiceAttitudeKernelWriter.hpp"
 #include "SpiceInterface.hpp"
+#include "SpiceKernelFileRetirement.hpp"
 #include "MessageInterface.hpp"
 #include "StringUtil.hpp"
 #include "TimeTypes.hpp"
@@ -40,6 +45,26 @@
 #include "UtilityException.hpp"
 #include "RealUtilities.hpp"
 #include "FileUtil.hpp"
+
+namespace
+{
+void ReportCKCleanupFailure(const std::string &file) noexcept
+{
+   try { throw; }
+   catch (BaseException &error)
+   {
+      try { MessageInterface::ShowMessage("*** WARNING *** CK cleanup failed for %s: %s\n", file.c_str(), error.GetFullMessage().c_str()); } catch (...) {}
+   }
+   catch (const std::exception &error)
+   {
+      try { MessageInterface::ShowMessage("*** WARNING *** CK cleanup failed for %s: %s\n", file.c_str(), error.what()); } catch (...) {}
+   }
+   catch (...)
+   {
+      try { MessageInterface::ShowMessage("*** WARNING *** CK cleanup failed for %s\n", file.c_str()); } catch (...) {}
+   }
+}
+}
 
 //#define DEBUG_SPK_WRITING
 //#define DEBUG_SPK_INIT
@@ -128,6 +153,7 @@ SpiceAttitudeKernelWriter::SpiceAttitudeKernelWriter(const std::string& objName,
    else
    {
       fclose(tmpTxtFile);
+      tmpTxtFile = NULL;
       // remove the temporary text file
       remove(tmpTxtFileName.c_str());
       tmpFileOK = true;
@@ -150,6 +176,7 @@ SpiceAttitudeKernelWriter::SpiceAttitudeKernelWriter(const std::string& objName,
 
    // first, try to rename an existing file, as SPICE will not overwrite or
    // append to an existing file - this is the most common error returned from spkopn
+   GmatSpiceKernelFiles::Unload(this, kernelFileName);
    if (GmatFileUtil::DoesFileExist(kernelFileName))
    {
       if (renameCK)
@@ -199,7 +226,7 @@ SpiceAttitudeKernelWriter::SpiceAttitudeKernelWriter(const std::string& objName,
       else
       {
          // delete the file
-         remove(kernelFileName.c_str());
+         GmatSpiceKernelFiles::Retire(this, kernelFileName);
       }
    }
    else // otherwise, check to make sure the directory is writable
@@ -248,25 +275,34 @@ SpiceAttitudeKernelWriter::SpiceAttitudeKernelWriter(const SpiceAttitudeKernelWr
    centralBodyName(copy.centralBodyName),
    kernelFileName(copy.kernelFileName),
    frameName(copy.frameName),
+   segStarts(copy.segStarts),
+   segEnds(copy.segEnds),
+   segEpochs(copy.segEpochs),
+   segAttitudes(copy.segAttitudes),
+   renameCK(copy.renameCK),
    objectNAIFId(copy.objectNAIFId),
    degree(copy.degree),
-   handle(copy.handle),
+   referenceFrame(NULL),
+   handle(-999),
    basicMetaData(copy.basicMetaData),
    addedMetaData(copy.addedMetaData),
-   fileOpen(copy.fileOpen),    // ??
-   fileFinalized(copy.fileFinalized),
+   fileOpen(false),
+   fileFinalized(false),
    dataWritten(copy.dataWritten),
-   tmpTxtFile(copy.tmpTxtFile),
+   tmpTxtFileName(copy.tmpTxtFileName),
+   tmpTxtFile(NULL),
    tmpFileOK(copy.tmpFileOK),
-   appending(copy.appending),
+   appending(false),
    fm(copy.fm),
-   sclk(copy.sclk),
+   sclk(NULL),
    sclkFileName(copy.sclkFileName),
-   generateSCLK(copy.generateSCLK),
-   renameCK(copy.renameCK)
+   sclkStartTime(copy.sclkStartTime),
+   generateSCLK(copy.generateSCLK)
 {
+   std::unique_ptr<SpiceSCClockKernelWriter> clock(copy.sclk ? copy.sclk->Clone() : NULL);
    kernelNameSPICE = kernelFileName.c_str();
    referenceFrame = frameName.c_str();
+   sclk = clock.release();
 }
 
 //------------------------------------------------------------------------------
@@ -284,33 +320,34 @@ SpiceAttitudeKernelWriter& SpiceAttitudeKernelWriter::operator=(const SpiceAttit
 {
    if (&copy != this)
    {
+      // Stage value storage and a private clock before retiring this handle.
+      SpiceAttitudeKernelWriter prepared(copy);
+      FinalizeKernel();
       SpiceKernelWriter::operator=(copy);
-      objectName = copy.objectName;
-      centralBodyName = copy.centralBodyName;
-      kernelFileName = copy.kernelFileName;
-      frameName = copy.frameName;
-      objectNAIFId = copy.objectNAIFId;
-      degree = copy.degree;
-      handle = copy.handle;
-      basicMetaData = copy.basicMetaData;
-      addedMetaData = copy.addedMetaData;
-      fileOpen = copy.fileOpen; // ??
-      fileFinalized = copy.fileFinalized;
-      dataWritten = copy.dataWritten;
-      tmpTxtFile = copy.tmpTxtFile; // ??
-      tmpFileOK = copy.tmpFileOK;
-      appending = copy.appending;
-      fm = copy.fm;
-      sclk = copy.sclk;
-      sclkFileName = copy.sclkFileName;
-      generateSCLK = copy.generateSCLK;
-      renameCK = copy.renameCK;
-
-      kernelNameSPICE = kernelFileName.c_str();
-      referenceFrame = frameName.c_str();
+      SwapValue(prepared);
    }
 
    return *this;
+}
+
+void SpiceAttitudeKernelWriter::SwapValue(SpiceAttitudeKernelWriter &other) noexcept
+{
+   using std::swap;
+   objectName.swap(other.objectName); centralBodyName.swap(other.centralBodyName);
+   kernelFileName.swap(other.kernelFileName); frameName.swap(other.frameName);
+   segStarts.swap(other.segStarts); segEnds.swap(other.segEnds);
+   segEpochs.swap(other.segEpochs); segAttitudes.swap(other.segAttitudes);
+   swap(renameCK, other.renameCK); swap(objectNAIFId, other.objectNAIFId);
+   swap(degree, other.degree); swap(handle, other.handle);
+   basicMetaData.swap(other.basicMetaData); addedMetaData.swap(other.addedMetaData);
+   swap(fileOpen, other.fileOpen); swap(fileFinalized, other.fileFinalized);
+   swap(dataWritten, other.dataWritten); tmpTxtFileName.swap(other.tmpTxtFileName);
+   swap(tmpTxtFile, other.tmpTxtFile); swap(tmpFileOK, other.tmpFileOK);
+   swap(appending, other.appending); swap(fm, other.fm); swap(sclk, other.sclk);
+   sclkFileName.swap(other.sclkFileName); swap(sclkStartTime, other.sclkStartTime);
+   swap(generateSCLK, other.generateSCLK);
+   kernelNameSPICE = kernelFileName.c_str(); referenceFrame = frameName.c_str();
+   other.kernelNameSPICE = other.kernelFileName.c_str(); other.referenceFrame = other.frameName.c_str();
 }
 
 //------------------------------------------------------------------------------
@@ -330,7 +367,15 @@ SpiceAttitudeKernelWriter::~SpiceAttitudeKernelWriter()
       //            "*** WARNING *** ck kernel %s not written - no data provided\n",
       //            kernelFileName.c_str());
    }
-   FinalizeKernel();
+   try { FinalizeKernel(); }
+   catch (...)
+   {
+      ReportCKCleanupFailure(kernelFileName);
+      try { AbortKernel(); }
+      catch (...) { ReportCKCleanupFailure(kernelFileName); }
+   }
+   delete sclk;
+   sclk = NULL;
 }
 
 
@@ -366,14 +411,19 @@ SpiceAttitudeKernelWriter* SpiceAttitudeKernelWriter::Clone(void) const
 //------------------------------------------------------------------------------
 void SpiceAttitudeKernelWriter::SetCKFile(const std::string &kernelFile)
 {
-   if (kernelFileName != "" && fileOpen)
+   if (fileOpen)
    {
       std::string errmsg = "Error setting new CK file, the previous file " +
          kernelFileName + " was not finalized and closed.\n";
       throw UtilityException(errmsg);
    }
 
-   kernelFileName = kernelFile;
+   if (kernelFile.empty()) throw UtilityException("Select a nonempty CK output filename.\n");
+   std::string prepared(kernelFile);
+   kernelFileName.swap(prepared);
+   kernelNameSPICE = kernelFileName.c_str();
+   handle = -999;
+   fileFinalized = false;
 }
 
 //------------------------------------------------------------------------------
@@ -400,14 +450,26 @@ void SpiceAttitudeKernelWriter::StoreSegment(const A1Mjd& start, const A1Mjd& en
       MessageInterface::ShowMessage("   writing %d states\n", (Integer)states.size());
       MessageInterface::ShowMessage("   fileOpen = %s\n", (fileOpen ? "true" : "false"));
    #endif
-   segStarts.push_back(start);
-   segEnds.push_back(end);
-   segAttitudes.push_back(quats);
-
+   if (quats.empty() || quats.size() != epochs.size())
+      throw UtilityException("CK segments require matching nonempty epoch and quaternion arrays.\n");
+   if (epochs.size() > static_cast<size_t>(std::numeric_limits<Integer>::max()) ||
+         epochs.size() > static_cast<size_t>(std::numeric_limits<SpiceInt>::max()))
+      throw UtilityException("CK segment size exceeds native index capacity.\n");
    std::vector<A1Mjd> currSegEpochs;
+   currSegEpochs.reserve(epochs.size());
    for (Integer ii = 0; ii < epochs.size(); ++ii)
+   {
+      if (!epochs[ii] || quats[ii].GetSize() != 4)
+         throw UtilityException("CK segments require valid epochs and four-element quaternions.\n");
       currSegEpochs.push_back(epochs.at(ii)->Get());
-   segEpochs.push_back(currSegEpochs);
+   }
+   auto starts = segStarts; auto ends = segEnds;
+   auto attitudes = segAttitudes; auto times = segEpochs;
+   starts.push_back(start); ends.push_back(end);
+   attitudes.push_back(quats); times.push_back(std::move(currSegEpochs));
+   segStarts.swap(starts); segEnds.swap(ends);
+   segAttitudes.swap(attitudes); segEpochs.swap(times);
+   fileFinalized = false;
    dataWritten = false;
 
    WriteCKData();
@@ -479,24 +541,14 @@ void SpiceAttitudeKernelWriter::FinalizeKernel(bool done, bool writeMetaData)
 #endif
       // close the ck file
       ckcls_c(handle);
-      fileOpen = false;
       if (failed_c())
       {
-         ConstSpiceChar option[] = "SHORT"; // retrieve short error message, for now
-         SpiceInt       numChar = MAX_SHORT_MESSAGE;
-         SpiceChar* err = new SpiceChar[MAX_SHORT_MESSAGE];
-         getmsg_c(option, numChar, err);
-         // This should no longer occur as the method WriteDataToClose is called to
-         // write 'bogus' data to a segment, if no segment has been written before.
-         if (eqstr_c(err, "SPICE(NOSEGMENTSFOUND)"))
-         {
-            MessageInterface::ShowMessage(
-               "SPICE cannot close a kernel (%s) with no segments.\n",
-               kernelFileName.c_str());
-         }
-         reset_c();
-         delete[] err;
+         // CKCLS can fail before DAFCLS, including an empty CK. Keep owning
+         // the handle so a retry or explicit abort can release it.
+         GenerateSpiceErrorMessage("Error closing CK kernel \"" + kernelFileName + "\".");
       }
+      fileOpen = false;
+      handle = -999;
    }
    if (done)
    {
@@ -509,6 +561,21 @@ void SpiceAttitudeKernelWriter::FinalizeKernel(bool done, bool writeMetaData)
    {
       appending = true;
    }
+}
+
+void SpiceAttitudeKernelWriter::AbortKernel()
+{
+   if (fileOpen)
+   {
+      reset_c(); // Cleanup must still close a handle after a native failure.
+      dafcls_c(handle);
+      if (failed_c()) GenerateSpiceErrorMessage("Error aborting CK kernel \"" + kernelFileName + "\".");
+      fileOpen = false;
+      handle = -999;
+   }
+   ClearStoredData();
+   basicMetaData.clear(); addedMetaData.clear();
+   fileFinalized = true; dataWritten = false; appending = false;
 }
 
 //------------------------------------------------------------------------------
@@ -532,7 +599,11 @@ void SpiceAttitudeKernelWriter::WriteCKData()
 
    for (UnsignedInt segNum = 0; segNum < segStarts.size(); ++segNum)
    {
-      SpiceInt numAtts = segAttitudes[segNum].size();
+      const auto count = segAttitudes[segNum].size();
+      if (count == 0 || count > static_cast<size_t>(std::numeric_limits<SpiceInt>::max()) ||
+            count > std::vector<SpiceDouble>().max_size() / 4)
+         throw UtilityException("CK segment size exceeds native storage capacity.\n");
+      SpiceInt numAtts = static_cast<SpiceInt>(count);
       if ((Integer)segEpochs[segNum].size() != (Integer)numAtts)
       {
          std::string errmsg = "Error writing segment to CK file \"";
@@ -543,7 +614,7 @@ void SpiceAttitudeKernelWriter::WriteCKData()
 
       // Convert time to spacecraft clock ticks
       SpiceDouble startTick, endTick, currentTick;
-      SpiceDouble* tickArray = new SpiceDouble[numAtts];
+      std::vector<SpiceDouble> tickArray(count);
       sce2c_c(objectNAIFId, A1ToSpiceTime(segStarts[segNum].Get()), &startTick);
       sce2c_c(objectNAIFId, A1ToSpiceTime(segEnds[segNum].Get()), &endTick);
       for (Integer ii = 0; ii < numAtts; ii++)
@@ -565,8 +636,7 @@ void SpiceAttitudeKernelWriter::WriteCKData()
       SpiceDouble tickRate = 1.0;
 
       // Put attitudes into SpiceDouble arrays
-      SpiceDouble* attArray = new SpiceDouble[numAtts * 4];
-      SpiceDouble* fakeArray = new SpiceDouble[numAtts * 3];
+      std::vector<SpiceDouble> attArray(count * 4);
 
       for (Integer ii = 0; ii < numAtts; ii++)
       {
@@ -582,7 +652,7 @@ void SpiceAttitudeKernelWriter::WriteCKData()
 
       // Create the interpolation intervals
       SpiceInt numInterpInts = 1;
-      SpiceDouble* intStarts = new SpiceDouble[numInterpInts];
+      std::vector<SpiceDouble> intStarts(numInterpInts);
       for (Integer ii = 0; ii < numInterpInts; ++ii)
       {
 
@@ -591,13 +661,8 @@ void SpiceAttitudeKernelWriter::WriteCKData()
       }
 
       ckw05_c(handle, C05TP1, degree, startTick, endTick, objectNAIFId * 1000,
-         referenceFrame, false, segmentIDSPICE, numAtts, tickArray,
-         attArray, tickRate, numInterpInts, intStarts);
-
-      delete[] tickArray;
-      delete[] intStarts;
-      delete[] attArray;
-      delete[] fakeArray;
+         referenceFrame, false, segmentIDSPICE, numAtts, tickArray.data(),
+         attArray.data(), tickRate, numInterpInts, intStarts.data());
 
       if (failed_c())
       {
@@ -646,11 +711,13 @@ void SpiceAttitudeKernelWriter::WriteSCLKData()
    if (sclk)
    {
       Rvector3 prevFinal = sclk->GetFinalTimeCoefficients();
-      if (endTimeSpice > prevFinal(1))
-      {
-         startTimeSpice = prevFinal(1);
-         tickStart = prevFinal(0);
-      }
+      // Accepted estimator event boundaries can repeat an epoch, including
+      // the final flush. The existing clock already maps this interval; do
+      // not retire it or append duplicate coefficients when it need not grow.
+      if (endTimeSpice <= prevFinal(1))
+         return;
+      startTimeSpice = prevFinal(1);
+      tickStart = prevFinal(0);
    }
 
    // Generate SCLK coefficients
@@ -669,9 +736,9 @@ void SpiceAttitudeKernelWriter::WriteSCLKData()
    if (sclk)
    {
       // Both kernels need to be unloaded to provide new data to them
-      sclk->UnloadKernel(sclkFileName);
-      UnloadKernel(kernelFileName);
-      remove(sclkFileName.c_str());
+      GmatSpiceKernelFiles::Unload(sclk, sclkFileName);
+      GmatSpiceKernelFiles::Unload(this, kernelFileName);
+      GmatSpiceKernelFiles::Retire(sclk, sclkFileName);
       reloadKernels = true;
    }
 
@@ -749,34 +816,49 @@ Integer SpiceAttitudeKernelWriter::GetMinNumberOfAttitudes()
 void SpiceAttitudeKernelWriter::WriteMetaData()
 {
    // open the temporary file for writing the metadata
-   tmpTxtFile = fopen(tmpTxtFileName.c_str(), "w");
+   struct CloseText
+   {
+      void operator()(FILE *file) const noexcept { if (file) fclose(file); }
+   };
+   std::unique_ptr<FILE, CloseText> text(fopen(tmpTxtFileName.c_str(), "w"));
+   if (!text) throw UtilityException("Cannot open CK metadata file \"" + tmpTxtFileName + "\".\n");
 
    // write the meta data to the temporary file (according to SPICE documentation, must use regular C routines)
    // close the temporary file, when done
    unsigned int basicSize = basicMetaData.size();
    unsigned int addedSize = addedMetaData.size();
    for (unsigned int ii = 0; ii < basicSize; ii++)
-      fprintf(tmpTxtFile, "%s", (basicMetaData[ii]).c_str());
-   fprintf(tmpTxtFile, "\n");
+      fprintf(text.get(), "%s", (basicMetaData[ii]).c_str());
+   fprintf(text.get(), "\n");
    for (unsigned int ii = 0; ii < addedSize; ii++)
-      fprintf(tmpTxtFile, "%s", (addedMetaData[ii]).c_str());
-   fprintf(tmpTxtFile, "\n");
-   fflush(tmpTxtFile);
-   fclose(tmpTxtFile);
+      fprintf(text.get(), "%s", (addedMetaData[ii]).c_str());
+   fprintf(text.get(), "\n");
+   if (fflush(text.get()) != 0 || ferror(text.get()))
+      throw UtilityException("Cannot write CK metadata file \"" + tmpTxtFileName + "\".\n");
+   if (fclose(text.release()) != 0)
+      throw UtilityException("Cannot close CK metadata file \"" + tmpTxtFileName + "\".\n");
 
    // write the meta data to the ck file comment area by telling it to read the
    // temporary text file
-   Integer     txtLength = tmpTxtFileName.length();
-   char* tmpTxt;    // (deleted at end of method)
-   tmpTxt = new char[txtLength + 1];
-   for (Integer jj = 0; jj < txtLength; jj++)
-      tmpTxt[jj] = tmpTxtFileName.at(jj);
-   tmpTxt[txtLength] = '\0';
-   integer     unit;
+   if (tmpTxtFileName.size() >= static_cast<size_t>(std::numeric_limits<ftnlen>::max()))
+      throw UtilityException("CK metadata filename exceeds native text capacity.\n");
+   std::vector<char> tmpTxt(tmpTxtFileName.begin(), tmpTxtFileName.end());
+   tmpTxt.push_back('\0');
+   struct TextUnit
+   {
+      integer number = 0;
+      bool open = false;
+      ~TextUnit()
+      {
+         if (open) { reset_c(); ftncls_c(number); if (failed_c()) reset_c(); }
+      }
+   } unit;
    char        blank[2] = " ";
-   ftnlen      txtLen = txtLength + 1;
-   txtopr_(tmpTxt, &unit, txtLen);         // CSPICE method to open text file for reading
-   spcac_(&handle, &unit, blank, blank, 1, 1); // CSPICE method to write comments to kernel
+   ftnlen      txtLen = static_cast<ftnlen>(tmpTxt.size());
+   txtopr_(tmpTxt.data(), &unit.number, txtLen);
+   if (failed_c()) GenerateSpiceErrorMessage("Cannot read CK metadata file \"" + tmpTxtFileName + "\".");
+   unit.open = true;
+   spcac_(&handle, &unit.number, blank, blank, 1, 1);
    if (failed_c())
    {
       std::string errDesc = "Error writing meta data to ck file \"" +
@@ -784,10 +866,11 @@ void SpiceAttitudeKernelWriter::WriteMetaData()
       GenerateSpiceErrorMessage(errDesc);
    }
    // close the text file
-   ftncls_c(unit);                         // CSPICE method to close the text file
+   ftncls_c(unit.number);
+   if (failed_c()) GenerateSpiceErrorMessage("Cannot release CK metadata file \"" + tmpTxtFileName + "\".");
+   unit.open = false;
    // remove the temporary text file
    remove(tmpTxtFileName.c_str());
-   delete[] tmpTxt;
 }
 
 //------------------------------------------------------------------------------
@@ -809,12 +892,23 @@ bool SpiceAttitudeKernelWriter::OpenFileForWriting()
    MessageInterface::ShowMessage("    handle = %d\n", (Integer)handle);
 #endif
 
+   kernelNameSPICE = kernelFileName.c_str();
+   SpiceInt preparedHandle = -999;
    bool fileExists = GmatFileUtil::DoesFileExist(kernelFileName);
    if (!fileExists)
    {
       std::string     internalFileName = "GMAT-generated CK file for " + objectName;
       ConstSpiceChar* internalSPKName = internalFileName.c_str();
-      ckopn_c(kernelNameSPICE, internalSPKName, maxChar, &handle); // CSPICE method to create and open an CK kernel
+      ckopn_c(kernelNameSPICE, internalSPKName, maxChar, &preparedHandle);
+   }
+   else
+   {
+      SpiceChar architecture[8], kind[8];
+      getfat_c(kernelNameSPICE, sizeof(architecture), sizeof(kind), architecture, kind);
+      if (failed_c()) GenerateSpiceErrorMessage("Cannot inspect CK output \"" + kernelFileName + "\".");
+      if (!eqstr_c(architecture, "DAF") || !eqstr_c(kind, "CK"))
+         throw UtilityException("Cannot append to a file that is not a CK kernel: " + kernelFileName + "\n");
+      dafopw_c(kernelNameSPICE, &preparedHandle);
    }
    if (failed_c()) // CSPICE method to detect failure of previous call to CSPICE
    {
@@ -823,7 +917,9 @@ bool SpiceAttitudeKernelWriter::OpenFileForWriting()
       GenerateSpiceErrorMessage(errDesc);
    }
 
+   handle = preparedHandle;
    fileOpen = true;
+   fileFinalized = false;
    return true;
 }
 

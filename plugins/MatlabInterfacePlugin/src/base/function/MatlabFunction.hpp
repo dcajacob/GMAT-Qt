@@ -39,6 +39,8 @@
 class MATLAB_API MatlabFunction : public Function
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = Function::NativeValueProviderDepth + 1;
+
    MatlabFunction(const std::string &nomme);
    virtual ~MatlabFunction();
    MatlabFunction(const MatlabFunction &copy);
@@ -47,6 +49,10 @@ public:
    // inherited from GmatBase
    virtual GmatBase*    Clone() const;
    virtual void         Copy(const GmatBase* orig);
+   bool HasFunctionValueReferenceProvider() const override;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+
    
    virtual bool         SetStringParameter(const Integer id, 
                                            const std::string &value);

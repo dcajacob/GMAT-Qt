@@ -96,6 +96,8 @@ SolarFluxReader::SolarFluxReader() :
    begin_HistTag = "BEGIN OBSERVED";
    end_HistTag = "END OBSERVED";
    histOffset = -1;
+   predictOffset = -1;
+   line = nullptr;
 
    begin_DailyPred = "BEGIN DAILY_PREDICTED";
    end_DailyPred = "END DAILY_PREDICTED";
@@ -134,34 +136,9 @@ SolarFluxReader::~SolarFluxReader()
  * copy constructor
  */
 //------------------------------------------------------------------------------
-SolarFluxReader::SolarFluxReader(const SolarFluxReader &sfr) :
-   historicStart     (-1.0),
-   historicEnd       (-1.0),
-   predictStart      (-1.0),
-   historicDailyEnd  (-1.0),
-   predictEnd        (-1.0),
-   schattenFluxIndex (1),
-   schattenApIndex   (0),
-   warnEpochBefore   (true),
-   warnEpochAfter    (true),
-   f107RefEpoch      (sfr.f107RefEpoch),
-   interpolateFlux   (sfr.interpolateFlux),
-   interpolateGeo    (sfr.interpolateGeo),
-   constantF107      (sfr.constantF107),
-   constantF107a     (sfr.constantF107a),
-   constantKp        (sfr.constantKp),
-   constantAp        (sfr.constantAp)
+SolarFluxReader::SolarFluxReader(const SolarFluxReader &sfr) : SolarFluxReader()
 {
-   histFileName = sfr.histFileName;
-   predictFileName = sfr.predictFileName;
-   histFluxData = sfr.histFluxData;
-   predictFluxData = sfr.predictFluxData;
-   begin_HistTag = sfr.begin_HistTag;
-   end_HistTag = sfr.end_HistTag;
-   histOffset = sfr.histOffset;
-
-   predictedDataSource = sfr.predictedDataSource;
-   historicDataSource = sfr.historicDataSource;
+   operator=(sfr);
 }
 
 
@@ -184,17 +161,25 @@ SolarFluxReader& SolarFluxReader::operator=(const SolarFluxReader &sfr)
    begin_HistTag = sfr.begin_HistTag;
    end_HistTag = sfr.end_HistTag;
    histOffset = sfr.histOffset;
-   line = sfr.line;
-   historicStart = -1.0;
-   historicDailyEnd = -1.0;
-   historicEnd = -1.0;
-   predictStart = -1.0;
-   predictEnd = -1.0;
-   schattenFluxIndex = 1;
-   schattenApIndex = 0;
+   begin_DailyPred = sfr.begin_DailyPred;
+   end_DailyPred = sfr.end_DailyPred;
+   begin_MonthlyPred = sfr.begin_MonthlyPred;
+   end_MonthlyPred = sfr.end_MonthlyPred;
+   begin_MonthlyFit = sfr.begin_MonthlyFit;
+   end_MonthlyFit = sfr.end_MonthlyFit;
+   predictOffset = sfr.predictOffset;
+   // The parse-line pointer belongs to a temporary string, not to the value.
+   line = nullptr;
+   historicStart = sfr.historicStart;
+   historicDailyEnd = sfr.historicDailyEnd;
+   historicEnd = sfr.historicEnd;
+   predictStart = sfr.predictStart;
+   predictEnd = sfr.predictEnd;
+   schattenFluxIndex = sfr.schattenFluxIndex;
+   schattenApIndex = sfr.schattenApIndex;
    
-   warnEpochBefore = true;
-   warnEpochAfter = true;
+   warnEpochBefore = sfr.warnEpochBefore;
+   warnEpochAfter = sfr.warnEpochAfter;
    f107RefEpoch = sfr.f107RefEpoch;
    interpolateFlux = sfr.interpolateFlux;
    interpolateGeo = sfr.interpolateGeo;

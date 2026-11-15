@@ -34,10 +34,15 @@
 #define UserDefinedFunction_hpp
 
 #include "ObjectManagedFunction.hpp"
+#include <memory>
+
+struct FunctionDefinitionObjects;
 
 class GMAT_API UserDefinedFunction : public ObjectManagedFunction
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = ObjectManagedFunction::NativeValueProviderDepth + 1;
+
    UserDefinedFunction(const std::string &typeStr, const std::string &nomme);
    virtual ~UserDefinedFunction();
    UserDefinedFunction(const UserDefinedFunction &f);
@@ -48,12 +53,22 @@ public:
                                    bool resetLocalObjects = true);
    virtual bool         Execute(ObjectInitializer *objInit, bool reinitialize = false);
    virtual void         Finalize(bool cleanUp = false);
+   std::unique_ptr<FunctionInvocationState> SuspendInvocationState() override;
    
    virtual bool         IsFcsFinalized();
    
    virtual bool         IsFunctionControlSequenceSet();
+   // Accept initial ownership or the same sequence again. Replacing an already
+   // interpreted sequence requires a fresh rebuilt resource, as source setters do.
    virtual bool         SetFunctionControlSequence(GmatCommand *cmd);
    virtual GmatCommand* GetFunctionControlSequence();
+   // Retire a native-owned sequence. Cold definition copies need no RunComplete.
+   void ClearFunctionControlSequence(bool callRunComplete = true);
+   void RetireFunctionBindings(ObjectMap *store);
+   void RetireAutomaticReferences(ObjectMap *store);
+   void RetireSandboxReferences(const ObjectMap &objects);
+   void PruneExpiredAutomaticReferences();
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
 
    // Methods for objects created in the function via Create
    virtual void         ClearFunctionObjects();
@@ -95,13 +110,30 @@ protected:
    
    /// Objects already in the Sandbox object map
    ObjectArray          sandboxObjects;
-   /// Old wrappers to delete
+   /// Legacy storage retained for binary layout compatibility. Owned output
+   /// wrappers use ObjectManagedFunction::wrappersToDelete and its cleanup.
    WrapperArray         wrappersToDelete;
    /// Object array to delete
    ObjectArray          objectsToDelete;
    
    /// the flag indicating local objects are initialized
    bool                 objectsInitialized;
+
+   // Prototypes cloned with a command definition have one owner even when
+   // several declaration/automatic keys alias the same actual object.
+   std::unique_ptr<FunctionDefinitionObjects> definitionObjects;
+   void CopyDefinitionGraph(const UserDefinedFunction &source,
+         UserDefinedFunction *definitionOwner = nullptr);
+   void SwapDefinitionState(UserDefinedFunction &other) noexcept;
+   bool OwnsDefinitionObject(const GmatBase *object) const;
+   bool IsBorrowedAutomaticObject(const GmatBase *object) const;
+   bool IsLiveAutomaticObject(const std::string &name, const GmatBase *object) const;
+   void RebuildBorrowedAutomaticObjects();
+
+   // Ordinary assignment to an already interpreted live resource retains the
+   // existing source-cache lifecycle. Cold copies also retain compiled syntax
+   // and prototype ownership, but rebuild invocation wrappers and runtime stores.
+   bool HasSameDefinition(const UserDefinedFunction &other) const;
    
    GmatBase* FindObject(const std::string &name);
    bool      IsAutomaticObjectGlobal(const std::string &autoObjName, GmatBase **owner);

@@ -39,6 +39,9 @@
 #include "TimeTypes.hpp"
 #include "AttitudeConversionUtility.hpp"
 #include <sstream>                   // for <<, std::endl
+#include <cmath>
+#include <algorithm>
+#include <utility>
 
 
 //#define DEBUG_EPHEMFILE_INSTANCE
@@ -121,6 +124,10 @@ EphemerisWriter::EphemerisWriter(const std::string &name, const std::string& typ
    attEpoch             (-999.999),
    maneuverEpochInDays  (-999.999),
    eventEpochInSecs     (-999.999),
+   currState            {},
+   currCov              {},
+   currQuat             {},
+   currAccel            {},
    canFinalize          (false),
    isEndOfRun           (false),
    isInitialized        (false),
@@ -187,11 +194,12 @@ EphemerisWriter::~EphemerisWriter()
 EphemerisWriter::EphemerisWriter(const EphemerisWriter &ef) :
    ephemName            (ef.ephemName),
    ephemType            (ef.ephemType),
+   ephemVersion         (ef.ephemVersion),
    fileType             (ef.fileType),
    maxSegmentSize       (ef.maxSegmentSize),
    spacecraft           (ef.spacecraft),
    outCoordSystem       (ef.outCoordSystem),
-   dataCoordSystem      (ef.outCoordSystem),
+   dataCoordSystem      (ef.dataCoordSystem),
    accelModel           (ef.accelModel),
    fullPathFileName     (ef.fullPathFileName),
    spacecraftName       (ef.spacecraftName),
@@ -229,6 +237,10 @@ EphemerisWriter::EphemerisWriter(const EphemerisWriter &ef) :
    attEpoch             (ef.attEpoch),
    maneuverEpochInDays  (ef.maneuverEpochInDays),
    eventEpochInSecs     (ef.eventEpochInSecs),
+   currState            {},
+   currCov              {},
+   currQuat             {},
+   currAccel            {},
    canFinalize          (ef.canFinalize),
    isEndOfRun           (ef.isEndOfRun),
    isInitialized        (ef.isInitialized),
@@ -250,14 +262,18 @@ EphemerisWriter::EphemerisWriter(const EphemerisWriter &ef) :
    finalEpochProcessed  (ef.finalEpochProcessed),
    writeDataInDataCS    (ef.writeDataInDataCS),
    writeCommentAfterData (ef.writeCommentAfterData),
-   insufficientDataPoints (ef.insufficientDataPoints)
+   insufficientDataPoints (ef.insufficientDataPoints),
+   coordConverter      (ef.coordConverter)
 {
    #ifdef DEBUG_EPHEMFILE_INSTANCE
    MessageInterface::ShowMessage
       ("EphemerisWriter() copy constructor <%p> enterd, ephemName='%s', ephemType='%s', "
        "writingNewSegment=%d\n", this, ephemName.c_str(), ephemType.c_str(), writingNewSegment);
-   coordConverter = ef.coordConverter;
    #endif
+   std::copy_n(ef.currState, 6, currState);
+   std::copy_n(ef.currCov, 21, currCov);
+   std::copy_n(ef.currQuat, 4, currQuat);
+   std::copy_n(ef.currAccel, 3, currAccel);
 }
 
 
@@ -275,6 +291,7 @@ EphemerisWriter& EphemerisWriter::operator=(const EphemerisWriter& ef)
    
    ephemName            = ef.ephemName;
    ephemType            = ef.ephemType;
+   ephemVersion         = ef.ephemVersion;
    fileType             = ef.fileType;
    maxSegmentSize       = ef.maxSegmentSize;
    spacecraft           = ef.spacecraft;
@@ -1060,27 +1077,20 @@ void EphemerisWriter::HandleEndOfRun()
    //if (!firstTimeWriting && !a1MjdArray.empty())
    // If not first time writing, finish up writing. For STK array can be empty at the end of
    // event so do not check for empty array here. (Fix for GMT-5929 LOJ: 2016.12.29)
-   if (!firstTimeWriting)
+   // An explicit interval can lie entirely between the last two native
+   // samples. Its initial state is still queued even though no sample entered
+   // the output window and firstTimeWriting has not changed.
+   if (!firstTimeWriting ||
+       (interpolateInitialState && currEpochInDays >= initialEpochA1Mjd))
    {
       #ifdef DEBUG_EPHEMFILE_FINISH
       MessageInterface::ShowMessage("EphemerisWriter::HandleEndOfRun() Calling FinishUpWriting()\n");
       #endif
       
-      try
-      {
-         FinishUpWriting();
-      }
-      catch (BaseException &be)
-      {
-         #ifdef DEBUG_EPHEMFILE_FINISH
-         MessageInterface::ShowMessage
-            ("EphemerisWriter::HandleEndOfRun() returning true after writing error "
-             "message\n   FinishUpWriting() threw an exception\n  message = %s\n",
-             be.GetFullMessage().c_str());
-         #endif
-         MessageInterface::ShowMessage("%s\n", be.GetFullMessage().c_str());
-         return;
-      }
+      // A failed final write must fail the run rather than report completion
+      // with an incomplete file. Publisher finishes the other subscribers
+      // before forwarding the original exception to the mission caller.
+      FinishUpWriting();
    }
    
    #ifdef DEBUG_EPHEMFILE_DATA
@@ -1414,6 +1424,118 @@ void EphemerisWriter::WriteStringToFile(const std::string &str)
 
 
 //------------------------------------------------------------------------------
+// void ResetDetachedSession()
+//------------------------------------------------------------------------------
+void EphemerisWriter::ResetDetachedSession()
+{
+   ClearOrbitData();
+   EphemerisWriter::InitializeData(false);
+   currComments.clear();
+   maneuversHandled.clear();
+   propIndicator = 0;
+   numSegments = 1;
+   prevPropDirection = currPropDirection = 0.0;
+   attEpoch = maneuverEpochInDays = -999.999;
+   canFinalize = isEndOfRun = isInitialized = isFinalized = false;
+   isEphemFileOpened = false;
+   firstTimeWriting = true;
+   finalEpochReached = finalEpochProcessed = insufficientDataPoints = false;
+   std::fill_n(currState, 6, 0.0);
+   std::fill_n(currCov, 21, 0.0);
+   std::fill_n(currQuat, 4, 0.0);
+   std::fill_n(currAccel, 3, 0.0);
+}
+
+//------------------------------------------------------------------------------
+// void SwapState(EphemerisWriter &other)
+//------------------------------------------------------------------------------
+void EphemerisWriter::SwapState(EphemerisWriter &other)
+{
+   if (dstream.is_open() || other.dstream.is_open())
+      throw SubscriberException("Cannot exchange ephemeris writer values while a text stream is open.\n");
+
+   using std::swap;
+   swap(ephemName, other.ephemName);
+   swap(ephemType, other.ephemType);
+   swap(ephemVersion, other.ephemVersion);
+   swap(fileType, other.fileType);
+   swap(maxSegmentSize, other.maxSegmentSize);
+   swap(spacecraft, other.spacecraft);
+   swap(dataCoordSystem, other.dataCoordSystem);
+   swap(outCoordSystem, other.outCoordSystem);
+   swap(accelModel, other.accelModel);
+   a1MjdArray.swap(other.a1MjdArray);
+   stateArray.swap(other.stateArray);
+   covArray.swap(other.covArray);
+   rvcovArray.swap(other.rvcovArray);
+   quatArray.swap(other.quatArray);
+   swap(spacecraftName, other.spacecraftName);
+   swap(spacecraftId, other.spacecraftId);
+   swap(prevFileName, other.prevFileName);
+   swap(fileName, other.fileName);
+   swap(fullPathFileName, other.fullPathFileName);
+   swap(interpolatorName, other.interpolatorName);
+   swap(outCoordSystemName, other.outCoordSystemName);
+   swap(outputFormat, other.outputFormat);
+   swap(covarianceFormat, other.covarianceFormat);
+   swap(stateType, other.stateType);
+   swap(epochFormat, other.epochFormat);
+   swap(initialEpochStr, other.initialEpochStr);
+   swap(finalEpochStr, other.finalEpochStr);
+   swap(stepSize, other.stepSize);
+   swap(currComments, other.currComments);
+   swap(interpolationOrder, other.interpolationOrder);
+   swap(toggleStatus, other.toggleStatus);
+   swap(propIndicator, other.propIndicator);
+   swap(numSegments, other.numSegments);
+   swap(prevPropDirection, other.prevPropDirection);
+   swap(currPropDirection, other.currPropDirection);
+   swap(stepSizeInA1Mjd, other.stepSizeInA1Mjd);
+   swap(stepSizeInSecs, other.stepSizeInSecs);
+   swap(initialEpochA1Mjd, other.initialEpochA1Mjd);
+   swap(finalEpochA1Mjd, other.finalEpochA1Mjd);
+   swap(blockBeginA1Mjd, other.blockBeginA1Mjd);
+   swap(nextOutEpochInSecs, other.nextOutEpochInSecs);
+   swap(nextReqEpochInSecs, other.nextReqEpochInSecs);
+   swap(currEpochInDays, other.currEpochInDays);
+   swap(currEpochInSecs, other.currEpochInSecs);
+   swap(prevEpochInSecs, other.prevEpochInSecs);
+   swap(prevProcTime, other.prevProcTime);
+   swap(lastEpochWrote, other.lastEpochWrote);
+   swap(attEpoch, other.attEpoch);
+   swap(maneuverEpochInDays, other.maneuverEpochInDays);
+   swap(eventEpochInSecs, other.eventEpochInSecs);
+   for (Integer i = 0; i < 6; ++i) swap(currState[i], other.currState[i]);
+   for (Integer i = 0; i < 21; ++i) swap(currCov[i], other.currCov[i]);
+   for (Integer i = 0; i < 4; ++i) swap(currQuat[i], other.currQuat[i]);
+   for (Integer i = 0; i < 3; ++i) swap(currAccel[i], other.currAccel[i]);
+   swap(canFinalize, other.canFinalize);
+   swap(isEndOfRun, other.isEndOfRun);
+   swap(isInitialized, other.isInitialized);
+   swap(isFinalized, other.isFinalized);
+   swap(isEphemGlobal, other.isEphemGlobal);
+   swap(isEphemLocal, other.isEphemLocal);
+   swap(usingDefaultFileName, other.usingDefaultFileName);
+   swap(generateInBackground, other.generateInBackground);
+   swap(isEphemFileOpened, other.isEphemFileOpened);
+   swap(firstTimeWriting, other.firstTimeWriting);
+   swap(writingNewSegment, other.writingNewSegment);
+   swap(useFixedStepSize, other.useFixedStepSize);
+   swap(interpolateInitialState, other.interpolateInitialState);
+   swap(interpolateFinalState, other.interpolateFinalState);
+   swap(createInterpolator, other.createInterpolator);
+   swap(writeOrbit, other.writeOrbit);
+   swap(writeAttitude, other.writeAttitude);
+   swap(finalEpochReached, other.finalEpochReached);
+   swap(finalEpochProcessed, other.finalEpochProcessed);
+   swap(writeDataInDataCS, other.writeDataInDataCS);
+   swap(writeCommentAfterData, other.writeCommentAfterData);
+   swap(insufficientDataPoints, other.insufficientDataPoints);
+   coordConverter.Swap(other.coordConverter);
+   maneuversHandled.swap(other.maneuversHandled);
+}
+
+//------------------------------------------------------------------------------
 // void ClearOrbitData()
 //------------------------------------------------------------------------------
 void EphemerisWriter::ClearOrbitData()
@@ -1508,15 +1630,35 @@ void EphemerisWriter::WriteOrbitData(Real reqEpochInSecs, const Real state[6], c
 //                   const Real inCov[21], Real outCov[21])
 //------------------------------------------------------------------------------
 void EphemerisWriter::ConvertState(Real epochInDays, const Real inState[6],
-                                 Real outState[6], const Real inCov[21],
-                                 Real outCov[21], const Real inAccel[3], Real outAccel[3])
+      Real outState[6], const Real inCov[21], Real outCov[21], const Real inAccel[3], Real outAccel[3])
+{
+   ConvertStateBetweenFrames(epochInDays, inState, outState, inCov, outCov, inAccel,
+      outAccel, dataCoordSystem, outCoordSystem);
+}
+
+void EphemerisWriter::RebaseOrbitData(CoordinateSystem *source, Real epochInDays,
+      Real state[6], Real covariance[21], Real acceleration[3])
+{
+   if (!source || source == dataCoordSystem) return;
+   if (!dataCoordSystem) throw SubscriberException("Ephemeris writer has no retained input frame.");
+   Real converted[6], convertedCovariance[21], convertedAcceleration[3];
+   ConvertStateBetweenFrames(epochInDays, state, converted, covariance, convertedCovariance,
+      acceleration, convertedAcceleration, source, dataCoordSystem);
+   std::copy(converted, converted + 6, state);
+   std::copy(convertedCovariance, convertedCovariance + 21, covariance);
+   std::copy(convertedAcceleration, convertedAcceleration + 3, acceleration);
+}
+
+void EphemerisWriter::ConvertStateBetweenFrames(Real epochInDays, const Real inState[6],
+      Real outState[6], const Real inCov[21], Real outCov[21], const Real inAccel[3],
+      Real outAccel[3], CoordinateSystem *source, CoordinateSystem *target)
 {
    #ifdef DEBUG_EPHEMFILE_CONVERT_STATE   
    DebugWriteOrbit("In ConvertState(in):", epochInDays, inState, true, true);
    #endif
    
-   coordConverter.Convert(A1Mjd(epochInDays), inState, dataCoordSystem,
-                          outState, outCoordSystem, true);
+   coordConverter.Convert(A1Mjd(epochInDays), inState, source,
+                          outState, target, true);
 
    Rmatrix33 r = coordConverter.GetLastRotationMatrix();
    Rmatrix33 rdot = coordConverter.GetLastRotationDotMatrix();
@@ -1557,38 +1699,48 @@ void EphemerisWriter::ConvertState(Real epochInDays, const Real inState[6],
       }
    }
 
-   Rvector3 pos, vel, accel, outAcceleration;
+   // Acceleration is optional. Position/velocity/covariance conversion must not
+   // query extra ephemeris epochs when no acceleration column is requested.
+   if (!accelModel)
+   {
+      for (Integer i = 0; i < 3; ++i) outAccel[i] = 0.0;
+      return;
+   }
+   if (!source->AreAxesOfType("MJ2000EqAxes") ||
+       source->GetBaseSystem() != "FK5" || !target->IsInertial())
+      throw SubscriberException("Ephemeris acceleration conversion requires MJ2000Eq/FK5 input axes and fixed inertial output axes; moving axes need a second rotation derivative.");
+   for (Integer row = 0; row < 3; ++row)
+      for (Integer column = 0; column < 3; ++column)
+         if (rdot(row, column) != 0.0)
+            throw SubscriberException("Ephemeris acceleration conversion requires a time-invariant rotation matrix.");
+
+   Rvector3 acceleration(inAccel[0], inAccel[1], inAccel[2]);
+   SpacePoint *inputOrigin = source->GetOrigin();
+   SpacePoint *outputOrigin = target->GetOrigin();
+   if (inputOrigin != outputOrigin)
+   {
+      // Generic SpacePoint's default zero is not an acceleration provider.
+      const auto hasNativeAcceleration=[](SpacePoint *point) {
+         return point && (point->IsOfType(Gmat::CELESTIAL_BODY) || point->IsOfType("Barycenter") ||
+                          point->IsOfType("LibrationPoint") || point->IsOfType(Gmat::BODY_FIXED_POINT));
+      };
+      if (!hasNativeAcceleration(inputOrigin) || !hasNativeAcceleration(outputOrigin))
+         throw SubscriberException("Translated ephemeris acceleration requires celestial-body, Barycenter, LibrationPoint or body-fixed origins with native acceleration providers.");
+      if (!inputOrigin->GetJ2000Body() || !outputOrigin->GetJ2000Body() ||
+          inputOrigin->GetJ2000BodyName() != outputOrigin->GetJ2000BodyName())
+         throw SubscriberException("Translated ephemeris acceleration requires a common J2000 reference body.");
+      acceleration += inputOrigin->GetMJ2000Acceleration(A1Mjd(epochInDays)) -
+                      outputOrigin->GetMJ2000Acceleration(A1Mjd(epochInDays));
+   }
+   // r_out = R * (r_in + origin_in - origin_out). For fixed axes,
+   // differentiate twice and rotate the entire acceleration translation.
+   const Rvector3 outAcceleration = r * acceleration;
    for (Integer i = 0; i < 3; ++i)
    {
-      pos[i] = inState[i];
-      vel[i] = inState[i + 3];
-      accel[i] = inAccel[i];
-   }
-
-   // Convert spacecraft position from Frame1 to Frame2. It needs to translation and then a rotation.
-   // This is equation represtion for conversion between 2 frames:
-   //             posNew = posO2 - posO1 + [Rot]*pos
-   // Where: posO1 and posO2 are position of the origins of Frame1 and Frame2 respectively.
-   //        [Rot] is rotaion matrix from Frame1 to Frame2
-   //        newPos and pos are position of spacecarft represents in Frame2 and Frame1 respectively 
-   // Take both size of equation w.r.t. time tiwce. We obatins
-   //        newAcceleration = accelO2 - accelO1 + [Rot] * accel + 2*[(d/dt)[Rot]]*vel + [(dd/dtdt)[Rot]]*pos 
-   // Where: pos, vel, and accel are position, velocity, and acceleration in Frame1
-   //        [(d/dt)[Rot]] and [(dd/dtdt)[Rot]] are first and second derivative of [Rot] matrix w.r.t. time 
-   //        accelO1 and accelO2 are accelration of origins of Frame1 and Frame2 respectively.
-   //        newAcceleartion is the acceleration of spacecraft as it is presented in Frame2.
-
-   Rvector3 accelO1 = dataCoordSystem->GetOrigin()->GetMJ2000Acceleration(A1Mjd(epochInDays));
-   Rvector3 accelO2 = outCoordSystem->GetOrigin()->GetMJ2000Acceleration(A1Mjd(epochInDays));
-
-   // Currently, all build in GMAT coordinate system does not calculate the second derivative of rotation matrix.
-   // To simplify, we assume it is a zero matrix.
-   Rmatrix33 r2dot;
-   r2dot.Set(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-
-   outAcceleration = accelO2 - accelO1 + r * accel + 2 * (rdot * vel) + r2dot * pos;
-   for (Integer i = 0; i < 3; ++i)
+      if (!std::isfinite(outAcceleration[i]))
+         throw SubscriberException("Ephemeris acceleration conversion produced a nonfinite value.");
       outAccel[i] = outAcceleration[i];
+   }
    
    #ifdef DEBUG_EPHEMFILE_CONVERT_STATE   
    DebugWriteOrbit("In ConvertState(out):", epochInDays, outState, true, true);

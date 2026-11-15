@@ -31,8 +31,13 @@
 
 #include "PolyhedronGravityModel.hpp"
 #include <cmath>
+#include <memory>
+#include <typeinfo>
 #include "Rmatrix33.hpp"
 #include "Rmatrix66.hpp"
+#include "OrbitStmForceGradient.hpp"
+#include "PropagationStateManager.hpp"
+#include "Spacecraft.hpp"
 
 //#define DEBUG_FIRST_CALL
 //#define DEBUG_CONSTRUCTION
@@ -84,6 +89,8 @@ PolyhedronGravityModel::PolyhedronGravityModel(const std::string &name):
    bodyDensity				    (1000.0),
    bodyShapeFilename        (""),
    polybody                 (NULL),
+   now                      (0.0),
+   initialtime              (0.0),
    sumWf                    (0.0),
    isPHGMInitialized        (false),
    isShapeLoaded            (false)
@@ -111,25 +118,29 @@ PolyhedronGravityModel::~PolyhedronGravityModel()
 
 PolyhedronGravityModel::PolyhedronGravityModel(const PolyhedronGravityModel& polgm):
    GravityBase			   (polgm),
-   firstcalculation     (true),
+   firstcalculation     (polgm.firstcalculation),
    createForceBodyName  (polgm.createForceBodyName),
    createForceBody      (polgm.createForceBody),
    bodyDensity				(polgm.bodyDensity),
    bodyShapeFilename    (polgm.bodyShapeFilename),
    polybody					(NULL),
-   sumWf                (0.0),
+   bodyOrientation      (polgm.bodyOrientation),
+   bodyState            (polgm.bodyState),
+   now                  (polgm.now),
+   initialtime          (polgm.initialtime),
+   sumWf                (polgm.sumWf),
    isPHGMInitialized    (false),
    isShapeLoaded        (false)
 {
    #ifdef DEBUG_CONSTRUCTION
 	  MessageInterface::ShowMessage("PolyhedronGravityModel copy construction <%p>\n", this);
    #endif
-   objectTypeNames.push_back("PolyhedronGravityModel");
 
    if (polgm.polybody)
       polybody = polgm.polybody->Clone();
 
    parameterCount = PolyhedronGravityModelParamCount;
+   isInitialized = false;
 }
 
 
@@ -141,6 +152,38 @@ PolyhedronGravityModel& PolyhedronGravityModel::operator= (const PolyhedronGravi
    if (&polgm == this)
       return *this;
 
+   if (GmatBase::IsNativeRestorationCopy())
+   {
+      if (createForceBodyName != polgm.createForceBodyName || bodyShapeFilename != polgm.bodyShapeFilename ||
+          (polybody == nullptr) != (polgm.polybody == nullptr) ||
+          (createForceBody && polgm.createForceBody && createForceBody != polgm.createForceBody))
+         throw ODEModelException("Prepare the polyhedron shape and body before restoring changed bindings.");
+      const bool ready = isInitialized;
+      bool complete = false;
+      const auto onFailure = [&](void*) { if (!complete) isInitialized = false; };
+      const std::unique_ptr<void, decltype(onFailure)> restorationStatus(this, onFailure);
+      isInitialized = false;
+      GravityBase::operator=(polgm);
+      if (polybody) polybody->Copy(polgm.polybody);
+      bodyDensity = polgm.bodyDensity;
+      bodyOrientation = polgm.bodyOrientation;
+      bodyState = polgm.bodyState;
+      now = polgm.now;
+      initialtime = polgm.initialtime;
+      sumWf = polgm.sumWf;
+      firstcalculation = polgm.firstcalculation;
+      isInitialized = ready;
+      complete = true;
+      return *this;
+   }
+   std::unique_ptr<PolyhedronBody> nextBody(polgm.polybody ? polgm.polybody->Clone() : nullptr);
+   if (nextBody && (nextBody.get() == polgm.polybody || nextBody.get() == polybody))
+   {
+      nextBody.release();
+      throw ODEModelException("Polyhedron Clone returned an existing shape object.");
+   }
+   if (nextBody && typeid(*nextBody) != typeid(*polgm.polybody))
+      throw ODEModelException("Polyhedron Clone returned an incompatible native shape type.");
    GravityBase::operator=(polgm);
    firstcalculation     = true;
    createForceBodyName	= polgm.createForceBodyName;
@@ -151,11 +194,12 @@ PolyhedronGravityModel& PolyhedronGravityModel::operator= (const PolyhedronGravi
    isShapeLoaded        = false;
    sumWf                = 0.0;
 
-   if(polybody)
-      delete polybody;
-   polybody				   = NULL;
-   if (polgm.polybody)
-      polybody = polgm.polybody->Clone();
+   delete polybody;
+   polybody = nextBody.release();
+   bodyOrientation = polgm.bodyOrientation;
+   bodyState = polgm.bodyState;
+   now = polgm.now;
+   initialtime = polgm.initialtime;
 
    return *this;
 }
@@ -250,13 +294,12 @@ GmatBase* PolyhedronGravityModel::Clone() const
 }
 
 
-void PolyhedronGravityModel::Copy(const GmatBase* orig)
+void PolyhedronGravityModel::Copy(const GmatBase* original)
 {
-   #ifdef DEBUG_CONSTRUCTION
-      MessageInterface::ShowMessage("PolyhedronGravityModel copy\n");
-   #endif
-
-   operator=(*((PolyhedronGravityModel *)(orig)));
+   const auto *source = dynamic_cast<const PolyhedronGravityModel*>(original);
+   if (!source || typeid(*source) != typeid(PolyhedronGravityModel) || typeid(*this) != typeid(PolyhedronGravityModel))
+      throw ODEModelException("Cannot copy an incompatible native polyhedron gravity model.");
+   operator=(*source);
 }
 
 
@@ -706,7 +749,7 @@ bool PolyhedronGravityModel::Calculation(Rvector6 x, Rvector6& xdot, Rmatrix66& 
 	   for (int j = 0; j < 6; ++j)
 		   M(i,j) = 0.0;
    M(0,3) = 1.0; M(1,4) = 1.0; M(2,5) = 1.0;
-   for (int i = 1; i < 3; ++i)
+   for (int i = 0; i < 3; ++i)
 	   for (int j = 0; j < 3; ++j)
 		   M(i+3,j) = m1(i,j);
 
@@ -945,71 +988,110 @@ Real PolyhedronGravityModel::SetRealParameter(const std::string &label,
 bool PolyhedronGravityModel::GetDerivatives(Real * state, Real dt, Integer order, 
       const Integer id)
 {
-   #ifdef DEBUG_DERIVATIVE
-	MessageInterface::ShowMessage("----------------------------------------------------------------------------------\n");
-	MessageInterface::ShowMessage("Start PolyhedronGravityModel::GetDerivatives()\n\n");
-
-      MessageInterface::ShowMessage("Evaluating Polyhedron gravity model; "
-         "state pointer = %p, time offset = %lf, order = %d, id = %d "
-		 "epoch = %lf,  time = %lf\n", state, dt, order, id, theState->GetEpoch(), theState->GetEpoch()+dt/GmatTimeConstants::SECS_PER_DAY);
-	  MessageInterface::ShowMessage("forceOrigin(%p) name = '%s'\n", forceOrigin, forceOrigin->GetName().c_str());
-	  MessageInterface::ShowMessage("body(%p) name = '%s'\n", body, body->GetName().c_str());
-   #endif
-
-   if (fillCartesian || fillSTM || fillAMatrix)
+   if (order < 1 || order > 2 || !state || !deriv || !forceOrigin || !createForceBody)
+      return false;
+   GmatTime atEpoch = hasPrecisionTime ? epochGT : GmatTime(epoch);
+   atEpoch.AddSeconds(elapsedTime + dt);
+   const Rvector6 origin = hasPrecisionTime ? forceOrigin->GetMJ2000State(atEpoch) :
+      forceOrigin->GetMJ2000State(atEpoch.GetMjd());
+   const Rvector6 center = hasPrecisionTime ? createForceBody->GetMJ2000State(atEpoch) :
+      createForceBody->GetMJ2000State(atEpoch.GetMjd());
+   const Rvector6 offset = origin-center;
+   if (fillCartesian)
    {
-      if (order > 2)
-         return false;
-   
-      if ((state == NULL) || (deriv == NULL) || (theState == NULL))
-         // throw("Arrays not yet initialized -- exiting");
-         return false;
-
-	   // Get current location and orientation of the body generating gravity field: 
-      if (theState->HasPrecisionTime())
-         epoch = theState->GetEpochGT().GetMjd();
-      else
-         epoch = theState->GetEpoch();
-
-      now = epoch + dt/GmatTimeConstants::SECS_PER_DAY;
-	   bodyState = createForceBody->GetState(now);
-	   bodyOrientation = createForceBody->GetOrientationParameters();
-
-      #ifdef DEBUG_DERIVATIVE
-	   MessageInterface::ShowMessage("orientation = %f,  %f,  %f,  %f,  %f,  %f\n", bodyOrientation[0], bodyOrientation[1], bodyOrientation[2], bodyOrientation[3], bodyOrientation[4], bodyOrientation[5]);
-      #endif 
-
-	   initialtime = createForceBody->GetRealParameter(createForceBody->GetParameterID("OrientationEpoch"));
-   
-	  // state of spacecraft in the body (asteroid) MJ2000Eq coordinate system:
-	  Rvector6 x(state);					// notice that the input spacecraft state is the spacecarft state w/r/t the body				// spacecraftState - bodyState;
-
-	  #ifdef DEBUG_DERIVATIVE
-	     MessageInterface::ShowMessage("\n\n epoch = %lf,   dt = %lf,   now = epoch+dt = %lf  : unit = Julian day\n", epoch, dt/GmatTimeConstants::SECS_PER_DAY, now);
-//		 MessageInterface::ShowMessage(" spacecraft state                      =   %lf,   %lf,   %lf,   %lf,   %lf,   %lf\n", state[0], state[1], state[2], state[3], state[4], state[5]);
-//		 MessageInterface::ShowMessage(" state of the body ('%s')          =   %lf,   %lf,   %lf,   %lf,   %lf,   %lf\n", createForceBody->GetName().c_str(), bodyState[0], bodyState[1], bodyState[2], bodyState[3], bodyState[4], bodyState[5]);
-		 MessageInterface::ShowMessage(" state of spacecraft in the bodyMJ2000Eq: x =   %le km,   %le km,   %le km,   %le km/s,   %le km/s,   %le km/s\n\n", x[0], x[1], x[2], x[3], x[4], x[5]);
-      #endif
-
-      // calculate xdot and M matrix:
-	  Rvector6 xdot;
-	  Rmatrix66 M;
-	  
-     Calculation(x, xdot, M);                // unit for x is km for position and km/s for velocity;    unit for xdot is Km/s and km/s^2
-	  
-	  for (int i=0; i < 6; ++i)
-	     deriv[i] = xdot.GetElement(i);
-
-     #ifdef DEBUG_DERIVATIVE
-         MessageInterface::ShowMessage("\n xdot in the bodyMJ2000Eq =   %le km/s,   %le km/s,   %le km/s,   %le km/s^2,   %le km/s^2,   %le km/s^2\n\n", xdot[0], xdot[1], xdot[2], xdot[3], xdot[4], xdot[5]);
-         MessageInterface::ShowMessage("End PolyhedronGravityModel::GetDerivatives()\n");
-         MessageInterface::ShowMessage("----------------------------------------------------------------------------------\n");
-     #endif
+      for (Integer index = 0; index < cartesianCount; ++index)
+      {
+         const Integer start = cartesianStart + 6*index;
+         if (start < 0 || start > dimension-6)
+            throw ODEModelException("Polyhedron Cartesian layout is inconsistent.");
+         Rmatrix66 gradient(false);
+         const Rvector6 result = EvaluateField(Rvector6(state+start)+offset,atEpoch,gradient);
+         for (Integer component = 0; component < 3; ++component)
+         {
+            deriv[start+component] = order == 1 ? 0.0 : result[component+3];
+            deriv[start+component+3] = order == 1 ? result[component+3] : 0.0;
+         }
+      }
    }
-
+   for (const auto type : {Gmat::ORBIT_STATE_TRANSITION_MATRIX, Gmat::ORBIT_A_MATRIX})
+   {
+      const bool stm = type == Gmat::ORBIT_STATE_TRANSITION_MATRIX;
+      if (!(stm ? fillSTM : fillAMatrix)) continue;
+      if (!psm || !theState)
+         throw ODEModelException("Polyhedron matrices require the propagation state map.");
+      const auto &mapping = *psm->GetStateMap();
+      Integer start = stm ? stmStart : aMatrixStart;
+      const Integer count = stm ? stmCount : aMatrixCount;
+      for (Integer index = 0; index < count; ++index)
+      {
+         if (start < 0 || start >= static_cast<Integer>(mapping.size()))
+            throw ODEModelException("Polyhedron matrix index is outside the propagation state.");
+         auto *owner = dynamic_cast<Spacecraft*>(mapping[start]->object);
+         if (!owner)
+            throw ODEModelException("Polyhedron matrix has no spacecraft owner.");
+         const Integer rows = owner->GetIntegerParameter("FullSTMRowCount");
+         const Integer associate = theState->GetAssociateIndex(start);
+         if (rows < 6 || rows > (dimension-start)/rows || associate < 0 || associate > dimension-6)
+            throw ODEModelException("Polyhedron matrix layout is inconsistent.");
+         Rmatrix66 gradient(false);
+         EvaluateField(Rvector6(state+associate)+offset,atEpoch,gradient);
+         std::fill(deriv+start,deriv+start+rows*rows,0.0);
+         for (Integer row = 3; row < 6; ++row)
+            for (Integer column = 0; column < 6; ++column)
+               deriv[start+row*rows+column] = gradient(row,column);
+         start += rows*rows;
+      }
+   }
    return true;
 }
 
+Rvector6 PolyhedronGravityModel::EvaluateField(const Rvector6 &bodyRelative,
+      const GmatTime &atEpoch, Rmatrix66 &gradient)
+{
+   if (!polybody || !createForceBody || !forceOrigin)
+      throw ODEModelException("Polyhedron field requires an initialized shape, body and origin.");
+   now = atEpoch.GetMjd();
+   bodyState = createForceBody->GetState(now);
+   bodyOrientation = createForceBody->GetOrientationParameters();
+   initialtime = createForceBody->GetRealParameter(createForceBody->GetParameterID("OrientationEpoch"));
+   Rvector6 result;
+   Calculation(bodyRelative,result,gradient);
+   if (forceOrigin != createForceBody)
+   {
+      const Rvector6 relativeOrigin = forceOrigin->GetMJ2000State(atEpoch)-
+         createForceBody->GetMJ2000State(atEpoch);
+      Rvector6 indirect;
+      Rmatrix66 unused(false);
+      Calculation(relativeOrigin,indirect,unused);
+      for (Integer component = 3; component < 6; ++component)
+         result[component] -= indirect[component];
+   }
+   for (Integer component = 0; component < 3; ++component) result[component] = 0.0;
+   return result;
+}
+
+Rvector6 PolyhedronGravityModel::GetDerivativesForSpacecraft(Spacecraft *spacecraft)
+{
+   if (!spacecraft)
+      throw ODEModelException("Polyhedron sampling requires a spacecraft.");
+   // Shape geometry and evaluation caches belong to the private query value.
+   PolyhedronGravityModel sample(*this);
+   Real relative[6];
+   const GmatTime atEpoch = hasPrecisionTime ? spacecraft->GetEpochGT() : GmatTime(spacecraft->GetEpoch());
+   const bool translated = hasPrecisionTime ?
+      sample.BuildModelStateGT(atEpoch,relative,spacecraft->GetState().GetState()) :
+      sample.BuildModelState(atEpoch.GetMjd(),relative,spacecraft->GetState().GetState());
+   if (!translated)
+      throw ODEModelException("Polyhedron sampling cannot resolve its body-relative state.");
+   Rmatrix66 gradient(false);
+   const Rvector6 result = sample.EvaluateField(Rvector6(relative),atEpoch,gradient);
+   Rmatrix cartesian(3,6);
+   for (Integer row = 0; row < 3; ++row)
+      for (Integer column = 0; column < 6; ++column)
+         cartesian(row,column) = gradient(row+3,column);
+   OrbitStmForceGradient::Request::Capture(this,cartesian);
+   return result;
+}
 
 //------------------------------------------------------------------------------
 // bool SetStart(Gmat::StateElementId id, Integer index, Integer quantity)
@@ -1049,6 +1131,20 @@ bool PolyhedronGravityModel::SetStart(Gmat::StateElementId id, Integer index,
          retval         = true;
          break;
 
+      case Gmat::ORBIT_STATE_TRANSITION_MATRIX:
+         stmCount = quantity;
+         stmStart = index;
+         fillSTM = true;
+         totalSTMSize = sizeOfType;
+         retval = true;
+         break;
+      case Gmat::ORBIT_A_MATRIX:
+         aMatrixCount = quantity;
+         aMatrixStart = index;
+         fillAMatrix = true;
+         totalSTMSize = sizeOfType;
+         retval = true;
+         break;
       default:
          break;
    }
@@ -1075,7 +1171,8 @@ bool PolyhedronGravityModel::SupportsDerivative(Gmat::StateElementId id)
             "PolyhedronGravityModel checking for support for id %d\n", id);
    #endif
 
-   if (id == Gmat::CARTESIAN_STATE)
+   if (id == Gmat::CARTESIAN_STATE || id == Gmat::ORBIT_STATE_TRANSITION_MATRIX ||
+         id == Gmat::ORBIT_A_MATRIX)
       return true;
 
    return GravityBase::SupportsDerivative(id);

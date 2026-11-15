@@ -1,5 +1,6 @@
 """Build, relocate and probe a private tester package on its native OS."""
 import argparse
+import collections
 import hashlib
 import json
 import math
@@ -21,6 +22,17 @@ ROOT = REPO / 'build/preview-package'
 LOGS = ROOT / 'logs'
 DEPS = ROOT / 'deps'
 BUILD_JOBS = str(max(1, min(4, os.cpu_count() or 2)))
+PACKAGE_VERSION = None
+PYTHON_API = False
+
+
+def build_flavor(python_api=False):
+    return 'api-py312-v2' if python_api else 'desktop-v1'
+
+
+def native_filename(target, python_api=False):
+    suffix = build_flavor(True) + '-' if python_api else ''
+    return 'native-inputs-' + suffix + target + '.tar.gz'
 
 
 def run(command, name, *, env=None, cwd=None):
@@ -109,8 +121,17 @@ def dependencies(target):
             sdk_record.write_text(json.dumps({'source_sha256': receipts['OpenSceneGraph'],
                 'file_sha256': {p.relative_to(osg).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
                                 for p in osg.rglob('*') if p.is_file()}}, indent=2) + '\n')
+    elif target.startswith('linux'):
+        run([sys.executable, '-m', 'pip', 'install', 'aqtinstall==3.3.0'], 'aqt-install')
+        run([sys.executable, '-m', 'aqt', 'install-qt', 'linux', 'desktop',
+             '6.10.2', 'linux_gcc_64', '-O', DEPS / 'qt'], 'qt-install')
+        qt, osg, prefix = DEPS / 'qt/6.10.2/gcc_64', Path('/usr'), Path('/usr')
+        archive = DEPS / 'cspice.tar.Z'
+        receipts['CSPICE'] = download(
+            'https://naif.jpl.nasa.gov/pub/naif/toolkit/C/PC_Linux_GCC_64bit/packages/cspice.tar.Z', archive)
+        run(['tar', '-xf', archive, '-C', DEPS], 'cspice-extract')
     else:
-        run(['brew', 'install', 'qt', 'open-scene-graph', 'xerces-c'], 'brew-install')
+        run(['brew', 'install', 'qt', 'open-scene-graph', 'xerces-c', 'swig'], 'brew-install')
         brew = lambda formula: Path(subprocess.check_output(['brew', '--prefix', formula], text=True).strip())
         qt, osg, prefix = brew('qt'), brew('open-scene-graph'), brew('xerces-c')
         toolkit = 'MacM1_OSX_clang_64bit' if target.endswith('arm64') else 'MacIntel_OSX_AppleC_64bit'
@@ -121,7 +142,7 @@ def dependencies(target):
     return qt, osg, prefix
 
 
-def build(target, qt, osg, prefix):
+def build(target, qt, osg, prefix, *, extra_options=(), targets=('GmatQt',), python_api=False):
     build_env = None
     options = ['-DCMAKE_BUILD_TYPE=Release', '-DGMAT_INCLUDE_QT_GUI=ON',
                '-DGMAT_INCLUDE_GUI=OFF', '-DGMAT_QT_BUILD_TESTS=OFF',
@@ -131,6 +152,15 @@ def build(target, qt, osg, prefix):
                '-DPLUGIN_CINTERFACE=OFF', '-DGMAT_QT_EXTERNAL_PLUGINS=',
                f'-DCSPICE_DIR={DEPS / "cspice"}',
                f'-DCMAKE_PREFIX_PATH={qt};{osg};{prefix}']
+    if python_api:
+        if sys.version_info[:2] != (3, 12):
+            raise RuntimeError('The release Python API must be built with CPython 3.12')
+        options += ['-DGMAT_INCLUDE_API=ON', '-DAPI_GENERATE_PYTHON=ON',
+                    '-DAPI_GENERATE_JAVA=OFF', '-DGMAT_PYTHON3_VERSIONS=3.12',
+                    f'-DGMAT_PYTHON312_ROOT_DIR={sys.base_prefix}',
+                    f'-DPython3_EXECUTABLE={sys.executable}',
+                    '-DPLUGIN_STATION=ON', '-DPLUGIN_ESTIMATION=ON']
+        targets = list(dict.fromkeys([*targets, 'gmat_py312', 'station_py312', 'navigation_py312']))
     if target.startswith('windows'):
         options += ['-G', 'Visual Studio 17 2022', '-A', 'x64']
         # gmatdefs.hpp includes Windows headers for every native plugin. Keep
@@ -139,32 +169,41 @@ def build(target, qt, osg, prefix):
         # CL supplements MSVC's normal flags instead of replacing CMake's
         # exception-handling, runtime-library or release configuration.
         build_env = dict(os.environ)
-        build_env['CL'] = (build_env.get('CL', '') + ' /DNOMINMAX').strip()
-        print('MSVC native build: add /DNOMINMAX', flush=True)
-    else:
+        # SWIG enables move-only return values using __cplusplus. MSVC needs
+        # this switch to report the selected C++17 standard to those wrappers.
+        build_env['CL'] = (build_env.get('CL', '') + ' /DNOMINMAX /Zc:__cplusplus /MP' + BUILD_JOBS).strip()
+        print('MSVC native build: enable the C++ standard macro and parallel compilation', flush=True)
+    elif target.startswith('macos'):
         architecture = 'arm64' if target.endswith('arm64') else 'x86_64'
         options += ['-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
                     f'-DCMAKE_OSX_ARCHITECTURES={architecture}']
+    options.extend(extra_options)
     run(['cmake', '-S', REPO, '-B', ROOT / 'gmat-build', *options], 'gmat-configure', env=build_env)
     run(['cmake', '--build', ROOT / 'gmat-build', '--config', 'Release',
-         '--target', 'GmatQt', '--parallel', BUILD_JOBS], 'gmat-build', env=build_env)
+         '--target', *targets, '--parallel', '1' if target.startswith('windows') else BUILD_JOBS],
+        'gmat-build', env=build_env)
 
 
 def production_tree():
     data = subprocess.check_output(['git', 'ls-tree', '-r', 'HEAD', '--',
-        'CMakeLists.txt', 'src', 'plugins', 'application', 'depends',
+        'CMakeLists.txt', 'src', 'swig', 'plugins', 'application', 'depends',
         'build/cmake_modules', 'build/install'], cwd=REPO)
     return hashlib.sha256(data).hexdigest()
 
 
-def preserve_native(target, qt, osg, prefix):
+def preserve_native(target, qt, osg, prefix, *, extra_files=(), python_api=False):
     """Retain exact compiled inputs before any subsequent packaging failure."""
     paths = {}
     for root in [REPO / 'application/bin', REPO / 'application/plugins']:
         for path in root.rglob('*'):
-            if path.is_file() and (path.suffix in {'.dll', '.dylib', '.so', '.exe'} or
+            if path.is_file() and (path.suffix in {'.dll', '.dylib', '.so', '.exe', '.pyd'} or '.so.' in path.name or
                                    path.name in {'GmatQt', 'gmat_startup_qt.txt'}):
                 paths[path.relative_to(REPO).as_posix()] = path
+    if python_api:
+        for path in python_api_files():
+            paths[path.relative_to(REPO).as_posix()] = path
+    for path in extra_files:
+        paths[path.relative_to(REPO).as_posix()] = path
     if target.startswith('windows'):
         for root, arcroot in [(qt, qt.relative_to(REPO)), (osg, osg.relative_to(REPO)),
                               (prefix / 'bin', DEPS.relative_to(REPO) / 'package-vcpkg/bin'),
@@ -181,12 +220,14 @@ def preserve_native(target, qt, osg, prefix):
                 paths[(arcroot / relative).as_posix()] = path
         prefix = DEPS / 'package-vcpkg'
     metadata = {'platform': target, 'production_tree_sha256': production_tree(),
+        'build_flavor': build_flavor(python_api),
+        'python_build': platform.python_version() if python_api else None,
         'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
         'qt': str(qt), 'osg': str(osg), 'prefix': str(prefix),
         'file_sha256': {n: hashlib.sha256(p.read_bytes()).hexdigest() for n,p in paths.items()}}
     context = ROOT / 'native-build-context.json'
     context.write_text(json.dumps(metadata, indent=2) + '\n')
-    archive = ROOT / ('native-inputs-' + target + '.tar.gz')
+    archive = ROOT / native_filename(target, python_api)
     with tarfile.open(archive, 'w:gz', compresslevel=1, dereference=True) as out:
         for name, path in paths.items():
             out.add(path, arcname=name, recursive=False)
@@ -194,13 +235,14 @@ def preserve_native(target, qt, osg, prefix):
     print('Preserved native inputs: ' + str(archive), flush=True)
 
 
-def restore_native(target):
-    archive = ROOT / 'reuse-native' / ('native-inputs-' + target + '.tar.gz')
+def restore_native(target, python_api=False):
+    archive = ROOT / 'reuse-native' / native_filename(target, python_api)
     if not archive.exists():
         return None
     with tarfile.open(archive) as source:
         metadata = json.load(source.extractfile('build/preview-package/native-build-context.json'))
         assert metadata['platform'] == target and metadata['production_tree_sha256'] == production_tree()
+        assert metadata.get('build_flavor', 'desktop-v1') == build_flavor(python_api)
         assert all(m.isfile() and not Path(m.name).is_absolute() and '..' not in Path(m.name).parts
                    for m in source.getmembers())
         source.extractall(REPO, filter='data')
@@ -210,6 +252,22 @@ def restore_native(target):
     return metadata
 
 
+def python_api_files():
+    root = REPO / 'application/bin/gmatpy'
+    version = root / '_py312'
+    files = [root / '__init__.py', version / '__init__.py']
+    for module in ['gmat', 'station', 'navigation']:
+        files.append(version / (module + '_py.py'))
+        extensions = [p for p in version.glob('_' + module + '_py*')
+                      if p.suffix in {'.so', '.pyd', '.dylib'}]
+        if len(extensions) != 1:
+            raise RuntimeError(f'Expected one Python 3.12 {module} extension, found {extensions}')
+        files.extend(extensions)
+    if not all(p.is_file() for p in files):
+        raise RuntimeError('The Python API package is incomplete')
+    return files
+
+
 def copy_payload(destination):
     # Copy only Git-owned runtime data and examples, never local outputs or SDKs.
     paths = subprocess.check_output(['git', 'ls-files', '-z', '--', 'application'], cwd=REPO).decode().split('\0')
@@ -217,7 +275,7 @@ def copy_payload(destination):
         if not name:
             continue
         relative = Path(name).relative_to('application')
-        if relative.parts[0] in {'data', 'samples', 'userfunctions', 'userincludes', 'extras'}:
+        if relative.parts[0] in {'data', 'samples', 'userfunctions', 'userincludes', 'extras', 'api'}:
             copy_file(REPO / name, destination / relative)
     for folder in ['output', 'plugins', 'bin', 'utilities', 'matlab', 'docs/help']:
         (destination / folder).mkdir(parents=True, exist_ok=True)
@@ -235,9 +293,11 @@ def collect_notices(destination, qt, osg, prefix):
         copy_file(source, notices / name)
     roots = {'Qt': qt, 'OpenSceneGraph': osg, 'Xerces-and-dependencies': prefix,
              'CSPICE': DEPS / 'cspice'}
+    if sys.platform.startswith('linux'):
+        roots = {'Qt': qt, 'CSPICE': DEPS / 'cspice'}
     if os.name == 'nt':
         roots['OpenSceneGraph-source'] = DEPS / 'OpenSceneGraph-OpenSceneGraph-3.6.5'
-    else:
+    elif sys.platform == 'darwin':
         cellar = Path(subprocess.check_output(['brew', '--cellar'], text=True).strip())
         for formula in cellar.iterdir():
             if formula.is_dir():
@@ -267,7 +327,7 @@ def collect_notices(destination, qt, osg, prefix):
         'OpenSceneGraph source: https://github.com/openscenegraph/OpenSceneGraph/tree/OpenSceneGraph-3.6.5\n'
         'Xerces-C source: https://xerces.apache.org/xerces-c/\n'
         'CSPICE toolkit, source and rules: https://naif.jpl.nasa.gov/naif/toolkit.html and https://naif.jpl.nasa.gov/naif/rules.html\n'
-        'Libraries can be replaced with compatible builds. GMAT source and package recipes are in the private GMAT-Qt repository.\n', encoding='utf-8')
+        'Libraries can be replaced with compatible builds. GMAT source and package recipes: https://github.com/dcajacob/GMAT-Qt\n', encoding='utf-8')
 
 
 def macho(path):
@@ -281,7 +341,9 @@ def relocate_macos(bundle):
     frameworks = bundle / 'Contents/Frameworks'
     frameworks.mkdir(exist_ok=True)
     binary = bundle / 'Contents/MacOS/GmatQt'
-    queue = [p for p in bundle.rglob('*') if macho(p)]
+    # Framework aliases share one Mach-O file. Resolve them before computing
+    # @loader_path so each binary uses its actual Versions/A directory.
+    queue = [p.resolve() for p in bundle.rglob('*') if macho(p)]
     done = set()
     copied_sources = {}
     while queue:
@@ -296,14 +358,17 @@ def relocate_macos(bundle):
             old = line.strip().split(' (compatibility version', 1)[0]
             if old in identities:
                 continue
-            if old.startswith(('/System/', '/usr/lib/', '@executable_path/../Frameworks/')):
+            if old.startswith(('/System/', '/usr/lib/')):
                 continue
-            if old.startswith('@loader_path/'):
+            if old.startswith('@executable_path/'):
+                source = binary.parent / old[len('@executable_path/'):]
+            elif old.startswith('@loader_path/'):
                 source = path.parent / old[len('@loader_path/'):]
             elif old.startswith('@rpath/'):
                 # Qt's deploy tool resolves its framework references first.
                 candidates = [frameworks / old[len('@rpath/'):], path.parent / old[len('@rpath/'):],
-                              binary.parent / old[len('@rpath/'):]]
+                              binary.parent / old[len('@rpath/'):],
+                              bundle / 'Contents/PlugIns' / old[len('@rpath/'):]]
                 source = next((p for p in candidates if p.exists()), None)
                 if source is None:
                     raise RuntimeError(f'Unresolved runtime dependency {old} in {path}')
@@ -314,8 +379,8 @@ def relocate_macos(bundle):
             if source.resolve() == path.resolve():
                 continue
             try:
-                relative = source.resolve().relative_to(frameworks.resolve())
-                replacement = '@executable_path/../Frameworks/' + str(relative)
+                source.resolve().relative_to(bundle.resolve())
+                target = source.resolve()
             except ValueError:
                 target = frameworks / source.name
                 identity = hashlib.sha256(source.read_bytes()).hexdigest()
@@ -335,21 +400,121 @@ def relocate_macos(bundle):
                     copied_sources[target] = identity
                     target.chmod(0o755)
                     queue.append(target)
-                replacement = '@executable_path/../Frameworks/' + source.name
-            run(['install_name_tool', '-change', old, replacement, path], 'relocate-' + str(len(done)) + '-' + str(len(libraries)) + '-' + hashlib.sha256(old.encode()).hexdigest()[:10])
-        if path.suffix in {'.dylib', '.so'}:
-            subprocess.run(['install_name_tool', '-id', '@executable_path/../Frameworks/' + path.name, path], check=True)
+            replacement = '@loader_path/' + os.path.relpath(target, path.parent)
+            if old != replacement:
+                run(['install_name_tool', '-change', old, replacement, path], 'relocate-' + str(len(done)) + '-' + str(len(libraries)) + '-' + hashlib.sha256(old.encode()).hexdigest()[:10])
+        if identities and path.suffix in {'.dylib', '.so'}:
+            subprocess.run(['install_name_tool', '-id', '@rpath/' + path.name, path], check=True)
     for path in sorted(done, key=lambda p: len(p.parts), reverse=True):
         if path != binary:
             subprocess.run(['codesign', '--force', '--sign', '-', path], check=True)
     run(['codesign', '--force', '--sign', '-', bundle], 'stage-sign')
 
 
+def stage_linux(payload, qt, osg):
+    copy_file(REPO / 'application/bin/GmatQt', payload / 'bin/GmatQt')
+    for source in (qt / 'plugins').rglob('*.so'):
+        if source.parent.name in {'platforms', 'imageformats', 'iconengines', 'styles',
+                                  'xcbglintegrations', 'wayland-shell-integration',
+                                  'wayland-graphics-integration-client', 'wayland-decoration-client', 'tls'}:
+            copy_file(source, payload / 'qt/plugins' / source.relative_to(qt / 'plugins'))
+    for directory in (osg / 'lib/x86_64-linux-gnu').glob('osgPlugins-*'):
+        for source in directory.glob('*.so'):
+            if source.stem in {'osgdb_3ds', 'osgdb_obj', 'osgdb_osg', 'osgdb_freetype',
+                               'osgdb_png', 'osgdb_jpeg', 'osgdb_serializers_osg'}:
+                copy_file(source, payload / 'osgPlugins' / source.name)
+
+    def is_elf(path):
+        if not path.is_file():
+            return False
+        with path.open('rb') as stream:
+            return stream.read(4) == b'\x7fELF'
+
+    queue = collections.deque(path for path in payload.rglob('*') if is_elf(path))
+    visited = set()
+    host_libraries = {}
+    system_sources = set()
+    requirements = set()
+    package_libraries = str(payload / 'bin') + ':' + str(payload / 'lib')
+    env = dict(os.environ, LD_LIBRARY_PATH=package_libraries + ':' + str(qt / 'lib'))
+    while queue:
+        binary = queue.popleft()
+        if binary in visited:
+            continue
+        visited.add(binary)
+        versions = subprocess.check_output(['objdump', '-T', binary], text=True)
+        requirements.update(re.findall(r'GLIBC_(\d+\.\d+)', versions))
+        linked = subprocess.check_output(['ldd', binary], text=True, env=env)
+        assert 'not found' not in linked, (str(binary), linked)
+        for line in linked.splitlines():
+            match = re.match(r'\s*(\S+)\s+=>\s+(/\S+)\s+\(', line)
+            if not match:
+                continue
+            soname, name = match.groups()
+            source = Path(name)
+            if source.is_relative_to(payload):
+                continue
+            if soname.startswith(('libc.so', 'libm.so', 'libdl.so', 'libpthread.so',
+                                  'librt.so', 'libresolv.so', 'libnss_', 'ld-linux')):
+                host_libraries[soname] = name
+                continue
+            destination = payload / 'lib' / soname
+            if not destination.exists():
+                copy_file(source, destination)
+                queue.append(destination)
+                if str(source).startswith('/usr/lib/') or str(source).startswith('/lib/'):
+                    system_sources.add(source.resolve())
+    for binary in visited:
+        relative_bin = os.path.relpath(payload / 'bin', binary.parent)
+        relative_lib = os.path.relpath(payload / 'lib', binary.parent)
+        subprocess.run(['patchelf', '--set-rpath',
+                        f'$ORIGIN:$ORIGIN/{relative_bin}:$ORIGIN/{relative_lib}', str(binary)], check=True)
+        linked = subprocess.check_output(['ldd', binary], text=True,
+                                         env=dict(os.environ, LD_LIBRARY_PATH=package_libraries))
+        assert 'not found' not in linked, (str(binary), linked)
+    for source in sorted(system_sources):
+        owner = subprocess.run(['dpkg-query', '-S', str(source)], capture_output=True, text=True)
+        if owner.returncode:
+            continue
+        package = owner.stdout.split(': ', 1)[0].split(':', 1)[0]
+        copyright_file = Path('/usr/share/doc') / package / 'copyright'
+        if copyright_file.is_file():
+            copy_file(copyright_file, payload / 'THIRD-PARTY-NOTICES' / package / 'copyright')
+    runtime = {'host_libraries': host_libraries,
+               'minimum_glibc': max(requirements, key=lambda value: tuple(map(int, value.split('.'))))}
+    (LOGS / 'linux-runtime.json').write_text(json.dumps(runtime, indent=2) + '\n')
+    launcher = '''#!/bin/sh
+set -eu
+gmat_alpha_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+export LD_LIBRARY_PATH="$gmat_alpha_root/bin:$gmat_alpha_root/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export QT_PLUGIN_PATH="$gmat_alpha_root/qt/plugins"
+export QT_QPA_PLATFORM_PLUGIN_PATH="$gmat_alpha_root/qt/plugins/platforms"
+export OSG_LIBRARY_PATH="$gmat_alpha_root/osgPlugins"
+exec "$gmat_alpha_root/bin/GmatQt" --startup "$gmat_alpha_root/bin/gmat_startup_qt.txt" "$@"
+'''
+    executable = payload / 'run-gmat'
+    executable.write_text(launcher)
+    executable.chmod(0o755)
+    return executable
+
+
 def stage_package(target, qt, osg, prefix):
-    payload = ROOT / 'staging' / ('GMAT-Qt-' + target)
+    label = ('GMAT-Qt-' + PACKAGE_VERSION + '-' + target) if PACKAGE_VERSION else ('GMAT-Qt-' + target)
+    payload = ROOT / 'staging' / label
     copy_payload(payload)
+    if PYTHON_API:
+        for path in python_api_files():
+            copy_file(path, payload / 'bin' / path.relative_to(REPO / 'application/bin'))
+        compiled = json.loads((ROOT / 'native-build-context.json').read_text())
+        metadata = {'implementation': 'CPython', 'python_version': '3.12',
+                    'python_build': compiled.get('python_build'),
+                    'architecture': target, 'modules': ['gmat', 'station', 'navigation'],
+                    'build_flavor': build_flavor(True),
+                    'source_commit': compiled['source_commit'],
+                    'package_source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()}
+        (payload / 'PYTHON-API.json').write_text(json.dumps(metadata, indent=2) + '\n')
     collect_notices(payload, qt, osg, prefix)
-    suffix = '.dll' if target.startswith('windows') else '.dylib'
+    suffix = '.dll' if target.startswith('windows') else '.so*' if target.startswith('linux') else '.dylib'
     for path in (REPO / 'application/bin').glob('*' + suffix):
         copy_file(path, payload / 'bin' / path.name)
     for path in (REPO / 'application/plugins').rglob('*' + suffix):
@@ -357,6 +522,11 @@ def stage_package(target, qt, osg, prefix):
     startup = REPO / 'application/bin/gmat_startup_qt.txt'
     assert not re.search(r'(?im)^PLUGIN\s*=.*(Matlab|Fmincon|VF13ad)', startup.read_text())
     copy_file(startup, payload / 'bin/gmat_startup_qt.txt')
+    if PYTHON_API:
+        # gmatpy uses the standard startup filename to establish its bin path.
+        copy_file(startup, payload / 'bin/gmat_startup_file.txt')
+    if target.startswith('linux'):
+        return payload, stage_linux(payload, qt, osg)
     if target.startswith('windows'):
         copy_file(REPO / 'application/bin/GmatQt.exe', payload / 'bin/GmatQt.exe')
         for directory in [osg / 'bin', prefix / 'bin']:
@@ -391,13 +561,23 @@ def stage_package(target, qt, osg, prefix):
     startup_path.write_text(re.sub(r'(?m)^OUTPUT_PATH\s*=.*$',
                                  'OUTPUT_PATH = ../../../output/', startup_text)
                             .replace('../plugins/', '../PlugIns/'))
+    if PYTHON_API:
+        # Keep Python source and configuration in Resources. Relative aliases
+        # retain the standard API discovery layout beside the GUI executable.
+        shutil.move(contents / 'MacOS/gmatpy', resources / 'gmatpy')
+        (contents / 'MacOS/gmatpy').symlink_to('../Resources/gmatpy', target_is_directory=True)
+        (contents / 'MacOS/gmat_startup_file.txt').unlink()
+        copy_file(startup_path, resources / 'gmat_startup_file.txt')
+        (contents / 'MacOS/gmat_startup_file.txt').symlink_to('../Resources/gmat_startup_file.txt')
     binary = contents / 'MacOS/GmatQt'
     copy_file(REPO / 'application/bin/GmatQt', binary)
     binary.chmod(0o755)
     (contents / 'Info.plist').write_bytes(plistlib.dumps({
         'CFBundleExecutable': 'GmatQt', 'CFBundleIdentifier': 'com.dcajacob.gmat-qt.preview',
         'CFBundleName': 'GMAT-Qt', 'CFBundlePackageType': 'APPL',
-        'CFBundleVersion': '20261104', 'CFBundleShortVersionString': '2026.11.04', 'LSMinimumSystemVersion': '15.0',
+        'CFBundleVersion': '20261114' if PACKAGE_VERSION else '20261104',
+        'CFBundleShortVersionString': PACKAGE_VERSION.split('-')[0] if PACKAGE_VERSION else '2026.11.04',
+        'LSMinimumSystemVersion': '15.0',
         'NSHighResolutionCapable': True}))
     for directory in (osg / 'lib').glob('osgPlugins-*'):
         for path in directory.iterdir():
@@ -421,9 +601,10 @@ def stage_package(target, qt, osg, prefix):
     return payload, binary
 
 
-def probe(target, payload, executable):
-    root = payload if target.startswith('windows') else payload / 'GMAT-Qt.app/Contents/Resources'
+def probe(target, payload, executable, *, model_reader=True, record_in_payload=True):
+    root = payload / 'GMAT-Qt.app/Contents/Resources' if target.startswith('macos') else payload
     report = ROOT / 'probe-values.csv'
+    saved = ROOT / 'saved-spacecraft.script'
     radius, mu = 7000., 398600.4415
     script = ROOT / 'probe.script'
     script.write_text(f"""Create Spacecraft Sat;
@@ -453,18 +634,38 @@ Values.WriteHeaders = false;
 Values.FixedWidth = false;
 Values.Delimiter = ',';
 Values.Precision = 17;
+Create OrbitView AlphaOrbit;
+AlphaOrbit.Add = {{Sat, Earth}};
+Create GroundTrackPlot AlphaGround;
+AlphaGround.Add = {{Sat}};
+Create XYPlot AlphaXY;
+AlphaXY.XVariable = Sat.ElapsedSecs;
+AlphaXY.YVariables = {{Sat.EarthMJ2000Eq.X}};
 BeginMissionSequence;
 Propagate P(Sat) {{Sat.ElapsedSecs = 600}};
 Report Values Sat.ElapsedSecs Sat.X Sat.Y Sat.Z Sat.VX Sat.VY Sat.VZ;
+Save Sat {{Filename = '{saved.as_posix()}'}};
 """, encoding='utf-8')
+    plan = {'duration_seconds': 600, 'radius_km': radius, 'mu_km3_s2': mu,
+            'elapsed_bound_seconds': 2e-5, 'position_bound_km': 2e-5,
+            'velocity_bound_km_s': 3e-8, 'oracle': 'analytic circular two-body motion',
+            'bounds_reused_from': 'previous native package probe'}
+    (LOGS / 'package-probe-plan.json').write_text(json.dumps(plan, indent=2) + '\n')
     env = dict(os.environ, QT_QPA_PLATFORM='offscreen')
     for key in ['QT_PLUGIN_PATH', 'QT_QPA_PLATFORM_PLUGIN_PATH', 'DYLD_LIBRARY_PATH', 'DYLD_FRAMEWORK_PATH', 'OSG_LIBRARY_PATH']:
         env.pop(key, None)
     if target.startswith('windows'):
         env['PATH'] = str(executable.parent) + os.pathsep + os.environ.get('SystemRoot', 'C:/Windows') + '/System32'
-    run([executable, script, '--run', '--screenshot', LOGS / 'package-probe.png',
-         '--settings-dir', ROOT / 'probe-settings'], 'package-probe', env=env, cwd=ROOT)
-    if target.startswith('macos'):
+        # The offscreen font database needs an explicit directory on Windows.
+        # The normal windows platform obtains installed fonts through the OS.
+        env['QT_QPA_FONTDIR'] = str(Path(os.environ.get('SystemRoot', 'C:/Windows')) / 'Fonts')
+    if target.startswith('linux'):
+        env.update(QT_QPA_PLATFORM='xcb', LIBGL_ALWAYS_SOFTWARE='1')
+    prefix = ['xvfb-run', '-a', '-s', '-screen 0 1600x1000x24'] if target.startswith('linux') else []
+    command = prefix + [executable, script, '--run', '--screenshot', LOGS / 'package-probe.png',
+                        '--settings-dir', ROOT / 'probe-settings']
+    run(command, 'package-probe', env=env, cwd=ROOT)
+    if target.startswith('macos') and model_reader:
         reader = executable.parent / 'PackageReaderProbe'
         run([reader, root.parent, root / 'data/vehicle/models/aura.3ds'], 'model-reader-probe', env=env, cwd=ROOT)
         reader.unlink()
@@ -478,16 +679,45 @@ Report Values Sat.ElapsedSecs Sat.X Sat.Y Sat.Z Sat.VX Sat.VY Sat.VZ;
     truth = [radius*c, radius*s, 0., -radius*omega*s, radius*omega*c, 0.]
     errors = [abs(a-b) for a,b in zip(values[1:], truth)]
     assert max(errors[:3]) < 2e-5 and max(errors[3:]) < 3e-8
+    assert 'Create Spacecraft Sat;' in saved.read_text()
+    reopened = ROOT / 'reopened-values.csv'
+    reopen_script = ROOT / 'reopen.script'
+    reopen_script.write_text(saved.read_text() + f"""
+Create ReportFile Reopened;
+Reopened.Filename = '{reopened.as_posix()}';
+Reopened.WriteHeaders = false;
+Reopened.FixedWidth = false;
+Reopened.Delimiter = ',';
+Reopened.Precision = 17;
+BeginMissionSequence;
+Report Reopened Sat.X Sat.Y Sat.Z Sat.VX Sat.VY Sat.VZ;
+""", encoding='utf-8')
+    run(prefix + [executable, reopen_script, '--run', '--screenshot', LOGS / 'reopen-probe.png',
+                  '--settings-dir', ROOT / 'reopen-settings'], 'reopen-probe', env=env, cwd=ROOT)
+    restored_values = list(map(float, reopened.read_text().strip().split(',')))
+    assert len(restored_values) == 6 and all(math.isfinite(v) for v in restored_values)
+    restored_errors = [abs(a-b) for a,b in zip(restored_values, values[1:])]
+    assert max(restored_errors[:3]) < 2e-5 and max(restored_errors[3:]) < 3e-8
     result = {'status': 'passed', 'platform': target, 'native_os': platform.platform(),
               'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+              'version': PACKAGE_VERSION, 'production_tree_sha256': production_tree(),
               'probe_values': values, 'independent_circle': truth,
               'max_position_error_km': max(errors[:3]), 'max_velocity_error_km_s': max(errors[3:]),
-              'scope': 'Packaged executable native startup and point-mass mission; not full GUI or NASA qualification.'}
+              'save_reopen_errors': restored_errors,
+              'plots_created': ['OrbitView', 'GroundTrackPlot', 'XYPlot'],
+              'graphics_profile': env['QT_QPA_PLATFORM'],
+              'scope': 'Packaged startup, point-mass mission, reports, plot creation and spacecraft save/reopen.',
+              'full_regression_run': False, 'full_current_build_qualified': False}
+    if target.startswith('linux'):
+        result['runtime'] = json.loads((LOGS / 'linux-runtime.json').read_text())
     if target.startswith('macos'):
-        result['bundled_3ds_reader'] = {'status': 'passed', 'model': 'data/vehicle/models/aura.3ds',
-                                        'lookup': 'Native bundle plugin path only; SDK paths excluded.'}
+        result['bundled_3ds_reader'] = {'status': 'passed' if model_reader else 'reused',
+            'model': 'data/vehicle/models/aura.3ds',
+            'lookup': 'Native bundle plugin path only; SDK paths excluded.',
+            'reuse': None if model_reader else 'Same archived libraries and plugins as the package-stage reader pass.'}
     (LOGS / 'package-verification.json').write_text(json.dumps(result, indent=2) + '\n')
-    copy_file(LOGS / 'package-verification.json', root / 'PACKAGE-VERIFICATION.json')
+    if record_in_payload:
+        copy_file(LOGS / 'package-verification.json', root / 'PACKAGE-VERIFICATION.json')
     # Remove probe outputs from the reusable application bundle before archiving.
     for path in (payload / 'output').glob('*'):
         if path.is_file():
@@ -496,21 +726,29 @@ Report Values Sat.ElapsedSecs Sat.X Sat.Y Sat.Z Sat.VX Sat.VY Sat.VZ;
 
 
 def main():
+    global PACKAGE_VERSION, PYTHON_API
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--platform', required=True, choices=['windows-x64', 'macos-arm64', 'macos-x64'])
-    target = parser.parse_args().platform
+    parser.add_argument('--platform', required=True, choices=['linux-x86_64', 'windows-x64', 'macos-arm64', 'macos-x64'])
+    parser.add_argument('--version', help='Release version recorded in the package and artifact name')
+    parser.add_argument('--python-api', action=argparse.BooleanOptionalAction, default=False,
+                        help='Include the CPython 3.12 core, station and navigation bindings')
+    args = parser.parse_args()
+    target, PACKAGE_VERSION = args.platform, args.version
+    PYTHON_API = args.python_api
+    if PACKAGE_VERSION and not re.fullmatch(r'[0-9][0-9A-Za-z.\-]*', PACKAGE_VERSION):
+        parser.error('Version must contain only numbers, letters, periods and hyphens')
     assert (os.name == 'nt') == target.startswith('windows')
-    assert target.startswith('windows') or sys.platform == 'darwin'
+    assert target.startswith('windows') or target.startswith('linux') == sys.platform.startswith('linux')
     LOGS.mkdir(parents=True, exist_ok=True)
     DEPS.mkdir(parents=True, exist_ok=True)
-    restored = restore_native(target)
+    restored = restore_native(target, PYTHON_API)
     if restored and target.startswith('windows'):
         qt, osg, prefix = (Path(restored[n]) for n in ['qt', 'osg', 'prefix'])
     else:
         qt, osg, prefix = dependencies(target)
     if not restored:
-        build(target, qt, osg, prefix)
-        preserve_native(target, qt, osg, prefix)
+        build(target, qt, osg, prefix, python_api=PYTHON_API)
+        preserve_native(target, qt, osg, prefix, python_api=PYTHON_API)
     payload, executable = stage_package(target, qt, osg, prefix)
     probe(target, payload, executable)
     if sys.platform == 'darwin':
@@ -519,15 +757,27 @@ def main():
         run(['codesign', '--verify', '--deep', '--strict', bundle], 'verify-signature')
     dist = ROOT / 'dist'
     dist.mkdir(exist_ok=True)
-    archive = dist / ('GMAT-Qt-preview-20261104-' + target + '.zip')
+    name = 'GMAT-Qt-' + (PACKAGE_VERSION or 'preview-20261104') + '-' + target
+    archive = dist / (name + ('.tar.gz' if target.startswith('linux') else '.zip'))
+    if PACKAGE_VERSION:
+        copy_file(REPO / 'RELEASE-NOTES.rst', payload / 'RELEASE-NOTES.rst')
+    manifest = {str(path.relative_to(payload)): hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(payload.rglob('*')) if path.is_file()}
+    (payload / 'PACKAGE-MANIFEST.json').write_text(json.dumps(manifest, indent=2) + '\n')
     if sys.platform == 'darwin':
         # ditto preserves bundle permissions and symlinks.
         run(['ditto', '-c', '-k', '--sequesterRsrc', '--keepParent', payload, archive], 'archive')
+    elif target.startswith('linux'):
+        with tarfile.open(archive, 'w:gz', dereference=False) as bundle:
+            bundle.add(payload, arcname=payload.name)
     else:
         shutil.make_archive(str(archive.with_suffix('')), 'zip', payload.parent, payload.name)
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
     (dist / (archive.name + '.sha256')).write_text(digest + '  ' + archive.name + '\n')
     copy_file(LOGS / 'package-verification.json', dist / (target + '-verification.json'))
+    if PYTHON_API:
+        from QualifyPythonPackage import qualify
+        qualify(target, archive)
     print('Verified package: ' + str(archive), flush=True)
 
 

@@ -97,6 +97,10 @@ public:
    virtual Real GetStepTaken();
 
 protected:
+   // Translate the kernel's J2000-origin state into the selected model origin.
+   Rvector6 ReadKernelState(const std::string &name, Integer id, const A1Mjd &epoch);
+   Rvector6 ReadKernelState(const std::string &name, Integer id, const GmatTime &epoch);
+
    /// List of the SPICE files that are needed by this propagator
    StringArray spkFileNames;
    /// ID's used to lookup data for the prop objects
@@ -110,9 +114,9 @@ protected:
    GmatTime                lastEpochGT;
    /// Time from the start of the ephem, in seconds
    Real                    timeFromEphemStart;
-   /// Central body string used by SPK (needed because of Luna/Moon names)
+   /// Internal J2000 origin used for SPICE reads (Luna maps to Moon)
    std::string spkCentralBody;
-   /// NAIF ID for the central body
+   /// NAIF ID for the internal J2000 origin
    Integer     spkCentralBodyNaifId;
    /// Flag triggering "outside of ephem" warning messages, allowing a single message
    bool        warnOffEphem;

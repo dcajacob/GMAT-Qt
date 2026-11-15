@@ -1,0 +1,31 @@
+{
+  "scope": "Twenty-four numerical input fields stored as strings/enumerations. Dates in two representations; fractional and decimal ratios. No mission execution.",
+  "cases": [
+    {
+      "key": "EphemerisFile-TAIModJulian",
+      "group": "NumericTextEphemerisRepair",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Spacecraft Sat;\nCreate EphemerisFile Probe;\nProbe.Spacecraft = Sat;\nProbe.EpochFormat = TAIModJulian;\nProbe.InitialEpoch = '21545';\nProbe.FinalEpoch = '21546';\nProbe.StepSize = 60;\n",
+      "units": {
+        "InitialEpoch": "days (TAIModJulian)",
+        "FinalEpoch": "days (TAIModJulian)"
+      },
+      "kind": "EphemerisFile",
+      "format": "TAIModJulian"
+    },
+    {
+      "key": "EphemerisFile-UTCGregorian",
+      "group": "NumericTextEphemerisRepair",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Spacecraft Sat;\nCreate EphemerisFile Probe;\nProbe.Spacecraft = Sat;\nProbe.EpochFormat = UTCGregorian;\nProbe.InitialEpoch = '01 Jan 2000 12:00:00.000';\nProbe.FinalEpoch = '02 Jan 2000 12:00:00.000';\nProbe.StepSize = 60;\n",
+      "units": {
+        "InitialEpoch": "calendar date (UTCGregorian)",
+        "FinalEpoch": "calendar date (UTCGregorian)"
+      },
+      "kind": "EphemerisFile",
+      "format": "UTCGregorian"
+    }
+  ]
+}

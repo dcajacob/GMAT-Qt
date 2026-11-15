@@ -113,6 +113,7 @@ protected:
 
 
 private:
+   RealArray EvaluatePython(Real *state, Real atEpoch, const StringArray &description, Integer order);
 
    /// Parameter IDs
    enum

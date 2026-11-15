@@ -39,7 +39,7 @@ QStringList frames(const QString &format)
       result.append(QString::fromStdString(name));
    } result.sort(); return result;
 }
-QStringList variantFields() { return {"CoordinateSystem","StepSize","OutputFormat","DistanceUnit","IncludeEventBoundaries","Interpolator","OutputTimeSystem"}; }
+QStringList variantFields() { return {"CoordinateSystem","StepSize","OutputFormat","DistanceUnit","IncludeEventBoundaries","Interpolator","OutputTimeSystem","InsufficientDataAction"}; }
 }
 QSet<QString> applyEphemerisProperties(GmatBase &object,const QMap<QString,QString> &values)
 {
@@ -50,6 +50,7 @@ QSet<QString> applyEphemerisProperties(GmatBase &object,const QMap<QString,QStri
    for (const auto &name:QStringList{"FileFormat","EpochFormat"}) if (values.contains(name)) { setResourceProperty(object,name,values.value(name)); applied.insert(name); }
    for (auto it=values.cbegin();it!=values.cend();++it) if (!applied.contains(it.key())) {
       const auto format=object.GetStringParameter("FileFormat");
+      if (it.key()=="InsufficientDataAction" && format!="CCSDS-OEM" && format!="STK-TimePosVel" && format!="Code-500") {applied.insert(it.key());continue;}
       if (it.key()=="OutputTimeSystem" && format!="CCSDS-OEM") { applied.insert(it.key()); continue; }
       if ((it.key()=="DistanceUnit" || it.key()=="IncludeEventBoundaries") && format!="STK-TimePosVel") {
          if (!values.contains("FileFormat")) throw std::runtime_error("Distance units and event boundaries are STK output settings.");
@@ -79,6 +80,10 @@ EphemerisDialog::EphemerisDialog(GmatBase &object,const QMap<QString,QString> &p
    QMap<QString,ResourceProperty> fields; QMap<QString,QString> initial;
    for (const auto &field:resourceProperties(object)) { fields.insert(field.name,field); initial.insert(field.name,field.value); }
    for (auto it=pending.cbegin();it!=pending.cend();++it) initial.insert(it.key(),it.value());
+   ResourceProperty dataAction;dataAction.name="InsufficientDataAction";
+   for (const auto &value:object.GetPropertyEnumStrings(object.GetParameterID("InsufficientDataAction"))) dataAction.choices.append(QString::fromStdString(value));
+   dataAction.value=QString::fromStdString(object.GetStringParameter("InsufficientDataAction"));fields.insert(dataAction.name,dataAction);
+   if (!initial.contains(dataAction.name)) initial.insert(dataAction.name,dataAction.value);
    auto snapshot=std::shared_ptr<GmatBase>(object.Clone());
    auto *layout=new QVBoxLayout(this); auto *help=new QLabel("Configure the output file, frame, sampling and time interval. OK keeps changes pending until resource Apply.",this); help->setWordWrap(true); layout->addWidget(help);
    auto *scroll=new QScrollArea(this); scroll->setObjectName("ephemerisScroll"); scroll->setWidgetResizable(true); layout->addWidget(scroll,1); auto *content=new QWidget(scroll); scroll->setWidget(content); auto *groups=new QVBoxLayout(content);
@@ -86,7 +91,13 @@ EphemerisDialog::EphemerisDialog(GmatBase &object,const QMap<QString,QString> &p
    auto choice=[&](QFormLayout *form,const QString &name,const QString &label,bool editable=false) {
       auto *combo=new QComboBox(content); combo->setObjectName("ephemeris_"+name); combo->setEditable(editable); combo->setInsertPolicy(QComboBox::NoInsert);
       combo->addItems(fields.value(name).choices.isEmpty() ? fields.value(name).references : fields.value(name).choices);
-      if (combo->findText(initial.value(name))<0 && !initial.value(name).isEmpty()) combo->addItem(initial.value(name)); combo->setCurrentText(initial.value(name)); choices.insert(name,combo); form->addRow(label,combo);
+      if (combo->findText(initial.value(name))<0 && !initial.value(name).isEmpty()) combo->addItem(initial.value(name)); combo->setCurrentText(initial.value(name)); choices.insert(name,combo);
+      auto *caption=new QLabel(label,content);
+      if (name=="InitialEpoch" || name=="FinalEpoch") {
+         caption->setObjectName("epochUnit_"+name);
+         caption->setText(label+" ("+epochInputUnit(initial.value("EpochFormat"))+")");
+      }
+      form->addRow(caption,combo);
    };
    auto line=[&](QFormLayout *form,const QString &name,const QString &label) { auto *edit=new QLineEdit(initial.value(name),content); edit->setObjectName("ephemeris_"+name); text.insert(name,edit); form->addRow(label,edit); };
    auto check=[&](QFormLayout *form,const QString &name,const QString &label) { auto *box=new QCheckBox(label,content); box->setObjectName("ephemeris_"+name); box->setChecked(initial.value(name)=="true"); checks.insert(name,box); form->addRow(box); };
@@ -96,7 +107,7 @@ EphemerisDialog::EphemerisDialog(GmatBase &object,const QMap<QString,QString> &p
    connect(browse,&QPushButton::clicked,this,[this,path] { QFileDialog picker(this,"Choose ephemeris output",path->text()); picker.setObjectName("ephemerisFilePicker"); picker.setAcceptMode(QFileDialog::AcceptSave); picker.setFileMode(QFileDialog::AnyFile); picker.setOption(QFileDialog::DontConfirmOverwrite,true); if (picker.exec()==QDialog::Accepted && !picker.selectedFiles().isEmpty()) path->setText(picker.selectedFiles().first()); });
    choice(output,"CoordinateSystem","Output coordinate system");
    choice(output,"OutputTimeSystem","Output time system (OEM)");
-   auto *sampling=group("Sampling and format"); line(sampling,"Interpolator","Interpolator"); text.value("Interpolator")->setReadOnly(true); line(sampling,"InterpolationOrder","Interpolation order (1–10)"); choice(sampling,"StepSize","Step size (s)",true); choice(sampling,"OutputFormat","Byte order"); choice(sampling,"DistanceUnit","Distance unit"); check(sampling,"IncludeEventBoundaries","Include event boundaries");
+   auto *sampling=group("Sampling and format"); line(sampling,"Interpolator","Interpolator"); text.value("Interpolator")->setReadOnly(true); line(sampling,"InterpolationOrder","Interpolation order (1–10)"); choice(sampling,"InsufficientDataAction","Insufficient interpolation data"); choice(sampling,"StepSize","Step size (s)",true); choice(sampling,"OutputFormat","Byte order"); choice(sampling,"DistanceUnit","Distance unit"); check(sampling,"IncludeEventBoundaries","Include event boundaries");
    auto *interval=group("Time interval"); choice(interval,"EpochFormat","Epoch format"); choice(interval,"InitialEpoch","Initial epoch",true); choice(interval,"FinalEpoch","Final epoch",true);
    groups->addStretch(); error=new QLabel(this); error->setObjectName("ephemerisError"); error->setWordWrap(true); layout->addWidget(error);
    previousFormat=choices.value("FileFormat")->currentText(); previousEpochFormat=choices.value("EpochFormat")->currentText();
@@ -136,6 +147,7 @@ void EphemerisDialog::changeFileFormat()
    }
    choices.value("StepSize")->setEnabled(next!="SPK"); choices.value("OutputFormat")->setEnabled(next=="Code-500"); choices.value("DistanceUnit")->setEnabled(next=="STK-TimePosVel"); checks.value("IncludeEventBoundaries")->setEnabled(next=="STK-TimePosVel");
    choices.value("OutputTimeSystem")->setEnabled(next=="CCSDS-OEM");
+   choices.value("InsufficientDataAction")->setEnabled(next=="CCSDS-OEM" || next=="STK-TimePosVel" || next=="Code-500");
 }
 void EphemerisDialog::convertEpochs()
 {
@@ -149,11 +161,14 @@ void EphemerisDialog::convertEpochs()
       }
       choices.value("InitialEpoch")->setCurrentText(converted[0]); choices.value("FinalEpoch")->setCurrentText(converted[1]); previousEpochFormat=next; error->clear();
    } catch (BaseException &failure) { const QSignalBlocker blocker(format); format->setCurrentText(previousEpochFormat); error->setText(QString::fromStdString(failure.GetFullMessage())); }
+   for (const auto &name:QStringList{"InitialEpoch","FinalEpoch"})
+      if (auto *caption=findChild<QLabel *>("epochUnit_"+name))
+         caption->setText((name=="InitialEpoch" ? QString("Initial epoch") : QString("Final epoch"))+" ("+epochInputUnit(format->currentText())+")");
 }
 QMap<QString,QString> EphemerisDialog::settings() const
 {
    QMap<QString,QString> result;
-   for (auto it=choices.cbegin();it!=choices.cend();++it) if (((it.key()!="DistanceUnit") || choices.value("FileFormat")->currentText()=="STK-TimePosVel") && (it.key()!="OutputTimeSystem" || choices.value("FileFormat")->currentText()=="CCSDS-OEM")) result.insert(it.key(),it.value()->currentText().trimmed());
+   for (auto it=choices.cbegin();it!=choices.cend();++it) if ((it.key()!="InsufficientDataAction" || QStringList{"CCSDS-OEM","STK-TimePosVel","Code-500"}.contains(choices.value("FileFormat")->currentText())) && (((it.key()!="DistanceUnit") || choices.value("FileFormat")->currentText()=="STK-TimePosVel") && (it.key()!="OutputTimeSystem" || choices.value("FileFormat")->currentText()=="CCSDS-OEM"))) result.insert(it.key(),it.value()->currentText().trimmed());
    for (auto it=text.cbegin();it!=text.cend();++it) result.insert(it.key(),it.value()->text().trimmed());
    for (auto it=checks.cbegin();it!=checks.cend();++it) if (it.key()!="IncludeEventBoundaries" || choices.value("FileFormat")->currentText()=="STK-TimePosVel") result.insert(it.key(),it.value()->isChecked() ? "true" : "false");
    return result;

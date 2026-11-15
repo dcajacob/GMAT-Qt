@@ -142,7 +142,12 @@ bool KepSMA::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* KepSMA::Clone(void) const
 {
-   return new KepSMA(*this);
+   return CompleteParameterClone(new KepSMA(*this));
+}
+
+void KepSMA::Copy(const GmatBase *source)
+{
+   CopyParameterValue<KepSMA>(source);
 }
 
 
@@ -255,7 +260,12 @@ bool KepEcc::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* KepEcc::Clone(void) const
 {
-   return new KepEcc(*this);
+   return CompleteParameterClone(new KepEcc(*this));
+}
+
+void KepEcc::Copy(const GmatBase *source)
+{
+   CopyParameterValue<KepEcc>(source);
 }
 
 
@@ -370,7 +380,12 @@ bool KepInc::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* KepInc::Clone(void) const
 {
-   return new KepInc(*this);
+   return CompleteParameterClone(new KepInc(*this));
+}
+
+void KepInc::Copy(const GmatBase *source)
+{
+   CopyParameterValue<KepInc>(source);
 }
 
 
@@ -486,7 +501,12 @@ bool KepAOP::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* KepAOP::Clone(void) const
 {
-   return new KepAOP(*this);
+   return CompleteParameterClone(new KepAOP(*this));
+}
+
+void KepAOP::Copy(const GmatBase *source)
+{
+   CopyParameterValue<KepAOP>(source);
 }
 
 
@@ -602,7 +622,12 @@ bool KepRAAN::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* KepRAAN::Clone(void) const
 {
-   return new KepRAAN(*this);
+   return CompleteParameterClone(new KepRAAN(*this));
+}
+
+void KepRAAN::Copy(const GmatBase *source)
+{
+   CopyParameterValue<KepRAAN>(source);
 }
 
 
@@ -715,7 +740,12 @@ bool KepRADN::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* KepRADN::Clone(void) const
 {
-   return new KepRADN(*this);
+   return CompleteParameterClone(new KepRADN(*this));
+}
+
+void KepRADN::Copy(const GmatBase *source)
+{
+   CopyParameterValue<KepRADN>(source);
 }
 
 
@@ -830,7 +860,12 @@ bool KepTA::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* KepTA::Clone(void) const
 {
-   return new KepTA(*this);
+   return CompleteParameterClone(new KepTA(*this));
+}
+
+void KepTA::Copy(const GmatBase *source)
+{
+   CopyParameterValue<KepTA>(source);
 }
 
 
@@ -853,7 +888,7 @@ GmatBase* KepTA::Clone(void) const
  */
 //------------------------------------------------------------------------------
 KepMA::KepMA(const std::string &name, GmatBase *obj)
-   : OrbitReal(name, "MA", obj, "Mean Anomaly", "Deg", GmatParam::ORIGIN, KEP_MA, false)
+   : OrbitReal(name, "MA", obj, "Mean Anomaly", "Deg", GmatParam::ORIGIN, KEP_MA, true)
 {
    mDepObjectName = "Earth";
    SetRefObjectName(Gmat::SPACE_POINT, "Earth");
@@ -945,7 +980,12 @@ bool KepMA::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* KepMA::Clone(void) const
 {
-   return new KepMA(*this);
+   return CompleteParameterClone(new KepMA(*this));
+}
+
+void KepMA::Copy(const GmatBase *source)
+{
+   CopyParameterValue<KepMA>(source);
 }
 
 
@@ -968,7 +1008,7 @@ GmatBase* KepMA::Clone(void) const
  */
 //------------------------------------------------------------------------------
 KepEA::KepEA(const std::string &name, GmatBase *obj)
-   : OrbitReal(name, "EA", obj, "Eccentric Anomaly", "Deg", GmatParam::ORIGIN, KEP_EA, false)
+   : OrbitReal(name, "EA", obj, "Eccentric Anomaly", "Deg", GmatParam::ORIGIN, KEP_EA, true)
 {
    mDepObjectName = "Earth";
    SetRefObjectName(Gmat::SPACE_POINT, "Earth");
@@ -1060,7 +1100,12 @@ bool KepEA::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* KepEA::Clone(void) const
 {
-   return new KepEA(*this);
+   return CompleteParameterClone(new KepEA(*this));
+}
+
+void KepEA::Copy(const GmatBase *source)
+{
+   CopyParameterValue<KepEA>(source);
 }
 
 
@@ -1083,13 +1128,14 @@ GmatBase* KepEA::Clone(void) const
  */
 //------------------------------------------------------------------------------
 KepHA::KepHA(const std::string &name, GmatBase *obj)
-   : OrbitReal(name, "HA", obj, "Hyperbolic Anomaly", "Deg", GmatParam::ORIGIN, KEP_HA, false)
+   : OrbitReal(name, "HA", obj, "Hyperbolic Anomaly", "Deg", GmatParam::ORIGIN, KEP_HA, true)
 {
    mDepObjectName = "Earth";
    SetRefObjectName(Gmat::SPACE_POINT, "Earth");
    SetRefObjectName(Gmat::COORDINATE_SYSTEM, "EarthMJ2000Eq");
    mIsAngleParam = true;
-   mCycleType = GmatParam::ZERO_360;
+   // H is degree-scaled, but is signed and nonperiodic.
+   mCycleType = GmatParam::NOT_CYCLIC;
 }
 
 
@@ -1175,7 +1221,12 @@ bool KepHA::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* KepHA::Clone(void) const
 {
-   return new KepHA(*this);
+   return CompleteParameterClone(new KepHA(*this));
+}
+
+void KepHA::Copy(const GmatBase *source)
+{
+   CopyParameterValue<KepHA>(source);
 }
 
 
@@ -1287,7 +1338,12 @@ bool KepMM::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* KepMM::Clone(void) const
 {
-   return new KepMM(*this);
+   return CompleteParameterClone(new KepMM(*this));
+}
+
+void KepMM::Copy(const GmatBase *source)
+{
+   CopyParameterValue<KepMM>(source);
 }
 
 
@@ -1399,7 +1455,12 @@ bool KepElem::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* KepElem::Clone(void) const
 {
-   return new KepElem(*this);
+   return CompleteParameterClone(new KepElem(*this));
+}
+
+void KepElem::Copy(const GmatBase *source)
+{
+   CopyParameterValue<KepElem>(source);
 }
 
 
@@ -1517,7 +1578,12 @@ bool ModKepRadApo::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* ModKepRadApo::Clone(void) const
 {
-   return new ModKepRadApo(*this);
+   return CompleteParameterClone(new ModKepRadApo(*this));
+}
+
+void ModKepRadApo::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ModKepRadApo>(source);
 }
 
 
@@ -1635,7 +1701,12 @@ bool ModKepRadPer::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* ModKepRadPer::Clone(void) const
 {
-   return new ModKepRadPer(*this);
+   return CompleteParameterClone(new ModKepRadPer(*this));
+}
+
+void ModKepRadPer::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ModKepRadPer>(source);
 }
 
 
@@ -1748,5 +1819,10 @@ bool ModKepElem::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* ModKepElem::Clone(void) const
 {
-   return new ModKepElem(*this);
+   return CompleteParameterClone(new ModKepElem(*this));
+}
+
+void ModKepElem::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ModKepElem>(source);
 }

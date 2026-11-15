@@ -31,7 +31,8 @@ QString label(const QString &name)
    const QMap<QString,QString> labels={{"AttitudeDisplayStateType","Orientation representation"},
       {"AttitudeRateDisplayStateType","Rate representation"},{"AttitudeCoordinateSystem","Reference coordinate system"},
       {"EulerAngleSequence","Euler sequence"},{"AttitudeReferenceBody","Reference body"},
-      {"AttitudeConstraintType","Constraint"},{"AttitudeFileName","Attitude ephemeris file"}};
+      {"AttitudeConstraintType","Constraint"},{"AttitudeFileName","Attitude ephemeris file"},
+      {"OffsetQuaternion","Frame-to-body offset (x y z w)"}};
    if (labels.contains(name)) return labels.value(name);
    QString result=name;
    result.replace(QRegularExpression("([a-z])([A-Z])"),"\\1 \\2");

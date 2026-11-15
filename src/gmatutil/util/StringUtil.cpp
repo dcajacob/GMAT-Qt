@@ -4729,7 +4729,7 @@ Integer GmatStringUtil::NumberOfScientificNotation(const std::string &str)
                            #ifdef DEBUG_SCI_NOTATION_MORE
                            MessageInterface::ShowMessage("   %s ends with e or E\n", str3.c_str());
                            #endif
-                           if ((j + 1) <= numSubParts)
+                           if ((j + 1) < numSubParts && !subParts[j+1].empty())
                            {
                               if ((isdigit(str3[0]) || str3[0] == '.') && isdigit(subParts[j+1][0]))
                               {

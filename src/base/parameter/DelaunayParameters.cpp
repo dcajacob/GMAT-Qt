@@ -79,7 +79,12 @@ bool Dela_l::Evaluate()
 
 GmatBase* Dela_l::Clone(void) const
 {
-   return new Dela_l(*this);
+   return CompleteParameterClone(new Dela_l(*this));
+}
+
+void Dela_l::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Dela_l>(source);
 }
 
 
@@ -124,7 +129,12 @@ bool Dela_g::Evaluate()
 
 GmatBase* Dela_g::Clone(void) const
 {
-   return new Dela_g(*this);
+   return CompleteParameterClone(new Dela_g(*this));
+}
+
+void Dela_g::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Dela_g>(source);
 }
 
 
@@ -169,7 +179,12 @@ bool Dela_h::Evaluate()
 
 GmatBase* Dela_h::Clone(void) const
 {
-   return new Dela_h(*this);
+   return CompleteParameterClone(new Dela_h(*this));
+}
+
+void Dela_h::Copy(const GmatBase *source)
+{
+   CopyParameterValue<Dela_h>(source);
 }
 
 
@@ -214,7 +229,12 @@ bool DelaL::Evaluate()
 
 GmatBase* DelaL::Clone(void) const
 {
-   return new DelaL(*this);
+   return CompleteParameterClone(new DelaL(*this));
+}
+
+void DelaL::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DelaL>(source);
 }
 
 
@@ -259,7 +279,12 @@ bool DelaG::Evaluate()
 
 GmatBase* DelaG::Clone(void) const
 {
-   return new DelaG(*this);
+   return CompleteParameterClone(new DelaG(*this));
+}
+
+void DelaG::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DelaG>(source);
 }
 
 
@@ -305,7 +330,12 @@ bool DelaH::Evaluate()
 
 GmatBase* DelaH::Clone(void) const
 {
-   return new DelaH(*this);
+   return CompleteParameterClone(new DelaH(*this));
+}
+
+void DelaH::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DelaH>(source);
 }
 
 
@@ -358,7 +388,12 @@ bool DelaState::Evaluate()
 
 GmatBase* DelaState::Clone(void) const
 {
-   return new DelaState(*this);
+   return CompleteParameterClone(new DelaState(*this));
+}
+
+void DelaState::Copy(const GmatBase *source)
+{
+   CopyParameterValue<DelaState>(source);
 }
 
 

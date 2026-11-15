@@ -27,6 +27,7 @@
 //------------------------------------------------------------------------------
 
 #include "Antenna.hpp"
+#include <memory>
 #include "HardwareException.hpp"
 #include "MessageInterface.hpp"
 
@@ -146,7 +147,9 @@ Antenna & Antenna::operator=(const Antenna & ant)
 
 GmatBase* Antenna::Clone() const
 {
-   return new Antenna(*this);
+   std::unique_ptr<Antenna> value(new Antenna(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 //---------------------------------------------------------------------------
@@ -160,7 +163,13 @@ GmatBase* Antenna::Clone() const
 //---------------------------------------------------------------------------
 void Antenna::Copy(const GmatBase* orig)
 {
-   operator=(*((Antenna *)(orig)));
+   const auto *source = dynamic_cast<const Antenna*>(orig);
+   if (!source || source->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Incompatible Antenna value copy.");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 

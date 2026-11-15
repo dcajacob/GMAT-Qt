@@ -36,6 +36,8 @@
 class GMAT_API QuaternionRotation : public BuiltinGmatFunction
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = BuiltinGmatFunction::NativeValueProviderDepth + 1;
+
    QuaternionRotation(const std::string& typeStr, const std::string& name);
    virtual ~QuaternionRotation();
    QuaternionRotation(const QuaternionRotation& f);
@@ -54,6 +56,10 @@ public:
    // inherited from GmatBase
    virtual GmatBase* Clone() const;
    virtual void         Copy(const GmatBase* orig);
+   bool HasFunctionValueReferenceProvider() const override;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+
 
 protected:
    ElementWrapper* CreateOutputArrayWrapper(Rvector3 outVec, const std::string& outName);

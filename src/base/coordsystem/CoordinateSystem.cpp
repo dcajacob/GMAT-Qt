@@ -36,6 +36,7 @@
 #include "gmatdefs.hpp"
 #include "GmatBase.hpp"
 #include "CoordinateSystem.hpp"
+#include <memory>
 #include "CoordinateSystemException.hpp"
 #include "CoordinateBase.hpp"
 #include "ObjectReferencedAxes.hpp"
@@ -1693,7 +1694,9 @@ void CoordinateSystem::FromBaseSystem(const GmatTime &epoch, const Real *inState
 //------------------------------------------------------------------------------
 GmatBase* CoordinateSystem::Clone() const
 {
-   return (new CoordinateSystem(*this));
+   std::unique_ptr<CoordinateSystem> value(new CoordinateSystem(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -1708,7 +1711,12 @@ GmatBase* CoordinateSystem::Clone() const
 //---------------------------------------------------------------------------
 void CoordinateSystem::Copy(const GmatBase* orig)
 {
-   operator=(*((CoordinateSystem *)(orig)));
+   const auto *source = dynamic_cast<const CoordinateSystem*>(orig);
+   if (!source) throw GmatBaseException("Incompatible CoordinateSystem value copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 

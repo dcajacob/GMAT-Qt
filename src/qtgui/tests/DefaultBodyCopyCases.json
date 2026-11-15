@@ -1,0 +1,42 @@
+{
+  "bodies": [
+    "Sun",
+    "Mercury",
+    "Venus",
+    "Earth",
+    "Luna",
+    "Mars",
+    "Jupiter",
+    "Saturn",
+    "Uranus",
+    "Neptune",
+    "Pluto"
+  ],
+  "real_fields": [
+    "Mu",
+    "EquatorialRadius",
+    "Flattening",
+    "OrientationEpoch",
+    "SpinAxisRAConstant",
+    "SpinAxisRARate",
+    "SpinAxisDECConstant",
+    "SpinAxisDECRate",
+    "RotationConstant",
+    "RotationRate"
+  ],
+  "string_fields": [
+    "PosVelSource",
+    "RotationDataSource",
+    "CentralBody"
+  ],
+  "epochs": [
+    21545.0,
+    21545.125,
+    21546.0
+  ],
+  "state_tolerance_km": 1e-10,
+  "velocity_tolerance_km_s": 1e-12,
+  "mu_multiplier": 1.125,
+  "scope": "Actual Resource Tree Copy celestial body for each default. Cancel isolation, exact native field/physical provider retention, independent copy edit, undo/redo and Unicode save/reopen.",
+  "status": "frozen-before-execution"
+}

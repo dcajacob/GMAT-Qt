@@ -28,6 +28,9 @@
 */
 //------------------------------------------------------------------------------
 #include "DynamicDataDisplay.hpp"
+#include "SubscriberBindingState.hpp"
+#include "ObjectScriptExportScope.hpp"
+#include <limits>
 
 const std::string
 DynamicDataDisplay::PARAMETER_TEXT[DynamicDataDisplayParamCount - SubscriberParamCount] =
@@ -39,7 +42,11 @@ DynamicDataDisplay::PARAMETER_TEXT[DynamicDataDisplayParamCount - SubscriberPara
    "WarnBounds",
    "CritBounds",
    "WarnColor",
-   "CritColor"
+   "CritColor",
+   "RowBackgroundColors",
+   "RowTextColorModes",
+   "RowWarnBounds",
+   "RowCritBounds"
 };
 
 const Gmat::ParameterType
@@ -52,7 +59,11 @@ DynamicDataDisplay::PARAMETER_TYPE[DynamicDataDisplayParamCount - SubscriberPara
    Gmat::STRINGARRAY_TYPE, //"WarnBounds"
    Gmat::STRINGARRAY_TYPE, //"CritBounds"
    Gmat::COLOR_TYPE,       //"WarnColor"
-   Gmat::COLOR_TYPE        //"CritColor"
+   Gmat::COLOR_TYPE,       //"CritColor"
+   Gmat::STRINGARRAY_TYPE, //"RowBackgroundColors"
+   Gmat::STRINGARRAY_TYPE, //"RowTextColorModes"
+   Gmat::STRINGARRAY_TYPE, //"RowWarnBounds"
+   Gmat::STRINGARRAY_TYPE  //"RowCritBounds"
 };
 
 //------------------------------------------------------------------------------
@@ -104,6 +115,7 @@ DynamicDataDisplay::DynamicDataDisplay(const DynamicDataDisplay &orig) :
    critTextColor = orig.critTextColor;
    paramToUpdate = orig.paramToUpdate;
    errorAlreadyShown = orig.errorAlreadyShown;
+   if (typeid(orig) == typeid(DynamicDataDisplay)) ReconnectSubscriberCopy(orig);
 }
 
 //------------------------------------------------------------------------------
@@ -117,22 +129,28 @@ DynamicDataDisplay& DynamicDataDisplay::operator=(const DynamicDataDisplay& orig
 {
    if (this == &orig)
       return *this;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = typeid(*this) == typeid(DynamicDataDisplay) ? BeginSubscriberValueCopy(orig) : SubscriberValueCopyToken{};
+   {
+      FunctionValueCopyGuard nativeCopy;
 
-   Subscriber::operator=(orig);
+      Subscriber::operator=(orig);
 
-   displayData = orig.displayData;
-   oldName = orig.oldName;
-   numParams = orig.numParams;
-   currentRowIndex = orig.currentRowIndex;
-   maxRowCount = orig.maxRowCount;
-   maxColCount = orig.maxColCount;
-   currentColIndex = orig.currentColIndex;
-   inf = orig.inf;
-   warnTextColor = orig.warnTextColor;
-   critTextColor = orig.critTextColor;
-   paramToUpdate = orig.paramToUpdate;
-   errorAlreadyShown = orig.errorAlreadyShown;
+      displayData = orig.displayData;
+      // Preserve this output's pending native rename.
+      numParams = orig.numParams;
+      currentRowIndex = orig.currentRowIndex;
+      maxRowCount = orig.maxRowCount;
+      maxColCount = orig.maxColCount;
+      currentColIndex = orig.currentColIndex;
+      inf = orig.inf;
+      warnTextColor = orig.warnTextColor;
+      critTextColor = orig.critTextColor;
+      paramToUpdate = orig.paramToUpdate;
+      errorAlreadyShown = orig.errorAlreadyShown;
 
+   }
+   if (typeid(*this) == typeid(DynamicDataDisplay)) CompleteSubscriberValueCopy(orig, transaction);
    return *this;
 }
 
@@ -159,6 +177,12 @@ DynamicDataDisplay::~DynamicDataDisplay()
 */
 //------------------------------------------------------------------------------
 bool DynamicDataDisplay::UpdateData(StringArray valuesToUpdate)
+{
+   if (!EnsureFunctionValueOutput()) return false;
+   return UpdateDataValues(valuesToUpdate);
+}
+
+bool DynamicDataDisplay::UpdateDataValues(const StringArray &valuesToUpdate)
 {
    bool checkParamNames = false;
    if (valuesToUpdate.size() > 0)
@@ -244,7 +268,7 @@ bool DynamicDataDisplay::UpdateData(StringArray valuesToUpdate)
       }
    }
 
-   PlotInterface::UpdateDynamicDataDisplay(instanceName, displayData);
+   PlotInterface::UpdateDynamicDataDisplay(GetRuntimePlotName(), displayData);
 
    return true;
 }
@@ -318,19 +342,23 @@ void DynamicDataDisplay::SetParamSettings(std::vector<std::vector<DDD>> newSetti
 //------------------------------------------------------------------------------
 bool DynamicDataDisplay::Initialize()
 {
+   if (GetFunctionValueContext() && HasSubscriberValueReferenceProvider() && !HasFunctionValueBindings())
+      throw SubscriberException("Copied subscriber declaration needs wrapper rebuilding.\n");
    Subscriber::Initialize();
 
-   PlotInterface::DeleteDynamicData(instanceName, oldName);
+   PlotInterface::DeleteDynamicData(GetRuntimePlotName(), GetRuntimePlotName(oldName));
 
    std::string displayTitle = "Dynamic Data Display " + instanceName;
 
-   PlotInterface::CreateDynamicDataDisplay(instanceName, oldName, displayTitle,
+   PlotInterface::CreateDynamicDataDisplay(GetRuntimePlotName(), GetRuntimePlotName(oldName), displayTitle,
       mPlotUpperLeft[0], mPlotUpperLeft[1], mPlotSize[0], mPlotSize[1]);
 
-   PlotInterface::SetDynamicDataTableSize(instanceName, maxRowCount,
+   PlotInterface::SetDynamicDataTableSize(GetRuntimePlotName(), maxRowCount,
       maxColCount);
    StringArray unusedArray;
-   UpdateData(unusedArray);
+   // Initialization is already in progress; the public UpdateData guard would
+   // recursively request InitializeForRun before it can mark this output ready.
+   UpdateDataValues(unusedArray);
    //PlotInterface::SetDynamicDataTextColor(instanceName, displayData);
 
    return true;
@@ -351,7 +379,15 @@ bool DynamicDataDisplay::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* DynamicDataDisplay::Clone() const
 {
-   return (new DynamicDataDisplay(*this));
+   if (typeid(*this) != typeid(DynamicDataDisplay))
+      throw GmatBaseException("A derived DynamicDataDisplay must provide its complete Clone.\n");
+   std::unique_ptr<DynamicDataDisplay> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new DynamicDataDisplay(*this));
+   }
+   value->ReconnectSubscriberCopy(*this);
+   return value.release();
 }
 
 //------------------------------------------------------------------------------
@@ -363,9 +399,19 @@ GmatBase* DynamicDataDisplay::Clone() const
 * @param orig The original that is being copied.
 */
 //------------------------------------------------------------------------------
-void DynamicDataDisplay::Copy(const GmatBase* orig)
+void DynamicDataDisplay::Copy(const GmatBase *original)
 {
-   operator=(*((DynamicDataDisplay *)(orig)));
+   const auto *source = dynamic_cast<const DynamicDataDisplay*>(original);
+   if (!source || typeid(*source) != typeid(*this) || !HasSubscriberValueReferenceProvider())
+      throw GmatBaseException("Cannot copy an incompatible DynamicDataDisplay value.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = BeginSubscriberValueCopy(*source);
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   CompleteSubscriberValueCopy(*source, transaction);
 }
 
 //------------------------------------------------------------------------------
@@ -547,7 +593,22 @@ bool DynamicDataDisplay::SetStringParameter(const Integer id,
    switch (id)
    {
    case ADD_PARAMETERS:
+      if (value == "{}")
+      {
+         // Reuse the native grid replacement and wrapper-release policy.
+         // Reset selectors too, so the next row starts a fresh declaration.
+         SetParamSettings({});
+         numParams = 0; currentRowIndex = 0; currentColIndex = 0;
+         paramToUpdate.clear(); refObjectNames.clear(); yWrapperObjectNames.clear();
+         errorAlreadyShown = false;
+         return true;
+      }
       return AddParameter(value, currentColIndex);
+   case ROW_BACKGROUND_COLORS:
+   case ROW_TEXT_COLOR_MODES:
+   case ROW_WARN_BOUNDS:
+   case ROW_CRIT_BOUNDS:
+      return SetRowAppearance(id, value, -1);
    case PARAM_TEXT_COLOR:
       return SetParameterTextColor(value, -1);
    case ROW_TEXT_COLORS:
@@ -656,7 +717,13 @@ bool DynamicDataDisplay::SetStringParameter(const Integer id,
    switch (id)
    {
    case ADD_PARAMETERS:
+      if (index <= 0 && value == "{}") return SetStringParameter(id, value);
       return AddParameter(value, index);
+   case ROW_BACKGROUND_COLORS:
+   case ROW_TEXT_COLOR_MODES:
+   case ROW_WARN_BOUNDS:
+   case ROW_CRIT_BOUNDS:
+      return SetRowAppearance(id, value, index);
    case PARAM_TEXT_COLOR:
       return SetParameterTextColor(value, index);
    case ROW_TEXT_COLORS:
@@ -884,9 +951,13 @@ void DynamicDataDisplay::WriteStringArrayValue(Gmat::WriteMode mode,
                                                Integer id, bool writeQuotes,
                                                std::stringstream &stream)
 {
+   const bool scriptMode = mode == Gmat::SCRIPTING || mode == Gmat::OWNED_OBJECT ||
+      mode == Gmat::NO_COMMENTS || mode == Gmat::OBJECT_EXPORT || mode == Gmat::SHOW_SCRIPT;
+   const bool snapshot = ObjectScriptExportScope::IsActive() && scriptMode;
    switch (id)
    {
    case ADD_PARAMETERS:
+      if (snapshot) stream << prefix << "AddParameters = {};\n";
       // Write any parameters that were added for the display to their
       // respective rows
       for (Integer i = 0; i < displayData.size(); ++i)
@@ -938,13 +1009,14 @@ void DynamicDataDisplay::WriteStringArrayValue(Gmat::WriteMode mode,
       }
       break;
    case PARAM_BACKGROUND_COLOR:
+      if (snapshot) break; // Exact row properties below include blank cells and defaults.
       for (Integer i = 0; i < displayData.size(); ++i)
       {
          for (Integer j = 0; j < displayData[i].size(); ++j)
          {
             // Check if a background color was set that isn't the default color
             if (displayData[i][j].paramBackgroundColor !=
-               RgbColor::ToIntColor("[255 255 255]"))
+               RgbColor::ToIntColor("[255 255 255]") && !displayData[i][j].paramName.empty())
             {
                stream << prefix << "BackgroundColor = {" <<
                   displayData[i][j].paramName << ", " <<
@@ -955,6 +1027,7 @@ void DynamicDataDisplay::WriteStringArrayValue(Gmat::WriteMode mode,
       }
       break;
    case WARN_BOUNDS:
+      if (snapshot) break; // Exact row properties below include blank cells and defaults.
       for (Integer i = 0; i < displayData.size(); ++i)
       {
          for (Integer j = 0; j < displayData[i].size(); ++j)
@@ -973,6 +1046,7 @@ void DynamicDataDisplay::WriteStringArrayValue(Gmat::WriteMode mode,
       }
       break;
    case CRIT_BOUNDS:
+      if (snapshot) break; // Exact row properties below include blank cells and defaults.
       for (Integer i = 0; i < displayData.size(); ++i)
       {
          for (Integer j = 0; j < displayData[i].size(); ++j)
@@ -990,6 +1064,39 @@ void DynamicDataDisplay::WriteStringArrayValue(Gmat::WriteMode mode,
          }
       }
       break;
+   case ROW_BACKGROUND_COLORS:
+   case ROW_TEXT_COLOR_MODES:
+   case ROW_WARN_BOUNDS:
+   case ROW_CRIT_BOUNDS:
+   {
+      if (!scriptMode) break;
+      bool needed = snapshot;
+      for (const auto &row : displayData) for (const auto &cell : row)
+      {
+         if (id == ROW_BACKGROUND_COLORS && cell.paramName.empty() &&
+               cell.paramBackgroundColor != RgbColor::ToIntColor("[255 255 255]")) needed = true;
+         if (id == ROW_TEXT_COLOR_MODES && cell.isTextColorUserSet && cell.paramTextColor == 0) needed = true;
+         if (id == ROW_WARN_BOUNDS && cell.paramName.empty() &&
+               (cell.warnLowerBound != -inf || cell.warnUpperBound != inf)) needed = true;
+         if (id == ROW_CRIT_BOUNDS && cell.paramName.empty() &&
+               (cell.critLowerBound != -inf || cell.critUpperBound != inf)) needed = true;
+      }
+      if (!needed) break;
+      for (size_t row = 0; row < displayData.size(); ++row)
+      {
+         stream << prefix << GetParameterText(id) << " = {" << row + 1;
+         for (const auto &cell : displayData[row])
+         {
+            stream << ", ";
+            if (id == ROW_BACKGROUND_COLORS) stream << RgbColor::ToRgbString(cell.paramBackgroundColor);
+            else if (id == ROW_TEXT_COLOR_MODES) stream << (cell.isTextColorUserSet ? "Manual" : "Auto");
+            else if (id == ROW_WARN_BOUNDS) stream << "[" << cell.warnLowerBound << " " << cell.warnUpperBound << "]";
+            else stream << "[" << cell.critLowerBound << " " << cell.critUpperBound << "]";
+         }
+         stream << "};\n";
+      }
+      break;
+   }
    default:
       Subscriber::WriteStringArrayValue(mode, prefix, id, writeQuotes, stream);
    }
@@ -1432,6 +1539,62 @@ bool DynamicDataDisplay::SetParameterBackgroundColor(const std::string &scriptSt
    }
 }
 
+// Row properties address cells by position, including unnamed blank cells.
+// They supplement the original parameter-name and automatic-color syntax.
+bool DynamicDataDisplay::SetRowAppearance(Integer id, const std::string &scriptString, Integer index)
+{
+   const std::string item = GmatStringUtil::Trim(scriptString);
+   if (index < 0)
+   {
+      if (!GmatStringUtil::IsEnclosedWithBraces(item))
+         throw SubscriberException(GetParameterText(id) + " requires a row-indexed braced list.\n");
+      TextParser parser;
+      const StringArray values = parser.SeparateBrackets(item, "{}", ",");
+      if (values.empty()) throw SubscriberException(GetParameterText(id) + " requires a row number.\n");
+      if (values.size() > static_cast<size_t>(std::numeric_limits<Integer>::max()))
+         throw SubscriberException(GetParameterText(id) + " exceeds the native column-index limit.\n");
+      for (size_t i = 0; i < values.size(); ++i) SetRowAppearance(id, values[i], static_cast<Integer>(i));
+      return true;
+   }
+   if (index == 0)
+   {
+      Integer row;
+      if (!GmatStringUtil::ToInteger(item, row) || row <= 0 || static_cast<size_t>(row) > displayData.size())
+         throw SubscriberException(GetParameterText(id) + " requires an existing positive row number.\n");
+      currentRowIndex = row - 1;
+      return true;
+   }
+   if (currentRowIndex < 0 || static_cast<size_t>(currentRowIndex) >= displayData.size() ||
+         static_cast<size_t>(index) > displayData[currentRowIndex].size())
+      throw SubscriberException(GetParameterText(id) + " contains more cell settings than its row.\n");
+   auto &cell = displayData[currentRowIndex][index - 1];
+   if (id == ROW_BACKGROUND_COLORS)
+   {
+      const std::string color = GmatStringUtil::RemoveEnclosingString(item, "'");
+      cell.paramBackgroundColor = GmatStringUtil::IsEnclosedWithBrackets(color) ?
+         RgbColor::ToIntColor(color) : ColorDatabase::Instance()->GetIntColor(color);
+   }
+   else if (id == ROW_TEXT_COLOR_MODES)
+   {
+      const std::string mode = GmatStringUtil::RemoveEnclosingString(item, "'");
+      if (mode != "Auto" && mode != "Manual")
+         throw SubscriberException("RowTextColorModes accepts Auto or Manual for each cell.\n");
+      cell.isTextColorUserSet = mode == "Manual";
+      if (mode == "Auto") cell.paramTextColor = 0;
+   }
+   else
+   {
+      if (!GmatStringUtil::IsEnclosedWithBrackets(item))
+         throw SubscriberException(GetParameterText(id) + " requires [lower upper] for each cell.\n");
+      const RealArray bounds = GmatStringUtil::ToRealArray(item);
+      if (bounds.size() != 2 || bounds[0] > bounds[1])
+         throw SubscriberException(GetParameterText(id) + " requires two bounds in increasing order.\n");
+      if (id == ROW_WARN_BOUNDS) { cell.warnLowerBound = bounds[0]; cell.warnUpperBound = bounds[1]; }
+      else { cell.critLowerBound = bounds[0]; cell.critUpperBound = bounds[1]; }
+   }
+   return true;
+}
+
 //------------------------------------------------------------------------------
 // bool SetParameterWarnBounds(const std::string &scriptString, Integer index)
 //------------------------------------------------------------------------------
@@ -1457,6 +1620,8 @@ bool DynamicDataDisplay::SetParameterWarnBounds(const std::string &scriptString,
    else if (index == 1)
    {
       RealArray newBounds = GmatStringUtil::ToRealArray(scriptString);
+      if (newBounds.size() != 2)
+         throw SubscriberException("WarnBounds requires exactly two bound values.\n");
       if (newBounds[0] > newBounds[1])
       {
          throw SubscriberException("The new lower warning bound set for \"" +
@@ -1526,6 +1691,8 @@ bool DynamicDataDisplay::SetParameterCritBounds(const std::string &scriptString,
    else if (index == 1)
    {
       RealArray newBounds = GmatStringUtil::ToRealArray(scriptString);
+      if (newBounds.size() != 2)
+         throw SubscriberException("CritBounds requires exactly two bound values.\n");
       if (newBounds[0] > newBounds[1])
       {
          throw SubscriberException("The new lower warning bound set for \"" +
@@ -1567,4 +1734,61 @@ bool DynamicDataDisplay::SetParameterCritBounds(const std::string &scriptString,
    }
 
    return false;
+}
+
+
+std::unique_ptr<FunctionInvocationState> DynamicDataDisplay::SuspendFunctionBindings()
+{
+   auto native = std::make_shared<SubscriberBindingState>();
+   using Roles = std::vector<std::vector<std::pair<std::string, std::string>>>;
+   auto roles = std::make_shared<Roles>();
+   roles->resize(displayData.size());
+   for (size_t row = 0; row < displayData.size(); ++row)
+      for (size_t column = 0; column < displayData[row].size(); ++column)
+      {
+         const auto &cell = displayData[row][column];
+         (*roles)[row].emplace_back(cell.paramName, cell.refObjectName);
+         native->CaptureValue(cell.paramRef, [this, row, column](Parameter *value)
+         {
+            if (row >= displayData.size() || column >= displayData[row].size()) return false;
+            displayData[row][column].paramRef = value;
+            return true;
+         });
+      }
+   native->Require([this, roles]
+   {
+      bool same = displayData.size() == roles->size();
+      for (size_t row = 0; same && row < displayData.size(); ++row)
+      {
+         same = displayData[row].size() == (*roles)[row].size();
+         for (size_t column = 0; same && column < displayData[row].size(); ++column)
+            same = displayData[row][column].paramName == (*roles)[row][column].first &&
+                  displayData[row][column].refObjectName == (*roles)[row][column].second;
+      }
+      // Preserve the edited grid, values and colors. Every binding in a new
+      // declaration must be rebuilt, including cells added by the inner call.
+      if (!same) for (auto &row : displayData) for (auto &cell : row) cell.paramRef = nullptr;
+      return same;
+   });
+   return WrapFunctionBindings(std::move(native), Subscriber::SuspendFunctionBindings());
+}
+
+
+bool DynamicDataDisplay::HasSubscriberValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(DynamicDataDisplay);
+}
+
+void DynamicDataDisplay::RebindSubscriberValueReferences(const Subscriber &original,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &source = dynamic_cast<const DynamicDataDisplay&>(original);
+   auto grid = source.displayData;
+   for (auto &row : grid) for (auto &cell : row)
+   {
+      cell.paramRef = MapSubscriberReference(cell.paramRef, resolve);
+      cell.paramWrapper = nullptr; // Dormant legacy cache, not an owned resource value.
+   }
+   Subscriber::RebindSubscriberValueReferences(source, resolve);
+   displayData.swap(grid);
 }

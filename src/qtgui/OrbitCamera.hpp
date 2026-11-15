@@ -25,8 +25,9 @@ struct OrbitSceneBounds
    double radius() const { return std::max(1e-6,(maximum-minimum).length()*.5); }
 };
 struct OrbitObjectBounds { osg::Vec3d center; double radius=1; };
-inline OrbitCameraBasis orbitCamera(const PlotModel &model,quint64 frame,double yaw,double pitch,double extent,double aspect=1.0,const OrbitSceneBounds *bounds=nullptr,const QMap<QString,OrbitObjectBounds> *objects=nullptr)
+inline OrbitCameraBasis orbitCamera(const PlotModel &model,quint64 frame,double yaw,double pitch,double extent,double aspect=1.0,const OrbitSceneBounds *bounds=nullptr,const QMap<QString,OrbitObjectBounds> *objects=nullptr,const std::array<double,9> *rotation=nullptr)
 {
+   if (rotation) { yaw=0; pitch=0; }
    double viewExtent=extent*1.1,distance=extent*4;
    osg::Vec3d target;
    osg::Vec3d right(std::cos(yaw),-std::sin(yaw),0);
@@ -119,6 +120,13 @@ inline OrbitCameraBasis orbitCamera(const PlotModel &model,quint64 frame,double 
          const osg::Quat azimuth(-yaw,up); outward=azimuth*outward; right=azimuth*right;
          const osg::Quat elevation(-pitch,right); outward=elevation*outward; up=elevation*up;
       }
+   }
+   if (rotation) {
+      const auto baseRight=right,baseUp=up,baseOutward=outward;
+      const auto column=[&](int index) {
+         return baseRight*(*rotation)[index*3]+baseUp*(*rotation)[index*3+1]+baseOutward*(*rotation)[index*3+2];
+      };
+      right=column(0); up=column(1); outward=column(2);
    }
    return {target,right,up,outward,distance,viewExtent};
 }

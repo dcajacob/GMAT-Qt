@@ -152,8 +152,11 @@ EventLocatorDialog::EventLocatorDialog(GmatBase &object,const QMap<QString,QStri
       } else {
          auto *row=new QWidget(content); auto *line=new QHBoxLayout(row); line->setContentsMargins(0,0,0,0);
          auto *edit=new QLineEdit(value,row); edit->setObjectName("event_"+name); text.insert(name,edit); line->addWidget(edit);
-         const auto unit=property.unit.isEmpty() && (name=="StepSize" || name=="IntervalStepSize") ? QString("s") : property.unit;
-         if (!unit.isEmpty()) line->addWidget(new QLabel(unit,row));
+         const auto unit=property.unit.isEmpty() && (name=="StepSize" || name=="IntervalStepSize" || name=="RootTolerance") ? QString("s") : property.unit;
+         if (!unit.isEmpty()) {
+            auto *unitLabel=new QLabel(unit,row); line->addWidget(unitLabel);
+            if (name=="InitialEpoch" || name=="FinalEpoch") unitLabel->setObjectName("epochUnit_"+name);
+         }
          if (property.filename) {
             auto *browse=new QPushButton("Browse…",row); browse->setObjectName("eventBrowse_"+name); line->addWidget(browse);
             connect(browse,&QPushButton::clicked,this,[this,edit,name,property] {
@@ -168,6 +171,7 @@ EventLocatorDialog::EventLocatorDialog(GmatBase &object,const QMap<QString,QStri
    auto *selection=group("Objects");
    for (const auto &name:QStringList{"Spacecraft","Target","AdditionalTargets","CentralBody","OccultingBodies","IntrudingBodies","Observers","EclipseTypes","EventTypes","Sensors"}) field(selection,name,name=="AdditionalTargets" ? "Additional spacecraft" : name);
    auto *interval=group("Search interval");
+   field(interval,"RootFindingMethod","Root refinement");field(interval,"RootTolerance","Brent tolerance (TDB seconds)");
    field(interval,"UseEntireInterval","Use entire propagated interval"); field(interval,"InputEpochFormat","Epoch format"); field(interval,"InitialEpoch","Initial epoch"); field(interval,"FinalEpoch","Final epoch"); field(interval,"StepSize","Search step");
    auto *corrections=group("Light-time corrections");
    field(corrections,"UseLightTimeDelay","Use light-time delay"); field(corrections,"UseStellarAberration","Use stellar aberration"); field(corrections,"LightTimeDirection","Light-time direction");
@@ -247,6 +251,11 @@ void EventLocatorDialog::updateDependencies()
    const bool entire=checks.value("UseEntireInterval")->isChecked(),lightTime=checks.value("UseLightTimeDelay")->isChecked();
    choices.value("InputEpochFormat")->setEnabled(!entire); text.value("InitialEpoch")->setEnabled(!entire); text.value("FinalEpoch")->setEnabled(!entire);
    checks.value("UseStellarAberration")->setEnabled(lightTime); if (auto *direction=choices.value("LightTimeDirection")) direction->setEnabled(lightTime);
+   if (auto *method=choices.value("RootFindingMethod")) {
+      auto *tolerance=text.value("RootTolerance");
+      const auto update=[method,tolerance] { if (tolerance) tolerance->setEnabled(method->currentText()=="Brent"); };
+      connect(method,&QComboBox::currentTextChanged,this,[update] {update();});update();
+   }
    if (auto *report=choices.value("ReportFormat")) text.value("IntervalStepSize")->setEnabled(report->currentText().startsWith("Azimuth"));
    if (auto *coordinates=choices.value("ReportCoordinates")) {
       const bool fixed=coordinates->currentText()=="FixedGrid"; text.value("SpiceGridFrameFile")->setEnabled(fixed); findChild<QPushButton *>("eventBrowse_SpiceGridFrameFile")->setEnabled(fixed);
@@ -262,4 +271,6 @@ void EventLocatorDialog::convertEpochs()
       }
       text.value("InitialEpoch")->setText(converted[0]); text.value("FinalEpoch")->setText(converted[1]); previousFormat=next; error->clear();
    } catch (BaseException &failure) { const QSignalBlocker blocker(format); format->setCurrentText(previousFormat); error->setText(QString::fromStdString(failure.GetFullMessage())); }
+   for (const auto &name:QStringList{"InitialEpoch","FinalEpoch"})
+      if (auto *unit=findChild<QLabel *>("epochUnit_"+name)) unit->setText(epochInputUnit(format->currentText()));
 }

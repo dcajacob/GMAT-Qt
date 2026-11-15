@@ -5,6 +5,7 @@
 #include <functional>
 class QFormLayout;
 class QLineEdit;
+class QLabel;
 
 // Edits source spans, preserving labels, formatting, options and branch bodies.
 class CommandForm final : public QGroupBox
@@ -17,10 +18,12 @@ private:
    struct Field { QLineEdit *input; qsizetype start,length; };
    QFormLayout *layout;
    QVector<Field> fields;
+   QMap<QString,QLabel *> unitLabels;
    QString original;
    QMap<QString,QString> pendingFiniteResources;
    std::function<void(const QString &)> changed;
    bool synchronizing=false;
    QString currentStatement() const;
    void updateSource();
+   void updateUnits();
 };

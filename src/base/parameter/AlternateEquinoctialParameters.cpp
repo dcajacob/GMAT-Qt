@@ -102,7 +102,12 @@ bool AltEquinP::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* AltEquinP::Clone(void) const
 {
-   return new AltEquinP(*this);
+   return CompleteParameterClone(new AltEquinP(*this));
+}
+
+void AltEquinP::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AltEquinP>(source);
 }
 
 
@@ -168,7 +173,12 @@ bool AltEquinQ::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* AltEquinQ::Clone(void) const
 {
-   return new AltEquinQ(*this);
+   return CompleteParameterClone(new AltEquinQ(*this));
+}
+
+void AltEquinQ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AltEquinQ>(source);
 }
 
 //------------------------------------------------------------------------------
@@ -232,6 +242,11 @@ bool AltEquinState::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* AltEquinState::Clone(void) const
 {
-   return new AltEquinState(*this);
+   return CompleteParameterClone(new AltEquinState(*this));
+}
+
+void AltEquinState::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AltEquinState>(source);
 }
 

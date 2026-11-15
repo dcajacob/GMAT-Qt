@@ -54,6 +54,14 @@ public:
                                                          std::string spacecraftId) = 0;
    virtual std::map<std::string,ObjectArray>&    
                            GetErrorModelMap() = 0;
+
+   // Retained function values expose actual native owned roles, including
+   // path-specific models. Providers must implement their own copy contract.
+   
+   virtual void RebindClonedReferences(const GroundstationInterface &source,
+         SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve,
+         const std::function<void(const ObjectArray&, const ObjectArray&)> &owned) = 0;
+   virtual bool InitializeClonedResource() = 0;
 };
 
 #endif

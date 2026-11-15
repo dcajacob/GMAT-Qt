@@ -1,0 +1,7 @@
+<RCC>
+  <qresource prefix="/gmat/ground-map">
+    <file alias="countries.json">../../application/data/graphics/ground-overlays/countries.json</file>
+    <file alias="counties.json">../../application/data/graphics/ground-overlays/counties.json</file>
+    <file alias="places.json">../../application/data/graphics/ground-overlays/places.json</file>
+  </qresource>
+</RCC>

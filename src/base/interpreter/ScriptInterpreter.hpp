@@ -64,6 +64,7 @@ public:
    
    bool SetInStream(std::istream *istrm);
    bool SetOutStream(std::ostream *ostrm);
+   std::ostream* GetOutStream() const;
 
    std::string GetMainScriptFileName();
    bool IncludeFoundInResource();

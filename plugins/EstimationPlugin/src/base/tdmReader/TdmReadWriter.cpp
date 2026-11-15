@@ -33,6 +33,71 @@
 #include "xercesc/framework/LocalFileInputSource.hpp"
 #include "MeasurementException.hpp"
 #include "DateUtil.hpp"
+#include "CCSDSEMSegment.hpp"
+#include "StringUtil.hpp"
+#include "UtcDate.hpp"
+#include <memory>
+#include <utility>
+#include <vector>
+
+namespace
+{
+struct XmlTextRelease
+{
+   template <typename Char> void operator()(Char *text) const
+   {
+      XMLString::release(&text);
+   }
+};
+
+template <typename Char>
+using OwnedXmlText = std::unique_ptr<Char, XmlTextRelease>;
+
+std::string TdmText(const XMLCh *text)
+{
+   if (text == NULL)
+      throw MeasurementException("TDM XML content is missing");
+   OwnedXmlText<char> converted(XMLString::transcode(text));
+   return converted ? converted.get() : "";
+}
+
+const XMLCh *TdmNodeName(const DOMNode *node)
+{
+   return node->getLocalName() ? node->getLocalName() : node->getNodeName();
+}
+
+DOMElement *CopiedTdmElement(const DOMElement *source, DOMDocument *document)
+{
+   if (source == NULL)
+      return NULL;
+   std::vector<XMLSize_t> path;
+   for (const DOMNode *node = source; node->getNodeType() != DOMNode::DOCUMENT_NODE;
+         node = node->getParentNode())
+   {
+      const DOMNode *parent = node->getParentNode();
+      if (parent == NULL)
+         throw MeasurementException("TDM cursor is detached from its document");
+      const DOMNodeList *children = parent->getChildNodes();
+      XMLSize_t index = 0;
+      while (index < children->getLength() && children->item(index) != node)
+         ++index;
+      if (index == children->getLength())
+         throw MeasurementException("TDM cursor is absent from its parent");
+      path.push_back(index);
+   }
+   DOMNode *node = document;
+   for (auto index = path.rbegin(); index != path.rend(); ++index)
+   {
+      node = node ? node->getChildNodes()->item(*index) : NULL;
+      if (node == NULL)
+         throw MeasurementException("Copied TDM cursor is absent");
+   }
+   if (node->getNodeType() != DOMNode::ELEMENT_NODE ||
+         !XMLString::equals(node->getNodeName(), source->getNodeName()))
+      throw MeasurementException("Copied TDM cursor changed node identity");
+   return static_cast<DOMElement*>(node);
+}
+}
 
 
 //------------------------------------------------------------------------------
@@ -50,6 +115,7 @@ TdmReadWriter::TdmReadWriter()
 {
    theErrorHandler = new TdmErrorHandler();
    theDOMParser = NULL;
+   theDocument = NULL;
   
    theBody = NULL;
    theSegment = NULL;
@@ -74,12 +140,8 @@ TdmReadWriter::TdmReadWriter()
  * Copy Constructor
  */
 //------------------------------------------------------------------------------
-TdmReadWriter::TdmReadWriter(const TdmReadWriter &trw)
+TdmReadWriter::TdmReadWriter(const TdmReadWriter &trw) : TdmReadWriter()
 {
-   theErrorHandler = NULL;
-   theDOMParser = NULL;
-   mapTransmitBand.insert(trw.mapTransmitBand.begin(), trw.mapTransmitBand.end());
-
    *this = trw;
 }
 
@@ -95,22 +157,45 @@ TdmReadWriter& TdmReadWriter::operator=(const TdmReadWriter &trw)
 {
    if (this != &trw)
    {
-      TdmErrorHandler *newErrorHandler = trw.theErrorHandler; 
-      if (theErrorHandler)
+      TdmReadWriter copy;
+      copy.mapTransmitBand = trw.mapTransmitBand;
+      copy.sourceTimeSystem = trw.sourceTimeSystem;
+      copy.theTemplate = trw.theTemplate;
+      copy.observationIndex = trw.observationIndex;
+      if (trw.theErrorHandler != NULL)
       {
-         delete theErrorHandler;
-         theErrorHandler = NULL;
+         std::unique_ptr<TdmErrorHandler> handler(new TdmErrorHandler(*trw.theErrorHandler));
+         delete copy.theErrorHandler;
+         copy.theErrorHandler = handler.release();
+      }
+      if (trw.xercesInitialized)
+         copy.Initialize();
+      if (trw.theDocument != NULL)
+      {
+         copy.Initialize();
+         copy.theDocument = static_cast<DOMDocument*>(trw.theDocument->cloneNode(true));
+         if (copy.theDocument == NULL)
+            throw MeasurementException("Unable to copy TDM document");
+         copy.theDocument->setDocumentURI(trw.theDocument->getDocumentURI());
+         copy.theBody = CopiedTdmElement(trw.theBody, copy.theDocument);
+         copy.theSegment = CopiedTdmElement(trw.theSegment, copy.theDocument);
+         copy.theData = CopiedTdmElement(trw.theData, copy.theDocument);
+         copy.theObservation = CopiedTdmElement(trw.theObservation, copy.theDocument);
       }
 
-      theErrorHandler = newErrorHandler;
-      theDOMParser = trw.theDOMParser;;
-      theBody = trw.theBody;
-      theSegment = trw.theSegment;
-      theData = trw.theData;
-      theObservation = trw.theObservation;
-      xercesInitialized = trw.xercesInitialized;
-      observationIndex = trw.observationIndex;
-      mapTransmitBand.insert(trw.mapTransmitBand.begin(), trw.mapTransmitBand.end());
+      using std::swap;
+      swap(theTemplate, copy.theTemplate);
+      swap(mapTransmitBand, copy.mapTransmitBand);
+      swap(sourceTimeSystem, copy.sourceTimeSystem);
+      swap(theErrorHandler, copy.theErrorHandler);
+      swap(theDOMParser, copy.theDOMParser);
+      swap(theDocument, copy.theDocument);
+      swap(xercesInitialized, copy.xercesInitialized);
+      swap(theBody, copy.theBody);
+      swap(theSegment, copy.theSegment);
+      swap(theData, copy.theData);
+      swap(theObservation, copy.theObservation);
+      swap(observationIndex, copy.observationIndex);
    }
    
    return *this;
@@ -126,8 +211,7 @@ TdmReadWriter& TdmReadWriter::operator=(const TdmReadWriter &trw)
 //------------------------------------------------------------------------------
 TdmReadWriter::~TdmReadWriter()
 {
-   if(xercesInitialized)
-      Finalize();
+   Finalize();
 }
 
 
@@ -149,9 +233,13 @@ bool TdmReadWriter::Initialize()
 {
    if (!xercesInitialized)
    {
+      std::string initializationError;
       try
       {
          XMLPlatformUtils::Initialize();
+         xercesInitialized = true;
+         if (theErrorHandler == NULL)
+            theErrorHandler = new TdmErrorHandler();
          theDOMParser = new XercesDOMParser();
 
          theDOMParser->setErrorHandler(theErrorHandler);
@@ -160,13 +248,21 @@ bool TdmReadWriter::Initialize()
 	      theDOMParser->setDoSchema(true);
 	      theDOMParser->setValidationConstraintFatal(true);
 
-         xercesInitialized = true;
       }
       catch(const XMLException &xe)
       {
-         std::string errMsg ("Xerces failed to initialize: ");
-         errMsg.push_back(*XMLString::transcode(xe.getMessage()));
-         throw MeasurementException(errMsg);
+         initializationError = "Xerces failed to initialize: " + TdmText(xe.getMessage());
+      }
+      catch (...)
+      {
+         Finalize();
+         throw;
+      }
+      if (!initializationError.empty())
+      {
+         // The Xerces exception must be destroyed before terminating Xerces.
+         Finalize();
+         throw MeasurementException(initializationError);
       }
    }
 
@@ -196,24 +292,37 @@ ObservationData *TdmReadWriter::ProcessMetadata()
    {
       // Clear observation Data if it has been filled in with data.
       theTemplate.Clear();
+      theTemplate.epochSystem = TimeSystemConverter::A1MJD;
+      theTemplate.epochAtEnd = true;
+      theTemplate.epochAtIntegrationEnd = true;
+      theTemplate.epochReference = ObservationData::EpochReference::Configured;
+      theTemplate.integrationReference = ObservationData::IntegrationReference::Configured;
+      sourceTimeSystem.clear();
 
       DOMElement *pMetaData = theSegment->getFirstElementChild();
+      if (pMetaData == NULL || TdmText(TdmNodeName(pMetaData)) != "metadata")
+         throw MeasurementException("TDM segment has no metadata element");
       DOMNodeList *pChilds = pMetaData->getChildNodes();
 					
 		for (UnsignedInt i = 0; i < pChilds->getLength(); i++)
 		{
-			DOMElement *pChild = (DOMElement *)pChilds->item(i);
-			if (pChild->getNodeType() == DOMNode::ELEMENT_NODE)
+			DOMNode *node = pChilds->item(i);
+			if (node->getNodeType() == DOMNode::ELEMENT_NODE)
          {
+            DOMElement *pChild = static_cast<DOMElement*>(node);
             //Fill in the observation data theTemplate for each
             // attributes.
-            switch(HashIt(pChild->getNodeName()))
+            switch(HashIt(TdmNodeName(pChild)))
             {
                case TIME_SYSTEM:
                {
-                  std::string strT(XMLString::transcode(pChild->getTextContent()));
-                  if ( strT == "UTC")
-                     theTemplate.epochSystem = TimeSystemConverter::UTCMJD;
+                  if (!sourceTimeSystem.empty())
+                     throw MeasurementException("TDM segment declares more than one TIME_SYSTEM");
+                  sourceTimeSystem = GmatStringUtil::Trim(TdmText(pChild->getTextContent()));
+                  const Integer system = TimeSystemConverter::Instance()->GetTimeTypeID(sourceTimeSystem);
+                  if (sourceTimeSystem != "GPS" &&
+                        (system < TimeSystemConverter::A1 || system >= TimeSystemConverter::TimeSystemCount))
+                     throw MeasurementException("TDM TIME_SYSTEM is not supported without a clock correlation: " + sourceTimeSystem);
                   break;
                }
                case PARTICIPANT_1:
@@ -222,7 +331,7 @@ ObservationData *TdmReadWriter::ProcessMetadata()
                case PARTICIPANT_4:
                case PARTICIPANT_5:
                {
-                  theTemplate.participantIDs.push_back(XMLString::transcode(pChild->getTextContent()));
+                  theTemplate.participantIDs.push_back(TdmText(pChild->getTextContent()));
                   break;
                }
                case MODE:
@@ -230,18 +339,21 @@ ObservationData *TdmReadWriter::ProcessMetadata()
                case PATH:
                {
                   StringArray IDs;
-                  char *pPath = XMLString::transcode(pChild->getTextContent());
+                  OwnedXmlText<char> path(XMLString::transcode(pChild->getTextContent()));
+                  char *pPath = path.get();
                   char *pTok;
                   pTok = strtok(pPath, ",");
                   
                   while (pTok != NULL)
                   {
-                     IDs.push_back(theTemplate.participantIDs.at(atoi(pTok)-1));
+                     const int participant = atoi(pTok) - 1;
+                     if (participant < 0 || static_cast<size_t>(participant) >= theTemplate.participantIDs.size())
+                        throw MeasurementException("TDM PATH participant index is out of range");
+                     IDs.push_back(theTemplate.participantIDs.at(participant));
                      pTok = strtok(NULL, ","); 
                   }
 
                   theTemplate.strands.push_back(IDs);
-                  XMLString::release(&pPath);
                   break;
                }
                case PATH_1:
@@ -250,7 +362,7 @@ ObservationData *TdmReadWriter::ProcessMetadata()
                   break;
                case TRANSMIT_BAND:
                {
-                  std::string strT(XMLString::transcode(pChild->getTextContent()));
+                  std::string strT(TdmText(pChild->getTextContent()));
 
                   std::map<std::string, Real>::iterator it;
                   it = mapTransmitBand.find(strT);
@@ -260,7 +372,7 @@ ObservationData *TdmReadWriter::ProcessMetadata()
                   else
                      theTemplate.value.push_back(0.0);
 
-                  theTemplate.dataMap.push_back(XMLString::transcode(pChild->getNodeName()));
+                  theTemplate.dataMap.push_back(TdmText(TdmNodeName(pChild)));
 
                   break;
                }
@@ -268,11 +380,19 @@ ObservationData *TdmReadWriter::ProcessMetadata()
                   break;
                case TIMETAG_REF:
                {
-                  std::string strT(XMLString::transcode(pChild->getTextContent()));
+                  std::string strT(TdmText(pChild->getTextContent()));
                   if (strT.compare("RECEIVE") == 0 || strT.compare("receive") == 0)
+                  {
                      theTemplate.epochAtEnd = true;
-                  else if (strT.compare("TRANSMIT") || strT.compare("transmit") == 0)
+                     theTemplate.epochReference = ObservationData::EpochReference::Receive;
+                  }
+                  else if (strT.compare("TRANSMIT") == 0 || strT.compare("transmit") == 0)
+                  {
                      theTemplate.epochAtEnd = false;
+                     theTemplate.epochReference = ObservationData::EpochReference::Transmit;
+                  }
+                  else
+                     throw MeasurementException("Unsupported TDM TIMETAG_REF: " + strT);
                   
                   break;
                }
@@ -284,11 +404,24 @@ ObservationData *TdmReadWriter::ProcessMetadata()
 //                  break;
                case INTEGRATION_REF:
                   {
-                     std::string strT(XMLString::transcode(pChild->getTextContent()));
+                     std::string strT(TdmText(pChild->getTextContent()));
                      if (strT.compare("END") == 0 || strT.compare("end") == 0)
+                     {
                         theTemplate.epochAtIntegrationEnd = true;
-                     else if (strT.compare("START") || strT.compare("start") == 0)
+                        theTemplate.integrationReference = ObservationData::IntegrationReference::End;
+                     }
+                     else if (strT.compare("START") == 0 || strT.compare("start") == 0)
+                     {
                         theTemplate.epochAtIntegrationEnd = false;
+                        theTemplate.integrationReference = ObservationData::IntegrationReference::Start;
+                     }
+                     else if (strT.compare("MIDDLE") == 0 || strT.compare("middle") == 0)
+                     {
+                        theTemplate.epochAtIntegrationEnd = false;
+                        theTemplate.integrationReference = ObservationData::IntegrationReference::Middle;
+                     }
+                     else
+                        throw MeasurementException("Unsupported TDM INTEGRATION_REF: " + strT);
                   }
                   break;
                case RANGE_MODE:
@@ -297,13 +430,13 @@ ObservationData *TdmReadWriter::ProcessMetadata()
                case FREQ_OFFSET:
                case INTEGRATION_INTERVAL:
                {
-                  theTemplate.value.push_back(atof(XMLString::transcode(pChild->getTextContent())));
-                  theTemplate.dataMap.push_back(XMLString::transcode(pChild->getNodeName()));
+                  theTemplate.value.push_back(atof(TdmText(pChild->getTextContent()).c_str()));
+                  theTemplate.dataMap.push_back(TdmText(TdmNodeName(pChild)));
                   break;
                }
                case RANGE_UNITS:
                {
-                  theTemplate.unit = std::string(XMLString::transcode(pChild->getTextContent()));
+                  theTemplate.unit = TdmText(pChild->getTextContent());
                   break;
                }
                default:
@@ -312,20 +445,21 @@ ObservationData *TdmReadWriter::ProcessMetadata()
 			}
       }
 
+      if (sourceTimeSystem.empty())
+         throw MeasurementException("TDM segment is missing required TIME_SYSTEM metadata");
       theData = theSegment->getLastElementChild();
-      DOMNodeList *pObsChilds = theData->getChildNodes();
-      int i = 0;
-      while ( ((DOMElement *)pObsChilds->item(i))->getNodeType() != DOMNode::ELEMENT_NODE)
-      {
-        i++;
-      }
-      
-      //first observation data
-      theObservation = (DOMElement *)pObsChilds->item(i);
+      if (theData == NULL || TdmText(TdmNodeName(theData)) != "data")
+         throw MeasurementException("TDM segment has no data element");
+      theObservation = theData->getFirstElementChild();
+      if (theObservation == NULL)
+         throw MeasurementException("TDM data element contains no observations");
+      observationIndex = 0;
 
       return &theTemplate;
    }
    
+   theData = theObservation = NULL;
+   observationIndex = 0;
    return NULL;
 }
 
@@ -349,26 +483,36 @@ ObservationData *TdmReadWriter::ProcessMetadata()
 //ObsData *TdmReadWriter::LoadRecord(ObsData *newData)
 ObservationData *TdmReadWriter::LoadRecord(ObservationData *newData)
 {
-   std::string strPrevEpoch;
+   if (theSegment == NULL)
+      return NULL;
+   if (newData == NULL || theData == NULL || theObservation == NULL ||
+         theObservation->getFirstElementChild() == NULL)
+      throw MeasurementException("TDM observation cursor is not initialized");
    std::string strCurrEpoch;
    std::string strObs;
    std::string strNodeName;
 
-   strPrevEpoch = std::string(XMLString::transcode(theObservation->getFirstElementChild()->getTextContent()));
+   const GmatTime recordEpoch = ParseEpochGT(TdmText(theObservation->getFirstElementChild()->getTextContent()));
   
    for (UnsignedInt i = observationIndex; i < theData->getChildNodes()->getLength(); i++)
    {
-      theObservation = (DOMElement *) theData->getChildNodes()->item(i);
-      if (theObservation->getNodeType() == DOMNode::ELEMENT_NODE)
+      DOMNode *node = theData->getChildNodes()->item(i);
+      if (node->getNodeType() == DOMNode::ELEMENT_NODE)
 		{
-			strCurrEpoch = std::string(XMLString::transcode(theObservation->getFirstElementChild()->getTextContent()));
-         strObs = std::string(XMLString::transcode(theObservation->getLastElementChild()->getTextContent())); 
-         strNodeName = std::string(XMLString::transcode(theObservation->getLastElementChild()->getNodeName()));
+         theObservation = static_cast<DOMElement*>(node);
+         DOMElement *epoch = theObservation->getFirstElementChild();
+         DOMElement *value = theObservation->getLastElementChild();
+         if (epoch == NULL || value == NULL || epoch == value)
+            throw MeasurementException("TDM observation is missing its epoch or value");
+			strCurrEpoch = TdmText(epoch->getTextContent());
+         strObs = TdmText(value->getTextContent());
+         strNodeName = TdmText(TdmNodeName(value));
+         const GmatTime observationEpoch = ParseEpochGT(strCurrEpoch);
 
          if (theTemplate.typeName == "")
             theTemplate.typeName = newData->typeName = strNodeName;
          
-         if (strPrevEpoch != strCurrEpoch)
+         if (recordEpoch != observationEpoch)
          {
             //set the index for next call
             observationIndex = i;
@@ -378,12 +522,13 @@ ObservationData *TdmReadWriter::LoadRecord(ObservationData *newData)
          else
          {
             // push data into newData     
-            newData->epoch = ParseEpoch(strPrevEpoch);  
+            newData->epochGT = recordEpoch;
+            newData->epoch = recordEpoch.GetMjd();
+            newData->epochSystem = TimeSystemConverter::A1MJD;
             newData->value.push_back(atof(strObs.c_str()));
             newData->dataMap.push_back(strNodeName);
          }
            
-         strPrevEpoch = strCurrEpoch;
       }
    }
    
@@ -410,36 +555,36 @@ ObservationData *TdmReadWriter::LoadRecord(ObservationData *newData)
 //------------------------------------------------------------------------------
 bool TdmReadWriter::Validate(const std::string &tdmFileName)
 {
-   LocalFileInputSource *xmlFile;
+   Initialize();
+   theBody = theSegment = theData = theObservation = NULL;
+   observationIndex = 0;
+   theTemplate.Clear();
+   sourceTimeSystem.clear();
+   if (theDocument != NULL)
+   {
+      theDocument->release();
+      theDocument = NULL;
+   }
+   theDOMParser->resetDocumentPool();
 
    // Load the TDM XML file
    try
    {
-      xmlFile = new LocalFileInputSource(XMLString::transcode(tdmFileName.c_str()));
+      OwnedXmlText<XMLCh> filename(XMLString::transcode(tdmFileName.c_str()));
+      LocalFileInputSource xmlFile(filename.get());
+      theDOMParser->parse(xmlFile);
    }
    catch(const XMLException &xe)
    {
-      std::string errMsg ("Xerces failed to load the file: ");
-      errMsg.push_back(*XMLString::transcode(xe.getMessage()));
-      throw MeasurementException(errMsg);
+      throw MeasurementException("Xerces failed to load the file: " + TdmText(xe.getMessage()));
    }
 
-   // Parse the TDM XML 
-   if(theDOMParser != NULL)
-   {
-      theDOMParser->parse(*xmlFile);
-
-      // Check to see if the Schema Validation passed
-      if (theDOMParser->getErrorCount() == 0)
-      {
-         MessageInterface::ShowMessage("XML file is validated against the Schema file successfully.\n");
-      }
-	   else
-      {
-		   std::string errMsg ("Xerces failed validation: XML file does not conform to Schema: ");
-         throw MeasurementException(errMsg);
-      }  
-   }
+   if (theDOMParser->getErrorCount() != 0)
+      throw MeasurementException("Xerces failed validation: XML file does not conform to Schema: ");
+   theDocument = theDOMParser->adoptDocument();
+   if (theDocument == NULL)
+      throw MeasurementException("TDM XML parser produced no document");
+   MessageInterface::ShowMessage("XML file is validated against the Schema file successfully.\n");
 
    return true;
 }
@@ -461,6 +606,15 @@ bool TdmReadWriter::Validate(const std::string &tdmFileName)
 //------------------------------------------------------------------------------
 bool TdmReadWriter::Finalize()
 {
+   theBody = theSegment = theData = theObservation = NULL;
+   observationIndex = 0;
+   theTemplate.Clear();
+   sourceTimeSystem.clear();
+   if (theDocument != NULL)
+   {
+      theDocument->release();
+      theDocument = NULL;
+   }
    if (theDOMParser)
    {
       delete theDOMParser;
@@ -471,11 +625,13 @@ bool TdmReadWriter::Finalize()
       delete theErrorHandler;
       theErrorHandler = NULL;
    }
-   xercesInitialized = false;
+   if (xercesInitialized)
+   {
+      XMLPlatformUtils::Terminate();
+      xercesInitialized = false;
+   }
 
-   XMLPlatformUtils::Terminate();
-
-   return xercesInitialized;
+   return true;
 }
 
 
@@ -496,25 +652,17 @@ bool TdmReadWriter::Finalize()
 //------------------------------------------------------------------------------
 bool TdmReadWriter::SetBody()
 {
-   DOMDocument *pDoc = theDOMParser->getDocument();
-	DOMElement *pTdm = pDoc->getDocumentElement();
-
-	if (pTdm->hasAttributes())
-	{
-		DOMAttr *pAttrId = pTdm->getAttributeNode(XMLString::transcode("id"));
-		if (!XMLString::equals(XMLString::transcode("CCSDS_TDM_VERS"),pAttrId->getValue()))
-		{
-			std::string errMsg = " CCSDS_TDM_VERS id is not correct";
-         throw MeasurementException(errMsg);
-		}
-
-		DOMAttr *pAttrVer = pTdm->getAttributeNode(XMLString::transcode("version"));
-		if (!XMLString::equals(XMLString::transcode("1.0"),pAttrVer->getValue()))
-		{
-			std::string errMsg = "The TDM VERSION is not correct.\n";
-			throw MeasurementException(errMsg);
-      }
-	}
+   if (theDocument == NULL || theDocument->getDocumentElement() == NULL)
+      throw MeasurementException("No validated TDM document is open");
+   DOMElement *pTdm = theDocument->getDocumentElement();
+   const XMLCh idName[] = {'i', 'd', 0};
+   const XMLCh versionName[] = {'v', 'e', 'r', 's', 'i', 'o', 'n', 0};
+   DOMAttr *pAttrId = pTdm->getAttributeNode(idName);
+   if (pAttrId == NULL || TdmText(pAttrId->getValue()) != "CCSDS_TDM_VERS")
+      throw MeasurementException("CCSDS_TDM_VERS id is not correct");
+   DOMAttr *pAttrVer = pTdm->getAttributeNode(versionName);
+   if (pAttrVer == NULL || TdmText(pAttrVer->getValue()) != "1.0")
+      throw MeasurementException("The TDM VERSION is not correct.\n");
 
    //header
    /********** No NEED to parse these.*********** /
@@ -532,7 +680,11 @@ bool TdmReadWriter::SetBody()
    **********************************************/
 
    theBody = pTdm->getLastElementChild();
+   if (theBody == NULL || TdmText(TdmNodeName(theBody)) != "body")
+      throw MeasurementException("TDM document has no body element");
    theSegment = theBody->getFirstElementChild();
+   theData = theObservation = NULL;
+   observationIndex = 0;
 
    return true;
 }
@@ -555,7 +707,7 @@ bool TdmReadWriter::SetBody()
 //------------------------------------------------------------------------------
 TdmReadWriter::MetaData TdmReadWriter::HashIt(const XMLCh *xmlNodeName)
 {
-   std::string strN(XMLString::transcode(xmlNodeName));
+   std::string strN(TdmText(xmlNodeName));
 
    if (strN == "TIME_SYSTEM")
       return TIME_SYSTEM;
@@ -623,72 +775,69 @@ TdmReadWriter::MetaData TdmReadWriter::HashIt(const XMLCh *xmlNodeName)
  */
 //------------------------------------------------------------------------------
 GmatEpoch TdmReadWriter::ParseEpoch(const std::string strEpoch)
-{  
-   Integer year = -1, doy = -1, month = -1, day = -1, hour = -1, minute = -1 ;
-   Real sec = -1;
-   GmatEpoch mjd;
+{
+   return ParseEpochGT(strEpoch).GetMjd();
+}
 
-   // c_str() returns a const char *
-   char *epoch = (char *)strEpoch.c_str();
-   char *pch, *date, *time;
-   Byte i = 0;
+// Parse calendar components without forming a Real MJD. Observations are
+// normalized to A1, matching their epochSystem tag and the estimator clock.
+GmatTime TdmReadWriter::ParseEpochGT(const std::string &strEpoch)
+{
+   std::string text = GmatStringUtil::Trim(strEpoch);
+   if (!text.empty() && text.back() == 'Z')
+      text.pop_back();
+   const auto split = text.find_first_of("Tt");
+   if (split == std::string::npos || text.find_first_of("Tt", split + 1) != std::string::npos)
+      throw MeasurementException("Invalid TDM epoch: " + strEpoch);
+   const std::string date = text.substr(0, split);
+   const std::string time = text.substr(split + 1);
+   const auto digits = [](const std::string &part) {
+      return !part.empty() && part.find_first_not_of("0123456789") == std::string::npos;
+   };
+   const bool calendarDate = date.size() == 10 && date[4] == '-' && date[7] == '-';
+   const bool ordinalDate = date.size() == 8 && date[4] == '-';
+   if ((!calendarDate && !ordinalDate) || !digits(date.substr(0, 4)) ||
+         (calendarDate && (!digits(date.substr(5, 2)) || !digits(date.substr(8, 2)))) ||
+         (ordinalDate && !digits(date.substr(5, 3))) || time.size() < 8 ||
+         time[2] != ':' || time[5] != ':' || !digits(time.substr(0, 2)) ||
+         !digits(time.substr(3, 2)) || !digits(time.substr(6, 2)) ||
+         (time.size() > 8 && (time[8] != '.' || !digits(time.substr(9)))))
+      throw MeasurementException("Invalid TDM epoch: " + strEpoch);
 
-   // Start Parsing....
-   // break the string into date and time parts :
-   // using delimiter "T". 
-   pch = strtok(epoch, "T");
-   while (pch != NULL)
+   const Integer year = std::stoi(date.substr(0, 4));
+   const Integer hour = std::stoi(time.substr(0, 2));
+   const Integer minute = std::stoi(time.substr(3, 2));
+   const Integer second = std::stoi(time.substr(6, 2));
+   UtcDate calendar = calendarDate ?
+         UtcDate(year, std::stoi(date.substr(5, 2)), std::stoi(date.substr(8, 2)), hour, minute, second) :
+         UtcDate(year, std::stoi(date.substr(5, 3)), hour, minute, second);
+
+   if (sourceTimeSystem == "UTC")
+      return CCSDSEMSegment::ParseEpochGT(text);
+   if (second >= 60)
+      throw MeasurementException("A TDM leap-second epoch requires TIME_SYSTEM=UTC");
+
+   // Keep the fraction separate from whole seconds, as well as from MJD.
+   Real fraction = 0.0;
+   Real place = 0.1;
+   for (size_t i = 9; i < time.size(); ++i)
    {
-      if (i == 0)
-         date = pch;
-      else
-         time = pch;
-      i++;
-      pch = strtok(NULL, "T");
+      fraction += (time[i] - '0') * place;
+      place *= 0.1;
    }
+   GmatTime epoch = ModifiedJulianDateGT(calendar.GetYear(), calendar.GetMonth(),
+         calendar.GetDay(), 0, 0, 0.0);
+   epoch.AddSeconds(hour * 3600.0 + minute * 60.0 + second);
+   epoch.AddSeconds(fraction);
 
-   // parse the date part
-   i = 0;
-   pch = strtok(date, "-");
-   while (pch != NULL)
-   { 
-      if (i == 0)
-         year = atoi(pch);
-      else if (i == 1)
-         doy = atoi(pch);
-      else if (i == 2)
-      {
-         month = doy;
-         day = atoi(pch);
-         // reset it back to -1 to distinguish between two formats
-         doy = -1; 
-      }
-      i++;
-      pch = strtok(NULL, "-");
-   }
-
-   // parse the time part
-   i = 0;
-   pch = strtok(time, ":");
-   while (pch != NULL)
+   Integer system = TimeSystemConverter::Instance()->GetTimeTypeID(sourceTimeSystem);
+   if (sourceTimeSystem == "GPS")
    {
-      if (i == 0)
-         hour = atoi(pch);
-      else if (i == 1)
-         minute = atoi(pch);
-      else if (i == 2)
-         sec = atof(pch);
-      i++;
-      pch = strtok(NULL, ":");
+      // Nominal GPS time is TAI minus 19 seconds (USNO GPS time-scale definition).
+      epoch.AddSeconds(19.0);
+      system = TimeSystemConverter::TAIMJD;
    }
-   // Done Parsing ....
-  
-   // Start Conversion ....
-   
-   if (doy != -1)  // Handle the second format
-      ToMonthDayFromYearDOY(year, doy, month, day);
-   
-   mjd = ModifiedJulianDate(year, month, day, hour, minute, sec); 
-  
-   return mjd;
+   if (system < 0 || system >= TimeSystemConverter::TimeSystemCount)
+      throw MeasurementException("Unsupported TDM time system: " + sourceTimeSystem);
+   return TimeSystemConverter::Instance()->Convert(epoch, system, TimeSystemConverter::A1MJD);
 }

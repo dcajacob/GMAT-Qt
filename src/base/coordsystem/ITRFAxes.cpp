@@ -190,7 +190,7 @@ GmatCoordinate::ParameterUsage ITRFAxes::UsesItrfFile() const
 //---------------------------------------------------------------------------
 GmatCoordinate::ParameterUsage ITRFAxes::UsesNutationUpdateInterval() const
 {
-   if (originName == GmatSolarSystemDefaults::EARTH_NAME)
+   if (GetOriginPhysicalName() == GmatSolarSystemDefaults::EARTH_NAME)
       return GmatCoordinate::REQUIRED;
    return DynamicAxes::UsesNutationUpdateInterval();
 }
@@ -213,7 +213,7 @@ bool ITRFAxes::Initialize()
    #endif
 
    DynamicAxes::Initialize();
-   if (originName == GmatSolarSystemDefaults::EARTH_NAME) InitializeFK5();
+   if (GetOriginPhysicalName() == GmatSolarSystemDefaults::EARTH_NAME) InitializeFK5();
    #ifdef DEBUG_FIRST_CALL
       firstCallFired = false;
    #endif

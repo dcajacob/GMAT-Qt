@@ -1,0 +1,231 @@
+name: Alpha packages
+
+on:
+  push:
+    branches: ['codex/alpha-0.1.0', 'codex/alpha-0.1.0-alpha.4']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Package version
+        default: '0.1.0-alpha.4'
+        required: true
+      platform:
+        description: Native platform to build
+        type: choice
+        default: all
+        options: [all, linux-x86_64, windows-x64, macos-arm64, macos-x64]
+      reuse_run:
+        description: Optional run containing matching API-enabled native inputs
+        default: ''
+        required: false
+      complete_run:
+        description: Optional run whose Mac archives await only the Python-free startup check
+        default: ''
+        required: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  package:
+    if: "!contains(github.event.head_commit.message, '[shared-suite]') && !contains(github.event.head_commit.message, '[complete-macos:') && inputs.complete_run == ''"
+    strategy:
+      fail-fast: false
+      matrix:
+        include: >-
+          ${{ fromJSON((inputs.platform == 'linux-x86_64' || contains(github.event.head_commit.message, '[linux-package]')) &&
+          '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"}]' ||
+          (inputs.platform == 'windows-x64' || contains(github.event.head_commit.message, '[windows-build]')) &&
+          '[{"runner":"windows-2022","platform":"windows-x64"}]' ||
+          (inputs.platform == 'macos-arm64' || contains(github.event.head_commit.message, '[macos-arm64]')) &&
+          '[{"runner":"macos-15","platform":"macos-arm64"}]' ||
+          (inputs.platform == 'macos-x64' || contains(github.event.head_commit.message, '[macos-x64]')) &&
+          '[{"runner":"macos-15-intel","platform":"macos-x64"}]' ||
+          '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"},
+          {"runner":"windows-2022","platform":"windows-x64"},
+          {"runner":"macos-15","platform":"macos-arm64"},
+          {"runner":"macos-15-intel","platform":"macos-x64"}]') }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 240
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Identify production inputs
+        id: source
+        shell: bash
+        run: |
+          python -c "import sys; sys.path.insert(0, 'tools/preview'); from BuildPreviewPackage import production_tree; print('tree=' + production_tree())" >> "$GITHUB_OUTPUT"
+      - name: Restore Windows graphics SDK
+        if: matrix.platform == 'windows-x64'
+        id: windows-sdk
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/preview-package/deps/osg
+            C:\vcpkg\installed
+          key: gmat-qt-preview-windows-2022-osg365-sdk-v1
+      - name: Restore matching API-enabled compilation
+        id: native
+        uses: actions/cache/restore@v4
+        with:
+          path: build/preview-package/native-inputs-api-py312-v2-${{ matrix.platform }}.tar.gz
+          key: gmat-alpha-native-api-py312-v2-${{ matrix.platform }}-${{ steps.source.outputs.tree }}
+      - name: Prepare cached native inputs
+        if: steps.native.outputs.cache-hit == 'true'
+        shell: bash
+        run: |
+          mkdir -p build/preview-package/reuse-native
+          cp build/preview-package/native-inputs-api-py312-v2-${{ matrix.platform }}.tar.gz build/preview-package/reuse-native/
+      - name: Restore explicitly selected API-enabled native inputs
+        if: inputs.reuse_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: native-api-py312-${{ matrix.platform }}
+          run-id: ${{ inputs.reuse_run }}
+          github-token: ${{ github.token }}
+          path: build/preview-package/reuse-native
+      - name: Install Linux native dependencies
+        if: matrix.platform == 'linux-x86_64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y swig patchelf libopenscenegraph-dev libxerces-c-dev libgl1-mesa-dev libglu1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-render-util0 libxcb-image0 libfontconfig1 xvfb xauth
+      - name: Install Windows SWIG
+        if: matrix.platform == 'windows-x64'
+        run: choco install swig --yes --no-progress
+      - name: Build GUI and Python API and qualify the extracted archive
+        env:
+          PACKAGE_VERSION: ${{ inputs.version || '0.1.0-alpha.4' }}
+        shell: bash
+        run: python tools/preview/BuildPreviewPackage.py --platform ${{ matrix.platform }} --version "$PACKAGE_VERSION" --python-api
+      - name: Start the extracted GUI with CPython unavailable
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then
+            gmat_cmake_path=$(command -v cmake)
+            sudo -n "$gmat_cmake_path" -P build/preview-package/logs/archive-qualification/without-python.cmake
+          else
+            cmake -P build/preview-package/logs/archive-qualification/without-python.cmake
+          fi
+      - name: Finalize archive qualification
+        shell: bash
+        run: python -c "import sys; sys.path.insert(0, 'tools/preview'); from QualifyPythonPackage import finish; finish('${{ matrix.platform }}')"
+      - name: Preserve diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-alpha4-${{ matrix.platform }}
+          path: build/preview-package/logs/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Preserve completed API-enabled compilation
+        if: always() && steps.native.outputs.cache-hit != 'true' && hashFiles(format('build/preview-package/native-inputs-api-py312-v2-{0}.tar.gz', matrix.platform)) != ''
+        uses: actions/cache/save@v4
+        with:
+          path: build/preview-package/native-inputs-api-py312-v2-${{ matrix.platform }}.tar.gz
+          key: gmat-alpha-native-api-py312-v2-${{ matrix.platform }}-${{ steps.source.outputs.tree }}
+      - name: Preserve completed Windows dependency SDK
+        if: always() && matrix.platform == 'windows-x64' && steps.windows-sdk.outputs.cache-hit != 'true' && hashFiles('build/preview-package/deps/osg/preview-sdk-sha256.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            build/preview-package/deps/osg
+            C:\vcpkg\installed
+          key: gmat-qt-preview-windows-2022-osg365-sdk-v1
+      - name: Preserve native API inputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-api-py312-${{ matrix.platform }}
+          path: build/preview-package/native-inputs-api-py312-v2-*.tar.gz
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Upload alpha.4 archives and receipts
+        if: always() && hashFiles('build/preview-package/dist/*') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha4-${{ matrix.platform }}
+          path: build/preview-package/dist/*
+          if-no-files-found: error
+          retention-days: 30
+
+  complete_macos:
+    if: "contains(github.event.head_commit.message, '[complete-macos:') || inputs.complete_run != ''"
+    strategy:
+      fail-fast: false
+      matrix:
+        include: >-
+          ${{ fromJSON((inputs.platform == 'macos-arm64' || contains(github.event.head_commit.message, '[macos-arm64]')) &&
+          '[{"runner":"macos-15","platform":"macos-arm64"}]' ||
+          (inputs.platform == 'macos-x64' || contains(github.event.head_commit.message, '[macos-x64]')) &&
+          '[{"runner":"macos-15-intel","platform":"macos-x64"}]' ||
+          '[{"runner":"macos-15","platform":"macos-arm64"},
+          {"runner":"macos-15-intel","platform":"macos-x64"}]') }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Identify the archive qualification to complete
+        id: prior
+        env:
+          PREVIOUS_RUN: ${{ inputs.complete_run }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os, re
+          run = os.environ['PREVIOUS_RUN']
+          if not run:
+              run = re.search(r'\[complete-macos:(\d+)\]', os.environ['COMMIT_MESSAGE']).group(1)
+          assert re.fullmatch(r'\d+', run)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('run=' + run + '\n')
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: alpha4-${{ matrix.platform }}
+          run-id: ${{ steps.prior.outputs.run }}
+          github-token: ${{ github.token }}
+          path: build/preview-package/dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: diagnostics-alpha4-${{ matrix.platform }}
+          run-id: ${{ steps.prior.outputs.run }}
+          github-token: ${{ github.token }}
+          path: build/preview-package/logs
+      - name: Re-extract the exact archive and reuse its passing qualification
+        run: python -c "import sys; sys.path.insert(0, 'tools/preview'); from QualifyPythonPackage import resume_no_python; resume_no_python('${{ matrix.platform }}')"
+      - name: Start the extracted GUI with CPython unavailable
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then
+            gmat_cmake_path=$(command -v cmake)
+            sudo -n "$gmat_cmake_path" -P build/preview-package/logs/archive-qualification/without-python.cmake
+          else
+            cmake -P build/preview-package/logs/archive-qualification/without-python.cmake
+          fi
+      - name: Finalize archive qualification
+        run: python -c "import sys; sys.path.insert(0, 'tools/preview'); from QualifyPythonPackage import finish; finish('${{ matrix.platform }}')"
+      - name: Preserve completion diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-alpha4-${{ matrix.platform }}
+          path: build/preview-package/logs/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Upload completed archives and receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha4-${{ matrix.platform }}
+          path: build/preview-package/dist/*
+          if-no-files-found: warn
+          retention-days: 30

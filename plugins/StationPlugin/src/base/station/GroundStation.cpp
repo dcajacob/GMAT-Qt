@@ -39,12 +39,144 @@
 //------------------------------------------------------------------------------
 
 #include "GroundStation.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration groundStationValueProvider({
+   GroundStation::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const GroundStation*>(object) != nullptr; },
+   [](const GmatBase *object) { return dynamic_cast<const GroundStation*>(object)->GetFunctionValueOwnedObjectsImpl(); },
+   nullptr,
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
+#include "NativeRestoration.hpp"
 #include "MessageInterface.hpp"
 #include "AssetException.hpp"
 #include "ColorTypes.hpp"               // for namespace GmatColor::
 #include "StringUtil.hpp"
 #include "FileUtil.hpp"
 #include "Imager.hpp"
+#include <algorithm>
+#include <memory>
+
+namespace
+{
+void ClearStationObjects(ObjectArray &hardware, ObjectArray &models,
+      std::map<std::string, ObjectArray> &paths)
+{
+   for (auto *object : hardware) delete object;
+   hardware.clear();
+   for (auto *object : models) delete object;
+   models.clear();
+   for (auto &path : paths)
+      for (auto *object : path.second) delete object;
+   paths.clear();
+}
+
+ObjectArray CloneStationObjects(const ObjectArray &source,
+      const std::set<GmatBase*> &sourceObjects, std::set<GmatBase*> &copies)
+{
+   ObjectArray result;
+   try
+   {
+      result.reserve(source.size());
+      for (auto *object : source)
+      {
+         std::unique_ptr<GmatBase> clone(object ? object->Clone() : NULL);
+         if (clone && (sourceObjects.count(clone.get()) || copies.count(clone.get())))
+         {
+            clone.release();
+            throw AssetException("A station component Clone returned a borrowed identity: " +
+                  object->GetName());
+         }
+         if (object && (!clone || clone->GetTypeName() != object->GetTypeName()))
+            throw AssetException("Cannot clone station component " + object->GetName());
+         if (clone) copies.insert(clone.get());
+         result.push_back(clone.get());
+         clone.release();
+      }
+   }
+   catch (...)
+   {
+      for (auto *object : result) delete object;
+      throw;
+   }
+   return result;
+}
+
+// Own an entire replacement until every component has been copied and linked.
+// After SwapInto, the same guard owns and retires the destination's old objects.
+struct StationObjectCopies
+{
+   ObjectArray hardware, models;
+   std::map<std::string, ObjectArray> paths;
+
+   StationObjectCopies(const ObjectArray &sourceHardware, const ObjectArray &sourceModels,
+         const std::map<std::string, ObjectArray> &sourcePaths, const std::string &owner)
+   {
+      GmatBase::FunctionValueCopyGuard nativeChildren;
+      try
+      {
+         std::set<GmatBase*> sourceObjects, copiedObjects;
+         auto inventory = [&sourceObjects](const ObjectArray &values)
+         {
+            for (GmatBase *object : values)
+               if (object && !sourceObjects.insert(object).second)
+                  throw AssetException("Repeated owned identity in station component collection.");
+         };
+         inventory(sourceHardware);
+         inventory(sourceModels);
+         for (const auto &path : sourcePaths) inventory(path.second);
+         hardware = CloneStationObjects(sourceHardware, sourceObjects, copiedObjects);
+         models = CloneStationObjects(sourceModels, sourceObjects, copiedObjects);
+         for (const auto &path : sourcePaths)
+         {
+            auto entry = paths.emplace(path.first, ObjectArray()).first;
+            entry->second = CloneStationObjects(path.second, sourceObjects, copiedObjects);
+         }
+         for (auto *model : models)
+            if (model) model->SetFullName(owner + "." + model->GetName());
+         for (auto &path : paths)
+            for (auto *model : path.second)
+               if (model) model->SetFullName(owner + "." + path.first + "_" + model->GetName());
+
+         // RF hardware clones deliberately detach their antenna references.
+         // Bind names to the station's own new components before publication.
+         for (auto *component : hardware)
+         {
+            if (!component || !component->IsOfType(Gmat::HARDWARE)) continue;
+            const StringArray refs = component->GetRefObjectNameArray(Gmat::UNKNOWN_OBJECT);
+            for (const auto &name : refs)
+               for (auto *target : hardware)
+                  if (target && target->GetName() == name &&
+                      !component->SetRefObject(target, target->GetType(), name))
+                     throw AssetException("Cannot bind station hardware reference " + name);
+         }
+      }
+      catch (...)
+      {
+         ClearStationObjects(hardware, models, paths);
+         throw;
+      }
+   }
+
+   StationObjectCopies(const StationObjectCopies &) = delete;
+   StationObjectCopies &operator=(const StationObjectCopies &) = delete;
+   ~StationObjectCopies() { ClearStationObjects(hardware, models, paths); }
+
+   void SwapInto(ObjectArray &destinationHardware, ObjectArray &destinationModels,
+         std::map<std::string, ObjectArray> &destinationPaths)
+   {
+      hardware.swap(destinationHardware);
+      models.swap(destinationModels);
+      paths.swap(destinationPaths);
+   }
+};
+}
 
 //#define DEBUG_OBJECT_MAPPING
 //#define DEBUG_CONSTRUCTION
@@ -133,6 +265,7 @@ GroundStation::GroundStation(const std::string &itsName) :
 
    objectTypeNames.push_back("GroundStation");
    parameterCount = GroundStationParamCount;
+   az_el_visible[0] = az_el_visible[1] = az_el_visible[2] = 0.0;
    
    // Set default colors
    SetDefaultColors(GmatColor::THISTLE, GmatColor::DARK_GRAY);
@@ -150,28 +283,7 @@ GroundStation::GroundStation(const std::string &itsName) :
 //---------------------------------------------------------------------------
 GroundStation::~GroundStation()
 {
-   // delete all hardware
-   for (UnsignedInt i = 0; i < hardwareList.size(); ++i)
-      if (hardwareList[i] != NULL)
-         delete hardwareList[i];
-
-   // delete all error models
-   for (UnsignedInt i = 0; i < errorModels.size(); ++i)
-      if (errorModels[i] != NULL)
-         delete errorModels[i];
-
-   // delete all clones of ErrorModels
-   for (std::map<std::string, ObjectArray>::iterator i = errorModelMap.begin(); i != errorModelMap.end(); ++i)
-   {
-      // delete all clones of ErrorModels 
-      for (UnsignedInt j = 0; j < i->second.size(); ++j)
-      {
-         if (i->second[j])
-            delete i->second[j];
-      }
-      i->second.clear();
-   }
-   errorModelMap.clear();
+   ClearStationObjects(hardwareList, errorModels, errorModelMap);
 }
 
 //---------------------------------------------------------------------------
@@ -201,8 +313,11 @@ GroundStation::GroundStation(const GroundStation& gs) :
    MessageInterface::ShowMessage("GroundStation copy constructor <%s,%p> from <%s,%p>   start\n", GetName().c_str(), this, gs.GetName().c_str(), &gs);
 #endif
 
-   hardwareNames       = gs.hardwareNames;
-// hardwareList        = gs.hardwareList;       // should it be cloned ????
+   hardwareNames = gs.hardwareNames;
+   StationObjectCopies copies(gs.hardwareList, gs.errorModels, gs.errorModelMap, GetName());
+   copies.SwapInto(hardwareList, errorModels, errorModelMap);
+   az_el_visible[0] = az_el_visible[1] = az_el_visible[2] = 0.0;
+   isInitialized = false; // BodyFixedPoint copies have detached local frames.
 
 #ifdef DEBUG_CONSTRUCTION
    MessageInterface::ShowMessage("GroundStation copy constructor end\n");
@@ -229,11 +344,49 @@ GroundStation& GroundStation::operator=(const GroundStation& gs)
 
    if (&gs != this)
    {
+      if (GmatBase::IsNativeRestorationCopy())
+      {
+         if (hardwareNames != gs.hardwareNames || errorModelNames != gs.errorModelNames ||
+             errorModelMap.size() != gs.errorModelMap.size())
+            throw AssetException("Restoration cannot change an active station component declaration.");
+         for (const auto &path : gs.errorModelMap)
+            if (errorModelMap.find(path.first) == errorModelMap.end())
+               throw AssetException("Restoration cannot replace an active station signal-path role.");
+         NativeRestoration::Validate(gs.GetFunctionValueOwnedObjects(), GetFunctionValueOwnedObjects());
+         const bool ready = isInitialized;
+         try
+         {
+            GroundstationInterface::operator=(gs);
+            stationId 	    = gs.stationId;
+            hardwareNames     = gs.hardwareNames;
+
+            temperature     = gs.temperature;
+            pressure        = gs.pressure;
+            humidity        = gs.humidity;
+            dataSource      = gs.dataSource;
+
+            minElevationAngle  = gs.minElevationAngle;
+            errorModelNames    = gs.errorModelNames;
+            troposphereModel   = gs.troposphereModel;
+            ionosphereModel    = gs.ionosphereModel;
+            maskFileName       = gs.maskFileName;
+            NativeRestoration::Copy(gs.hardwareList, hardwareList);
+            NativeRestoration::Copy(gs.errorModels, errorModels);
+            for (const auto &path : gs.errorModelMap)
+               NativeRestoration::Copy(path.second, errorModelMap.at(path.first));
+            NativeRestoration::RebindCovariance(*this, gs.GetFunctionValueOwnedObjects(),
+                  GetFunctionValueOwnedObjects());
+            az_el_visible[0] = az_el_visible[1] = az_el_visible[2] = 0.0;
+            isInitialized = ready;
+         }
+         catch (...) { isInitialized = false; throw; }
+         return *this;
+      }
+      StationObjectCopies copies(gs.hardwareList, gs.errorModels, gs.errorModelMap, GetName());
       GroundstationInterface::operator=(gs);
 
       stationId 	    = gs.stationId;
       hardwareNames     = gs.hardwareNames;
-//    hardwareList      = gs.hardwareList;       // should it be cloned ????
 
       temperature     = gs.temperature;
       pressure        = gs.pressure;
@@ -245,9 +398,23 @@ GroundStation& GroundStation::operator=(const GroundStation& gs)
       troposphereModel   = gs.troposphereModel;
       ionosphereModel    = gs.ionosphereModel;
       maskFileName       = gs.maskFileName;
+      copies.SwapInto(hardwareList, errorModels, errorModelMap);
+      az_el_visible[0] = az_el_visible[1] = az_el_visible[2] = 0.0;
+      isInitialized = false;
    }
 
    return *this;
+}
+
+bool GroundStation::SetName(const std::string &name, const std::string &oldName)
+{
+   if (!GroundstationInterface::SetName(name, oldName)) return false;
+   for (auto *model : errorModels)
+      if (model) model->SetFullName(name + "." + model->GetName());
+   for (auto &path : errorModelMap)
+      for (auto *model : path.second)
+         if (model) model->SetFullName(name + "." + path.first + "_" + model->GetName());
+   return true;
 }
 
 
@@ -266,7 +433,12 @@ void GroundStation::Copy(const GmatBase* orig)
    MessageInterface::ShowMessage("GroundStation::Copy()\n");
 #endif
 
-   operator=(*((GroundStation *)(orig)));
+   const auto *source = dynamic_cast<const GroundStation*>(orig);
+   if (!source) throw AssetException("Incompatible GroundStation value copy.");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -285,7 +457,9 @@ GmatBase* GroundStation::Clone() const
    MessageInterface::ShowMessage("GroundStation::Clone()\n");
 #endif
 
-   return new GroundStation(*this);
+   std::unique_ptr<GroundStation> value(new GroundStation(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -530,12 +704,20 @@ bool GroundStation::SetStringParameter(const Integer id,
 
    if (id == MASK_FILENAME)
    {
-      if (value.empty()) { maskFileName.clear(); return true; }
+      if (value.empty())
+      {
+         if (!maskFileName.empty()) RetireGeneratedMaskImagers();
+         maskFileName.clear();
+         isInitialized = false;
+         return true;
+      }
       std::string theFile = GmatFileUtil::FindFile(value);
       if (theFile == "" )
          throw AssetException("Error: '" + value + "' set to " + GetName() +
                ".ElevationMaskFileName parameter does not exist.\n");
+      if (maskFileName != value) RetireGeneratedMaskImagers();
       maskFileName = value;
+      isInitialized = false;
       return true;
    }
 
@@ -1293,6 +1475,7 @@ bool GroundStation::VerifyAddHardware()
 //------------------------------------------------------------------------------
 bool GroundStation::Initialize()
 {
+   if (GetFunctionValueContext()) return InitializeClonedResource();
    #ifdef DEBUG_INIT
       MessageInterface::ShowMessage("GroundStation<%s,%p>::Initialize()  start\n", GetName().c_str(), this);
    #endif
@@ -1315,6 +1498,20 @@ bool GroundStation::Initialize()
          MessageInterface::ShowMessage("   %s\n", hardwareList[i]->GetName().c_str());
       }
    #endif
+
+   // Retire only private file-generated masks when cleared, or when a
+   // renamed/copied station needs a new generated name. AddHardware entries
+   // are configured resources and retain their ordinary ownership and names.
+   const std::string maskImagerName = instanceName + "Imager";
+   for (auto it=hardwareList.begin(); it!=hardwareList.end(); )
+   {
+      auto *imager=dynamic_cast<Imager *>(*it);
+      const bool authored=std::find(hardwareNames.begin(),hardwareNames.end(),(*it)->GetName())!=hardwareNames.end();
+      if (imager && imager->OwnsFieldOfView() && !authored &&
+            (maskFileName.empty() || imager->GetName()!=maskImagerName))
+      { delete imager;it=hardwareList.erase(it); }
+      else ++it;
+   }
 
    // Set the hardware interconnections
    for (ObjectArray::iterator i=hardwareList.begin(); i!=hardwareList.end(); ++i)
@@ -1341,15 +1538,7 @@ bool GroundStation::Initialize()
          }
       }
    }
-   if (maskFileName != "")
-   {
-      std::string imagerName = instanceName + "Imager" ;
-      std::string theFile = GmatFileUtil::FindFile(maskFileName);
-      Imager defaultMaskImager = Imager(theFile,imagerName);
-      defaultMaskImager.Initialize();
-      hardwareNames.push_back(defaultMaskImager.GetName());
-      hardwareList.push_back(defaultMaskImager.Clone());
-   }
+   InitializeHorizonMask();
 
    // verify GroundStation's referenced objects
    if (VerifyAddHardware() == false)   // verify add hardware
@@ -1550,3 +1739,108 @@ bool GroundStation::VerifyErrorModels(const GmatBase &errorModelToadd,
    return true;
 }
 
+
+ObjectArray GroundStation::GetFunctionValueOwnedObjectsImpl() const
+{
+   ObjectArray result = hardwareList;
+   result.insert(result.end(), errorModels.begin(), errorModels.end());
+   for (const auto &path : errorModelMap)
+      result.insert(result.end(), path.second.begin(), path.second.end());
+   return result;
+}
+
+void GroundStation::RebindClonedReferences(const GroundstationInterface &source,
+      SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve,
+      const std::function<void(const ObjectArray&, const ObjectArray&)> &owned)
+{
+   const auto *original = dynamic_cast<const GroundStation*>(&source);
+   if (!original) throw AssetException("Incompatible retained GroundStation.");
+   if (original == this) return;
+   if (hardwareList.size() != original->hardwareList.size() ||
+       errorModels.size() != original->errorModels.size() ||
+       errorModelMap.size() != original->errorModelMap.size())
+      throw AssetException("Incompatible retained station component collection.");
+   for (const auto &path : original->errorModelMap)
+   {
+      const auto found = errorModelMap.find(path.first);
+      if (found == errorModelMap.end() || found->second.size() != path.second.size())
+         throw AssetException("Incompatible retained station signal-path roles.");
+   }
+   const ObjectArray from = original->GetFunctionValueOwnedObjects();
+   const ObjectArray to = GetFunctionValueOwnedObjects();
+   for (UnsignedInt i = 0; i < from.size(); ++i)
+      if ((from[i] == NULL) != (to[i] == NULL) ||
+          (from[i] && from[i]->GetTypeName() != to[i]->GetTypeName()))
+         throw AssetException("Incompatible retained station owned component.");
+   owned(from, to);
+   RebindClonedBodyReferences(*original, system, resolve);
+   az_el_visible[0] = az_el_visible[1] = az_el_visible[2] = 0.0;
+   isInitialized = false;
+}
+
+void GroundStation::RetireGeneratedMaskImagers()
+{
+   for (auto it = hardwareList.begin(); it != hardwareList.end(); )
+   {
+      auto *imager = dynamic_cast<Imager*>(*it);
+      const bool authored = imager && std::find(hardwareNames.begin(),
+            hardwareNames.end(), imager->GetName()) != hardwareNames.end();
+      if (imager && imager->OwnsFieldOfView() && !authored)
+      {
+         delete imager;
+         it = hardwareList.erase(it);
+      }
+      else ++it;
+   }
+}
+
+void GroundStation::InitializeHorizonMask()
+{
+   if (maskFileName != "")
+   {
+      std::string imagerName = instanceName + "Imager" ;
+      std::string theFile = GmatFileUtil::FindFile(maskFileName);
+      Imager defaultMaskImager = Imager(theFile,imagerName);
+      defaultMaskImager.Initialize();
+      auto existing=std::find_if(hardwareList.begin(),hardwareList.end(),
+            [&](GmatBase *object) {return object->GetName()==imagerName;});
+      if (existing!=hardwareList.end())
+      {
+         auto *imager=dynamic_cast<Imager *>(*existing);
+         if (!imager || !imager->OwnsFieldOfView() ||
+               std::find(hardwareNames.begin(),hardwareNames.end(),imagerName)!=hardwareNames.end())
+            throw AssetException("Horizon-mask imager name conflicts with configured hardware: " + imagerName);
+         // Keep the hardware identity when reinitializing or replacing a mask.
+         *imager=defaultMaskImager;
+      }
+      else hardwareList.push_back(defaultMaskImager.Clone());
+      // AddHardware describes configured resources. The private imager is
+      // recreated from HorizonMaskFileName and must not become an unresolved
+      // resource reference in exported station scripts.
+      hardwareNames.erase(std::remove(hardwareNames.begin(),hardwareNames.end(),imagerName),hardwareNames.end());
+   }
+
+}
+
+bool GroundStation::InitializeClonedResource()
+{
+   if (!GroundstationInterface::Initialize()) return false;
+   // The copied graph already maps hardware references by source identity.
+   // A second name-based association or Imager assignment would replace its
+   // registered children. Keep existing private masks and their FOV identity.
+   bool hasGeneratedMask = false;
+   for (GmatBase *object : hardwareList)
+   {
+      if (!object) throw AssetException("Null hardware in retained GroundStation.");
+      auto *imager = dynamic_cast<Imager*>(object);
+      if (imager && imager->OwnsFieldOfView() &&
+          std::find(hardwareNames.begin(), hardwareNames.end(), object->GetName()) == hardwareNames.end())
+         hasGeneratedMask = true;
+   }
+   if (!maskFileName.empty() && !hasGeneratedMask) InitializeHorizonMask();
+   if (!VerifyAddHardware()) return false;
+   for (GmatBase *object : GetFunctionValueOwnedObjects())
+      if (object && !object->Initialize()) return false;
+   isInitialized = true;
+   return true;
+}

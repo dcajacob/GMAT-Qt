@@ -36,12 +36,17 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ScriptStringLiteral.hpp"
+#include <limits>
+#include <set>
+#include <vector>
 #include "Spacecraft.hpp"
 #include "Interpreter.hpp"          // class's header file
 #include "Moderator.hpp"
 #include "StringTokenizer.hpp"
 #include "ConditionalBranch.hpp"
 #include "SolverBranchCommand.hpp"  // To check Vary command levels
+#include "Minimize.hpp"
 #include "StringUtil.hpp"           // for ToReal()
 #include "TimeTypes.hpp"
 #include "Array.hpp"
@@ -53,8 +58,10 @@
 #include "GmatGlobal.hpp"           // for GetMatlabFuncNameExt()
 #include "Covariance.hpp"
 #include "UserDefinedFunction.hpp"  // for SetOutputTypes()
+#include "CallFunction.hpp"
 #include "RHSEquation.hpp"
 #include "MathTree.hpp"
+#include "MathNode.hpp"
 
 #include <algorithm>                // for declared formal input names
 #include <stack>                    // for checking matching begin/end control logic
@@ -1105,7 +1112,8 @@ bool Interpreter::ValidateCommand(GmatCommand *cmd)
    // actual mission-mode restriction with a misleading owner-type error.
    if (cmd->IsOfType("Assignment"))
    {
-      const std::string lhs = static_cast<Assignment*>(cmd)->GetLHS();
+      Assignment *assignment = static_cast<Assignment*>(cmd);
+      const std::string lhs = assignment->GetLHS();
       std::string type, owner, dependency;
       GmatStringUtil::ParseParameter(lhs, type, owner, dependency);
       GmatBase *object = dependency.empty() ? FindObject(owner) : NULL;
@@ -1118,6 +1126,24 @@ bool Interpreter::ValidateCommand(GmatCommand *cmd)
          {
             HandleError(InterpreterException("The field " + lhs +
                " cannot be set after the Mission Sequence has started"));
+            return false;
+         }
+      }
+      // A scalar shorthand call can be represented by Assignment instead of
+      // CallGmatFunction. A FunctionRunner at the root is a whole-RHS call;
+      // arithmetic expressions with a function below their root remain native.
+      MathTree *tree = assignment->GetMathTree();
+      MathNode *root = tree ? tree->GetTopNode() : NULL;
+      if (root && root->IsOfType("FunctionRunner"))
+      {
+         std::string arguments;
+         const std::string name = GmatStringUtil::ParseFunctionName(root->GetName(), arguments);
+         GmatBase *function = FindObject(name);
+         if (function && function->IsOfType("GmatFunction") &&
+             function->GetBooleanParameter("RequireOutputBrackets"))
+         {
+            HandleError(InterpreterException("GmatFunction '" + name +
+               "' requires square brackets around call outputs, including a single output."));
             return false;
          }
       }
@@ -1524,7 +1550,9 @@ bool Interpreter::ParseAndSetCommandName(GmatCommand *cmd, const std::string &cm
    
    if (desc[0] == '\'')
    {
-      bool fileTypeParamFound = HasFilenameTypeParameter(cmd);
+      // Save's optional Filename belongs to its {...} options, so a leading
+      // quoted token is its command label rather than a filename operand.
+      bool fileTypeParamFound = cmdType != "Save" && HasFilenameTypeParameter(cmd);
       
       #ifdef DEBUG_CREATE_COMMAND
       Integer paramCount = cmd->GetParameterCount();
@@ -1539,15 +1567,25 @@ bool Interpreter::ParseAndSetCommandName(GmatCommand *cmd, const std::string &cm
       // if matching quote found, continue
       if (index1 != desc.npos)
       {
-         // Check for more single quotes where another single quotes within the
-         // command name is not allowed (e.g. 'Someone's Propagate')
-         Integer numQuotes = GmatStringUtil::NumberOfOccurrences(desc, '\'');
-         
          std::string cmdName = "";
-         
-         // For now, commands with file type parameters assume that 4 quotes
-         // are needed to have a command name
-         if ((fileTypeParamFound == false) || (numQuotes == 4))
+
+         // A filename may contain doubled apostrophes. They belong to the
+         // same quoted operand; counting four quote bytes mistakes that path
+         // for a command label followed by a filename. File commands have a
+         // label only when a second quoted operand follows the first one.
+         bool separateFilenameFound = false;
+         if (fileTypeParamFound)
+         {
+            for (std::string::size_type i = 1; i < desc.size(); ++i)
+            {
+               if (desc[i] != '\'') continue;
+               if (i + 1 < desc.size() && desc[i + 1] == '\'') { ++i; continue; }
+               const auto next = desc.find_first_not_of(" \t\r\n", i + 1);
+               separateFilenameFound = next != desc.npos && desc[next] == '\'';
+               break;
+            }
+         }
+         if (!fileTypeParamFound || separateFilenameFound)
          {
             cmdName = desc.substr(1,index1-1);
             cmd->SetName(cmdName);
@@ -1577,6 +1615,59 @@ bool Interpreter::ParseAndSetCommandName(GmatCommand *cmd, const std::string &cm
 //------------------------------------------------------------------------------
 // GmatCommand* CreateCommand(const std::string &type, const std::string &desc)
 //------------------------------------------------------------------------------
+namespace
+{
+// A sign inside MATLAB arguments does not turn the whole call into a native
+// function expression. Only classify a complete call here; trailing arithmetic
+// must continue through the expression validator.
+std::string WholeMatlabCallName(const std::string &expression)
+{
+   const std::string text = GmatStringUtil::Trim(expression);
+   const auto opening = text.find('(');
+   if (opening == std::string::npos) return "";
+   const std::string name = GmatStringUtil::Trim(text.substr(0, opening));
+   if (!GmatStringUtil::IsValidName(name)) return "";
+   bool quoted = false;
+   Integer depth = 0;
+   for (std::size_t i = opening; i < text.size(); ++i)
+   {
+      if (text[i] == '\'') { quoted = !quoted; continue; }
+      if (quoted) continue;
+      if (text[i] == '(') ++depth;
+      else if (text[i] == ')' && --depth == 0)
+         return text.find_first_not_of(" \t\r\n;", i + 1) == std::string::npos ? name : "";
+   }
+   return "";
+}
+
+bool IsNonlinearCostForm(const std::string &description)
+{
+   // The worksheet names NonlinearConstraint as the cost-function command.
+   // A parenthesized form without a comparison can use native Minimize.
+   // Ignore quoted command labels/string values when classifying operators;
+   // native command parsing still validates the complete syntax and operands.
+   bool quoted=false;
+   int depth=0;
+   for (std::size_t i=0;i<description.size();++i)
+   {
+      const char character=description[i];
+      if (character=='\'') { quoted=!quoted; continue; }
+      if (quoted) continue;
+      if (character=='=' || character=='<' || character=='>') return false;
+      if (character=='(') ++depth;
+      else if (character==')')
+      {
+         if (depth==0) return false;
+         if (--depth==0)
+            return description.find_first_not_of(" \t\r\n;",i+1)==std::string::npos;
+      }
+      else if (depth==1 && (character==',' || character=='{' || character=='}'))
+         return false;
+   }
+   return false;
+}
+}
+
 GmatCommand* Interpreter::CreateCommand(const std::string &type,
                                         const std::string &desc, bool &retFlag,
                                         GmatCommand *inCmd)
@@ -1605,6 +1696,9 @@ GmatCommand* Interpreter::CreateCommand(const std::string &type,
       std::string::size_type index = desc.find("(");
       type1 = desc.substr(0, index);
    }
+
+   const bool worksheetObjective=type1=="NonlinearConstraint" && IsNonlinearCostForm(desc);
+   if (worksheetObjective) type1="Minimize";
    
    if (IsCommandType(type1))
    {
@@ -1863,6 +1957,13 @@ GmatCommand* Interpreter::CreateCommand(const std::string &type,
       
       // Create a command and append to command sequence
       cmd = AppendCommand(type1, retFlag, inCmd);
+      if (worksheetObjective && cmd)
+      {
+         auto *objective=dynamic_cast<Minimize*>(cmd);
+         if (!objective)
+            throw InterpreterException("The NonlinearConstraint cost form requires the native Minimize command.");
+         objective->UseWorksheetSpelling(true);
+      }
       realDesc = desc;
       
       // If command is not call function, parse command name
@@ -1888,7 +1989,7 @@ GmatCommand* Interpreter::CreateCommand(const std::string &type,
       MessageInterface::ShowMessage
          ("   Setting GenString to <%s>\n", std::string(type1 + " " + realDesc).c_str());
       #endif
-      cmd->SetGeneratingString(type1 + " " + realDesc);
+      cmd->SetGeneratingString((worksheetObjective ? "NonlinearConstraint" : type1) + std::string(" ") + realDesc);
    }
    
    if (cmd == NULL)
@@ -2449,7 +2550,26 @@ bool Interpreter::AssembleCallFunctionCommand(GmatCommand *cmd,
    {
       index1 = newDesc.find("=");
       lhs = newDesc.substr(0, index1);
-      outArray = theTextParser.SeparateBrackets(lhs, "[]", " ,", true);
+      if (cmdTypeName == "CallGmatFunction" &&
+          !GmatStringUtil::IsEnclosedWithBrackets(GmatStringUtil::Trim(lhs)))
+      {
+         // Native functions may allow scalar shorthand. Preserve its syntax
+         // flag so the declared RequireOutputBrackets policy below can reject
+         // it when requested, rather than failing in the bracket tokenizer.
+         const std::string output = GmatStringUtil::Trim(lhs);
+         if (output.empty())
+            throw InterpreterException("The function assignment has an empty output");
+         if (GmatStringUtil::SeparateByComma(output).size() != 1)
+         {
+            InterpreterException ex("Multiple outputs from a GmatFunction call require square brackets.");
+            HandleError(ex);
+            ignoreError = true;
+            return false;
+         }
+         outArray.push_back(output);
+      }
+      else
+         outArray = theTextParser.SeparateBrackets(lhs, "[]", " ,", true);
       if (cmdTypeName == "CallMatlabFunction" && lhs.find('(') != std::string::npos)
       {
          // Preserve commas inside nested Array indices. SeparateBrackets joins
@@ -2480,6 +2600,12 @@ bool Interpreter::AssembleCallFunctionCommand(GmatCommand *cmd,
       index1 = index1 + 1;
    }
    
+   const std::string outputSyntax = GmatStringUtil::Trim(lhs);
+   const bool outputBracketSyntax = outputSyntax.size() >= 2 &&
+      outputSyntax.front() == '[' && outputSyntax.back() == ']';
+   if (CallFunction *call = dynamic_cast<CallFunction*>(cmd))
+      call->SetOutputBracketSyntax(outputBracketSyntax);
+
    // Function Name, Input
    StringArray inArray;
    std::string funcName;
@@ -2618,6 +2744,18 @@ bool Interpreter::AssembleCallFunctionCommand(GmatCommand *cmd,
       // Set function name to CallFunction
       retval = cmd->SetStringParameter("FunctionName", newFuncName);
    }
+
+   GmatBase *declaredFunction = FindObject(funcName);
+   if (!outArray.empty() && !outputBracketSyntax && declaredFunction &&
+       declaredFunction->IsOfType("GmatFunction") &&
+       declaredFunction->GetBooleanParameter("RequireOutputBrackets"))
+   {
+      InterpreterException ex("GmatFunction '" + funcName +
+         "' requires square brackets around call outputs, including a single output.");
+      HandleError(ex);
+      ignoreError = true;
+      return false;
+   }
    
    #ifdef DEBUG_ASSEMBLE_CALL_FUNCTION
    MessageInterface::ShowMessage("   Setting input\n");
@@ -2638,7 +2776,7 @@ bool Interpreter::AssembleCallFunctionCommand(GmatCommand *cmd,
    {            
       std::string input = inArray[i];
       
-      if (GmatStringUtil::IsEnclosedWith(input, "'"))
+      if (GmatScriptString::IsLiteral(input))
          retval = cmd->SetStringParameter("AddInput", input);
       else
       {
@@ -2682,9 +2820,10 @@ bool Interpreter::AssembleCallFunctionCommand(GmatCommand *cmd,
          // This fixes Bug1903 (Failed to pass number and literal to a function)
          
          // String literal
-         if (GmatStringUtil::IsEnclosedWith(inArray[i], "'"))
+         if (GmatScriptString::IsLiteral(inArray[i]))
          {
             if ((cmdTypeName == "CallGmatFunction") ||
+                (cmdTypeName == "CallMatlabFunction") ||
                 (cmdTypeName == "CallBuiltinGmatFunction") ||
                 (cmdTypeName == "CallPythonFunction"))
                validInput = true;
@@ -2693,6 +2832,7 @@ bool Interpreter::AssembleCallFunctionCommand(GmatCommand *cmd,
          else if (GmatStringUtil::ToReal(inArray[i], rval))
          {
             if ((cmdTypeName == "CallGmatFunction") ||
+                (cmdTypeName == "CallMatlabFunction") ||
                 (cmdTypeName == "CallBuiltinGmatFunction") ||
                 (cmdTypeName == "CallPythonFunction"))
                validInput = true;
@@ -2736,27 +2876,12 @@ bool Interpreter::AssembleCallFunctionCommand(GmatCommand *cmd,
          // Whole object
          else
          {
-            // Only allow Variable, whole Array, String, and Parameter as
-            // CallMatlabFunction input parameter.
-            // (For GMT-3316/3324 fix - LOJ: 2012.12.26)
+            // The MATLAB transport also supports typed native object values.
+            // Its runtime binding validates the actual transferred properties.
             GmatBase *obj = FindObject(inArray[i]);
             if (!obj) errmsg = "nonexistent";
             if (obj != NULL)
-            {
                validInput = true;
-               
-               if (cmdTypeName == "CallMatlabFunction")
-               {
-                  if (obj->IsOfType("UserParameter"))
-                  {
-                     #ifdef DEBUG_ASSEMBLE_CALL_FUNCTION
-                     MessageInterface::ShowMessage("   <%s> is an UserParameter\n", input.c_str());
-                     #endif
-                  }
-                  else
-                     validInput = false;
-               }
-            }
          }
       }
       
@@ -2801,6 +2926,21 @@ bool Interpreter::AssembleCallFunctionCommand(GmatCommand *cmd,
    
    for (UnsignedInt i=0; i<outArray.size(); i++)
    {
+      std::string type, owner, dependency;
+      GmatStringUtil::ParseParameter(outArray[i], type, owner, dependency);
+      if (type == "RMAG" || type == "SemilatusRectum")
+      {
+         GmatBase *outputOwner = FindObject(owner);
+         if (outputOwner && outputOwner->IsOfType("Spacecraft") &&
+             outputOwner->GetStringParameter("OrbitParameterAccess") == "Worksheet")
+         {
+            InterpreterException ex("\"" + outArray[i] +
+               "\" is read-only with OrbitParameterAccess = Worksheet and cannot be a function output.");
+            HandleError(ex);
+            ignoreError = true;
+            return false;
+         }
+      }
       retval = cmd->SetStringParameter("AddOutput", outArray[i]);
       if (retval &&
           ((cmd->GetTypeName() == "CallGmatFunction") ||
@@ -2840,25 +2980,11 @@ bool Interpreter::AssembleCallFunctionCommand(GmatCommand *cmd,
          }
          else
          {
-            // Only allow Variable, whole Array, String, and Parameter as
-            // CallMatlabFunction output parameter
-            // (For GMT-3316/3324 fix - LOJ: 2012.12.26)
+            // Whole native objects use the staged MATLAB object-output path.
             GmatBase *obj = FindObject(outArray[i]);
             if (!obj) errmsg = "nonexistent";
             if (obj != NULL)
-            {
                validOutput = true;
-               
-               if (obj->IsOfType("UserParameter"))
-               {
-                  #ifdef DEBUG_ASSEMBLE_CALL_FUNCTION
-                  MessageInterface::ShowMessage
-                     ("   <%s> is not an UserParameter\n", outArray[i].c_str());
-                  #endif
-               }
-               else
-                  validOutput = false;
-            }
          }
       }
       
@@ -3896,10 +4022,67 @@ bool Interpreter::SetCommandRefObjects(GmatCommand *cmd, const std::string &desc
 
    debugMsg = "In SetCommandRefObjects()";
    
-   // Save, Global commands, for compatability with MATLAB, should not have
-   // parentheses (except to indicate array elements), brackets, or braces.
-   // Since Create command can have "Create Array vec[3,1]", so do not check.
-   if (!GmatStringUtil::HasNoBrackets(desc, false))
+   std::string objects=desc;
+   if (cmd->GetTypeName()=="Save")
+   {
+      cmd->SetStringParameter("FilenameStyle","Worksheet");
+      cmd->SetStringParameter("Filename","");
+      const auto begin=desc.find('{');
+      if (begin!=std::string::npos)
+      {
+         auto reject=[&](const std::string &message) {
+            InterpreterException error(message);HandleError(error);return false;
+         };
+         const auto end=desc.find_last_of('}');
+         if (end==std::string::npos || end<begin || !GmatStringUtil::Trim(desc.substr(end+1)).empty())
+            return reject("Save options must be enclosed in a final {...} block");
+         const std::string options=desc.substr(begin+1,end-begin-1);
+         StringArray entries,seen;bool quoted=false;std::size_t first=0;
+         for (std::size_t i=0;i<options.size();++i)
+         {
+            if (options[i]=='\'')
+            {
+               if (quoted && i+1<options.size() && options[i+1]=='\'') {++i;continue;}
+               quoted=!quoted;
+            }
+            else if (options[i]==',' && !quoted)
+            {entries.push_back(options.substr(first,i-first));first=i+1;}
+         }
+         if (quoted) return reject("Save Filename has an unterminated quoted string");
+         entries.push_back(options.substr(first));
+         for (const auto &entry : entries)
+         {
+            const auto equal=entry.find('=');
+            if (equal==std::string::npos) return reject("Save options require name = value");
+            const std::string key=GmatStringUtil::Trim(entry.substr(0,equal));
+            std::string value=GmatStringUtil::Trim(entry.substr(equal+1));
+            if (key!="FilenameStyle" && key!="Filename") return reject("Unknown Save option: "+key);
+            if (std::find(seen.begin(),seen.end(),key)!=seen.end()) return reject("Duplicate Save option: "+key);
+            seen.push_back(key);
+            if (key=="Filename")
+            {
+               if (value.size()<2 || value.front()!='\'' || value.back()!='\'')
+                  return reject("Save Filename must be a quoted string");
+               std::string decoded;
+               for (std::size_t i=1;i+1<value.size();++i)
+               {
+                  if (value[i]=='\'')
+                  {
+                     if (i+2>=value.size() || value[i+1]!='\'') return reject("Escape apostrophes in Save Filename by doubling them");
+                     ++i;
+                  }
+                  decoded+=value[i];
+               }
+               value=decoded;
+            }
+            cmd->SetStringParameter(key,value);
+         }
+         objects=GmatStringUtil::Trim(desc.substr(0,begin));
+      }
+   }
+   // Object operands retain the ordinary Save/Global grammar. Save's output
+   // options are separate, including quoted filenames containing punctuation.
+   if (!GmatStringUtil::HasNoBrackets(objects, false))
    {
       std::string msg = 
          "The " + cmd->GetTypeName() + " command is not allowed to contain "
@@ -3911,7 +4094,7 @@ bool Interpreter::SetCommandRefObjects(GmatCommand *cmd, const std::string &desc
    
    // we only want to separate by spaces - commas are not allowed, 
    // not even in arrays (for this command)
-   StringArray parts = GmatStringUtil::SeparateBy(desc, " ", true);
+   StringArray parts = GmatStringUtil::SeparateBy(objects, " ", true);
    unsigned int numParts = parts.size();
    bool isOk = true;
    
@@ -4016,13 +4199,16 @@ GmatCommand* Interpreter::CreateAssignmentCommand(const std::string &lhs,
    }
    
    bool createCallFunction = false;
+   GmatBase *calledFunction = NULL;
    #ifdef DEBUG_CREATE_COMMAND
    MessageInterface::ShowMessage("   Checking if rhs has a only function call\n");
    #endif
    // Check for math symbol and create CallFunction if only calling GMAT or MATLAB Function
    // @note Currently MatlabFunction cannot be used in the math equation.
    // The Validator will catch this later.
-   if (!GmatStringUtil::IsThereMathSymbol(rhs))
+   GmatBase *matlabCall = FindObject(WholeMatlabCallName(rhs));
+   if (!GmatStringUtil::IsThereMathSymbol(rhs) ||
+       (matlabCall && matlabCall->IsOfType("MatlabFunction")))
    {
       std::string argStr;
       std::string funcName = GmatStringUtil::ParseFunctionName(rhs, argStr);
@@ -4033,6 +4219,7 @@ GmatCommand* Interpreter::CreateAssignmentCommand(const std::string &lhs,
       if (funcName != "")
       {
          GmatBase *func = FindObject(funcName);
+         calledFunction = func;
 
          #ifdef DEBUG_CREATE_COMMAND
          MessageInterface::ShowMessage
@@ -4102,7 +4289,13 @@ GmatCommand* Interpreter::CreateAssignmentCommand(const std::string &lhs,
             return NULL;
          }
       }
-      std::string desc = label + "[" + output + "] = " + rhs;
+      // Keep authored GMAT output syntax through assembly. Synthesizing brackets
+      // would bypass RequireOutputBrackets and mislabel a cached shorthand call.
+      // Other providers retain their existing canonicalization, including the
+      // placement of a built-in call's label before its output brackets.
+      const std::string outputs = calledFunction && calledFunction->IsOfType("GmatFunction") ?
+         output : "[" + output + "]";
+      std::string desc = label + outputs + " = " + rhs;
       return CreateCommand("CallFunction", desc, retFlag, inCmd);
    }
    else
@@ -5018,7 +5211,7 @@ bool Interpreter::SetObjectToValue(GmatBase *toObj, const std::string &value)
       
       // Remove trailing spaces
       std::string valueToUse = GmatStringUtil::Trim(value, GmatStringUtil::TRAILING);
-      valueToUse = GmatStringUtil::RemoveEnclosingString(valueToUse, "'");
+      valueToUse = GmatScriptString::Decode(valueToUse);
       
       #ifdef DEBUG_SET
       MessageInterface::ShowMessage
@@ -5989,6 +6182,13 @@ bool Interpreter::SetPropertyValue(GmatBase *obj, const Integer id,
    
    debugMsg = "In SetPropertyValue()";
    bool retval = false;
+   if (type == Gmat::OBJECTARRAY_TYPE || type == Gmat::STRINGARRAY_TYPE)
+   {
+      bool handled = false;
+      const bool accepted = TrySetNavigationCollectionLiteral(obj, id, value, index, handled);
+      if (handled) return accepted;
+   }
+
    std::string valueToUse = value;
    CheckForSpecialCase(obj, id, valueToUse);
    
@@ -6244,6 +6444,92 @@ bool Interpreter::SetPropertyValue(GmatBase *obj, const Integer id,
 }
 
 
+bool Interpreter::TrySetNavigationCollectionLiteral(GmatBase *obj, const Integer id,
+      const std::string &value, const Integer index, bool &handled)
+{
+   handled = false;
+   // Navigation selections have explicit list-reset operations. String data
+   // containing braces must not become a reset after generic quote decoding.
+   if (obj->IsOfType("Estimator") || obj->IsOfType("Simulator"))
+   {
+      const std::string property = obj->GetParameterText(id);
+      const bool collection = property == "Propagator" ||
+         (obj->IsOfType("Estimator") &&
+          (property == "Measurements" || property == "AddSolveFor" ||
+           property == "AddResidualsPlot" || property == "DataFilters")) ||
+         (obj->IsOfType("Simulator") && property == "AddData");
+      if (collection)
+      {
+         const std::string declaration = GmatStringUtil::Trim(value);
+         if (GmatScriptString::IsLiteral(declaration))
+         {
+            const std::string literal = GmatStringUtil::Trim(GmatScriptString::Decode(declaration));
+            if (GmatStringUtil::IsEnclosedWithBraces(literal) &&
+                  GmatStringUtil::Trim(GmatStringUtil::RemoveEnclosingString(literal, "{}")).empty())
+               throw InterpreterException("Use an unquoted {} to clear " + obj->GetName() + "." + property + ".");
+         }
+         if (GmatStringUtil::IsEnclosedWithBraces(declaration) &&
+               GmatStringUtil::Trim(GmatStringUtil::RemoveEnclosingString(declaration, "{}")).empty())
+         {
+            if (index != -1)
+               throw InterpreterException("An empty collection must be assigned to the whole " + obj->GetName() + "." + property + " property.");
+            if (property == "Propagator") { handled = true; return obj->SetStringParameter(id, "{}"); }
+            handled = true;
+            return obj->SetStringParameter(id, "", -1);
+         }
+      }
+   }
+
+   if (obj->IsOfType("TrackingFileSet"))
+   {
+      const std::string property = obj->GetParameterText(id);
+      const bool collection = property == "AddTrackingConfig" || property == "FileName" ||
+            property == "RampTable" || property == "DataFilters" ||
+            property == "SimTDRSServiceAccessList";
+      if (collection)
+      {
+         const std::string declaration = GmatStringUtil::Trim(value);
+         if (GmatStringUtil::IsEnclosedWithBraces(declaration) &&
+               GmatStringUtil::Trim(GmatStringUtil::RemoveEnclosingString(declaration, "{}")).empty())
+         {
+            if (index != -1)
+               throw InterpreterException("An empty collection must be assigned to the whole " + obj->GetName() + "." + property + " property.");
+            handled = true;
+            return obj->SetStringParameter(id, "", -1);
+         }
+         if (GmatScriptString::IsLiteral(declaration))
+         {
+            const std::string literal = GmatScriptString::Decode(declaration);
+            const std::string trimmed = GmatStringUtil::Trim(literal);
+            if (GmatStringUtil::IsEnclosedWithBraces(trimmed) &&
+                  GmatStringUtil::Trim(GmatStringUtil::RemoveEnclosingString(trimmed, "{}")).empty())
+            {
+               if (property == "AddTrackingConfig" || property == "DataFilters")
+                  throw InterpreterException("Use an unquoted {} to clear " + obj->GetName() + "." + property + ".");
+               if (property == "FileName" || property == "RampTable")
+               {
+                  Integer error = 0;
+                  if (!GmatStringUtil::IsValidFullFileName(literal, error))
+                     throw InterpreterException("Invalid tracking file name literal.");
+               }
+               Integer slot = index;
+               if (slot == -1)
+               {
+                  const size_t count = obj->GetStringArrayParameter(id).size();
+                  if (count > static_cast<size_t>(std::numeric_limits<Integer>::max()))
+                     throw InterpreterException("Tracking collection exceeds native index capacity.");
+                  slot = static_cast<Integer>(count);
+               }
+               handled = true;
+               return obj->SetStringParameter(id, literal, slot);
+            }
+         }
+      }
+   }
+
+   return false;
+}
+
 //------------------------------------------------------------------------------
 // bool SetPropertyObjectValue(GmatBase *obj, const Integer id, ...)
 //------------------------------------------------------------------------------
@@ -6270,6 +6556,36 @@ bool Interpreter::SetPropertyObjectValue(GmatBase *obj, const Integer id,
       ("   valueToUse=<%s> after enclosing quote removed\n", valueToUse.c_str());
    #endif
    
+   // An explicit empty display layout is a complete native clear, not a
+   // reference expression. Preserve it before generic Parameter/name lookup.
+   if (obj->IsOfType(Gmat::DYNAMIC_DATA_DISPLAY) &&
+         obj->GetParameterText(id) == "AddParameters" &&
+         GmatStringUtil::IsEnclosedWithBraces(valueToUse) &&
+         GmatStringUtil::Trim(GmatStringUtil::RemoveEnclosingString(valueToUse, "{}")).empty())
+      return obj->SetStringParameter(id, "{}");
+
+   // These resource lists already have native complete-clear operations.
+   // An explicit empty list must reach them before it can be interpreted as
+   // a Parameter or reference name. XYPlot clears only Y. Inspect the original
+   // token so a quoted string containing braces does not clear a list.
+   if (obj->IsOfType("ReportFile") || obj->IsOfType("XYPlot") ||
+       obj->IsOfType("OrbitPlot") || obj->IsOfType("DataFilter"))
+   {
+      const std::string declaration = GmatStringUtil::Trim(value);
+      if (GmatStringUtil::IsEnclosedWithBraces(declaration) &&
+            GmatStringUtil::Trim(GmatStringUtil::RemoveEnclosingString(declaration, "{}")).empty())
+      {
+         const std::string property = obj->GetParameterText(id);
+         if ((obj->IsOfType("ReportFile") && property == "Add") ||
+             (obj->IsOfType("XYPlot") && (property == "YVariables" || property == "Add")) ||
+             (obj->IsOfType("OrbitPlot") && property == "Add"))
+            return obj->TakeAction("Clear");
+         if (obj->IsOfType("DataFilter") &&
+               (property == "ObservedObjects" || property == "Trackers"))
+            return obj->SetStringParameter(id, "{}");
+      }
+   }
+
    // Try creating Parameter first if it is not ObjectType
    if (!IsObjectType(valueToUse))
    {
@@ -6657,7 +6973,7 @@ bool Interpreter::SetPropertyStringValue(GmatBase *obj, const Integer id,
    case Gmat::STRING_TYPE:
       {
          // remove enclosing quotes if used
-         valueToUse = GmatStringUtil::RemoveEnclosingString(valueToUse, "'");
+         valueToUse = GmatScriptString::Decode(valueToUse);
          
          try
          {
@@ -6702,6 +7018,18 @@ bool Interpreter::SetPropertyStringValue(GmatBase *obj, const Integer id,
             if (emptyList && obj->IsOfType("ContactLocator") &&
                 obj->GetParameterText(id) == "EventTypes")
                return obj->TakeAction("Clear", "EventTypes");
+            if (emptyList && obj->IsOfType("DataFilter"))
+            {
+               const std::string property = obj->GetParameterText(id);
+               if (property == "FileNames" || property == "DataTypes")
+                  return obj->SetStringParameter(id, "{}");
+            }
+            // Spacecraft already implements a complete SolveFors clear. An
+            // empty saved snapshot must reach it rather than becoming a no-op
+            // when braces are stripped below.
+            if (emptyList && obj->IsOfType(Gmat::SPACECRAFT) &&
+                obj->GetParameterText(id) == "SolveFors")
+               return obj->SetStringParameter(id, "{}");
             // Owned force parameters use encoded ids. Their setters support
             // string arrays even when the parent has no text getter for that
             // id. Only these class-specific empty-list cases need the name.
@@ -6723,6 +7051,11 @@ bool Interpreter::SetPropertyStringValue(GmatBase *obj, const Integer id,
                     property == "SCClockSpiceKernelName" ||
                     property == "FrameSpiceKernelName"))
                   return obj->SetStringParameter(id, "{}");
+               // CelestialBody has its own complete-list clear operation.
+               // Do not discard the explicit empty snapshot as a no-op.
+               if (obj->IsOfType(Gmat::CELESTIAL_BODY) &&
+                   property == "DSNMediaFileDirectories")
+                  return obj->SetStringParameter(id, "{}");
             }
 
             // remove enclosing curly brackets if used
@@ -6731,7 +7064,7 @@ bool Interpreter::SetPropertyStringValue(GmatBase *obj, const Integer id,
                return retval;
 
             // remove enclosing quotes if used
-            valueToUse = GmatStringUtil::RemoveEnclosingString(valueToUse, "'");
+            valueToUse = GmatScriptString::Decode(valueToUse);
             #ifdef DEBUG_SET
             MessageInterface::ShowMessage
                ("   Calling %s->SetStringParameter(%d, %s) (for StringArray)\n",
@@ -6909,6 +7242,13 @@ bool Interpreter::SetProperty(GmatBase *obj, const Integer id,
    MessageInterface::ShowMessage("   Checking if value is in array from with []\n");
    #endif
    
+   if (type == Gmat::OBJECTARRAY_TYPE || type == Gmat::STRINGARRAY_TYPE)
+   {
+      bool handled = false;
+      const bool accepted = TrySetNavigationCollectionLiteral(obj, id, value, -1, handled);
+      if (handled) return accepted;
+   }
+
    StringArray rhsValues;
    Integer count = 0;
    
@@ -7022,6 +7362,40 @@ bool Interpreter::SetProperty(GmatBase *obj, const Integer id,
    }
 
    count = rhsValues.size();
+
+   // Tracking configurations are one declaration transaction, including all
+   // participant/type tokens. Decode script literals at this input boundary.
+   if (count > 0 && type == Gmat::STRINGARRAY_TYPE && obj->IsOfType("TrackingFileSet") &&
+         obj->GetParameterText(id) == "AddTrackingConfig")
+   {
+      StringArray tokens;
+      tokens.reserve(rhsValues.size());
+      for (const auto &token : rhsValues) tokens.push_back(GmatScriptString::Decode(token));
+      obj->SetField(id, tokens);
+      return true;
+   }
+
+   // Region coordinate declarations replace the whole native vector. Validate
+   // every scalar before committing, including an explicit empty snapshot.
+   if (type == Gmat::RVECTOR_TYPE && obj->IsOfType("PlanetographicRegion"))
+   {
+      const std::string property = obj->GetParameterText(id);
+      if (property == "Latitude" || property == "Longitude")
+      {
+         Rvector coordinates(count);
+         for (Integer i = 0; i < count; ++i)
+         {
+            if (!GmatStringUtil::ToReal(rhsValues[i], coordinates[i], true))
+            {
+               errorMsg1 += "Invalid coordinate " + rhsValues[i] + " ";
+               errorMsg2 = " The allowed value is Real number";
+               return false;
+            }
+         }
+         obj->SetRvectorParameter(id, coordinates);
+         return true;
+      }
+   }
    
    #ifdef DEBUG_SET
    MessageInterface::ShowMessage("   number of values = %d\n", count);
@@ -7385,12 +7759,22 @@ bool Interpreter::SetComplexProperty(GmatBase *obj, const std::string &prop,
       rhsRows = theTextParser.SeparateBrackets(value, "[]", ";");
       UnsignedInt rowCount = rhsRows.size();
 
+      if (rowCount == 0)
+         throw InterpreterException(currentScriptBeingRead +
+               ": Covariance matrix must contain at least one value");
+
       StringArray cells = theTextParser.SeparateSpaces(rhsRows[0]);
       UnsignedInt colCount = cells.size();
 
       if ((Integer)colCount > covariance->GetDimension())
          throw GmatBaseException(currentScriptBeingRead + ": Input covariance matrix is larger than the "
                "matrix built from the input array");
+
+      // A single row is the supported diagonal form. Otherwise the first row
+      // must have the same width as every later row and the row count.
+      if (colCount == 0 || (rowCount != 1 && colCount != rowCount))
+         throw InterpreterException(currentScriptBeingRead + ": Row/Column mismatch in the Covariance "
+               "matrix for " + obj->GetName());
 
       for (UnsignedInt i = 1; i < rowCount; ++i)
       {
@@ -8108,6 +8492,9 @@ bool Interpreter::SetMeasurementModelProperty(GmatBase *obj,
          rhsRows = theTextParser.SeparateBrackets(value, "[]", ";");
          UnsignedInt rowCount = rhsRows.size();
 
+         if (rowCount == 0)
+            throw InterpreterException("Covariance matrix must contain at least one value");
+
          StringArray cells = theTextParser.SeparateSpaces(rhsRows[0]);
          UnsignedInt colCount = cells.size();
 
@@ -8122,6 +8509,10 @@ bool Interpreter::SetMeasurementModelProperty(GmatBase *obj,
          if ((Integer)colCount > covariance->GetDimension())
             throw GmatBaseException("Input covariance matrix is larger than the "
                   "matrix built from the input array");
+
+         if (colCount == 0 || (rowCount != 1 && colCount != rowCount))
+            throw InterpreterException("Row/Column mismatch in the Covariance "
+                  "matrix for " + obj->GetName());
 
          for (UnsignedInt i = 1; i < rowCount; ++i)
          {
@@ -8966,7 +9357,10 @@ bool Interpreter::CheckBranchCommands(const IntegerArray &lineNumbers,
          else
             expEndStr = "End" + str1;
          
-         if (expEndStr != str)
+         // The NASA worksheet used EndTarget for optimization as well. Accept
+         // that spelling only when the innermost open block is Optimize.
+         const bool legacyOptimizerEnd = str1 == "Optimize" && str == "EndTarget";
+         if (expEndStr != str && !legacyOptimizerEnd)
          {
             InterpreterException ex;
             if ((str1 == "If") && (elseIsOk))
@@ -9917,6 +10311,14 @@ bool Interpreter::FinalPass()
       StringArray f1List, f2List;
       GmatBase *f1, *f2;
       std::string overlaps;
+      const auto allowsSharedMembers = [](GmatBase *formation)
+      {
+         // Older external Formation plugins retain their exclusive behavior.
+         for (Integer id = 0; id < formation->GetParameterCount(); ++id)
+            if (formation->GetParameterText(id) == "AllowSharedMembers")
+               return formation->GetBooleanParameter(id);
+         return false;
+      };
 
       // Make sure formation members are all SpaceObjects (note: Formations can
       // no longer contain formations, at least for R2013a)
@@ -9946,7 +10348,7 @@ bool Interpreter::FinalPass()
          }
       }
 
-      // Make sure the are no shared objects between Formations
+      // Shared definitions require explicit consent from both formations.
       for (UnsignedInt i = 0; i < objList.size()-1; ++i)
       {
          f1 = theModerator->GetConfiguredObject(objList[i]);
@@ -9955,6 +10357,8 @@ bool Interpreter::FinalPass()
          {
             f2 = theModerator->GetConfiguredObject(objList[j]);
             f2List = f2->GetStringArrayParameter("Add");
+            if (allowsSharedMembers(f1) && allowsSharedMembers(f2))
+               continue;
 
             // Check member by member for overlap
             for (UnsignedInt m = 0; m < f1List.size(); ++m)
@@ -10377,97 +10781,83 @@ bool Interpreter::ValidateMcsCommands(GmatCommand *first, GmatCommand *parent,
 // bool Interpreter::ValidateSolverCmdLevels(GmatCommand *sbc, Integer cmdLevel)
 //------------------------------------------------------------------------------
 /**
- * Validates that Solver commands are at the Solver Control Sequence level
+ * Validates solver control ownership throughout a structural branch scope.
+ * Ordinary branches retain the enclosing solver; nested solvers own their
+ * controls. Every conditional arm is checked, regardless of runtime selection.
  *
  * @param sbc A BranchCommand at the head of the search
- * @param cmdLevel Depth into the branch being examined
- *
- * @return true if the levels are correct, false if not
+ * @param cmdLevel Legacy depth argument retained for existing callers
+ * @return true for a valid scope; throws for an invalid control or graph
  */
 //------------------------------------------------------------------------------
 bool Interpreter::ValidateSolverCmdLevels(GmatCommand *sbc, Integer cmdLevel)
 {
-   bool retval = true;
-   
+   (void)cmdLevel;
    if (!sbc)
+      throw InterpreterException("Interpreter::ValidateSolverCmdLevel - input command is NULL\n");
+
+   struct ScopeEntry
    {
-      std::string errmsg = "Interpreter::ValidateSolverCmdLevel - input ";
-      errmsg += "command is NULL\n";
-      throw InterpreterException(errmsg);
-   }
-
-   std::string solverName = "";
-
-   // Handle the solver branch
-   if (sbc->IsOfType("SolverBranchCommand"))
+      GmatCommand *command;
+      GmatCommand *owner;
+      GmatCommand *solver;
+   };
+   std::vector<ScopeEntry> pending;
+   const auto appendChildren = [&pending](GmatCommand *owner, GmatCommand *solver)
    {
-      solverName = sbc->GetStringParameter("SolverName");
+      std::vector<GmatCommand*> children;
+      for (Integer index = 0; GmatCommand *child = owner->GetChildCommand(index); ++index)
+         children.push_back(child);
+      for (auto child = children.rbegin(); child != children.rend(); ++child)
+         pending.push_back({*child, owner, solver});
+   };
 
-      // March through the SCS
-      GmatCommand *current = sbc->GetChildCommand(0);
-      while ((current != NULL) && (current != sbc))
+   std::set<GmatCommand*> visited;
+   visited.insert(sbc);
+   appendChildren(sbc, sbc->IsOfType("SolverBranchCommand") ? sbc : NULL);
+   while (!pending.empty())
+   {
+      const ScopeEntry entry = pending.back();
+      pending.pop_back();
+      GmatCommand *current = entry.command;
+      if (current == entry.owner)
+         continue;
+      if (!current)
+         throw InterpreterException("Branch command \"" +
+            entry.owner->GetGeneratingString(Gmat::NO_COMMENTS) + "\" was not terminated!");
+      if (!visited.insert(current).second)
+         throw InterpreterException("Branch command \"" +
+            sbc->GetGeneratingString(Gmat::NO_COMMENTS) + "\" contains an invalid command cycle");
+
+      // Match runtime solver discovery: execution-dependent GetNext() can
+      // return an active branch itself instead of its structural successor.
+      pending.push_back({current->GetNextWhileExecuting(), entry.owner, entry.solver});
+      if (current->IsOfType("BranchCommand"))
       {
-         if (current->IsOfType("BranchCommand"))
-            retval = ValidateSolverCmdLevels(current, cmdLevel+1);
-         else
-         {
-            // Check that solver names match
-            if (current->IsOfType("SolverSequenceCommand"))
-            {
-               if (current->GetStringParameter("SolverName") != solverName)
-               {
-                  std::string generator = current->GetGeneratingString();
-                  size_t loc = generator.find("{SOLVER IS",0);
-                  if (loc != std::string::npos)
-                  {
-                     generator = generator.substr(0,loc);
-                     generator = generator + "...";
-                  }
-
-                  throw InterpreterException("The Solver \"" +
-                        current->GetStringParameter("SolverName") +
-                        "\" in the " + current->GetTypeName() + " command does "
-                        "not match the Solver \"" + solverName +
-                        "\" that starts its Solver Control Sequence on "
-                        "the line\n" + generator);
-               }
-            }
-         }
-         current = current->GetNext();
+         appendChildren(current,
+            current->IsOfType("SolverBranchCommand") ? current : entry.solver);
+         continue;
       }
+      if (!current->IsOfType("SolverSequenceCommand"))
+         continue;
 
-      solverName = "";
-   }
-   // All other branch commands increment the level and perform checks
-   else
-   {
-      GmatCommand *current = sbc->GetChildCommand(0);
-      while ((current != NULL) && (current != sbc))
-      {
-         if (current->IsOfType("BranchCommand"))
-            retval = ValidateSolverCmdLevels(current, cmdLevel+1);
-         else
-         {
-            if (current->IsOfType("SolverSequenceCommand"))
-            {
-               std::string generator = current->GetGeneratingString();
+      std::string generator = current->GetGeneratingString();
+      const size_t loc = generator.find("{SOLVER IS");
+      if (loc != std::string::npos)
+         generator = generator.substr(0, loc) + "...";
+      if (!entry.solver)
+         throw InterpreterException("The command \"" + generator +
+            "\" is a Solver command, and cannot be nested inside a \"" +
+            entry.owner->GetTypeName() + "\" Control Logic command");
 
-               size_t loc = generator.find("{SOLVER IS",0);
-               if (loc != std::string::npos)
-               {
-                  generator = generator.substr(0,loc);
-                  generator = generator + "...";
-               }
-               throw InterpreterException("The command \"" +
-                     generator + "\" is a "
-                     "Solver command, and cannot be nested inside a \"" +
-                     sbc->GetTypeName() + "\" Control Logic command");
-            }
-         }
-         current = current->GetNext();
-      }
+      const std::string solverName = entry.solver->GetStringParameter("SolverName");
+      if (current->GetStringParameter("SolverName") != solverName)
+         throw InterpreterException("The Solver \"" +
+            current->GetStringParameter("SolverName") + "\" in the " +
+            current->GetTypeName() + " command does not match the Solver \"" +
+            solverName + "\" that starts its Solver Control Sequence on the line\n" + generator);
    }
-   return retval;
+   return true;
 }
 
 //------------------------------------------------------------------------------
@@ -10740,7 +11130,7 @@ bool Interpreter::CheckFunctionDefinition(const std::string &funcPath,
       MessageInterface::ShowMessage
          ("** INTERNAL ERROR ** Cannot check function definition. "
           "function pointer is NULL\n");
-      retval = false;;
+      return false;
    }
    
    std::string fPath = funcPath;
@@ -10778,9 +11168,10 @@ bool Interpreter::CheckFunctionDefinition(const std::string &funcPath,
    // check for no extension of .gmf or wrong extension
    if (retval)
    {
-      StringArray parts = GmatStringUtil::SeparateBy(fPath, ".");
-      if ((parts.size() == 1) ||
-          (parts.size() == 2 && parts[1] != "gmf"))
+      const std::string filename = GmatFileUtil::ParseFileName(fPath);
+      // Native mode keeps the historical .gmf-prefixed suffix convention.
+      // The strict final-suffix rule belongs to LegacyASCII's policy check.
+      if (filename.find(".gmf") == std::string::npos)
       {
          InterpreterException ex
             ("The GmatFunction file \"" + fPath + "\" has no or incorrect file "
@@ -10790,6 +11181,19 @@ bool Interpreter::CheckFunctionDefinition(const std::string &funcPath,
       }
    }
    
+   if (retval && function->IsOfType("GmatFunction"))
+   {
+      try
+      {
+         static_cast<Function*>(function)->ValidateSourceFilePolicy(fPath);
+      }
+      catch (BaseException &error)
+      {
+         HandleError(error, false);
+         retval = false;
+      }
+   }
+
    if (!retval || !fullCheck)
    {
       #if DBGLVL_FUNCTION_DEF > 0

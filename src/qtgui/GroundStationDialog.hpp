@@ -18,7 +18,9 @@ public:
    QMap<QString,QString> settings() const;
 private:
    void convert();
+   void choosePlace();
    void refresh(GmatBase &station,bool updateValues=true);
+   void refreshLongitudeHint();
    std::unique_ptr<GmatBase> original;
    QComboBox *body,*type,*horizon;
    QMap<QString,QLineEdit *> fields;

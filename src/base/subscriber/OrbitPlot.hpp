@@ -40,6 +40,8 @@
 class GMAT_API OrbitPlot : public Subscriber
 {
 public:
+   bool HasSubscriberValueReferenceProvider() const override;
+   std::unique_ptr<FunctionInvocationState> SuspendFunctionBindings() override;
    virtual void SetRunState(Gmat::RunState state);
    OrbitPlot(const std::string &type, const std::string &name);
    OrbitPlot(const OrbitPlot &op);
@@ -150,6 +152,9 @@ public:
                         GetPropertyObjectType(const Integer id) const;
    
 protected:
+   bool HasNativeSubscriberBindings() const override;
+   void RebindSubscriberValueReferences(const Subscriber &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
    Integer integrationStepsToSkip = -1;
    IntegrationStepSampler integrationSampler;
    StringArray stepSkipped;
@@ -233,6 +238,11 @@ protected:
    std::map<std::string, Real> mScInitialEpochMap;
    
    /// Calls PlotInterface for plotting non-solver data  
+   SpacePoint*          GetPlottedObject(const std::string &role) const;
+   bool                 GetCartesianIndices(const std::string &role,
+                           const Real *dat, Integer len, Integer indices[6]);
+   CoordinateSystem*    GetPublishedFrame(const std::string &role,
+                           const Real *dat, Integer len);
    void                 PublishArcMetadata(const Real *dat, Integer len);
    std::string          DataAvailabilityAction(const Real *dat, Integer len);
    virtual bool         UpdateData(const Real *dat, Integer len);

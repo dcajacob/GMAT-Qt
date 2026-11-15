@@ -35,6 +35,12 @@
     <para><phrase role="ref_seealso">See Also</phrase>: <xref
     linkend="BatchEstimator"/>, <xref linkend="TrackingFileSet"/>, <xref
     linkend="RunEstimator"/></para>
+    <para>Function values retain independently bound estimator definitions and
+    owned restoration snapshots. Sequential-estimator copies start with clear
+    smoothing pointers and reconnect those pointers to a containing smoother
+    when needed. Native command preparation rebuilds process-noise and live
+    measurement associations.</para>
+
   </refsection>
 
   <refsection>

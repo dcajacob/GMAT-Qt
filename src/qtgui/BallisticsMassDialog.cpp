@@ -14,14 +14,14 @@
 namespace {
 struct Field { const char *name; const char *label; const char *unit; bool nonnegative; };
 const Field spherical[] = {
-   {"DryMass","Dry mass","kg",true}, {"Cd","Coefficient of drag","",false},
-   {"Cr","Coefficient of reflectivity","",false}, {"DragArea","Drag area","m²",true},
+   {"DryMass","Dry mass","kg",true}, {"Cd","Coefficient of drag","dimensionless",false},
+   {"Cr","Coefficient of reflectivity","dimensionless",false}, {"DragArea","Drag area","m²",true},
    {"SRPArea","SRP area","m²",true}
 };
 const Field spad[] = {
-   {"SPADSRPFile","SRP file","file",false}, {"SPADSRPScaleFactor","SRP scale factor","",true},
+   {"SPADSRPFile","SRP file","file",false}, {"SPADSRPScaleFactor","SRP scale factor","dimensionless",true},
    {"SPADSRPInterpolationMethod","SRP interpolation method","choice",false},
-   {"SPADDragFile","Drag file","file",false}, {"SPADDragScaleFactor","Drag scale factor","",true},
+   {"SPADDragFile","Drag file","file",false}, {"SPADDragScaleFactor","Drag scale factor","dimensionless",true},
    {"SPADDragInterpolationMethod","Drag interpolation method","choice",false}
 };
 }
@@ -55,7 +55,9 @@ BallisticsMassDialog::BallisticsMassDialog(const QMap<QString,QString> &initial,
                   picker.setAcceptMode(QFileDialog::AcceptOpen); picker.setFileMode(QFileDialog::ExistingFile);
                   if (picker.exec()==QDialog::Accepted && !picker.selectedFiles().isEmpty()) edit->setText(picker.selectedFiles().first());
                });
-            } else if (QString(field.unit).size()) line->addWidget(new QLabel(field.unit,row));
+            } else if (QString(field.unit).size()) {
+               auto *unit=new QLabel(field.unit,row);unit->setObjectName("ballisticsUnit_"+name);line->addWidget(unit);
+            }
             form->addRow(field.label,row);
          }
       }

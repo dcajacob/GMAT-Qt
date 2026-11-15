@@ -35,7 +35,24 @@
 
 
 #include <sstream>
+#include <cmath>
 #include "Yukonad.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration yukonadValueProvider({
+   Yukonad::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const Yukonad*>(object) != nullptr; },
+   nullptr,
+   nullptr,
+   nullptr,
+   [](const GmatBase *object) { return dynamic_cast<const Yukonad*>(object)->HasSolverValueReferenceProviderImpl(); },
+   [](GmatBase *object, const Solver &source) { dynamic_cast<Yukonad*>(object)->PrepareClonedSolverValueImpl(source); }
+});
+}
+#include <memory>
+#include <typeinfo>
 #include "MessageInterface.hpp"
 
 //#define DEBUG_Yukonad
@@ -131,8 +148,7 @@ runOptimizer(NULL)
 //------------------------------------------------------------------------------
 Yukonad::~Yukonad()
 {
-   if (runOptimizer)
-      delete runOptimizer;
+   FreeArrays();
 }
 
 
@@ -147,22 +163,27 @@ Yukonad::~Yukonad()
 //------------------------------------------------------------------------------
 Yukonad::Yukonad(const Yukonad& sd) :
 InternalOptimizer(sd),
+objectiveName(sd.objectiveName),
 objectiveSet(sd.objectiveSet),
-retCode(sd.retCode),
+retCode(-101),
 useCentralDifferences(sd.useCentralDifferences),
 feasibilityTolerance(sd.feasibilityTolerance),
-currentPertState(sd.currentPertState),
+currentPertState(0),
 hessianUpdateMethod(sd.hessianUpdateMethod),
 maximumFunctionEvals(sd.maximumFunctionEvals),
 optimalityTolerance(sd.optimalityTolerance),
 functionTolerance(sd.functionTolerance),
 maximumElasticWeight(sd.maximumElasticWeight),
-optIterations(sd.optIterations),
-gmatProblem(sd.gmatProblem),
-runOptimizer(sd.runOptimizer)
+optIterations(0),
+gmatProblem(NULL),
+runOptimizer(NULL)
 {
+   dummyArray = sd.dummyArray;
    isInitialized = false;
-   setNewConValues = sd.setNewConValues;
+   setNewConValues = false;
+   // Native construction copies a cold definition. Completed Clone/Copy
+   // restores a retained value only after all derived data is available.
+   SetFunctionValueContext({});
 }
 
 
@@ -179,10 +200,17 @@ runOptimizer(sd.runOptimizer)
 //------------------------------------------------------------------------------
 Yukonad& Yukonad::operator=(const Yukonad& sd)
 {
+   if (&sd == this) return *this;
+   const auto previousContext = GetFunctionValueContext();
    if (&sd != this)
    {
+      // A resource copy starts its own runtime. Sharing either pointer would
+      // bind callbacks to the source and let both copies delete one solver.
+      FreeArrays();
       InternalOptimizer::operator=(sd);
 
+      objectiveName = sd.objectiveName;
+      dummyArray = sd.dummyArray;
       objectiveSet = sd.objectiveSet;
       useCentralDifferences = sd.useCentralDifferences;
       feasibilityTolerance = sd.feasibilityTolerance;
@@ -192,15 +220,18 @@ Yukonad& Yukonad::operator=(const Yukonad& sd)
       functionTolerance = sd.functionTolerance;
       maximumElasticWeight = sd.maximumElasticWeight;
       optIterations = sd.optIterations;
-      gmatProblem = sd.gmatProblem;
-      runOptimizer = sd.runOptimizer;
+      retCode = -101;
+      currentPertState = 0;
+      gradientCalculator = Gradient();
+      jacobianCalculator = Jacobian();
       gradient = sd.gradient;  // Should this be "grad"?
       jacobian = sd.jacobian;
 
       isInitialized = false;
-      setNewConValues = sd.setNewConValues;
+      setNewConValues = false;
    }
 
+   SetFunctionValueContext({});
    return *this;
 }
 
@@ -213,13 +244,18 @@ Yukonad& Yukonad::operator=(const Yukonad& sd)
  * @param obj The instance copied to this one
  */
 //------------------------------------------------------------------------------
-void Yukonad::Copy(const GmatBase *obj)
+void Yukonad::Copy(const GmatBase *original)
 {
-   if (obj->IsOfType("Yukon"))
-      (*this) = *((Yukonad*)obj);
-   else
-      throw SolverException("Cannot set the Yukon optimizer " + instanceName +
-            " to match the object " + obj->GetName());
+   const auto *source = dynamic_cast<const Yukonad*>(original);
+   if (!source || typeid(*this) != typeid(Yukonad) || typeid(*source) != typeid(Yukonad))
+      throw SolverException("Incompatible Yukonad Copy or missing derived provider.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
 }
 
 //------------------------------------------------------------------------------
@@ -233,7 +269,15 @@ void Yukonad::Copy(const GmatBase *obj)
 //------------------------------------------------------------------------------
 GmatBase* Yukonad::Clone() const
 {
-   return new Yukonad(*this);
+   std::unique_ptr<Yukonad> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new Yukonad(*this));
+   }
+   if (typeid(*this) != typeid(Yukonad))
+      throw SolverException("A derived Yukonad must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -1077,10 +1121,13 @@ void Yukonad::SetResultValue(Integer id, Real value,
    // Gradients use the objective function
    if (resultType == "Objective")
    {
+      if (currentState == NOMINAL || currentState == FINISHED)
+      {
+         cost = value;
+      }
       if (currentState == NOMINAL)
       {
          // id (2nd parameter here) for gradients is always 0
-         cost = value;
          gradientCalculator.Achieved(-1, 0, 0.0, value, plusEffect);
       }
 
@@ -1165,6 +1212,7 @@ bool Yukonad::Initialize()
 
    // Variable initialization is in the Solver code
    bool retval = InternalOptimizer::Initialize();
+   isInitialized = false;
 
    if (retval)
    {
@@ -1193,12 +1241,13 @@ bool Yukonad::Initialize()
          registeredComponentCount);
    }
 
-   for (int i = 0; i < registeredVariableCount; ++i)
-   {
-      gradient.push_back(0.0);
-      for (int j = 0; j < registeredComponentCount; ++j)
-         jacobian.push_back(0.0);
-   }
+   if (!retval)
+      return false;
+
+   gradient.assign(registeredVariableCount, 0.0);
+   jacobian.assign(static_cast<size_t>(registeredVariableCount) * registeredComponentCount, 0.0);
+   currentPertState = 0;
+   setNewConValues = false;
 
    retCode = -101;
 
@@ -1385,6 +1434,7 @@ void Yukonad::CheckCompletion()
    {
       if (runOptimizer)
          delete runOptimizer;
+      runOptimizer = NULL;
       runOptimizer = new Yukon(gmatProblem, hessianUpdateMethod,
          maxIterations, maximumFunctionEvals, feasibilityTolerance,
          optimalityTolerance, functionTolerance, maximumElasticWeight);
@@ -1408,6 +1458,18 @@ void Yukonad::CheckCompletion()
       return;
    }
 
+   // Elastic variables belong to the NLP, not to GMAT's Vary vector. Validate
+   // the entire user prefix before committing it, on ordinary and terminal
+   // returns alike (the line search may have restored a different best point).
+   if (decVector.GetSize() < variableCount ||
+       static_cast<Integer>(variable.size()) < variableCount)
+      throw SolverException("Yukon returned a decision vector with too few variables.");
+   for (Integer i = 0; i < variableCount; ++i)
+      if (!std::isfinite(decVector[i]))
+         throw SolverException("Yukon returned a non-finite decision variable.");
+   for (Integer i = 0; i < variableCount; ++i)
+      variable.at(i) = decVector[i];
+
 #ifdef DEBUG_YUKON_CALL
    MessageInterface::ShowMessage("After calling Yukonad, retcode = %d\n",
       retCode);
@@ -1430,9 +1492,6 @@ void Yukonad::CheckCompletion()
    //       = 5 WHEN A GOOD STEP DIRECTION COULD NOT BE FOUND
    if (retCode == 0)
    {
-      for (Integer i = 0; i < variableCount; ++i)
-         variable.at(i) = decVector[i];
-
       currentState = NOMINAL;
    }
    else
@@ -1485,6 +1544,15 @@ void Yukonad::RunComplete()
 //------------------------------------------------------------------------------
 void Yukonad::FreeArrays()
 {
+   // The runtime's function manager borrows gmatProblem. Release it first.
+   // Keep registered variable/constraint data used by the existing Reset path.
+   delete runOptimizer;
+   runOptimizer = NULL;
+   delete gmatProblem;
+   gmatProblem = NULL;
+   gradient.clear();
+   jacobian.clear();
+   isInitialized = false;
 }
 
 
@@ -1801,4 +1869,46 @@ const RealArray* Yukonad::GetSolverData(const std::string &type)
       return &eqConstraintValues;
 
    return retval;
+}
+
+bool Yukonad::HasSolverValueReferenceProviderImpl() const
+{
+   return typeid(*this) == typeid(Yukonad);
+}
+
+void Yukonad::PrepareClonedSolverValueImpl(const Solver &original)
+{
+   CheckSolverValueType(original);
+   const auto &source = dynamic_cast<const Yukonad&>(original);
+   if ((source.gmatProblem && source.gmatProblem->GetOptimizer() != &source) ||
+         (source.runOptimizer && (!source.gmatProblem ||
+          source.runOptimizer->GetUserProblem() != source.gmatProblem)))
+      throw SolverException("Yukon runtime has an incompatible callback owner.\n");
+   std::unique_ptr<GmatProblemInterface> problem(source.gmatProblem ?
+         new GmatProblemInterface(*source.gmatProblem) : nullptr);
+   if (problem) problem->SetPointerToOptimizer(this);
+   std::unique_ptr<Yukon> runtime(source.runOptimizer ? new Yukon(*source.runOptimizer) : nullptr);
+   if (runtime) runtime->RebindUserProblem(source.gmatProblem, problem.get());
+   Gradient nextGradient(source.gradientCalculator);
+   Jacobian nextJacobian(source.jacobianCalculator);
+   FreeArrays();
+   CopyOptimizerValueData(source);
+   objectiveName = source.objectiveName;
+   objectiveSet = source.objectiveSet;
+   gradientCalculator = nextGradient;
+   jacobianCalculator = nextJacobian;
+   retCode = source.retCode;
+   useCentralDifferences = source.useCentralDifferences;
+   feasibilityTolerance = source.feasibilityTolerance;
+   currentPertState = source.currentPertState;
+   dummyArray = source.dummyArray;
+   hessianUpdateMethod = source.hessianUpdateMethod;
+   maximumFunctionEvals = source.maximumFunctionEvals;
+   optimalityTolerance = source.optimalityTolerance;
+   functionTolerance = source.functionTolerance;
+   maximumElasticWeight = source.maximumElasticWeight;
+   optIterations = source.optIterations;
+   setNewConValues = source.setNewConValues;
+   gmatProblem = problem.release();
+   runOptimizer = runtime.release();
 }

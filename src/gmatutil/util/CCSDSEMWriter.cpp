@@ -35,6 +35,7 @@
 #include "UtilityException.hpp"
 #include "MessageInterface.hpp"
 #include "CcsdsOemB1Text.hpp"
+#include "CcsdsOemB1Chronology.hpp"
 #include <sstream>
 #include <ctime>
 
@@ -104,6 +105,7 @@ CCSDSEMWriter::~CCSDSEMWriter()
 {
    emOutStream.flush();
    emOutStream.close();
+   CcsdsOemB1Chronology::Reset(this);
 }
 
 // -----------------------------------------------------------------------------
@@ -126,6 +128,8 @@ bool CCSDSEMWriter::OpenFile(const std::string &filename)
    
    if (emOutStream.is_open())
       emOutStream.close();
+
+   CcsdsOemB1Chronology::Reset(this);
    
    emFileName = filename;
    emOutStream.open(emFileName.c_str());

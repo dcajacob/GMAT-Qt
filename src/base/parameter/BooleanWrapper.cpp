@@ -120,6 +120,14 @@ ElementWrapper* BooleanWrapper::Clone() const
    return new BooleanWrapper(*this);
 }
 
+void BooleanWrapper::RebindClonedReferences(const ElementWrapper &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   CheckCloneType(source);
+   (void)resolve;
+}
+
+
 
 //------------------------------------------------------------------------------
 //  Gmat::ParameterType GetDataType() const

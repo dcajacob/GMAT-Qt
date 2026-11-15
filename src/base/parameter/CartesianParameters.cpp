@@ -150,7 +150,12 @@ bool CartX::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* CartX::Clone(void) const
 {
-   return new CartX(*this);
+   return CompleteParameterClone(new CartX(*this));
+}
+
+void CartX::Copy(const GmatBase *source)
+{
+   CopyParameterValue<CartX>(source);
 }
 
 
@@ -266,7 +271,12 @@ bool CartY::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* CartY::Clone(void) const
 {
-   return new CartY(*this);
+   return CompleteParameterClone(new CartY(*this));
+}
+
+void CartY::Copy(const GmatBase *source)
+{
+   CopyParameterValue<CartY>(source);
 }
 
 
@@ -381,7 +391,12 @@ bool CartZ::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* CartZ::Clone(void) const
 {
-   return new CartZ(*this);
+   return CompleteParameterClone(new CartZ(*this));
+}
+
+void CartZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<CartZ>(source);
 }
 
 
@@ -497,7 +512,12 @@ bool CartVx::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* CartVx::Clone(void) const
 {
-   return new CartVx(*this);
+   return CompleteParameterClone(new CartVx(*this));
+}
+
+void CartVx::Copy(const GmatBase *source)
+{
+   CopyParameterValue<CartVx>(source);
 }
 
 
@@ -613,7 +633,12 @@ bool CartVy::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* CartVy::Clone(void) const
 {
-   return new CartVy(*this);
+   return CompleteParameterClone(new CartVy(*this));
+}
+
+void CartVy::Copy(const GmatBase *source)
+{
+   CopyParameterValue<CartVy>(source);
 }
 
 
@@ -729,7 +754,12 @@ bool CartVz::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* CartVz::Clone(void) const
 {
-   return new CartVz(*this);
+   return CompleteParameterClone(new CartVz(*this));
+}
+
+void CartVz::Copy(const GmatBase *source)
+{
+   CopyParameterValue<CartVz>(source);
 }
 
 
@@ -864,6 +894,11 @@ void CartState::SetRvector6(const Rvector6 &val)
 //------------------------------------------------------------------------------
 GmatBase* CartState::Clone(void) const
 {
-   return new CartState(*this);
+   return CompleteParameterClone(new CartState(*this));
+}
+
+void CartState::Copy(const GmatBase *source)
+{
+   CopyParameterValue<CartState>(source);
 }
 

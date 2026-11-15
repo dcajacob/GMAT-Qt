@@ -1197,7 +1197,7 @@ void Code500Propagator::UpdateState()
    std::memcpy(theState, interpolated.GetDataVector(), 6*sizeof(Real));
 
    // Update state
-   Real* ephemState = new Real[6];
+   Real ephemState[6];
    //std::memcpy(state, theState, 6 * sizeof(Real));
    std::memcpy(ephemState, theState, 6 * sizeof(Real));
 
@@ -1219,8 +1219,6 @@ void Code500Propagator::UpdateState()
       //std::memcpy(j2kState, state, 6 * sizeof(Real));
       std::memcpy(state, ephemState, 6 * sizeof(Real));
    }
-
-   delete[] ephemState;
 
    #ifdef DEBUG_EXECUTION
       MessageInterface::ShowMessage("Code500Propagator::UpdateState(): exit\n");

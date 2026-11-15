@@ -12,12 +12,43 @@ from unittest import mock
 import xml.etree.ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).parent))
-from RunTutorials import RECIPES, REPO, TutorialSession, compare_outputs, compare_states, normalized_source, relocate, control_target, semantic_action, reference_milestone, configure_display, scale_value
+from RunTutorials import RECIPES, REPO, TutorialSession, compare_outputs, compare_states, normalized_source, relocate, control_target, semantic_action, reference_milestone, configure_display, scale_value, installation_base, publish_request, read_snapshot
 from IsolatedX11Session import IsolatedX11Session
 from AnalyzeTutorialGoals import analyze
 
 
 class TutorialContracts(unittest.TestCase):
+    def test_windows_snapshot_reader_retries_a_shared_file(self):
+        path = mock.Mock()
+        path.read_bytes.side_effect = [PermissionError('atomic replacement'), b'{"running": false}']
+        with mock.patch('RunTutorials.os.name', 'nt'), mock.patch('RunTutorials.time.sleep'):
+            self.assertEqual(json.loads(read_snapshot(path)), {'running': False})
+        self.assertEqual(path.read_bytes.call_count, 2)
+
+    def test_windows_request_handoff_retries_a_shared_file(self):
+        pending = mock.Mock()
+        pending.replace.side_effect = [PermissionError('shared reader'), None]
+        with mock.patch('RunTutorials.os.name', 'nt'), mock.patch('RunTutorials.time.sleep') as sleep:
+            publish_request(pending, 'request.json')
+        self.assertEqual(pending.replace.call_count, 2)
+        sleep.assert_called_once_with(.01)
+
+    def test_request_handoff_preserves_persistent_errors(self):
+        pending = mock.Mock()
+        pending.replace.side_effect = PermissionError('still shared')
+        with mock.patch('RunTutorials.os.name', 'nt'), mock.patch('RunTutorials.time.monotonic', side_effect=[0, 2]):
+            with self.assertRaises(PermissionError):
+                publish_request(pending, 'request.json')
+
+    def test_packaged_startup_resolves_from_the_runtime_binary_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            runtime = root / 'GMAT-Qt.app/Contents/MacOS/GmatQt'
+            with mock.patch.dict('os.environ', {'GMAT_QT_TUTORIAL_RUNTIME': str(runtime)}):
+                self.assertEqual(installation_base(root/'gmat_startup_qt.txt'), runtime.resolve().parent)
+            with mock.patch.dict('os.environ', {}, clear=True):
+                self.assertEqual(installation_base(root/'bin/startup.txt'), (root/'bin').resolve())
+
     def test_visible_scaling_uses_host_and_keeps_explicit_pixel_sizes(self):
         host={'scale':3.0,'logical_size':[1536,960],'available_logical_size':[1469,928]}
         args=SimpleNamespace(visible=True,driver='qttest',scale=None,width=None,height=None)
@@ -186,7 +217,7 @@ class TutorialContracts(unittest.TestCase):
 
     def test_paths_are_relocated_without_reading_an_old_authored_mission(self):
         with tempfile.TemporaryDirectory() as directory:
-            self.assertEqual(relocate('${WORK}/mine.script', Path(directory)), directory + '/mine.script')
+            self.assertEqual(relocate('${WORK}/mine.script', Path(directory)), Path(directory).as_posix() + '/mine.script')
 
     def test_active_panel_wins_after_window_positions_change(self):
         controls = [{'role': 'button', 'name': '', 'text': 'Apply', 'rect': [1400, 850, 80, 25], 'active_panel': False},

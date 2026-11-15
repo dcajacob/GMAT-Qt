@@ -58,6 +58,10 @@ public:
    virtual const StringArray& 
                         GetWrapperObjectNameArray(bool completeSet = false);
    
+   void RebindExpressionReferences(const MathNode &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve, WrapperMap *wrappers) override;
+   void RetireExpressionReferences() override;
+
 protected:
    std::string desc;
    

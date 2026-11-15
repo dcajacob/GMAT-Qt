@@ -120,25 +120,13 @@ ConditionalBranch::ConditionalBranch(const std::string &typeStr) :
  */
 //------------------------------------------------------------------------------
 ConditionalBranch::ConditionalBranch(const ConditionalBranch &cb) :
-   BranchCommand      (cb),
-   numberOfConditions (cb.numberOfConditions),
-   numberOfLogicalOps (cb.numberOfLogicalOps)
-{   
-   Integer i = 0;
-   for (i=0; i < numberOfConditions; i++)
-   {
-      lhsList.push_back((cb.lhsList).at(i));
-      opStrings.push_back((cb.opStrings).at(i));
-      opList.push_back((cb.opList).at(i));
-      rhsList.push_back((cb.rhsList).at(i));
-   }
-   
-   for (i=0; i < numberOfLogicalOps; i++)
-   {
-      logicalOpStrings.push_back((cb.logicalOpStrings).at(i));
-      logicalOpList.push_back((cb.logicalOpList).at(i));
-   }
-   
+   BranchCommand(cb), numberOfConditions(cb.numberOfConditions),
+   numberOfLogicalOps(cb.numberOfLogicalOps), lhsList(cb.lhsList),
+   opStrings(cb.opStrings), opList(cb.opList), rhsList(cb.rhsList),
+   logicalOpStrings(cb.logicalOpStrings), logicalOpList(cb.logicalOpList)
+{
+   lhsWrappers.assign(lhsList.size(), nullptr);
+   rhsWrappers.assign(rhsList.size(), nullptr);
    isInitialized = false;
 }
 
@@ -156,33 +144,19 @@ ConditionalBranch::ConditionalBranch(const ConditionalBranch &cb) :
 //------------------------------------------------------------------------------
 ConditionalBranch& ConditionalBranch::operator=(const ConditionalBranch &cb)
 {
-   if (this == &cb)
-      return *this;
-   
+   if (this == &cb) return *this;
+   ClearWrappers();
    BranchCommand::operator=(cb);
    numberOfConditions = cb.numberOfConditions;
    numberOfLogicalOps = cb.numberOfLogicalOps;
-   lhsList.clear();
-   opList.clear();
-   rhsList.clear();
-   ClearWrappers();
-   Integer i = 0;
-   
-   for (i=0; i < numberOfConditions; i++)
-   {
-      lhsList.push_back((cb.lhsList).at(i));
-      opStrings.push_back((cb.opStrings).at(i));
-      opList.push_back((cb.opList).at(i));
-      rhsList.push_back((cb.rhsList).at(i));
-   }
-   
-   logicalOpList.clear();
-   for (i=0; i < numberOfLogicalOps; i++)
-   {
-      logicalOpStrings.push_back((cb.logicalOpStrings).at(i));
-      logicalOpList.push_back((cb.logicalOpList).at(i));
-   }
-   
+   lhsList = cb.lhsList;
+   opStrings = cb.opStrings;
+   opList = cb.opList;
+   rhsList = cb.rhsList;
+   logicalOpStrings = cb.logicalOpStrings;
+   logicalOpList = cb.logicalOpList;
+   lhsWrappers.assign(lhsList.size(), nullptr);
+   rhsWrappers.assign(rhsList.size(), nullptr);
    isInitialized = false;
    return *this;
 }
@@ -1533,4 +1507,11 @@ std::string ConditionalBranch::GetConditionalString()
       MessageInterface::ShowMessage("... returning cond = %s\n", cond.c_str());
    #endif
    return cond;
+}
+
+void ConditionalBranch::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   ClearWrappers();
+   BranchCommand::RetireFunctionBindings(store);
 }

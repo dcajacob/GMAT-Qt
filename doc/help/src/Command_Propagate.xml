@@ -29,6 +29,12 @@
   <refsynopsisdiv>
     <title>Script Syntax</title>
 
+    <para>Runtime propagation copies track the actual setup and engine
+    definitions selected by this command. A definition update prepares the
+    engine again before propagation continues, preserving the command's actual
+    propagated objects. A same-name resource in another function scope does not
+    select an unrelated runtime engine for updating.</para>
+
     <para>The <guilabel>Propagate</guilabel> command is a complex command that
     supports multiple <guilabel>Propagators</guilabel>, multiple
     <guilabel>Spacecraft</guilabel>, and multiple stopping conditions. In the
@@ -261,9 +267,9 @@ or
             <entry><guilabel>StopList</guilabel></entry>
 
             <entry><para>A comma separated list of stopping conditions.
-            Stopping conditions must be parameters of propagated
-            <guibutton>Spacecraft</guibutton> in
-            <guibutton>SatList</guibutton>. See <xref
+            The measured operand can be a scalar parameter of a propagated
+            <guibutton>Spacecraft</guibutton> in <guibutton>SatList</guibutton>,
+            a user Variable, or an Array element. See <xref
             linkend="Propagate_Remarks"/> for more details. </para>
             <variablelist>
                 <varlistentry>
@@ -735,6 +741,13 @@ or
       Typed fields scroll when the command window is small; source preview
       and Apply remain outside that scrolling area.</para>
 
+      <para>The <guilabel>Propagators and spacecraft…</guilabel> dialog also
+      provides an <guilabel>Ephemeris limit</guilabel> choice. Current behavior
+      retains GMAT's existing group support. One distinct setup permits repeated
+      groups that reference the same ephemeris Propagator resource. One group
+      permits at most one ephemeris group. These choices do not limit the number
+      of numerical propagator groups. Each SPK group still takes one spacecraft.</para>
+
       <para>To follow the examples below, you can load the following script
       snippet or create a new mission with three spacecraft (named
       <guilabel>sat1</guilabel>, <guilabel>sat2</guilabel>, and
@@ -1038,10 +1051,41 @@ Prop3(aFormation){Sat1.Earth.Periapsis}</code></programlisting>
         <para><literal>Propagate numProp(numSat)
         spkProp(spkSat1,spkSat2)</literal></para>
       </warning>
+      <para>The optional command field <literal>EphemerisPolicy</literal>
+      selects the same limits in script: <literal>Native</literal> is the
+      default, <literal>SingleSetup</literal> counts distinct configured
+      ephemeris setups, and <literal>SingleGroup</literal> counts ephemeris
+      groups. These single choices permit zero or one. For a required nonzero
+      count, <literal>ExactlyOneSetup</literal> requires exactly one distinct
+      ephemeris setup, while <literal>ExactlyOneGroup</literal> requires exactly
+      one ephemeris group. The setup choices count the resolved setup before
+      runtime group copies are made; repeated groups can share that setup.
+      Pure numerical commands use Native or an at-most-one choice. An
+      exactly-one choice rejects a command with no ephemeris group.
+      The limit is checked when the command is initialized, before its runtime
+      clones are created. Numerical groups retain their normal dynamic capacity,
+      bounded by available memory and native container/index ranges.</para>
+      <programlisting><code>Propagate numProp(numSat) spkProp(spkSat1) spkProp(spkSat2) {EphemerisPolicy = SingleSetup};
+Propagate numProp(numSat) spkProp(spkSat1) {numSat.ElapsedSecs = 600, EphemerisPolicy = SingleGroup};</code></programlisting>
     </refsection>
 
     <refsection>
       <title>Behavior of Stopping Conditions</title>
+
+      <para>A user Variable or Array element can appear on the measured side
+      of a stopping condition as well as in its desired value. These measured
+      operands use the epoch of the first propagated spacecraft, including the
+      first member of a propagated Formation. GMAT samples their current values;
+      propagation does not change a Variable or Array element automatically.
+      A constant value that never reaches its desired value cannot stop
+      propagation. Whole Arrays and non-real measured operands are not allowed.
+      Measured stopping values must be finite. Spacecraft parameters retain
+      their own spacecraft's epoch and their native time/angle behavior.</para>
+
+      <para>During propagation and stopping-point refinement, measured values,
+      desired values and epochs must evaluate successfully to finite real
+      values. A failed parameter evaluation or non-finite stopping difference
+      stops the command with an error.</para>
 
       <para>GMAT allows you to define a set of stopping conditions when
       propagating <guilabel>Spacecraft</guilabel> that define conditions that

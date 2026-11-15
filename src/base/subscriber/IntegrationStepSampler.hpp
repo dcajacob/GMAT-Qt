@@ -2,7 +2,9 @@
 #define IntegrationStepSampler_hpp
 
 #include "Publisher.hpp"
+#include <algorithm>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -19,26 +21,36 @@ public:
       if (newArc) *newArc = false;
       if (skip < 0 || (!step.initial && step.startSeconds == step.endSeconds))
          return false;
+      std::optional<Rvector6> restartState;
+      const auto restart = std::find_if(step.restartStates.begin(), step.restartStates.end(),
+         [&](const Publisher::CartesianSample &value) { return value.object == sample.object; });
+      if (restart != step.restartStates.end()) restartState = restart->state;
       auto found = trajectories.find(sample.object);
       if (found == trajectories.end())
       {
          // A missing initial point must not silently become an extra step.
          if (!step.initial) return false;
-         trajectories.emplace(sample.object, Cursor{sample.epoch, sample.state, skip, false});
+         trajectories.emplace(sample.object, Cursor{sample.epoch, sample.state, restartState, skip, false});
          return true;
       }
       Cursor &cursor = found->second;
       // Non-precision spacecraft serialize command starts through Real MJD;
       // the preceding endpoint can retain more GmatTime bits. Compare their
       // common published precision only for initial records, and still require
-      // bit-identical Cartesian state. Accepted advances keep full precision.
+      // bit-identical Cartesian state. Native restart equivalents avoid a
+      // false discontinuity from changing moving-origin ephemeris clocks.
+      // Accepted advances and display samples keep their full precision.
       bool same = cursor.epoch == sample.epoch ||
          (step.initial && cursor.epoch.GetMjd() == sample.epoch.GetMjd());
+      const bool nativeRestart = step.initial && cursor.restartState && restartState;
+      const Rvector6 &before = nativeRestart ? *cursor.restartState : cursor.state;
+      const Rvector6 &after = nativeRestart ? *restartState : sample.state;
       for (Integer i = 0; i < 6 && same; ++i)
-         same = cursor.state[i] == sample.state[i];
+         same = before[i] == after[i];
       if (same) return false; // Repeated command-initial or duplicate endpoint.
       cursor.epoch = sample.epoch;
       cursor.state = sample.state;
+      cursor.restartState = restartState;
       if (step.initial)
       {
          // A real discontinuity (including a same-epoch state assignment) starts
@@ -80,7 +92,7 @@ public:
    }
 
 private:
-   struct Cursor { GmatTime epoch; Rvector6 state; Integer remaining; bool breakNext; };
+   struct Cursor { GmatTime epoch; Rvector6 state; std::optional<Rvector6> restartState; Integer remaining; bool breakNext; };
    using Cursors = std::map<const GmatBase *, Cursor>;
    Cursors trajectories;
    std::map<std::string, std::vector<Cursors>> marks;

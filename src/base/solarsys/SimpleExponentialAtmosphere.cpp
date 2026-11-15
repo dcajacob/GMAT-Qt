@@ -32,6 +32,8 @@
 
 
 #include "SimpleExponentialAtmosphere.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
 #include <cmath>
 #include "MessageInterface.hpp"
 
@@ -180,4 +182,13 @@ bool SimpleExponentialAtmosphere::Density(Real *position, Real *density,
 GmatBase* SimpleExponentialAtmosphere::Clone() const
 {
    return (new SimpleExponentialAtmosphere(*this));
+}
+
+void SimpleExponentialAtmosphere::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const SimpleExponentialAtmosphere*>(original);
+   if (!source || typeid(*source) != typeid(SimpleExponentialAtmosphere) ||
+       typeid(*this) != typeid(SimpleExponentialAtmosphere))
+      throw GmatBaseException("Cannot copy an incompatible simple exponential atmosphere.");
+   operator=(*source);
 }

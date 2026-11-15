@@ -42,10 +42,15 @@
 class FileThrust: public PhysicalModel
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = PhysicalModel::NativeValueProviderDepth + 1;
+
    FileThrust(const std::string &name = "");
    virtual ~FileThrust();
    FileThrust(const FileThrust& ft);
    FileThrust&             operator=(const FileThrust& ft);
+   void Copy(const GmatBase *source) override;
+   std::unique_ptr<NativeRestorationPlan> PrepareRestorationImpl(
+         const GmatBase &source);
    bool                    operator==(const FileThrust& ft) const;
 
    virtual GmatBase*       Clone() const;
@@ -161,6 +166,7 @@ public:
    DEFAULT_TO_NO_CLONES
 
 protected:
+   void ValidateRestorationInputs(const FileThrust &source, bool withCaches) const;
 
    // Pieces needed for bookkeeping
    /// Names of the spacecraft accessed by this force
@@ -238,9 +244,13 @@ protected:
 
    Rvector3 Accelerate(GmatEpoch &theEpoch, Real mass);
    Rvector3 Accelerate(GmatTime &theEpoch, Real mass);
+   Rvector6 SampleSpacecraft(Spacecraft *spacecraft, const Real *modelState,
+         const GmatTime &segmentEpoch, const GmatTime &atEpoch, Rmatrix *gradient);
 
-   Integer ComputeAccelerationMassFlow(const GmatEpoch segEpoch, const GmatEpoch atEpoch, Real burnData[4]);
-   Integer ComputeAccelerationMassFlow(const GmatTime &segEpoch, const GmatTime &atEpoch, Real burnData[4]);
+   Integer ComputeAccelerationMassFlow(const GmatEpoch segEpoch, const GmatEpoch atEpoch, Real burnData[4],
+         bool evaluatePartials = true);
+   Integer ComputeAccelerationMassFlow(const GmatTime &segEpoch, const GmatTime &atEpoch, Real burnData[4],
+         bool evaluatePartials = true);
    Integer GetSegmentData(Integer atIndex, Real offset);
    void Interpolate(Integer atIndex, Integer profileIndex, Real offset);
    void LinearInterpolate(Integer atIndex, Integer profileIndex, Real offset);

@@ -1,6 +1,7 @@
 #include "PropagationForm.hpp"
 #include "PropagationOptions.hpp"
 #include "ReportParameterDialog.hpp"
+#include "ParameterReferences.hpp"
 #include "Propagate.hpp"
 #include <QComboBox>
 #include <QCheckBox>
@@ -8,6 +9,7 @@
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QLineEdit>
+#include <QLabel>
 #include <QRegularExpression>
 #include <QSignalBlocker>
 
@@ -37,6 +39,7 @@ struct Propagation {
 Propagation parse(const QString &statement)
 {
    Propagation result;
+   if (!propagationEphemerisPolicy(statement).valid) return result;
    result.match=QRegularExpression(
       "^\\s*Propagate\\s+(?:'[^'\\n]*'\\s+)?(?:BackProp\\s+)?([A-Za-z][A-Za-z0-9_]*)\\s*\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\)"
       "(\\s*\\{([^{};,%]*(?:,[^{};,%]*)*)\\})?\\s*;[ \\t]*(?:%[^\\n]*)?\\s*$").match(statement);
@@ -44,7 +47,7 @@ Propagation parse(const QString &statement)
    if (result.match.capturedStart(3)>=0) {
       result.entries=result.match.captured(4).split(',');
       if (result.entries.size()>1 && result.entries.first().trimmed().isEmpty()) {
-         for (int i=1;i<result.entries.size();++i) if (!QRegularExpression("^\\s*(?:StopTolerance|OrbitColor)\\s*=").match(result.entries[i]).hasMatch()) return result;
+         for (int i=1;i<result.entries.size();++i) if (!QRegularExpression("^\\s*(?:StopTolerance|OrbitColor|EphemerisPolicy)\\s*=").match(result.entries[i]).hasMatch()) return result;
          result.entries.removeFirst();
       }
       bool color=false;
@@ -55,6 +58,8 @@ Propagation parse(const QString &statement)
          if (name=="StopTolerance") {
             if (result.toleranceIndex>=0 || value.isEmpty()) return result;
             result.toleranceIndex=i; result.tolerance=value;
+         } else if (name=="EphemerisPolicy") {
+            // The shared option parser checks duplicates, quoting and values.
          } else if (name=="OrbitColor") {
             if (color || value.isEmpty()) return result; color=true;
          } else {
@@ -81,18 +86,22 @@ PropagationForm::PropagationForm(const QStringList &propagators,const QStringLis
    layout->addRow("Propagator",propagator); layout->addRow("Spacecraft",spacecraft); layout->addRow(singleStep); layout->addRow("Stop type",units);
    auto picker=[&](const QString &label,QLineEdit *input,const QString &name) {
       auto *row=new QWidget(this); auto *box=new QHBoxLayout(row); box->setContentsMargins(0,0,0,0); box->addWidget(input);
-      auto *choose=new QPushButton("Choose…",row); choose->setObjectName(name); box->addWidget(choose); layout->addRow(label,row);
+      auto *choose=new QPushButton("Choose…",row); choose->setObjectName(name); box->addWidget(choose);auto *caption=new QLabel(label,this);layout->addRow(caption,row);
       connect(choose,&QPushButton::clicked,this,[this,input] {
          ReportParameterDialog dialog({input->text()},this,input==stopParameter ? ReportParameterDialog::Mode::StopParameter : ReportParameterDialog::Mode::Single); dialog.setObjectName("propagationParameterDialog");
+         if(input==duration)dialog.setProperty("unitContext",parameterUnitDescription(stopParameter->text()));
          if (dialog.exec()==QDialog::Accepted && !dialog.selection().isEmpty()) input->setText(dialog.selection().first());
       });
+      return caption;
    };
-   picker("Stop parameter",stopParameter,"propagationChooseStop"); picker("Stop value",duration,"propagationChooseGoal");
+   parameterUnit=picker("Stop parameter",stopParameter,"propagationChooseStop");parameterUnit->setObjectName("propagationParameterUnit");
+   durationUnit=picker("Stop value",duration,"propagationChooseGoal");durationUnit->setObjectName("propagationValueUnit");
    backward=new QCheckBox("Propagate backwards",this); backward->setObjectName("propagationBackwards"); layout->addRow(backward);
    tolerance=new QLineEdit(this); tolerance->setObjectName("propagationTolerance");
    Propagate defaults; tolerance->setPlaceholderText("Default: "+QString::number(defaults.GetRealParameter("StopTolerance"),'g',10));
-   tolerance->setToolTip("Positive stop tolerance. Leave blank to use GMAT's default."); layout->addRow("Stop tolerance",tolerance);
+   tolerance->setToolTip("Positive stop tolerance in the stopping quantity's units. Leave blank to use GMAT's default.");toleranceUnit=new QLabel(this);toleranceUnit->setObjectName("propagationToleranceUnit");layout->addRow(toleranceUnit,tolerance);
    auto refresh=[this] {
+      updateUnits();
       const bool stopping=!singleStep->isChecked(),event=eventStop(stopParameter->text());
       units->setEnabled(stopping); stopParameter->setEnabled(stopping); tolerance->setEnabled(stopping);
       findChild<QPushButton *>("propagationChooseStop")->setEnabled(stopping);
@@ -173,5 +182,13 @@ void PropagationForm::setStatement(const QString &statement)
    units->setEnabled(stopping); stopParameter->setEnabled(stopping); tolerance->setEnabled(stopping);
    findChild<QPushButton *>("propagationChooseStop")->setEnabled(stopping); duration->setEnabled(stopping && !event);
    findChild<QPushButton *>("propagationChooseGoal")->setEnabled(stopping && !event);
-   synchronizing=false; show();
+   updateUnits();synchronizing=false; show();
+}
+
+void PropagationForm::updateUnits()
+{
+   const auto unit=singleStep->isChecked() ? QString("not used") : parameterUnitDescription(stopParameter->text());
+   parameterUnit->setText("Stop parameter ("+unit+")");
+   durationUnit->setText("Stop value ("+(eventStop(stopParameter->text()) ? QString("no goal") : unit)+")");
+   toleranceUnit->setText("Stop tolerance ("+unit+")");
 }

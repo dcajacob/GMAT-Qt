@@ -37,6 +37,7 @@
 #include "Rmatrix.hpp"
 #include "SolarSystem.hpp"
 #include "CoordinateSystem.hpp"
+#include <typeinfo>
 
 class PhysicalModel;
 
@@ -76,6 +77,8 @@ namespace GmatParam
 class GMAT_API Parameter : public GmatBase
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = GmatBase::NativeValueProviderDepth + 1;
+
 
    Parameter(const std::string &name, const std::string &typeStr,
              GmatParam::ParameterKey key, GmatBase *owner,
@@ -160,6 +163,11 @@ public:
    
    virtual bool         Initialize();
    virtual bool         Evaluate();
+
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source,
+         SolarSystem *solarSystem,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+   void RetirePrototypeReferences();
    
    // methods all SYSTEM_PARAM should implement
    virtual bool         AddRefObject(GmatBase *object, bool replaceName = false);
@@ -205,6 +213,20 @@ public:
    DEFAULT_TO_NO_CLONES
 
 protected:
+
+   GmatBase *CompleteParameterClone(GmatBase *value) const;
+   void CompleteParameterCopy(const Parameter &source);
+   template <class T> void CopyParameterValue(const GmatBase *source)
+   {
+      const T *value = dynamic_cast<const T*>(source);
+      T *target = dynamic_cast<T*>(this);
+      if (!value || !target || typeid(*value) != typeid(T) || typeid(*target) != typeid(T))
+         throw GmatBaseException("Cannot copy incompatible Parameter value.\n");
+      if (value == target) return;
+      const auto previous = GetFunctionValueContext();
+      *target = *value;
+      CompleteParameterCopy(*value);
+   }
    
    static const std::string PARAMETER_KEY_STRING[GmatParam::KeyCount];
    

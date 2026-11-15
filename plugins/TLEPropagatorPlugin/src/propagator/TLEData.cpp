@@ -22,7 +22,8 @@
 
 TLEData::TLEData() :
    satName        (""),
-   secFromJ2k     (0.0)
+   secFromJ2k     (0.0),
+   isOmm         (false)
 {
    tleLines[0] = tleLines[1] = tleLines[2] = "";
    for (int i = 0; i < 10; ++i)
@@ -36,7 +37,8 @@ TLEData::~TLEData()
 
 TLEData::TLEData(const TLEData& tle) :
    satName        (tle.satName),
-   secFromJ2k     (tle.secFromJ2k)
+   secFromJ2k     (tle.secFromJ2k),
+   isOmm         (tle.isOmm)
 {
    for (int i = 0; i < 3; ++i)
       tleLines[i] = tle.tleLines[i];
@@ -50,6 +52,7 @@ TLEData& TLEData::operator=(const TLEData& tle)
    {
       satName = tle.satName;
       secFromJ2k = tle.secFromJ2k;
+      isOmm = tle.isOmm;
       for (int i = 0; i < 3; ++i)
          tleLines[i] = tle.tleLines[i];
       for (int i = 0; i < 10; ++i)

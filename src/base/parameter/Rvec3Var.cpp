@@ -198,3 +198,15 @@ const Rvector3& Rvec3Var::EvaluateRvector3()
    }
 }
 
+const Rvector& Rvec3Var::EvaluateRvector()
+{
+   return EvaluateRvector3();
+}
+
+void Rvec3Var::SetRvector(const Rvector &value)
+{
+   if (value.GetSize() != 3)
+      throw ParameterException("A three-component Parameter requires a vector of size 3.\n");
+   SetRvector3(Rvector3(value[0], value[1], value[2]));
+}
+

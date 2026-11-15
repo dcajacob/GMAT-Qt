@@ -118,7 +118,12 @@ void ThrustSegmentScaleFactor::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* ThrustSegmentScaleFactor::Clone(void) const
 {
-   return new ThrustSegmentScaleFactor(*this);
+   return CompleteParameterClone(new ThrustSegmentScaleFactor(*this));
+}
+
+void ThrustSegmentScaleFactor::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ThrustSegmentScaleFactor>(source);
 }
 
 
@@ -206,7 +211,12 @@ void TSFSigma::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* TSFSigma::Clone(void) const
 {
-   return new TSFSigma(*this);
+   return CompleteParameterClone(new TSFSigma(*this));
+}
+
+void TSFSigma::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TSFSigma>(source);
 }
 
 
@@ -293,7 +303,12 @@ void TSFEpsilon::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* TSFEpsilon::Clone(void) const
 {
-   return new TSFEpsilon(*this);
+   return CompleteParameterClone(new TSFEpsilon(*this));
+}
+
+void TSFEpsilon::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TSFEpsilon>(source);
 }
 
 
@@ -380,7 +395,12 @@ void StartEpoch::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* StartEpoch::Clone(void) const
 {
-   return new StartEpoch(*this);
+   return CompleteParameterClone(new StartEpoch(*this));
+}
+
+void StartEpoch::Copy(const GmatBase *source)
+{
+   CopyParameterValue<StartEpoch>(source);
 }
 
 
@@ -468,7 +488,12 @@ void EndEpoch::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* EndEpoch::Clone(void) const
 {
-   return new EndEpoch(*this);
+   return CompleteParameterClone(new EndEpoch(*this));
+}
+
+void EndEpoch::Copy(const GmatBase *source)
+{
+   CopyParameterValue<EndEpoch>(source);
 }
 
 
@@ -555,7 +580,12 @@ void MassFlowScaleFactor::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* MassFlowScaleFactor::Clone(void) const
 {
-   return new MassFlowScaleFactor(*this);
+   return CompleteParameterClone(new MassFlowScaleFactor(*this));
+}
+
+void MassFlowScaleFactor::Copy(const GmatBase *source)
+{
+   CopyParameterValue<MassFlowScaleFactor>(source);
 }
 
 
@@ -649,7 +679,12 @@ void ThrustAngleConstraint::SetRvector(Rvector& val)
 //------------------------------------------------------------------------------
 GmatBase* ThrustAngleConstraint::Clone(void) const
 {
-   return new ThrustAngleConstraint(*this);
+   return CompleteParameterClone(new ThrustAngleConstraint(*this));
+}
+
+void ThrustAngleConstraint::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ThrustAngleConstraint>(source);
 }
 
 
@@ -750,7 +785,12 @@ void ThrustAngle1::SetRvector(const Rvector& val)
 //------------------------------------------------------------------------------
 GmatBase* ThrustAngle1::Clone(void) const
 {
-   return new ThrustAngle1(*this);
+   return CompleteParameterClone(new ThrustAngle1(*this));
+}
+
+void ThrustAngle1::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ThrustAngle1>(source);
 }
 
 
@@ -851,7 +891,12 @@ void ThrustAngle2::SetRvector(const Rvector& val)
 //------------------------------------------------------------------------------
 GmatBase* ThrustAngle2::Clone(void) const
 {
-   return new ThrustAngle2(*this);
+   return CompleteParameterClone(new ThrustAngle2(*this));
+}
+
+void ThrustAngle2::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ThrustAngle2>(source);
 }
 
 
@@ -945,7 +990,12 @@ void ThrustAngle1Sigma::SetRvector(Rvector& val)
 //------------------------------------------------------------------------------
 GmatBase* ThrustAngle1Sigma::Clone(void) const
 {
-   return new ThrustAngle1Sigma(*this);
+   return CompleteParameterClone(new ThrustAngle1Sigma(*this));
+}
+
+void ThrustAngle1Sigma::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ThrustAngle1Sigma>(source);
 }
 
 
@@ -1038,5 +1088,10 @@ void ThrustAngle2Sigma::SetRvector(Rvector& val)
 //------------------------------------------------------------------------------
 GmatBase* ThrustAngle2Sigma::Clone(void) const
 {
-   return new ThrustAngle2Sigma(*this);
+   return CompleteParameterClone(new ThrustAngle2Sigma(*this));
+}
+
+void ThrustAngle2Sigma::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ThrustAngle2Sigma>(source);
 }

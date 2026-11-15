@@ -40,6 +40,7 @@
  */
 
 
+#include <algorithm>
 #include "SPICEPropagator.hpp"
 
 #include <sstream>
@@ -53,6 +54,7 @@
 #include "FileUtil.hpp"
 #include "TransformUtil.hpp"
 #include "StringUtil.hpp"
+#include "SpiceInterface.hpp"
 
 //#define DEBUG_EXE
 
@@ -217,67 +219,71 @@ bool SPICEPropagator::PropObject::Initialize(const GmatEpoch toTime, double *par
       TLEReader reader(tleSource);
       tleSettings = reader.GetTLEData(tleName);
 
-      if (tleSettings.tleLines[1] == "")
+      if (!tleSettings.isOmm && tleSettings.tleLines[1] == "")
          throw PropagatorException("The spacecraft ID \"" + tleName +
                "\" was not found in the TLE file \"" + tleSource +
                "\" (Note: these identifiers are case sensitive).");
 
-      // Added checks to ensure the values in the TLE are valid
-      Real num;
-      GmatStringUtil::ToReal(tleSettings.tleLines[2].substr(8, 8), num);
-      if (tleSettings.tleLines[1].size() != 69 || tleSettings.tleLines[2].size() != 69)
+      if (!tleSettings.isOmm)
       {
-         throw PropagatorException("The number of characters in the data lines of the TLE " + tleSource + " does not match the TLE standard. The two data lines must each be exactly 69 characters in length");
-      }
-      if (num >= 180 || num < 0.0)
-      {
-         throw PropagatorException("The Inclination in a TLE must be between 0 and 180, but is " + GmatStringUtil::ToString(num));
-      }
-      GmatStringUtil::ToReal(tleSettings.tleLines[2].substr(17, 8), num);
-      if (num >= 360 || num < 0.0)
-      {
-         throw PropagatorException("The RAAN in a TLE must be between 0 and 360, but is " + GmatStringUtil::ToString(num));
-      }
-      GmatStringUtil::ToReal(tleSettings.tleLines[2].substr(26, 8), num);
-      if (num >= 9999999 || num < 0)
-      {
-         throw PropagatorException("The Eccentricity in a TLE must be between 0 and 1, but is " + GmatStringUtil::ToString(num/1000000));
-      }
-      GmatStringUtil::ToReal(tleSettings.tleLines[2].substr(34, 8), num);
-      if (num >= 360 || num < 0.0)
-      {
-         throw PropagatorException("The AOP in a TLE must be between 0 and 360, but is " + GmatStringUtil::ToString(num));
-      }
-      GmatStringUtil::ToReal(tleSettings.tleLines[2].substr(43, 8), num);
-      if (num >= 360 || num < 0.0)
-      {
-         throw PropagatorException("The MA in a TLE must be between 0 and 360, but is " + GmatStringUtil::ToString(num));
-      }
-      GmatStringUtil::ToReal(tleSettings.tleLines[2].substr(52, 11), num);
-      if (num >= 99 || num < 0.0)
-      {
-         throw PropagatorException("The mean motion value of " + GmatStringUtil::ToString(num) + " is not valid");
-      }
-
-      // Check the Checksums
-      for (Integer line = 1; line < 3; line++)
-      {
-         Integer sum = 0;
-         for (int i = 0; i < tleSettings.tleLines[line].length() - 1; i++)
+         // Added checks to ensure the values in the TLE are valid
+         Real num;
+         GmatStringUtil::ToReal(tleSettings.tleLines[2].substr(8, 8), num);
+         if (tleSettings.tleLines[1].size() != 69 || tleSettings.tleLines[2].size() != 69)
          {
-            num = 0;
-            GmatStringUtil::ToReal(tleSettings.tleLines[line].substr(i, 1), num);
-            sum += num;
-            if (tleSettings.tleLines[line].substr(i, 1) == "-")
+            throw PropagatorException("The number of characters in the data lines of the TLE " + tleSource + " does not match the TLE standard. The two data lines must each be exactly 69 characters in length");
+         }
+         if (num >= 180 || num < 0.0)
+         {
+            throw PropagatorException("The Inclination in a TLE must be between 0 and 180, but is " + GmatStringUtil::ToString(num));
+         }
+         GmatStringUtil::ToReal(tleSettings.tleLines[2].substr(17, 8), num);
+         if (num >= 360 || num < 0.0)
+         {
+            throw PropagatorException("The RAAN in a TLE must be between 0 and 360, but is " + GmatStringUtil::ToString(num));
+         }
+         GmatStringUtil::ToReal(tleSettings.tleLines[2].substr(26, 8), num);
+         if (num >= 9999999 || num < 0)
+         {
+            throw PropagatorException("The Eccentricity in a TLE must be between 0 and 1, but is " + GmatStringUtil::ToString(num/1000000));
+         }
+         GmatStringUtil::ToReal(tleSettings.tleLines[2].substr(34, 8), num);
+         if (num >= 360 || num < 0.0)
+         {
+            throw PropagatorException("The AOP in a TLE must be between 0 and 360, but is " + GmatStringUtil::ToString(num));
+         }
+         GmatStringUtil::ToReal(tleSettings.tleLines[2].substr(43, 8), num);
+         if (num >= 360 || num < 0.0)
+         {
+            throw PropagatorException("The MA in a TLE must be between 0 and 360, but is " + GmatStringUtil::ToString(num));
+         }
+         GmatStringUtil::ToReal(tleSettings.tleLines[2].substr(52, 11), num);
+         if (num >= 99 || num < 0.0)
+         {
+            throw PropagatorException("The mean motion value of " + GmatStringUtil::ToString(num) + " is not valid");
+         }
+
+         // Check the Checksums
+         for (Integer line = 1; line < 3; line++)
+         {
+            Integer sum = 0;
+            for (int i = 0; i < tleSettings.tleLines[line].length() - 1; i++)
             {
-               sum += 1;
+               num = 0;
+               GmatStringUtil::ToReal(tleSettings.tleLines[line].substr(i, 1), num);
+               sum += num;
+               if (tleSettings.tleLines[line].substr(i, 1) == "-")
+               {
+                  sum += 1;
+               }
+            }
+            GmatStringUtil::ToReal(tleSettings.tleLines[line].substr(68, 1), num);
+            if (Real(sum % 10) != num)
+            {
+               MessageInterface::ShowMessage("TLE WARNING: Checksum in line %i of TLE is %2.0f, but should be %2.0f\n",line, num, Real(sum % 10));
             }
          }
-         GmatStringUtil::ToReal(tleSettings.tleLines[line].substr(68, 1), num);
-         if (Real(sum % 10) != num)
-         {
-            MessageInterface::ShowMessage("TLE WARNING: Checksum in line %i of TLE is %2.0f, but should be %2.0f\n",line, num, Real(sum % 10));
-         }
+
       }
 
       reader.ParseForSpice(tleSettings);
@@ -910,6 +916,7 @@ bool SPICEPropagator::Initialize()
    kinfo_c (leapsecfile.c_str(), 256, 256, filtyp, source, &handle, &found);
    if (!found)
    {
+      SpiceInterface::NotifyKernelPoolChanged();
       furnsh_c(leapsecfile.c_str());
    }
 
@@ -1316,4 +1323,30 @@ bool SPICEPropagator::SyncEpochs(bool satSource)
    }
 
    return retval;
+}
+
+void SPICEPropagator::RebindClonedReferences(const Propagator &source, SolarSystem *system,
+      const std::function<GmatBase*(GmatBase*)> &resolve, bool bindObjects)
+{
+   const auto *original = dynamic_cast<const SPICEPropagator*>(&source);
+   if (!original) throw PropagatorException("Incompatible retained SPICEPropagator.");
+   ObjectArray objects;
+   StringArray names = bindObjects ? original->propObjectNames : propObjectNames;
+   const ObjectArray empty;
+   for (GmatBase *from : bindObjects ? original->propObjects : empty)
+   {
+      if (!from) throw PropagatorException("Null retained ephemeris propagation object.");
+      GmatBase *to = resolve(from);
+      if (!to || to->GetTypeName() != from->GetTypeName())
+         throw PropagatorException("Incompatible retained ephemeris propagation object.");
+      if (std::find(objects.begin(), objects.end(), to) != objects.end())
+         throw PropagatorException("Distinct ephemeris propagation entries map to one target.");
+      objects.push_back(to);
+      for (auto &name : names) if (name == from->GetName()) name = to->GetName();
+   }
+   Propagator::RebindClonedReferences(source, system, resolve, bindObjects);
+   propObjects.swap(objects);
+   propObjectNames.swap(names);
+   psm = NULL;
+   isInitialized = false;
 }

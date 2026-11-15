@@ -44,6 +44,8 @@ public:
    virtual ~CubicSplineInterpolator();
    CubicSplineInterpolator(const CubicSplineInterpolator &csi);
    CubicSplineInterpolator&    operator=(const CubicSplineInterpolator &csi);
+   void ValidateRestorationLayout(const CubicSplineInterpolator &source) const;
+   void RestoreValues(const CubicSplineInterpolator &source);
 
    virtual bool                Interpolate(const Real ind, Real *results);
 

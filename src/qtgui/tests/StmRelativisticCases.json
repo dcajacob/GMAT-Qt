@@ -1,0 +1,60 @@
+{
+  "mu": 132712440017.99,
+  "radius": 1000000.0,
+  "reference_radius": 1200000.0,
+  "duration_seconds": 600.0,
+  "matrix_block_tolerances": [
+    2e-08,
+    2e-06,
+    2e-11,
+    2e-08
+  ],
+  "position_tolerance_km": 2e-05,
+  "velocity_tolerance_km_s": 2e-08,
+  "status": "frozen-before-execution",
+  "cases": [
+    {
+      "key": "OffsetPrimaryRTN",
+      "primary": "Ref",
+      "origin": "Sun",
+      "x_axis": "R",
+      "singular": false
+    },
+    {
+      "key": "OffsetOriginRTN",
+      "primary": "Sun",
+      "origin": "Ref",
+      "x_axis": "R",
+      "singular": false
+    },
+    {
+      "key": "OffsetPrimaryVNB",
+      "primary": "Ref",
+      "origin": "Sun",
+      "x_axis": "V",
+      "singular": false
+    }
+  ],
+  "expected_reads": 45,
+  "providers": [
+    "original",
+    "clone",
+    "copy"
+  ],
+  "scope": "Sun-centered point-mass gravity with Schwarzschild and solar spin terms. Three owner-dependent frames and five STM parameter types across original/clone/copy routes. Independent post-Newtonian force integration and Cartesian frame differential.",
+  "coarse_step_seconds": 0.1,
+  "fine_step_seconds": 0.05,
+  "refinement_state_bounds": [
+    1e-08,
+    1e-11
+  ],
+  "refinement_matrix_block_bounds": [
+    1e-10,
+    1e-08,
+    1e-13,
+    1e-10
+  ],
+  "pose_intervals": 60,
+  "central_body_radius_km": 695990.0,
+  "speed_of_light_km_s": 299792.458
+}

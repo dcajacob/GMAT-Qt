@@ -1,0 +1,131 @@
+{
+  "cases": [
+    {
+      "key": "PointMassForce",
+      "setup": "Create PointMassForce Subject;\nSubject.BodyName = Mars;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create PointMassForce Subject"
+      ],
+      "filename": "Subject.PointMassForce.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyName",
+          "type": "Object",
+          "expected": "Mars"
+        }
+      ],
+      "expected_native_type": "PointMassForce",
+      "source_seed_type": "PointMassForce"
+    },
+    {
+      "key": "FiniteThrust",
+      "setup": "Create FiniteThrust Subject;\nSubject.BodyName = Mars;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create FiniteThrust Subject"
+      ],
+      "filename": "Subject.FiniteThrust.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyName",
+          "type": "Object",
+          "expected": "Mars"
+        }
+      ],
+      "expected_native_type": "FiniteThrust",
+      "source_seed_type": "FiniteThrust"
+    },
+    {
+      "key": "RelativisticCorrection",
+      "setup": "Create RelativisticCorrection Subject;\nSubject.BodyName = Mars;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create RelativisticCorrection Subject"
+      ],
+      "filename": "Subject.RelativisticCorrection.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyName",
+          "type": "Object",
+          "expected": "Mars"
+        }
+      ],
+      "expected_native_type": "RelativisticCorrection",
+      "source_seed_type": "RelativisticCorrection"
+    },
+    {
+      "key": "ExternalModel",
+      "setup": "Create ExternalModel Subject;\nSubject.BodyName = Mars;\nSubject.ExcludeOtherForces = true;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create ExternalModel Subject"
+      ],
+      "filename": "Subject.ExternalModel.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyName",
+          "type": "Object",
+          "expected": "Mars"
+        },
+        {
+          "object": "Subject",
+          "field": "ExcludeOtherForces",
+          "type": "Boolean",
+          "expected": true
+        }
+      ],
+      "expected_native_type": "ExternalModel",
+      "source_seed_type": "ExternalModel"
+    },
+    {
+      "key": "StopCondition",
+      "setup": "Create StopCondition Subject;\nSubject.Repeat = 4;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create StopCondition Subject"
+      ],
+      "filename": "Subject.StopCondition.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Repeat",
+          "type": "Integer",
+          "expected": 4
+        }
+      ],
+      "expected_native_type": "StopCondition",
+      "source_seed_type": "StopCondition"
+    }
+  ],
+  "scope": "Test legitimate nondefault named physical properties and the repaired Repeat setter round trip. Preserve earlier inputs and failures."
+}

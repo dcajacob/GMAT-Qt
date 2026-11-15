@@ -46,6 +46,24 @@
     sequence must contain at least one <guilabel>Vary</guilabel>
     command.</para>
 
+    <para>In the Qt parameter selector, enable <guilabel>Allow a numeric
+    control</guilabel> to enter a finite real number, including signed or
+    scientific notation. Reopening a numeric control preserves that selection.
+    A numeric control belongs to its Vary command; it does not create a named
+    Variable resource. Equal numbers in separate controls or numerical options
+    remain independent values. References to the same named Variable, array
+    element or parameter continue to refer to that shared resource.</para>
+
+    <para>Numerical option values are evaluated when they are used. The
+    multiplicative scale factor must be finite and positive; the additive
+    scale factor and applied physical control must be finite. Bounds and
+    unlimited step sizes may use infinity, while NaN is rejected. The initial
+    guess retains the usual bound clamping, including an infinite guess
+    clamped to a finite bound. A solver that uses the specified perturbation
+    requires a finite, nonzero scaled perturbation. Failed parameter
+    evaluations and unrepresentable physical control values stop the command
+    with an error.</para>
+
     <para><phrase role="ref_seealso">See Also</phrase>: <xref
     linkend="DifferentialCorrector"/>, <xref linkend="FminconOptimizer"/>,
     <xref linkend="VF13ad"/>, <xref linkend="Target"/>, <xref

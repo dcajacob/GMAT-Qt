@@ -1,0 +1,101 @@
+{
+  "mu": 398600.4418,
+  "radius": 7000.0,
+  "reference_radius": 8000.0,
+  "duration_seconds": 60.0,
+  "matrix_block_tolerances": [
+    2e-08,
+    2e-06,
+    2e-11,
+    2e-08
+  ],
+  "position_tolerance_km": 2e-05,
+  "velocity_tolerance_km_s": 2e-08,
+  "status": "frozen-before-execution",
+  "cases": [
+    {
+      "key": "OffsetPrimaryRTN",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "singular": false
+    },
+    {
+      "key": "OffsetOriginRTN",
+      "primary": "Earth",
+      "origin": "Ref",
+      "x_axis": "R",
+      "singular": false
+    },
+    {
+      "key": "OffsetPrimaryVNB",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "singular": false
+    }
+  ],
+  "expected_reads": 45,
+  "providers": [
+    "original",
+    "clone",
+    "copy"
+  ],
+  "scope": "Affine angular SPAD with Earth NadirPointing attitude. Full six-state independent variational flow and 45 frame reads.",
+  "coarse_step_seconds": 0.1,
+  "fine_step_seconds": 0.05,
+  "refinement_state_bounds": [
+    1e-08,
+    1e-11
+  ],
+  "refinement_matrix_block_bounds": [
+    1e-10,
+    1e-08,
+    1e-13,
+    1e-10
+  ],
+  "pose_intervals": 60,
+  "transverse_offset_km": 0.0,
+  "transverse_speed_km_s": 7.5,
+  "mass_kg": 1000.0,
+  "area_m2": 10000,
+  "cr": 1.7,
+  "flux_w_m2": 1367.0,
+  "nominal_sun_km": 149597870.691,
+  "sun_radius_km": 695990.0,
+  "earth_radius_km": 6378.1363,
+  "illumination_domain": "full_sun",
+  "frame_input_mode": "propagated_native_matrix",
+  "shape": "SPADFile",
+  "sunward": true,
+  "spad_body_area_m2": [
+    3000,
+    4000,
+    5000
+  ],
+  "spad_scale": 4,
+  "spad_azimuth_slope": [
+    6,
+    -3,
+    2
+  ],
+  "spad_elevation_slope": [
+    2,
+    4,
+    -5
+  ],
+  "interpolation": "Bilinear",
+  "attitude": "NadirPointing",
+  "attitude_reference_body": "Earth",
+  "attitude_constraint": "OrbitNormal",
+  "attitude_alignment": [
+    -1,
+    0,
+    0
+  ],
+  "attitude_body_constraint": [
+    0,
+    1,
+    0
+  ]
+}

@@ -45,6 +45,11 @@
 #include "StringUtil.hpp"        // for ToString()
 #include "MessageInterface.hpp"
 #include "StateConversionUtil.hpp"
+#include "OrbitStateConversion.hpp"
+#include "OrbitStmFrame.hpp"
+#include <algorithm>
+#include <cmath>
+#include <limits>
 
 
 //#define DEBUG_ORBITDATA_SET
@@ -64,6 +69,41 @@
 #define DEBUG_EQUINOCTIAL_RATES
 
 using namespace GmatMathUtil;
+
+namespace
+{
+// Match GetCartState's epoch selection for frame and origin operations.
+// A Real MJD cannot retain every GmatTime stamp.
+bool PreciseParameterEpoch(SpacePoint *owner, Spacecraft *spacecraft,
+                          GmatTime &epoch)
+{
+   Rvector6 sample;
+   if (Publisher::GetParameterCartesianState(owner, epoch, sample))
+      return true;
+   if (spacecraft && spacecraft->HasPrecisionTime())
+   {
+      epoch = spacecraft->GetEpochGT();
+      return true;
+   }
+   return false;
+}
+
+Rvector6 OriginStateAtParameterEpoch(SpacePoint *origin, SpacePoint *owner,
+                                    Spacecraft *spacecraft, Real legacyEpoch)
+{
+   GmatTime epoch;
+   return PreciseParameterEpoch(owner, spacecraft, epoch) ?
+      origin->GetMJ2000State(epoch) : origin->GetMJ2000State(legacyEpoch);
+}
+
+Rvector3 OriginPositionAtParameterEpoch(SpacePoint *origin, SpacePoint *owner,
+                                       Spacecraft *spacecraft, Real legacyEpoch)
+{
+   GmatTime epoch;
+   return PreciseParameterEpoch(owner, spacecraft, epoch) ?
+      origin->GetMJ2000Position(epoch) : origin->GetMJ2000Position(legacyEpoch);
+}
+}
 
 //---------------------------------
 // static data
@@ -170,6 +210,7 @@ OrbitData::OrbitData(const OrbitData &data)
    mInternalCS = data.mInternalCS;
    mParameterCS = data.mParameterCS;
    ode = data.ode;
+   mIsParamOriginDep = data.mIsParamOriginDep;
 
    firstTimeEpochWarning = data.firstTimeEpochWarning;
 }
@@ -205,6 +246,7 @@ OrbitData& OrbitData::operator= (const OrbitData &right)
    mInternalCS = right.mInternalCS;
    mParameterCS = right.mParameterCS;
    ode = right.ode;
+   mIsParamOriginDep = right.mIsParamOriginDep;
    
    stateTypeId = right.stateTypeId;
    
@@ -212,6 +254,29 @@ OrbitData& OrbitData::operator= (const OrbitData &right)
 
    return *this;
 }
+
+
+// Map cached identities without evaluating or initializing a Parameter.
+void OrbitData::RebindClonedParameterCaches(const RefData &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &data = ClonedParameterData<OrbitData>(source);
+   auto *bound_mSpacecraft = BindClonedParameterReference(data.mSpacecraft, resolve);
+   auto *bound_mSpacePoint = BindClonedParameterReference(data.mSpacePoint, resolve);
+   auto *bound_mSolarSystem = BindClonedParameterReference(data.mSolarSystem, resolve);
+   auto *bound_mOrigin = BindClonedParameterReference(data.mOrigin, resolve);
+   auto *bound_mInternalCS = BindClonedParameterReference(data.mInternalCS, resolve);
+   auto *bound_mParameterCS = BindClonedParameterReference(data.mParameterCS, resolve);
+   auto *bound_ode = BindClonedParameterReference(data.ode, resolve);
+   mSpacecraft = bound_mSpacecraft;
+   mSpacePoint = bound_mSpacePoint;
+   mSolarSystem = bound_mSolarSystem;
+   mOrigin = bound_mOrigin;
+   mInternalCS = bound_mInternalCS;
+   mParameterCS = bound_mParameterCS;
+   ode = bound_ode;
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -234,6 +299,119 @@ OrbitData::~OrbitData()
 //------------------------------------------------------------------------------
 void OrbitData::SetReal(Integer item, Real rval)
 {
+   if (item == RADEC_RMAG || item == SEMILATUS_RECTUM)
+   {
+      InitializeRefObjects();
+      if (mSpacecraft &&
+          mSpacecraft->GetStringParameter("OrbitParameterAccess") == "Worksheet")
+         throw ParameterException("RMAG and SemilatusRectum are read-only for Spacecraft '" +
+            mSpacecraft->GetName() + "' with OrbitParameterAccess = Worksheet.");
+   }
+   if (item == KEP_EA || item == KEP_MA || item == KEP_HA)
+   {
+      if (!std::isfinite(rval))
+         throw ParameterException("Anomaly assignment requires a finite angle in degrees");
+      InitializeRefObjects();
+      if (!mSpacecraft || !mIsParamSettable)
+         throw ParameterException("Anomaly assignment requires a writable spacecraft parameter");
+      if (!dynamic_cast<CelestialBody *>(mOrigin) ||
+            !std::isfinite(mGravConst) || mGravConst <= 0.0)
+         throw ParameterException("Anomaly assignment requires a celestial-body origin with positive finite Mu");
+
+      // Always edit the parameter's state. Dispatching to the spacecraft's
+      // displayed EA/MA/HA field would instead use its display frame/origin.
+      const Rvector6 cartesian = mIsParamOriginDep ?
+            GetRelativeCartState(mOrigin) : GetCartState();
+      Rvector6 elements = StateConversionUtil::Convert(cartesian,
+            "Cartesian", "Keplerian", mGravConst, mFlattening, mEqRadius);
+      const std::string anomaly = item == KEP_EA ? "EA" : item == KEP_MA ? "MA" : "HA";
+      if ((item == KEP_EA && elements[1] >= 1.0) ||
+            (item == KEP_HA && elements[1] <= 1.0))
+         throw ParameterException(anomaly + " assignment is not defined for this conic");
+      elements[5] = rval;
+      const Rvector6 proposed = StateConversionUtil::Convert(elements,
+            "Keplerian", "Cartesian", mGravConst, mFlattening, mEqRadius, anomaly);
+      Rvector6 internal;
+      if (mIsParamOriginDep)
+         internal = proposed + OriginStateAtParameterEpoch(mOrigin, mSpacePoint, mSpacecraft, mCartEpoch);
+      else
+      {
+         GmatTime epoch;
+         if (PreciseParameterEpoch(mSpacePoint, mSpacecraft, epoch))
+            mCoordConverter.Convert(epoch, proposed, mParameterCS,
+                  internal, mInternalCS, false);
+         else
+            mCoordConverter.Convert(A1Mjd(mCartEpoch), proposed, mParameterCS,
+                  internal, mInternalCS, false);
+
+         if (item == KEP_HA)
+         {
+            // A rotating frame can encode a small physical velocity as the
+            // difference of large stored components. Select the closest local
+            // Cartesian velocity image among neighboring representable values.
+            // Resolve radial velocity and angular momentum separately: far from
+            // periapsis, a tiny transverse velocity still determines the conic.
+            const long double rx = proposed[0], ry = proposed[1], rz = proposed[2];
+            const long double vx = proposed[3], vy = proposed[4], vz = proposed[5];
+            const long double hx = ry*vz-rz*vy, hy = rz*vx-rx*vz, hz = rx*vy-ry*vx;
+            const long double momentumScale = hx*hx+hy*hy+hz*hz;
+            const long double radialScale = (rx*rx+ry*ry+rz*rz)*(vx*vx+vy*vy+vz*vz);
+            auto velocityError = [&](const Rvector6 &candidate, long double *cartesianError = nullptr)
+            {
+               Rvector6 recovered;
+               if (PreciseParameterEpoch(mSpacePoint, mSpacecraft, epoch))
+                  mCoordConverter.Convert(epoch, candidate, mInternalCS,
+                        recovered, mParameterCS, false);
+               else
+                  mCoordConverter.Convert(A1Mjd(mCartEpoch), candidate, mInternalCS,
+                        recovered, mParameterCS, false);
+               const long double dx = static_cast<long double>(recovered[3])-vx;
+               const long double dy = static_cast<long double>(recovered[4])-vy;
+               const long double dz = static_cast<long double>(recovered[5])-vz;
+               if (cartesianError) *cartesianError = dx*dx+dy*dy+dz*dz;
+               const long double dhx = ry*dz-rz*dy, dhy = rz*dx-rx*dz, dhz = rx*dy-ry*dx;
+               const long double radial = rx*dx+ry*dy+rz*dz;
+               return (dhx*dhx+dhy*dhy+dhz*dhz)/momentumScale+radial*radial/radialScale;
+            };
+            long double cartesianError = 0.0L;
+            long double bestError = velocityError(internal, &cartesianError);
+            const Real velocityScale = std::max(1.0, Rvector3(proposed[3], proposed[4], proposed[5]).GetMagnitude());
+            const Real roundingScale = 8.0*std::numeric_limits<Real>::epsilon()*velocityScale;
+            if (cartesianError > roundingScale*roundingScale &&
+                  momentumScale > 0.0L && radialScale > 0.0L)
+            {
+               const Rvector6 seed = internal;
+               Real neighbors[3][3];
+               for (Integer i = 0; i < 3; ++i)
+               {
+                  neighbors[i][0] = std::nextafter(seed[i+3], -std::numeric_limits<Real>::infinity());
+                  neighbors[i][1] = seed[i+3];
+                  neighbors[i][2] = std::nextafter(seed[i+3], std::numeric_limits<Real>::infinity());
+               }
+               for (Integer x = 0; x < 3; ++x)
+                  for (Integer y = 0; y < 3; ++y)
+                     for (Integer z = 0; z < 3; ++z)
+                     {
+                        if (x == 1 && y == 1 && z == 1) continue;
+                        Rvector6 candidate = seed;
+                        candidate[3] = neighbors[0][x];
+                        candidate[4] = neighbors[1][y];
+                        candidate[5] = neighbors[2][z];
+                        if (!std::isfinite(candidate[3]) || !std::isfinite(candidate[4]) || !std::isfinite(candidate[5])) continue;
+                        const long double error = velocityError(candidate);
+                        if (error < bestError) { internal = candidate; bestError = error; }
+                     }
+            }
+         }
+      }
+      for (Integer index = 0; index < 6; ++index)
+         if (!std::isfinite(internal[index]))
+            throw ParameterException("Anomaly assignment produced a nonfinite Cartesian state");
+      // Conversion and validation finish before the sole spacecraft mutation.
+      mSpacecraft->SetState(internal);
+      return;
+   }
+
    if (item == KEP_RADN)
    {
       item = KEP_RAAN;
@@ -401,7 +579,7 @@ void OrbitData::SetReal(Integer item, Real rval)
    if (convertOriginBeforeSet)
    {
       Rvector6 cartStateInParamOrigin = GetCartStateInParameterOrigin(item, rval);
-      Rvector6 cartStateInternal = cartStateInParamOrigin + mOrigin->GetMJ2000State(mCartEpoch);
+      Rvector6 cartStateInternal = cartStateInParamOrigin + OriginStateAtParameterEpoch(mOrigin, mSpacePoint, mSpacecraft, mCartEpoch);
       
       #ifdef DEBUG_ORBITDATA_SET
       MessageInterface::ShowMessage
@@ -422,7 +600,6 @@ void OrbitData::SetReal(Integer item, Real rval)
    else if (convertCSBeforeSet)
    {
       Rvector6 cartStateInParamCS = GetCartStateInParameterCS(item, rval);
-      Real currEpoch = mSpacePoint->GetEpoch();
       Rvector6 cartStateNew;
       
       #ifdef DEBUG_ORBITDATA_SET
@@ -431,8 +608,13 @@ void OrbitData::SetReal(Integer item, Real rval)
       #endif
       
       // Convert to internal CS
-      mCoordConverter.Convert(A1Mjd(currEpoch), cartStateInParamCS, mParameterCS,
-                              cartStateNew, mInternalCS, false);
+      GmatTime epoch;
+      if (PreciseParameterEpoch(mSpacePoint, mSpacecraft, epoch))
+         mCoordConverter.Convert(epoch, cartStateInParamCS, mParameterCS,
+                                 cartStateNew, mInternalCS, false);
+      else
+         mCoordConverter.Convert(A1Mjd(mCartEpoch), cartStateInParamCS, mParameterCS,
+                                 cartStateNew, mInternalCS, false);
       
       #ifdef DEBUG_ORBITDATA_SET
       MessageInterface::ShowMessage
@@ -704,8 +886,19 @@ Rvector6 OrbitData::GetCartState()
                   mInternalCS->GetName().c_str(),
                   mParameterCS->GetName().c_str());
          #endif
-         mCoordConverter.Convert(A1Mjd(mCartEpoch), lastCartState, mInternalCS,
-                                 lastCartState, mParameterCS, true, localState);
+         // Frame rotations must use the epoch belonging to this state. Keep
+         // a publication sample's precise stamp, or the live spacecraft's
+         // GmatTime, instead of first rounding either through mCartEpoch.
+         if (publishedSample)
+            mCoordConverter.Convert(sampleEpoch, lastCartState, mInternalCS,
+                                    lastCartState, mParameterCS, true, localState);
+         else if (mSpacecraft && mSpacecraft->HasPrecisionTime())
+            mCoordConverter.Convert(mSpacecraft->GetEpochGT(), lastCartState,
+                                    mInternalCS, lastCartState, mParameterCS,
+                                    true, localState);
+         else
+            mCoordConverter.Convert(A1Mjd(mCartEpoch), lastCartState, mInternalCS,
+                                    lastCartState, mParameterCS, true, localState);
          #ifdef DEBUG_ORBITDATA_CONVERT
             MessageInterface::ShowMessage
                ("   GetCartState() --> After convert: mCartEpoch=%f\n"
@@ -1103,6 +1296,17 @@ Rvector6 OrbitData::GetOutAsymState()
 
 // Modified by YK
 //------------------------------------------------------------------------------
+Rvector6 OrbitData::ConvertBrouwerState(const Rvector6 &state,
+      const std::string &from, const std::string &to)
+{
+   GmatTime epoch;
+   if (PreciseParameterEpoch(mSpacePoint, mSpacecraft, epoch))
+      return OrbitStateConversion::Convert(epoch, state, from, to, mParameterCS,
+            mGravConst, mFlattening, mEqRadius);
+   return OrbitStateConversion::Convert(A1Mjd(mCartEpoch), state, from, to, mParameterCS,
+         mGravConst, mFlattening, mEqRadius);
+}
+
 // Rvector6 OrbitData::GetBLshortState()
 //------------------------------------------------------------------------------
 Rvector6 OrbitData::GetBLshortState()
@@ -1124,8 +1328,7 @@ Rvector6 OrbitData::GetBLshortState()
        "mFlattening=%f, mEqRadius=%f\n", mGravConst, mFlattening, mEqRadius);
    #endif
    
-   Rvector6 blShortState = StateConversionUtil::Convert(state, "Cartesian", "BrouwerMeanShort",
-                                                        mGravConst, mFlattening, mEqRadius);
+   Rvector6 blShortState = ConvertBrouwerState(state, "Cartesian", "BrouwerMeanShort");
    
    #ifdef DEBUG_BROUWER_SHORT
    MessageInterface::ShowMessage
@@ -1150,8 +1353,7 @@ Rvector6 OrbitData::GetBLlongState()
    
    // Call GetCartState() to convert to parameter coord system first
    Rvector6 state = GetCartState();
-   Rvector6 blLongState = StateConversionUtil::Convert(state, "Cartesian", "BrouwerMeanLong",
-                                                       mGravConst, mFlattening, mEqRadius);
+   Rvector6 blLongState = ConvertBrouwerState(state, "Cartesian", "BrouwerMeanLong");
    
    #ifdef DEBUG_BROUWER_LONG
    MessageInterface::ShowMessage
@@ -1201,7 +1403,7 @@ Real OrbitData::GetKepReal(Integer item)
 
    if (mIsParamOriginDep && mOrigin->GetName() != "Earth")
    {
-      state = state - mOrigin->GetMJ2000State(mCartEpoch);
+      state = state - OriginStateAtParameterEpoch(mOrigin, mSpacePoint, mSpacecraft, mCartEpoch);
    }
    
    Rvector3 pos(state[0], state[1], state[2]);
@@ -1236,6 +1438,11 @@ Real OrbitData::GetKepReal(Integer item)
       #ifdef DEBUG_HA
       MessageInterface::ShowMessage("In OrbitData, computing HA -------\n");
       #endif
+      if (!dynamic_cast<CelestialBody *>(mOrigin) || !std::isfinite(mGravConst) || mGravConst <= 0.0)
+         throw ParameterException("HA requires a celestial-body origin with positive finite Mu");
+      const Real eccentricity = StateConversionUtil::CartesianToECC(mGravConst, pos, vel);
+      if (!std::isfinite(eccentricity) || eccentricity <= 1.0)
+         throw ParameterException("HA is defined only for a hyperbolic orbit (eccentricity greater than one)");
       return StateConversionUtil::CartesianToHA(mGravConst, pos, vel);
    }
    case KEP_RAAN:
@@ -1272,7 +1479,17 @@ Real OrbitData::GetModKepReal(Integer item)
    
    if (mIsParamOriginDep && mOrigin->GetName() != "Earth")
    {
-      state = state - mOrigin->GetMJ2000State(mCartEpoch);
+      // Avoid subtracting two distant positions when a valid local input is
+      // available. An active publication sample must still win over live state.
+      GmatTime sampleEpoch;
+      Rvector6 sampleState;
+      const bool published = Publisher::GetParameterCartesianState(
+         mSpacePoint, sampleEpoch, sampleState);
+      const bool localState = !published && mSpacecraft &&
+         mInternalCS == mSpacecraft->GetInternalCoordSystem() &&
+         mSpacecraft->GetOriginRelativeState(mOrigin, mSpacecraft->GetEpochGT(), state);
+      if (!localState)
+         state -= OriginStateAtParameterEpoch(mOrigin, mSpacePoint, mSpacecraft, mCartEpoch);
    }
    
    #ifdef DEBUG_ORBITDATA_RUN
@@ -1313,7 +1530,7 @@ Real OrbitData::GetOtherKepReal(Integer item)
    
    if (mIsParamOriginDep && mOrigin->GetName() != "Earth")
    {
-      state = state - mOrigin->GetMJ2000State(mCartEpoch);
+      state = state - OriginStateAtParameterEpoch(mOrigin, mSpacePoint, mSpacecraft, mCartEpoch);
    }
    
    return GmatCalcUtil::CalculateKeplerianData(VALID_OTHER_ORBIT_PARAM_NAMES[item-MM], state, mGravConst);
@@ -1468,9 +1685,11 @@ Real OrbitData::GetOtherAngleReal(Integer item)
    else
       state = GetCartState();
    // compute sun unit vector from the origin
-   Rvector3 sunPos = (mSolarSystem->GetBody(GmatSolarSystemDefaults::SUN_NAME))->
-      GetMJ2000Position(mCartEpoch);
-   Rvector3 originPos = mOrigin->GetMJ2000Position(mCartEpoch);
+   Rvector3 sunPos = OriginPositionAtParameterEpoch(
+      mSolarSystem->GetBody(GmatSolarSystemDefaults::SUN_NAME),
+      mSpacePoint, mSpacecraft, mCartEpoch);
+   Rvector3 originPos = OriginPositionAtParameterEpoch(
+      mOrigin, mSpacePoint, mSpacecraft, mCartEpoch);
    Rvector3 originToSun = sunPos - originPos;
    originToSun.Normalize();
 
@@ -1496,7 +1715,7 @@ Real OrbitData::GetEquinReal(Integer item)
 
    if (mIsParamOriginDep && mOrigin->GetName() != "Earth")
    {
-      state = state - mOrigin->GetMJ2000State(mCartEpoch);
+      state = state - OriginStateAtParameterEpoch(mOrigin, mSpacePoint, mSpacecraft, mCartEpoch);
    }
    
    Rvector3 pos(state[0], state[1], state[2]);
@@ -1558,7 +1777,7 @@ Real OrbitData::GetModEquinReal(Integer item)
 
    if (mIsParamOriginDep && mOrigin->GetName() != "Earth")
    {
-      state = state - mOrigin->GetMJ2000State(mCartEpoch);
+      state = state - OriginStateAtParameterEpoch(mOrigin, mSpacePoint, mSpacecraft, mCartEpoch);
    }
    
    Rvector3 pos(state[0], state[1], state[2]);
@@ -1607,7 +1826,7 @@ Real OrbitData::GetAltEquinReal(Integer item)
    
    if (mIsParamOriginDep && mOrigin->GetName() != "Earth")
    {
-      state = state - mOrigin->GetMJ2000State(mCartEpoch);
+      state = state - OriginStateAtParameterEpoch(mOrigin, mSpacePoint, mSpacecraft, mCartEpoch);
    }
    
    Rvector3 pos(state[0], state[1], state[2]);
@@ -1660,7 +1879,7 @@ Real OrbitData::GetDelaReal(Integer item)
 
    if (mIsParamOriginDep && mOrigin->GetName() != "Earth")
    {
-      state = state - mOrigin->GetMJ2000State(mCartEpoch);
+      state = state - OriginStateAtParameterEpoch(mOrigin, mSpacePoint, mSpacecraft, mCartEpoch);
    }
    
    Rvector3 pos(state[0], state[1], state[2]);
@@ -1749,7 +1968,7 @@ Real OrbitData::GetIncAsymReal(Integer item)
    
    if (mIsParamOriginDep && mOrigin->GetName() != "Earth")
    {
-      state = state - mOrigin->GetMJ2000State(mCartEpoch);
+      state = state - OriginStateAtParameterEpoch(mOrigin, mSpacePoint, mSpacecraft, mCartEpoch);
    }
    
    #ifdef DEBUG_ORBITDATA_RUN
@@ -1808,7 +2027,7 @@ Real OrbitData::GetOutAsymReal(Integer item)
    
    if (mIsParamOriginDep && mOrigin->GetName() != "Earth")
    {
-      state = state - mOrigin->GetMJ2000State(mCartEpoch);
+      state = state - OriginStateAtParameterEpoch(mOrigin, mSpacePoint, mSpacecraft, mCartEpoch);
    }
    
    Rvector3 pos(state[0], state[1], state[2]);
@@ -1867,7 +2086,7 @@ Real OrbitData::GetBLshortReal(Integer item)
 
    if (mIsParamOriginDep && mOrigin->GetName() != "Earth")
    {
-      state = state - mOrigin->GetMJ2000State(mCartEpoch);
+      state = state - OriginStateAtParameterEpoch(mOrigin, mSpacePoint, mSpacecraft, mCartEpoch);
    }
    
    Rvector3 pos(state[0], state[1], state[2]);
@@ -1915,7 +2134,7 @@ Real OrbitData::GetBLlongReal(Integer item)
 
    if (mIsParamOriginDep && mOrigin->GetName() != "Earth")
    {
-      state = state - mOrigin->GetMJ2000State(mCartEpoch);
+      state = state - OriginStateAtParameterEpoch(mOrigin, mSpacePoint, mSpacecraft, mCartEpoch);
    }
    
    Rvector3 pos(state[0], state[1], state[2]);
@@ -1968,7 +2187,8 @@ const Rmatrix66& OrbitData::GetStmRmat66(Integer item)
    {
    case ORBIT_STM:
       {
-         Rmatrix fullSTM(mSpacecraft->GetRmatrixParameter("OrbitSTM"));
+         Rmatrix fullSTM(OrbitStmFrame::Convert(mSpacecraft, mInternalCS, mParameterCS,
+               mSpacecraft->GetRmatrixParameter("OrbitSTM")));
 
          #ifdef DEBUG_FULL_STM
             MessageInterface::ShowMessage("Full Spacecraft STM:\n%s\n",
@@ -2007,7 +2227,7 @@ const Rmatrix33& OrbitData::GetStmRmat33(Integer item)
    if (mSpacecraft == NULL)
       InitializeRefObjects();
    
-   Rmatrix fullSTM(mSpacecraft->GetRmatrixParameter("OrbitSTM"));
+   Rmatrix fullSTM(GetStmRmat66(ORBIT_STM));
    
    switch (item)
    {
@@ -2267,8 +2487,15 @@ const Rmatrix66& OrbitData::GetCovarianceRmat66()
                   mParameterCS->GetName().c_str());
       #endif
 
-         mCoordConverter.Convert(A1Mjd(mCartEpoch), lastCartState, mInternalCS,
-            lastCartState, mParameterCS, true);
+         // Covariance and this Cartesian state are live spacecraft data.
+         // Preserve their live precise epoch, independently of any sampled
+         // report Cartesian override. The covariance rotation is unchanged.
+         if (mSpacecraft->HasPrecisionTime())
+            mCoordConverter.Convert(mSpacecraft->GetEpochGT(), lastCartState,
+               mInternalCS, lastCartState, mParameterCS, true);
+         else
+            mCoordConverter.Convert(A1Mjd(mCartEpoch), lastCartState, mInternalCS,
+               lastCartState, mParameterCS, true);
 
       #ifdef DEBUG_FULL_COVARIANCE
                MessageInterface::ShowMessage
@@ -2580,7 +2807,8 @@ void OrbitData::InitializeRefObjects()
          ("Cannot find Spacepoint: " + GetRefObjectName(Gmat::SPACE_POINT));
    }
    
-   if ((mParamOwnerType == Gmat::SPACECRAFT) || (mSpacePoint->IsOfType("Spacecraft")))
+   mSpacecraft = NULL;
+   if (mSpacePoint->IsOfType("Spacecraft"))
    {
       mSpacecraft = (Spacecraft*)mSpacePoint;
       if (stateTypeId == -1)
@@ -2642,19 +2870,6 @@ void OrbitData::InitializeRefObjects()
          throw InvalidDependencyException
             (" is a central body dependent parameter.");
       
-      // override gravity constant if origin is CelestialBody
-      if (mOrigin->IsOfType(Gmat::CELESTIAL_BODY))
-      {
-         mGravConst  = ((CelestialBody*)mOrigin)->GetGravitationalConstant();
-         mFlattening = ((CelestialBody*)mOrigin)->GetFlattening();
-         mEqRadius   = ((CelestialBody*)mOrigin)->GetEquatorialRadius();
-         #ifdef DEBUG_ORBITDATA_INIT
-         MessageInterface::ShowMessage
-            ("OrbitData::InitializeRefObjects() Setting grav constant to %le (for origin %s)\n",
-                  mGravConst, (mOrigin->GetName()).c_str());
-         #endif
-      }
-      
       mIsParamOriginDep = true;
    }
    //-----------------------------------------------------------------
@@ -2701,19 +2916,18 @@ void OrbitData::InitializeRefObjects()
                 mParameterCS->GetOriginName() + "\" is NULL");
       }
       
-      // get gravity constant if out coord system origin is CelestialBody
-      if (mOrigin->IsOfType(Gmat::CELESTIAL_BODY))
-      {
-         mGravConst  = ((CelestialBody*)mOrigin)->GetGravitationalConstant();
-         mFlattening = ((CelestialBody*)mOrigin)->GetFlattening();
-         mEqRadius   = ((CelestialBody*)mOrigin)->GetEquatorialRadius();
-      }
-      #ifdef DEBUG_ORBITDATA_INIT
-      MessageInterface::ShowMessage
-         ("OrbitData::InitializeRefObjects() Now setting grav constant to %le (for origin %s)\n",
-               mGravConst, (mOrigin->GetName()).c_str());
-      #endif
    }
+
+   // Both dependency routes use the newly resolved origin. A calculated point
+   // has no body constants; reinitialization must not retain the prior body's
+   // gravity or shape in an otherwise valid Cartesian/spherical parameter.
+   CelestialBody *body = dynamic_cast<CelestialBody*>(mOrigin);
+   const Real gravConst = body ? body->GetGravitationalConstant() : 0.0;
+   const Real flattening = body ? body->GetFlattening() : 0.0;
+   const Real eqRadius = body ? body->GetEquatorialRadius() : 0.0;
+   mGravConst = gravConst;
+   mFlattening = flattening;
+   mEqRadius = eqRadius;
    
    #ifdef DEBUG_ORBITDATA_INIT
    MessageInterface::ShowMessage
@@ -2796,7 +3010,7 @@ Real OrbitData::GetPositionMagnitude(SpacePoint *origin)
    Rvector3 scPos = Rvector3(scState[0], scState[1], scState[2]);
 
    // get origin position
-   Rvector6 originState = origin->GetMJ2000State(mCartEpoch);
+   Rvector6 originState = OriginStateAtParameterEpoch(origin, mSpacePoint, mSpacecraft, mCartEpoch);
    Rvector3 originPos = Rvector3(originState[0], originState[1], originState[2]);
 
    // get relative position magnitude
@@ -2830,7 +3044,7 @@ Rvector6 OrbitData::GetRelativeCartState(SpacePoint *origin)
    Rvector6 scState = GetCartState();
    
    // get origin state
-   Rvector6 originState = origin->GetMJ2000State(mCartEpoch);
+   Rvector6 originState = OriginStateAtParameterEpoch(origin, mSpacePoint, mSpacecraft, mCartEpoch);
    
    // Relative state
    Rvector6 relState = scState - originState;
@@ -2875,7 +3089,7 @@ Rvector6 OrbitData::GetCartStateInParameterCS(Integer item, Real rval)
    MessageInterface::ShowMessage
       ("   cartStateInParamCS = \n   %s\n", cartStateInParamCS.ToString().c_str());
    MessageInterface::ShowMessage
-      ("   paramCsOriginState = \n   %s\n", mOrigin->GetMJ2000State(mCartEpoch).ToString().c_str());
+      ("   paramCsOriginState = \n   %s\n", OriginStateAtParameterEpoch(mOrigin, mSpacePoint, mSpacecraft, mCartEpoch).ToString().c_str());
    #endif
    
    if (item >= CART_X && item <= CART_VZ)
@@ -3052,12 +3266,10 @@ Rvector6 OrbitData::GetCartStateInParameterCS(Integer item, Real rval)
          ("   Converting to BrouwerMeanShort for items: BLS_SMA .. BLS_MA\n");
       #endif
       stateInParamCS =
-         StateConversionUtil::Convert(cartStateInParamCS, "Cartesian", "BrouwerMeanShort",
-                                      mGravConst, mFlattening, mEqRadius);
+         ConvertBrouwerState(cartStateInParamCS, "Cartesian", "BrouwerMeanShort");
       stateInParamCS[item - OutAsymCount] = rval;
       cartStateInParamCS =
-         StateConversionUtil::Convert(stateInParamCS, "BrouwerMeanShort", "Cartesian",
-                                      mGravConst, mFlattening, mEqRadius);
+         ConvertBrouwerState(stateInParamCS, "BrouwerMeanShort", "Cartesian");
    }
    else if (item >= BLL_SMA && item <= BLL_MA )
    {
@@ -3066,12 +3278,10 @@ Rvector6 OrbitData::GetCartStateInParameterCS(Integer item, Real rval)
          ("   Converting to BrouwerMeanLong for items: BLL_SMA .. BLL_MA\n");
       #endif
       stateInParamCS =
-         StateConversionUtil::Convert(cartStateInParamCS, "Cartesian", "BrouwerMeanLong",
-                                      mGravConst, mFlattening, mEqRadius);
+         ConvertBrouwerState(cartStateInParamCS, "Cartesian", "BrouwerMeanLong");
       stateInParamCS[item - BrouwerShortCount] = rval;
       cartStateInParamCS =
-         StateConversionUtil::Convert(stateInParamCS, "BrouwerMeanLong", "Cartesian",
-                                      mGravConst, mFlattening, mEqRadius);
+         ConvertBrouwerState(stateInParamCS, "BrouwerMeanLong", "Cartesian");
    }
    else
    {

@@ -50,6 +50,8 @@ public:
    CoordinateConverter(const CoordinateConverter &coordCvt);
    // operator = 
    const CoordinateConverter& operator=(const CoordinateConverter &coordCvt);
+   // Exchange a complete cache value without allocating or recomputing it.
+   void Swap(CoordinateConverter &other) noexcept;
    // destructor
    virtual ~CoordinateConverter();
    

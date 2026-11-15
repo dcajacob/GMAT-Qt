@@ -158,7 +158,10 @@ TcopsVHFData::~TcopsVHFData()
  */
 //------------------------------------------------------------------------------
 TcopsVHFData::TcopsVHFData(const TcopsVHFData& vhf) :
-   FileReader        (vhf)
+   FileReader        (vhf),
+   origin            (vhf.origin),
+   csSuffix          (vhf.csSuffix),
+   timeSystem        (vhf.timeSystem)
 {
 }
 
@@ -175,9 +178,12 @@ TcopsVHFData::TcopsVHFData(const TcopsVHFData& vhf) :
 //------------------------------------------------------------------------------
 TcopsVHFData& TcopsVHFData::operator=(const TcopsVHFData& vhf)
 {
-   if (this == &vhf)
+   if (this != &vhf)
    {
       FileReader::operator=(vhf);
+      origin = vhf.origin;
+      csSuffix = vhf.csSuffix;
+      timeSystem = vhf.timeSystem;
    }
 
    return *this;

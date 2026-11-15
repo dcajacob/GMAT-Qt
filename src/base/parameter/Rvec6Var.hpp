@@ -59,6 +59,7 @@ public:
    virtual void         SetRvector6(const Rvector6 &val);
    virtual const        Rvector6& EvaluateRvector6();
    virtual const        Rvector& EvaluateRvector();
+   void SetRvector(const Rvector &value) override;
 
    virtual Integer      GetParameterID(const std::string &str) const;
    virtual std::string  GetParameterText(const Integer id) const;

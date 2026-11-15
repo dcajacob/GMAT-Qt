@@ -260,7 +260,7 @@ GmatCoordinate::ParameterUsage TOEEqAxes::UsesItrfFile() const
 GmatCoordinate::ParameterUsage TOEEqAxes::UsesNutationUpdateInterval() const
 {
    //if (originName == SolarSystem::EARTH_NAME) 
-   if (originName == GmatSolarSystemDefaults::EARTH_NAME)
+   if (GetOriginPhysicalName() == GmatSolarSystemDefaults::EARTH_NAME)
       return GmatCoordinate::REQUIRED;
    return InertialAxes::UsesNutationUpdateInterval();
 }

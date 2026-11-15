@@ -1,0 +1,2796 @@
+{
+  "schema_version": 1,
+  "scope": "Only missing post-reload derived-field consumers; no complete FRC!E132 credit.",
+  "original_driver_sha256": "892449b3f82c59bf6e94d01ef9449492aa5c3ceee9dcac3af0538afce7a19c9f",
+  "readonly_review": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-readonly/readonly-comparisons-v1.json",
+  "readonly_review_sha256": "015fb8a499251a01ab6fddf1746ca1e119ef08c7c8ecfac181504b76c5caedcf",
+  "cases": [
+    {
+      "definitions": [
+        "Create Formation Subject;",
+        "Create Spacecraft Anchor;",
+        "Create Spacecraft Other;",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_Anchor_Other_ReloadAlive.data",
+      "key": "AncillaryFormation",
+      "objects": [
+        "Subject",
+        "Anchor",
+        "Other",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "Anchor",
+        "Other",
+        "ReloadAlive"
+      ],
+      "setup": "Create Spacecraft Anchor;\nAnchor.NAIFId = -101031;\nAnchor.NAIFIdReferenceFrame = -910031;\nCreate Spacecraft Other;\nOther.NAIFId = -101032;\nOther.NAIFIdReferenceFrame = -910032;\nAnchor.DryMass = 833.25;\nOther.DryMass = 941.5;\nCreate Formation Subject;\nSubject.Add = {Anchor,Other};\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": [
+            "Anchor",
+            "Other"
+          ],
+          "field": "Add",
+          "object": "Subject",
+          "type": "ObjectArray"
+        },
+        {
+          "expected": 833.25,
+          "field": "DryMass",
+          "object": "Anchor",
+          "type": "Real"
+        },
+        {
+          "expected": 941.5,
+          "field": "DryMass",
+          "object": "Other",
+          "type": "Real"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Formation",
+          "field": "A1Epoch",
+          "type": "Real"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-ancillary-repairs-unattended-v2/QtGui.NasaSaveAncillaryFormation/case.json",
+      "original_case_sha256": "5a961302e7a0061571d0155a10377756689321c0419eddde56cfb9f2df77e762",
+      "original_test": "QtGui.NasaSaveAncillaryFormation"
+    },
+    {
+      "definitions": [
+        "Create ThrustHistoryFile Subject;",
+        "Create ThrustSegment Segment;",
+        "Create ChemicalTank Fuel;",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_Segment_Fuel_ReloadAlive.data",
+      "fixture_files": {
+        "history.thf": "BeginThrust {Segment}\nStart_Epoch = 01 Jan 2000 12:00:00.000\nThrust_Vector_Coordinate_System = EarthMJ2000Eq\nThrust_Vector_Interpolation_Method = None\nMass_Flow_Rate_Interpolation_Method = None\nModelAccelAndMassRate\n0.0 0.1 0 0 0.5\n120.0 0.1 0 0 0.5\nEndThrust {Segment}\n"
+      },
+      "key": "AncillaryThrustHistoryFile",
+      "objects": [
+        "Subject",
+        "Segment",
+        "Fuel",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "Segment",
+        "Fuel",
+        "ReloadAlive"
+      ],
+      "setup": "Create ChemicalTank Fuel;\nFuel.FuelMass = 100;\nCreate ThrustSegment Segment;\nSegment.MassSource = {Fuel};\nSegment.ThrustScaleFactor = 1.25;\nCreate ThrustHistoryFile Subject;\nSubject.FileName = '@FILES@/history.thf';\nSubject.AddThrustSegment = {Segment};\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": "@FILES@/history.thf",
+          "field": "FileName",
+          "object": "Subject",
+          "type": "Filename"
+        },
+        {
+          "expected": [
+            "Segment"
+          ],
+          "field": "AddThrustSegment",
+          "object": "Subject",
+          "type": "StringArray"
+        },
+        {
+          "expected": 1.25,
+          "field": "ThrustScaleFactor",
+          "object": "Segment",
+          "type": "Real"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Segment",
+          "owned_indices": [],
+          "native_type": "ThrustSegment",
+          "field": "StartEpoch",
+          "type": "Real"
+        },
+        {
+          "object": "Segment",
+          "owned_indices": [],
+          "native_type": "ThrustSegment",
+          "field": "EndEpoch",
+          "type": "Real"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-ancillary-pilots-unattended-v1/QtGui.NasaSaveAncillaryThrustHistoryFile/case.json",
+      "original_case_sha256": "b29835d7fce2cc7cf44e0a486ef6d8ec8f0da1794616a0205939fa0b7d2722b7",
+      "original_test": "QtGui.NasaSaveAncillaryThrustHistoryFile"
+    },
+    {
+      "definitions": [
+        "Create ChemicalThruster Subject;",
+        "Create ChemicalTank Fuel;",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_Fuel_ReloadAlive.data",
+      "key": "CatalogueAliasThruster",
+      "objects": [
+        "Subject",
+        "Fuel",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "Fuel",
+        "ReloadAlive"
+      ],
+      "setup": "Create FuelTank Fuel;\nFuel.FuelMass = 123.5;\nCreate Thruster Subject;\nSubject.CoordinateSystem = EarthMJ2000Eq;\nSubject.ThrustDirection1 = 1;\nSubject.ThrustDirection2 = 0;\nSubject.ThrustDirection3 = 0;\nSubject.GravitationalAccel = 10;\nSubject.DecrementMass = true;\nSubject.Tank = {Fuel};\nSubject.C1 = 10;\nSubject.K1 = 2000;\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": 10,
+          "field": "GravitationalAccel",
+          "object": "Subject",
+          "type": "Real"
+        },
+        {
+          "expected": 10,
+          "field": "C1",
+          "object": "Subject",
+          "type": "Real"
+        },
+        {
+          "expected": 2000,
+          "field": "K1",
+          "object": "Subject",
+          "type": "Real"
+        },
+        {
+          "expected": [
+            "Fuel"
+          ],
+          "field": "Tank",
+          "object": "Subject",
+          "type": "ObjectArray"
+        },
+        {
+          "expected": 123.5,
+          "field": "FuelMass",
+          "object": "Fuel",
+          "type": "Real"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "RotationMatrix",
+          "type": "Rmatrix"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "R_SB11",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "R_SB13",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "R_SB22",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "R_SB31",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "R_SB33",
+          "type": "Real"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-catalogue-rest-and-affected-unattended-v5/QtGui.NasaSaveCatalogueAliasThruster/case.json",
+      "original_case_sha256": "561d5b5d814cd5cf0d04bca8221677f73a7d6b1e0848ec33633261b32a0eea3a",
+      "original_test": "QtGui.NasaSaveCatalogueAliasThruster"
+    },
+    {
+      "definitions": [
+        "Create GroundTrack Subject;",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_ReloadAlive.data",
+      "key": "ModeGroundGridDisabled",
+      "objects": [
+        "Subject",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "ReloadAlive"
+      ],
+      "setup": "Create GroundTrack Subject;\nSubject.Add = {Earth,Luna};\nSubject.ShowPlot = false;\nSubject.UseGrid = false;\nSubject.LatitudeLineCount = 7;\nSubject.LongitudeLineCount = 13;\nSubject.LineWidth = 3;\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": false,
+          "field": "UseGrid",
+          "object": "Subject",
+          "type": "Boolean"
+        },
+        {
+          "expected": 7,
+          "field": "LatitudeLineCount",
+          "object": "Subject",
+          "type": "Integer"
+        },
+        {
+          "expected": 13,
+          "field": "LongitudeLineCount",
+          "object": "Subject",
+          "type": "Integer"
+        },
+        {
+          "expected": 3,
+          "field": "LineWidth",
+          "object": "Subject",
+          "type": "Integer"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "GroundTrack",
+          "field": "TextureMap",
+          "type": "Filename"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-modes-repairs-unattended-v2/QtGui.NasaSaveModeGroundGridDisabled/case.json",
+      "original_case_sha256": "71186e4175ebac14192f70181999695cdf1318ad2f6b2c1dc6b2be7fbf21b542",
+      "original_test": "QtGui.NasaSaveModeGroundGridDisabled"
+    },
+    {
+      "definitions": [
+        "Create GroundTrack Subject;",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_ReloadAlive.data",
+      "key": "ModeGroundGridEnabled",
+      "objects": [
+        "Subject",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "ReloadAlive"
+      ],
+      "setup": "Create GroundTrack Subject;\nSubject.Add = {Earth,Luna};\nSubject.ShowPlot = false;\nSubject.UseGrid = true;\nSubject.LatitudeLineCount = 5;\nSubject.LongitudeLineCount = 9;\nSubject.LineWidth = 4;\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": true,
+          "field": "UseGrid",
+          "object": "Subject",
+          "type": "Boolean"
+        },
+        {
+          "expected": 5,
+          "field": "LatitudeLineCount",
+          "object": "Subject",
+          "type": "Integer"
+        },
+        {
+          "expected": 9,
+          "field": "LongitudeLineCount",
+          "object": "Subject",
+          "type": "Integer"
+        },
+        {
+          "expected": 4,
+          "field": "LineWidth",
+          "object": "Subject",
+          "type": "Integer"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "GroundTrack",
+          "field": "TextureMap",
+          "type": "Filename"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-modes-repairs-unattended-v2/QtGui.NasaSaveModeGroundGridEnabled/case.json",
+      "original_case_sha256": "a2415e8ebc6c1e6d78099a878f49be968633150f7359a2a5c5096621e859b198",
+      "original_test": "QtGui.NasaSaveModeGroundGridEnabled"
+    },
+    {
+      "definitions": [
+        "Create Antenna Subject",
+        "Create ConicalFOV Cone2",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_Cone2_ReloadAlive.data",
+      "key": "ResourceAntenna",
+      "objects": [
+        "Subject",
+        "Cone2",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "Cone2",
+        "ReloadAlive"
+      ],
+      "setup": "Create ConicalFOV Cone2;\nCreate Antenna Subject;\nSubject.FieldOfView = Cone2;\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": "Cone2",
+          "field": "FieldOfView",
+          "object": "Subject",
+          "type": "Object"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Antenna",
+          "field": "RotationMatrix",
+          "type": "Rmatrix"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Antenna",
+          "field": "R_SB11",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Antenna",
+          "field": "R_SB13",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Antenna",
+          "field": "R_SB22",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Antenna",
+          "field": "R_SB31",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Antenna",
+          "field": "R_SB33",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Antenna",
+          "field": "MaskConeAngles",
+          "type": "Rvector"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Antenna",
+          "field": "MaskClockAngles",
+          "type": "Rvector"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-resource-families-unattended-v1/QtGui.NasaSaveResourceAntenna/case.json",
+      "original_case_sha256": "81c014b5c949d018960a6b8adfc6e1740859ea7685e08244cca3f0b85fb8fe3c",
+      "original_test": "QtGui.NasaSaveResourceAntenna"
+    },
+    {
+      "definitions": [
+        "Create ElectricThruster Engine",
+        "Create ElectricTank Fuel",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Engine_Fuel_ReloadAlive.data",
+      "key": "ResourceElectricThruster",
+      "objects": [
+        "Engine",
+        "Fuel",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Engine",
+        "Fuel",
+        "ReloadAlive"
+      ],
+      "setup": "Create ElectricTank Fuel;\nFuel.FuelMass = 31.5;\nCreate ElectricThruster Engine;\nEngine.DutyCycle = 0.4;\nEngine.Tank = {Fuel};\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": 0.4,
+          "field": "DutyCycle",
+          "object": "Engine",
+          "type": "Real"
+        },
+        {
+          "expected": [
+            "Fuel"
+          ],
+          "field": "Tank",
+          "object": "Engine",
+          "type": "ObjectArray"
+        },
+        {
+          "expected": 31.5,
+          "field": "FuelMass",
+          "object": "Fuel",
+          "type": "Real"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Engine",
+          "owned_indices": [],
+          "native_type": "ElectricThruster",
+          "field": "RotationMatrix",
+          "type": "Rmatrix"
+        },
+        {
+          "object": "Engine",
+          "owned_indices": [],
+          "native_type": "ElectricThruster",
+          "field": "R_SB11",
+          "type": "Real"
+        },
+        {
+          "object": "Engine",
+          "owned_indices": [],
+          "native_type": "ElectricThruster",
+          "field": "R_SB13",
+          "type": "Real"
+        },
+        {
+          "object": "Engine",
+          "owned_indices": [],
+          "native_type": "ElectricThruster",
+          "field": "R_SB22",
+          "type": "Real"
+        },
+        {
+          "object": "Engine",
+          "owned_indices": [],
+          "native_type": "ElectricThruster",
+          "field": "R_SB31",
+          "type": "Real"
+        },
+        {
+          "object": "Engine",
+          "owned_indices": [],
+          "native_type": "ElectricThruster",
+          "field": "R_SB33",
+          "type": "Real"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-resource-pilots-unattended-v1/QtGui.NasaSaveResourceElectricThruster/case.json",
+      "original_case_sha256": "b1036e30192807d5e6e01205f1f46b12099821652da58d7397d478b907743dbe",
+      "original_test": "QtGui.NasaSaveResourceElectricThruster"
+    },
+    {
+      "definitions": [
+        "Create FiniteBurn Subject;",
+        "Create ChemicalThruster Engine;",
+        "Create ChemicalThruster Engine2;",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_Engine_Engine2_ReloadAlive.data",
+      "key": "ResourceFiniteBurn",
+      "objects": [
+        "Subject",
+        "Engine",
+        "Engine2",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "Engine",
+        "Engine2",
+        "ReloadAlive"
+      ],
+      "setup": "Create ChemicalThruster Engine Engine2;\nCreate FiniteBurn Subject;\nSubject.Thrusters = {Engine,Engine2};\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": [
+            "Engine",
+            "Engine2"
+          ],
+          "field": "Thrusters",
+          "object": "Subject",
+          "type": "ObjectArray"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Engine",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "RotationMatrix",
+          "type": "Rmatrix"
+        },
+        {
+          "object": "Engine",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "R_SB11",
+          "type": "Real"
+        },
+        {
+          "object": "Engine",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "R_SB13",
+          "type": "Real"
+        },
+        {
+          "object": "Engine",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "R_SB22",
+          "type": "Real"
+        },
+        {
+          "object": "Engine",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "R_SB31",
+          "type": "Real"
+        },
+        {
+          "object": "Engine",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "R_SB33",
+          "type": "Real"
+        },
+        {
+          "object": "Engine2",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "RotationMatrix",
+          "type": "Rmatrix"
+        },
+        {
+          "object": "Engine2",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "R_SB11",
+          "type": "Real"
+        },
+        {
+          "object": "Engine2",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "R_SB13",
+          "type": "Real"
+        },
+        {
+          "object": "Engine2",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "R_SB22",
+          "type": "Real"
+        },
+        {
+          "object": "Engine2",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "R_SB31",
+          "type": "Real"
+        },
+        {
+          "object": "Engine2",
+          "owned_indices": [],
+          "native_type": "ChemicalThruster",
+          "field": "R_SB33",
+          "type": "Real"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-resource-family-repairs-unattended-v2/QtGui.NasaSaveResourceFiniteBurn/case.json",
+      "original_case_sha256": "eeb2fc290ae5999ba90eb8f2d51a17d46546bcf9a89f29df1637d8790094e3ff",
+      "original_test": "QtGui.NasaSaveResourceFiniteBurn"
+    },
+    {
+      "before_save": null,
+      "definitions": [
+        "Create GroundTrack Subject;",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_ReloadAlive.data",
+      "key": "ResourceGroundTrackPlotPopulated",
+      "objects": [
+        "Subject",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "ReloadAlive"
+      ],
+      "setup": "Create GroundTrackPlot Subject;\nSubject.NumPointsToRedraw = 20;\nSubject.ShowPlot = false;\nSubject.Add = {Earth,Luna};\nSubject.ShowName = [false true];\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": 20,
+          "field": "NumPointsToRedraw",
+          "object": "Subject",
+          "type": "Integer"
+        },
+        {
+          "expected": [
+            false,
+            true
+          ],
+          "field": "ShowName",
+          "object": "Subject",
+          "type": "BooleanArray"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "GroundTrack",
+          "field": "TextureMap",
+          "type": "Filename"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-support-repairs-unattended-v2/QtGui.NasaSaveResourceGroundTrackPlotPopulated/case.json",
+      "original_case_sha256": "843a560e67192bc3f17980c468b9912c4472e020af9a966b999b5555b4d4d125",
+      "original_test": "QtGui.NasaSaveResourceGroundTrackPlotPopulated"
+    },
+    {
+      "definitions": [
+        "Create OrbitView Subject",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_ReloadAlive.data",
+      "key": "ResourceOrbitView",
+      "objects": [
+        "Subject",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "ReloadAlive"
+      ],
+      "setup": "Create OrbitView Subject;\nSubject.NumPointsToRedraw = 20;\nSubject.ShowPlot = false;\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": 20,
+          "field": "NumPointsToRedraw",
+          "object": "Subject",
+          "type": "Integer"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "OrbitView",
+          "field": "MaxFOV",
+          "type": "Integer"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "OrbitView",
+          "field": "InitialFOV",
+          "type": "Integer"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-resource-bound-repairs-unattended-v3/QtGui.NasaSaveResourceOrbitView/case.json",
+      "original_case_sha256": "b6d2e38f9d4f556b5e977ee2e8f69f1cc6786ff81bc62969c64b531c28b2e845",
+      "original_test": "QtGui.NasaSaveResourceOrbitView"
+    },
+    {
+      "definitions": [
+        "Create OrbitView Subject;",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_ReloadAlive.data",
+      "key": "ResourceOrbitViewPopulated",
+      "objects": [
+        "Subject",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "ReloadAlive"
+      ],
+      "setup": "Create OrbitView Subject;\nSubject.NumPointsToRedraw = 20;\nSubject.ShowPlot = false;\nSubject.Add = {Earth,Luna};\nSubject.DrawObject = [false true];\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": 20,
+          "field": "NumPointsToRedraw",
+          "object": "Subject",
+          "type": "Integer"
+        },
+        {
+          "expected": [
+            false,
+            true
+          ],
+          "field": "DrawObject",
+          "object": "Subject",
+          "type": "BooleanArray"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "OrbitView",
+          "field": "MaxFOV",
+          "type": "Integer"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "OrbitView",
+          "field": "InitialFOV",
+          "type": "Integer"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-resource-bound-repairs-unattended-v3/QtGui.NasaSaveResourceOrbitViewPopulated/case.json",
+      "original_case_sha256": "53c5ce431960b4724585d6c90c74b9c0c5e19269884ef9145a1080896317545e",
+      "original_test": "QtGui.NasaSaveResourceOrbitViewPopulated"
+    },
+    {
+      "definitions": [
+        "Create Simulator Subject",
+        "Create Propagator Prop;",
+        "Create ForceModel FM;",
+        "Create Spacecraft Sat;",
+        "Create GroundStation Station;",
+        "Create TrackingFileSet Data;",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_Prop_FM_Sat_Station_Data_ReloadAlive.data",
+      "key": "ResourceSimulator",
+      "objects": [
+        "Subject",
+        "Prop",
+        "FM",
+        "Sat",
+        "Station",
+        "Data",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "Prop",
+        "FM",
+        "Sat",
+        "Station",
+        "Data",
+        "ReloadAlive"
+      ],
+      "setup": "Create Spacecraft Sat;\nSat.NAIFId = -101019;\nSat.NAIFIdReferenceFrame = -910019;\nCreate GroundStation Station;\nCreate TrackingFileSet Data;\nData.AddTrackingConfig = {{Station,Sat,Station},'Range_Skin'};\nData.UseLightTime = false;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nCreate Simulator Subject;\nSubject.MeasurementTimeStep = 90;\nSubject.Propagator = Prop;\nSubject.AddData = {Data};\nData.FileName = {'unused-Save-acceptance.gmd'};\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": 90,
+          "field": "MeasurementTimeStep",
+          "object": "Subject",
+          "type": "Real"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Data",
+          "owned_indices": [],
+          "native_type": "TrackingFileSet",
+          "field": "ApiGetConfigCount",
+          "type": "Integer"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-resource-metadata-repairs-unattended-v6/QtGui.NasaSaveResourceSimulator/case.json",
+      "original_case_sha256": "1d13fc7d774554169343e8552a0fbbf2a727858c3e02039a274ab6bccfb07062",
+      "original_test": "QtGui.NasaSaveResourceSimulator"
+    },
+    {
+      "definitions": [
+        "Create Yukon Subject",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_ReloadAlive.data",
+      "key": "ResourceYukon",
+      "objects": [
+        "Subject",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "ReloadAlive"
+      ],
+      "setup": "Create Yukon Subject;\nSubject.MaximumIterations = 30;\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": 30,
+          "field": "MaximumIterations",
+          "object": "Subject",
+          "type": "Integer"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Yukon",
+          "field": "ObjectiveFunction",
+          "type": "String"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-resource-families-unattended-v1/QtGui.NasaSaveResourceYukon/case.json",
+      "original_case_sha256": "ff5fe3b673b7fa51fa20df7dc3872401aea3a0ef7294f7c8737ae6e176c36ddd",
+      "original_test": "QtGui.NasaSaveResourceYukon"
+    },
+    {
+      "before_save": "UpdateDynamicData Subject;\n",
+      "definitions": [
+        "Create DynamicDataDisplay Subject;",
+        "Create Variable Value\n",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_Value_ReloadAlive.data",
+      "key": "SupportDynamicDataAutomatic",
+      "objects": [
+        "Subject",
+        "Value",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "Value",
+        "ReloadAlive"
+      ],
+      "setup": "Create Variable Value;\nValue = 12.5;\nCreate DynamicDataDisplay Subject;\nSubject.AddParameters = {1, Value};\nSubject.WarnColor = [200 120 0];\nSubject.CritColor = [220 0 0];\nSubject.WarnBounds = {Value, [-10 10]};\nSubject.CritBounds = {Value, [-20 20]};\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": 12.5,
+          "field": "Value",
+          "object": "Value",
+          "type": "Real"
+        },
+        {
+          "expected": [
+            [
+              "Value"
+            ]
+          ],
+          "field": "AddParameters",
+          "object": "Subject",
+          "type": "ObjectArray"
+        },
+        {
+          "expected": [
+            [
+              [
+                -10,
+                10
+              ]
+            ]
+          ],
+          "field": "WarnBounds",
+          "object": "Subject",
+          "type": "StringArray"
+        },
+        {
+          "expected": [
+            [
+              [
+                -20,
+                20
+              ]
+            ]
+          ],
+          "field": "CritBounds",
+          "object": "Subject",
+          "type": "StringArray"
+        },
+        {
+          "expected": [
+            [
+              [
+                0,
+                false
+              ]
+            ]
+          ],
+          "field": "RowTextColors",
+          "object": "Subject",
+          "type": "StringArray"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "UpdateDynamicData Subject;\nReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "DynamicDataDisplay",
+          "field": "TextColor",
+          "type": "StringArray"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-support-color-repair-unattended-v3/QtGui.NasaSaveSupportDynamicDataAutomatic/case.json",
+      "original_case_sha256": "683b59a4bb9f22440291997915897e744869a0eab25490c4d0cd54061f09c410",
+      "original_test": "QtGui.NasaSaveSupportDynamicDataAutomatic"
+    },
+    {
+      "before_save": null,
+      "definitions": [
+        "Create Imager Subject;",
+        "Create ConicalFOV Cone;",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_Cone_ReloadAlive.data",
+      "key": "SupportImager",
+      "objects": [
+        "Subject",
+        "Cone",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "Cone",
+        "ReloadAlive"
+      ],
+      "setup": "Create ConicalFOV Cone;\nCone.FieldOfViewAngle = 25;\nCreate Imager Subject;\nSubject.FieldOfView = Cone;\nSubject.DirectionX = 0.6;\nSubject.DirectionY = 0.8;\nSubject.DirectionZ = 0;\nSubject.SecondDirectionX = -0.8;\nSubject.SecondDirectionY = 0.6;\nSubject.SecondDirectionZ = 0;\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": "Cone",
+          "field": "FieldOfView",
+          "object": "Subject",
+          "type": "Object"
+        },
+        {
+          "expected": 0.6,
+          "field": "DirectionX",
+          "object": "Subject",
+          "type": "Real"
+        },
+        {
+          "expected": 0.8,
+          "field": "DirectionY",
+          "object": "Subject",
+          "type": "Real"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "RotationMatrix",
+          "type": "Rmatrix"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "R_SB11",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "R_SB13",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "R_SB21",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "R_SB22",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "R_SB31",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "R_SB32",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "R_SB33",
+          "type": "Real"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "MaskConeAngles",
+          "type": "Rvector"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "MaskClockAngles",
+          "type": "Rvector"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-support-repairs-unattended-v2/QtGui.NasaSaveSupportImager/case.json",
+      "original_case_sha256": "73bbeb46c32397b5a8410e05880fe5f41c3ecb9549fb6254631ef796e7d0ecff",
+      "original_test": "QtGui.NasaSaveSupportImager"
+    },
+    {
+      "definitions": [
+        "Create IntrusionLocator Subject;",
+        "Create Spacecraft Sat;",
+        "Create Imager Sensor;",
+        "Create ConicalFOV Cone;",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_Sat_Sensor_Cone_ReloadAlive.data",
+      "key": "SupportIntrusionLocator",
+      "objects": [
+        "Subject",
+        "Sat",
+        "Sensor",
+        "Cone",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "Sat",
+        "Sensor",
+        "Cone",
+        "ReloadAlive"
+      ],
+      "setup": "Create Spacecraft Sat;\nSat.NAIFId = -101021;\nSat.NAIFIdReferenceFrame = -910021;\nCreate ConicalFOV Cone;\nCone.FieldOfViewAngle = 25;\nCreate Imager Sensor;\nSensor.FieldOfView = Cone;\nSensor.NAIFId = -144502;\nSat.AddHardware = {Sensor};\nCreate IntrusionLocator Subject;\nSubject.Spacecraft = Sat;\nSubject.Sensors = {Sensor};\nSubject.CentralBody = Sun;\nSubject.IntrudingBodies = {Mercury};\nSubject.RunMode = Disabled;\nSubject.StepSize = 45;\nSubject.MinimumPhase = 0.25;\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": "Disabled",
+          "field": "RunMode",
+          "object": "Subject",
+          "type": "Enumeration"
+        },
+        {
+          "expected": 45,
+          "field": "StepSize",
+          "object": "Subject",
+          "type": "Real"
+        },
+        {
+          "expected": 0.25,
+          "field": "MinimumPhase",
+          "object": "Subject",
+          "type": "Real"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Sensor",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "RotationMatrix",
+          "type": "Rmatrix"
+        },
+        {
+          "object": "Sensor",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "R_SB11",
+          "type": "Real"
+        },
+        {
+          "object": "Sensor",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "R_SB13",
+          "type": "Real"
+        },
+        {
+          "object": "Sensor",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "R_SB22",
+          "type": "Real"
+        },
+        {
+          "object": "Sensor",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "R_SB31",
+          "type": "Real"
+        },
+        {
+          "object": "Sensor",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "R_SB33",
+          "type": "Real"
+        },
+        {
+          "object": "Sensor",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "MaskConeAngles",
+          "type": "Rvector"
+        },
+        {
+          "object": "Sensor",
+          "owned_indices": [],
+          "native_type": "Imager",
+          "field": "MaskClockAngles",
+          "type": "Rvector"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-support-additional-unattended-v1/QtGui.NasaSaveSupportIntrusionLocator/case.json",
+      "original_case_sha256": "62347c37d3b68ada4104fa53b761e96aeced97a5830b0e3874075fac702a0af1",
+      "original_test": "QtGui.NasaSaveSupportIntrusionLocator"
+    },
+    {
+      "definitions": [
+        "Create Smoother Subject;",
+        "Create ExtendedKalmanFilter Filter;",
+        "Create Propagator Prop;",
+        "Create ForceModel FM;",
+        "Create Spacecraft Sat;",
+        "Create GroundStation Station;",
+        "Create TrackingFileSet Data;",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_Filter_Prop_FM_Sat_Station_Data_ReloadAlive.data",
+      "key": "SupportSmoother",
+      "objects": [
+        "Subject",
+        "Filter",
+        "Prop",
+        "FM",
+        "Sat",
+        "Station",
+        "Data",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "Filter",
+        "Prop",
+        "FM",
+        "Sat",
+        "Station",
+        "Data",
+        "ReloadAlive"
+      ],
+      "setup": "Create Spacecraft Sat;\nSat.NAIFId = -101019;\nSat.NAIFIdReferenceFrame = -910019;\nCreate GroundStation Station;\nCreate TrackingFileSet Data;\nData.AddTrackingConfig = {{Station,Sat,Station},'Range_Skin'};\nData.UseLightTime = false;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nCreate ExtendedKalmanFilter Filter;\nFilter.Propagator = Prop;\nFilter.Measurements = {Data};\nData.FileName = {'unused-Save-acceptance.gmd'};\nSat.SolveFors = {CartesianState};\nCreate Smoother Subject;\nSubject.Filter = Filter;\nSubject.DelayRectifyTimeSpan = 180.25;\nSubject.MeasDeweightingCoefficient = 12.5;\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": "Filter",
+          "field": "Filter",
+          "object": "Subject",
+          "type": "Object"
+        },
+        {
+          "expected": 180.25,
+          "field": "DelayRectifyTimeSpan",
+          "object": "Subject",
+          "type": "Real"
+        },
+        {
+          "expected": 12.5,
+          "field": "MeasDeweightingCoefficient",
+          "object": "Subject",
+          "type": "Real"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Data",
+          "owned_indices": [],
+          "native_type": "TrackingFileSet",
+          "field": "ApiGetConfigCount",
+          "type": "Integer"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-support-estimation-unattended-v1/QtGui.NasaSaveSupportSmoother/case.json",
+      "original_case_sha256": "82e36404be5aa31ede3cf6006e382cd5d00e5b5af6e1608b642bc3d25a6016d2",
+      "original_test": "QtGui.NasaSaveSupportSmoother"
+    },
+    {
+      "before_save": null,
+      "definitions": [
+        "Create TextEphemFile Subject;",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_ReloadAlive.data",
+      "key": "SupportTextEphemFile",
+      "objects": [
+        "Subject",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "ReloadAlive"
+      ],
+      "setup": "Create TextEphemFile Subject;\nSubject.EpochFormat = 'A1ModJulian';\nSubject.CoordinateSystem = 'EarthMJ2000Eq';\nSubject.Interval = 60;\nSubject.Precision = 17;\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": 60,
+          "field": "Interval",
+          "object": "Subject",
+          "type": "Real"
+        },
+        {
+          "expected": 17,
+          "field": "Precision",
+          "object": "Subject",
+          "type": "Integer"
+        },
+        {
+          "expected": "A1ModJulian",
+          "field": "EpochFormat",
+          "object": "Subject",
+          "type": "String"
+        },
+        {
+          "expected": "EarthMJ2000Eq",
+          "field": "CoordinateSystem",
+          "object": "Subject",
+          "type": "String"
+        },
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 41
+        }
+      ],
+      "reload_probe": "ReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "TextEphemFile",
+          "field": "FullPathFileName",
+          "type": "Filename"
+        }
+      ],
+      "original_case_file": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-support-text-copy-repair-unattended-v5/QtGui.NasaSaveSupportTextEphemFile/case.json",
+      "original_case_sha256": "20ba80624ed7617de95e7538a1b591f7eeca38e3be1a0abd4bc23fb13a86077c",
+      "original_test": "QtGui.NasaSaveSupportTextEphemFile"
+    }
+  ],
+  "reused_headless_probe_observations": [
+    {
+      "test": "QtGui.NasaSaveAncillaryGmatFunction",
+      "object_path": "Subject",
+      "native_type": "GmatFunction",
+      "descriptor_id": 3,
+      "field": "Input",
+      "parameter_type": "StringArray",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-ancillary-repairs-unattended-v2/QtGui.NasaSaveAncillaryGmatFunction/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-ancillary-repairs-unattended-v2/QtGui.NasaSaveAncillaryGmatFunction/reloaded-native.json",
+      "before": [
+        "input"
+      ],
+      "after": [],
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-ancillary-repairs-unattended-v2/QtGui.NasaSaveAncillaryGmatFunction/reload-probe-native.json",
+      "retained_probe_sha256": "a93c36cdd4d05849d8b546dc6aac42be21213695daf1775f1edf7695e8978e17"
+    },
+    {
+      "test": "QtGui.NasaSaveAncillaryGmatFunction",
+      "object_path": "Subject",
+      "native_type": "GmatFunction",
+      "descriptor_id": 4,
+      "field": "Output",
+      "parameter_type": "StringArray",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-ancillary-repairs-unattended-v2/QtGui.NasaSaveAncillaryGmatFunction/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-ancillary-repairs-unattended-v2/QtGui.NasaSaveAncillaryGmatFunction/reloaded-native.json",
+      "before": [
+        "out"
+      ],
+      "after": [],
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-ancillary-repairs-unattended-v2/QtGui.NasaSaveAncillaryGmatFunction/reload-probe-native.json",
+      "retained_probe_sha256": "a93c36cdd4d05849d8b546dc6aac42be21213695daf1775f1edf7695e8978e17"
+    },
+    {
+      "test": "QtGui.NasaSaveModeRegionFile",
+      "object_path": "Subject",
+      "native_type": "PlanetographicRegion",
+      "descriptor_id": 24,
+      "field": "Latitude",
+      "parameter_type": "Rvector",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-modes-repairs-unattended-v2/QtGui.NasaSaveModeRegionFile/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-modes-repairs-unattended-v2/QtGui.NasaSaveModeRegionFile/reloaded-native.json",
+      "before": [
+        10,
+        10,
+        20,
+        20
+      ],
+      "after": [],
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-modes-repairs-unattended-v2/QtGui.NasaSaveModeRegionFile/reload-probe-native.json",
+      "retained_probe_sha256": "9aee752936251d224577f631193974e2a276d9bf6735c2a0200da4b9c4d7c6c3"
+    },
+    {
+      "test": "QtGui.NasaSaveModeRegionFile",
+      "object_path": "Subject",
+      "native_type": "PlanetographicRegion",
+      "descriptor_id": 25,
+      "field": "Longitude",
+      "parameter_type": "Rvector",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-modes-repairs-unattended-v2/QtGui.NasaSaveModeRegionFile/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-modes-repairs-unattended-v2/QtGui.NasaSaveModeRegionFile/reloaded-native.json",
+      "before": [
+        30,
+        40,
+        40,
+        30
+      ],
+      "after": [],
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-modes-repairs-unattended-v2/QtGui.NasaSaveModeRegionFile/reload-probe-native.json",
+      "retained_probe_sha256": "9aee752936251d224577f631193974e2a276d9bf6735c2a0200da4b9c4d7c6c3"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 5,
+      "field": "Q1",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": 0.08258826568869311,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 6,
+      "field": "Q2",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": 0.16517653137738622,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 7,
+      "field": "Q3",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": 0.24776479706607932,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 8,
+      "field": "Q4",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": 0.9510565162951536,
+      "after": 1,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 10,
+      "field": "EulerAngle1",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": 31.217330191824026,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 11,
+      "field": "EulerAngle2",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": 15.858318736808567,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 12,
+      "field": "EulerAngle3",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": 14.382612321121247,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 13,
+      "field": "DCM11",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": 0.8226586376338799,
+      "after": 1,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 14,
+      "field": "DCM12",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": 0.49855993603434684,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 15,
+      "field": "DCM13",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": -0.2732595032341912,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 16,
+      "field": "DCM21",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": -0.4439933629986175,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 17,
+      "field": "DCM22",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": 0.8635835674106769,
+      "after": 1,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 18,
+      "field": "DCM23",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": 0.23894207605908802,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 19,
+      "field": "DCM31",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": 0.3551093627877851,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 20,
+      "field": "DCM32",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": -0.07524235695190011,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 21,
+      "field": "DCM33",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": 0.9317917837053384,
+      "after": 1,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 22,
+      "field": "MRP1",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": 0.04233002222073984,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 23,
+      "field": "MRP2",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": 0.08466004444147968,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 24,
+      "field": "MRP3",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": 0.12699006666221951,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reload-probe-native.json",
+      "retained_probe_sha256": "4c4b5a01f2cc8ddcb0bcc8771ed6f7bf53f8ec60b509c4b37aad75ce32cc0850"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 5,
+      "field": "Q1",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.037023306652690366,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 6,
+      "field": "Q2",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.18092369361648478,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 7,
+      "field": "Q3",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.48547395571743746,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 8,
+      "field": "Q4",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.8545238031633365,
+      "after": 1,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 10,
+      "field": "EulerAngle1",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 61.21733019182401,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 11,
+      "field": "EulerAngle2",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 15.85831873680856,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 12,
+      "field": "EulerAngle3",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 14.382612321121249,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 13,
+      "field": "DCM11",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.4631633108164637,
+      "after": 1,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 14,
+      "field": "DCM12",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.8430948887318288,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 15,
+      "field": "DCM13",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": -0.27325950323419107,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 16,
+      "field": "DCM21",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": -0.8163013151738268,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 17,
+      "field": "DCM22",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.5258886261691288,
+      "after": 1,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 18,
+      "field": "DCM23",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.238942076059088,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 19,
+      "field": "DCM31",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.3451549077718764,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 20,
+      "field": "DCM32",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.11239288883293029,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 21,
+      "field": "DCM33",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.9317917837053383,
+      "after": 1,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 22,
+      "field": "MRP1",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.0199637807773285,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 23,
+      "field": "MRP2",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.09755803258382334,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 24,
+      "field": "MRP3",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.261778228399843,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 25,
+      "field": "EulerAngleRate1",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.0013888888888888887,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 28,
+      "field": "AngularVelocityX",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": -0.00037952708782526545,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 29,
+      "field": "AngularVelocityY",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.00033186399452651117,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 30,
+      "field": "AngularVelocityZ",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": 0.0012941552551463031,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reload-probe-native.json",
+      "retained_probe_sha256": "75493d9295f8d95304fabeaf02999eda08cb9f41d91bf8a5e433c9632d2f2cea"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetHalfTurn",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 6,
+      "field": "Q2",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reloaded-native.json",
+      "before": 0.9791532214288992,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reload-probe-native.json",
+      "retained_probe_sha256": "3f2023a807afa70807382465053d2c8a3c1d52be15b9aa2dd341727890a0c1cb"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetHalfTurn",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 7,
+      "field": "Q3",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reloaded-native.json",
+      "before": 0.20312303898231013,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reload-probe-native.json",
+      "retained_probe_sha256": "3f2023a807afa70807382465053d2c8a3c1d52be15b9aa2dd341727890a0c1cb"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetHalfTurn",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 8,
+      "field": "Q4",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reloaded-native.json",
+      "before": 0,
+      "after": 1,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reload-probe-native.json",
+      "retained_probe_sha256": "3f2023a807afa70807382465053d2c8a3c1d52be15b9aa2dd341727890a0c1cb"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetHalfTurn",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 10,
+      "field": "EulerAngle1",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reloaded-native.json",
+      "before": 180,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reload-probe-native.json",
+      "retained_probe_sha256": "3f2023a807afa70807382465053d2c8a3c1d52be15b9aa2dd341727890a0c1cb"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetHalfTurn",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 12,
+      "field": "EulerAngle3",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reloaded-native.json",
+      "before": 156.56070888888888,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reload-probe-native.json",
+      "retained_probe_sha256": "3f2023a807afa70807382465053d2c8a3c1d52be15b9aa2dd341727890a0c1cb"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetHalfTurn",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 13,
+      "field": "DCM11",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reloaded-native.json",
+      "before": -1,
+      "after": 1,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reload-probe-native.json",
+      "retained_probe_sha256": "3f2023a807afa70807382465053d2c8a3c1d52be15b9aa2dd341727890a0c1cb"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetHalfTurn",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 17,
+      "field": "DCM22",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reloaded-native.json",
+      "before": 0.9174820620691818,
+      "after": 1,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reload-probe-native.json",
+      "retained_probe_sha256": "3f2023a807afa70807382465053d2c8a3c1d52be15b9aa2dd341727890a0c1cb"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetHalfTurn",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 18,
+      "field": "DCM23",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reloaded-native.json",
+      "before": 0.3977771559319137,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reload-probe-native.json",
+      "retained_probe_sha256": "3f2023a807afa70807382465053d2c8a3c1d52be15b9aa2dd341727890a0c1cb"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetHalfTurn",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 20,
+      "field": "DCM32",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reloaded-native.json",
+      "before": 0.3977771559319137,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reload-probe-native.json",
+      "retained_probe_sha256": "3f2023a807afa70807382465053d2c8a3c1d52be15b9aa2dd341727890a0c1cb"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetHalfTurn",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 21,
+      "field": "DCM33",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reloaded-native.json",
+      "before": -0.9174820620691818,
+      "after": 1,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reload-probe-native.json",
+      "retained_probe_sha256": "3f2023a807afa70807382465053d2c8a3c1d52be15b9aa2dd341727890a0c1cb"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetHalfTurn",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 23,
+      "field": "MRP2",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reloaded-native.json",
+      "before": 0.9791532214288992,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reload-probe-native.json",
+      "retained_probe_sha256": "3f2023a807afa70807382465053d2c8a3c1d52be15b9aa2dd341727890a0c1cb"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetHalfTurn",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 24,
+      "field": "MRP3",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reloaded-native.json",
+      "before": 0.20312303898231013,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reload-probe-native.json",
+      "retained_probe_sha256": "3f2023a807afa70807382465053d2c8a3c1d52be15b9aa2dd341727890a0c1cb"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetIdentity",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 5,
+      "field": "Q1",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reloaded-native.json",
+      "before": 0.20312303898231013,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reload-probe-native.json",
+      "retained_probe_sha256": "d804733dc296892bd6b5ae9c222f55ecc0060f6608429c62b58b9e3e2b0ed121"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetIdentity",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 8,
+      "field": "Q4",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reloaded-native.json",
+      "before": 0.9791532214288992,
+      "after": 1,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reload-probe-native.json",
+      "retained_probe_sha256": "d804733dc296892bd6b5ae9c222f55ecc0060f6608429c62b58b9e3e2b0ed121"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetIdentity",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 12,
+      "field": "EulerAngle3",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reloaded-native.json",
+      "before": 23.439291111111114,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reload-probe-native.json",
+      "retained_probe_sha256": "d804733dc296892bd6b5ae9c222f55ecc0060f6608429c62b58b9e3e2b0ed121"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetIdentity",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 17,
+      "field": "DCM22",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reloaded-native.json",
+      "before": 0.9174820620691818,
+      "after": 1,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reload-probe-native.json",
+      "retained_probe_sha256": "d804733dc296892bd6b5ae9c222f55ecc0060f6608429c62b58b9e3e2b0ed121"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetIdentity",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 18,
+      "field": "DCM23",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reloaded-native.json",
+      "before": 0.3977771559319137,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reload-probe-native.json",
+      "retained_probe_sha256": "d804733dc296892bd6b5ae9c222f55ecc0060f6608429c62b58b9e3e2b0ed121"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetIdentity",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 20,
+      "field": "DCM32",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reloaded-native.json",
+      "before": -0.3977771559319137,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reload-probe-native.json",
+      "retained_probe_sha256": "d804733dc296892bd6b5ae9c222f55ecc0060f6608429c62b58b9e3e2b0ed121"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetIdentity",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 21,
+      "field": "DCM33",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reloaded-native.json",
+      "before": 0.9174820620691818,
+      "after": 1,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reload-probe-native.json",
+      "retained_probe_sha256": "d804733dc296892bd6b5ae9c222f55ecc0060f6608429c62b58b9e3e2b0ed121"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetIdentity",
+      "object_path": "Subject/owned[0]",
+      "native_type": "CoordinateSystemFixed",
+      "descriptor_id": 22,
+      "field": "MRP1",
+      "parameter_type": "Real",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reloaded-native.json",
+      "before": 0.10263128533103687,
+      "after": 0,
+      "retained_probe": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reload-probe-native.json",
+      "retained_probe_sha256": "d804733dc296892bd6b5ae9c222f55ecc0060f6608429c62b58b9e3e2b0ed121"
+    }
+  ],
+  "pending_source_review_observations": [
+    {
+      "test": "QtGui.NasaSaveAncillaryVariableRuntime",
+      "object_path": "Subject",
+      "native_type": "Variable",
+      "descriptor_id": 2,
+      "field": "InitialValue",
+      "parameter_type": "String",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-ancillary-pilots-unattended-v1/QtGui.NasaSaveAncillaryVariableRuntime/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-ancillary-pilots-unattended-v1/QtGui.NasaSaveAncillaryVariableRuntime/reloaded-native.json",
+      "before": "1",
+      "after": "-12.75"
+    },
+    {
+      "test": "QtGui.NasaSaveAncillaryGmatFunction",
+      "object_path": "Result",
+      "native_type": "Variable",
+      "descriptor_id": 2,
+      "field": "InitialValue",
+      "parameter_type": "String",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-ancillary-repairs-unattended-v2/QtGui.NasaSaveAncillaryGmatFunction/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-ancillary-repairs-unattended-v2/QtGui.NasaSaveAncillaryGmatFunction/reloaded-native.json",
+      "before": "0",
+      "after": "13"
+    },
+    {
+      "test": "QtGui.NasaSaveAncillaryStringRuntime",
+      "object_path": "Subject",
+      "native_type": "String",
+      "descriptor_id": 2,
+      "field": "InitialValue",
+      "parameter_type": "String",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-ancillary-repairs-unattended-v2/QtGui.NasaSaveAncillaryStringRuntime/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-ancillary-repairs-unattended-v2/QtGui.NasaSaveAncillaryStringRuntime/reloaded-native.json",
+      "before": "'initial'",
+      "after": "'saved \u0394 value'"
+    },
+    {
+      "test": "QtGui.NasaSaveAncillaryStringRuntime",
+      "object_path": "Subject",
+      "native_type": "String",
+      "descriptor_id": 3,
+      "field": "Expression",
+      "parameter_type": "String",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-ancillary-repairs-unattended-v2/QtGui.NasaSaveAncillaryStringRuntime/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-ancillary-repairs-unattended-v2/QtGui.NasaSaveAncillaryStringRuntime/reloaded-native.json",
+      "before": "initial",
+      "after": "saved \u0394 value"
+    },
+    {
+      "test": "QtGui.NasaSaveBodyRegion",
+      "object_path": "Subject",
+      "native_type": "PlanetographicRegion",
+      "descriptor_id": 2,
+      "field": "NAIFId",
+      "parameter_type": "Integer",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-bodies-pilots-unattended-v1/QtGui.NasaSaveBodyRegion/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-bodies-pilots-unattended-v1/QtGui.NasaSaveBodyRegion/reloaded-native.json",
+      "before": 399999,
+      "after": -123456789
+    },
+    {
+      "test": "QtGui.NasaSaveBodyRegion",
+      "object_path": "Subject",
+      "native_type": "PlanetographicRegion",
+      "descriptor_id": 3,
+      "field": "NAIFIdReferenceFrame",
+      "parameter_type": "Integer",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-bodies-pilots-unattended-v1/QtGui.NasaSaveBodyRegion/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-bodies-pilots-unattended-v1/QtGui.NasaSaveBodyRegion/reloaded-native.json",
+      "before": 1399999,
+      "after": -123456789
+    },
+    {
+      "test": "QtGui.NasaSaveBodyUserMoon",
+      "object_path": "Subject",
+      "native_type": "Moon",
+      "descriptor_id": 22,
+      "field": "BodyNumber",
+      "parameter_type": "Integer",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-bodies-user-typed-unattended-v4/QtGui.NasaSaveBodyUserMoon/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-bodies-user-typed-unattended-v4/QtGui.NasaSaveBodyUserMoon/reloaded-native.json",
+      "before": -1,
+      "after": 2
+    },
+    {
+      "test": "QtGui.NasaSaveBodyUserPlanet",
+      "object_path": "Subject",
+      "native_type": "Planet",
+      "descriptor_id": 22,
+      "field": "BodyNumber",
+      "parameter_type": "Integer",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-bodies-user-typed-unattended-v4/QtGui.NasaSaveBodyUserPlanet/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-bodies-user-typed-unattended-v4/QtGui.NasaSaveBodyUserPlanet/reloaded-native.json",
+      "before": -1,
+      "after": 1
+    },
+    {
+      "test": "QtGui.NasaSaveModeRegionFile",
+      "object_path": "Subject",
+      "native_type": "PlanetographicRegion",
+      "descriptor_id": 2,
+      "field": "NAIFId",
+      "parameter_type": "Integer",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-modes-repairs-unattended-v2/QtGui.NasaSaveModeRegionFile/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-modes-repairs-unattended-v2/QtGui.NasaSaveModeRegionFile/reloaded-native.json",
+      "before": 399999,
+      "after": -123456789
+    },
+    {
+      "test": "QtGui.NasaSaveModeRegionFile",
+      "object_path": "Subject",
+      "native_type": "PlanetographicRegion",
+      "descriptor_id": 3,
+      "field": "NAIFIdReferenceFrame",
+      "parameter_type": "Integer",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-modes-repairs-unattended-v2/QtGui.NasaSaveModeRegionFile/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-modes-repairs-unattended-v2/QtGui.NasaSaveModeRegionFile/reloaded-native.json",
+      "before": 1399999,
+      "after": -123456789
+    },
+    {
+      "test": "QtGui.NasaSaveResourceGroundStation",
+      "object_path": "Subject",
+      "native_type": "GroundStation",
+      "descriptor_id": 2,
+      "field": "NAIFId",
+      "parameter_type": "Integer",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-resource-families-unattended-v1/QtGui.NasaSaveResourceGroundStation/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-resource-families-unattended-v1/QtGui.NasaSaveResourceGroundStation/reloaded-native.json",
+      "before": 399999,
+      "after": -123456789
+    },
+    {
+      "test": "QtGui.NasaSaveResourceGroundStation",
+      "object_path": "Subject",
+      "native_type": "GroundStation",
+      "descriptor_id": 3,
+      "field": "NAIFIdReferenceFrame",
+      "parameter_type": "Integer",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-resource-families-unattended-v1/QtGui.NasaSaveResourceGroundStation/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-resource-families-unattended-v1/QtGui.NasaSaveResourceGroundStation/reloaded-native.json",
+      "before": 1399999,
+      "after": -123456789
+    },
+    {
+      "test": "QtGui.NasaSaveResourceSimulator",
+      "object_path": "Station",
+      "native_type": "GroundStation",
+      "descriptor_id": 2,
+      "field": "NAIFId",
+      "parameter_type": "Integer",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-resource-metadata-repairs-unattended-v6/QtGui.NasaSaveResourceSimulator/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-resource-metadata-repairs-unattended-v6/QtGui.NasaSaveResourceSimulator/reloaded-native.json",
+      "before": 399999,
+      "after": -123456789
+    },
+    {
+      "test": "QtGui.NasaSaveResourceSimulator",
+      "object_path": "Station",
+      "native_type": "GroundStation",
+      "descriptor_id": 3,
+      "field": "NAIFIdReferenceFrame",
+      "parameter_type": "Integer",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-resource-metadata-repairs-unattended-v6/QtGui.NasaSaveResourceSimulator/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-resource-metadata-repairs-unattended-v6/QtGui.NasaSaveResourceSimulator/reloaded-native.json",
+      "before": 1399999,
+      "after": -123456789
+    },
+    {
+      "test": "QtGui.NasaSaveSupportContactLocator",
+      "object_path": "Station",
+      "native_type": "GroundStation",
+      "descriptor_id": 2,
+      "field": "NAIFId",
+      "parameter_type": "Integer",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-support-additional-unattended-v1/QtGui.NasaSaveSupportContactLocator/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-support-additional-unattended-v1/QtGui.NasaSaveSupportContactLocator/reloaded-native.json",
+      "before": 399999,
+      "after": -123456789
+    },
+    {
+      "test": "QtGui.NasaSaveSupportContactLocator",
+      "object_path": "Station",
+      "native_type": "GroundStation",
+      "descriptor_id": 3,
+      "field": "NAIFIdReferenceFrame",
+      "parameter_type": "Integer",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-support-additional-unattended-v1/QtGui.NasaSaveSupportContactLocator/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-support-additional-unattended-v1/QtGui.NasaSaveSupportContactLocator/reloaded-native.json",
+      "before": 1399999,
+      "after": -123456789
+    },
+    {
+      "test": "QtGui.NasaSaveSupportSmoother",
+      "object_path": "Station",
+      "native_type": "GroundStation",
+      "descriptor_id": 2,
+      "field": "NAIFId",
+      "parameter_type": "Integer",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-support-estimation-unattended-v1/QtGui.NasaSaveSupportSmoother/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-support-estimation-unattended-v1/QtGui.NasaSaveSupportSmoother/reloaded-native.json",
+      "before": 399999,
+      "after": -123456789
+    },
+    {
+      "test": "QtGui.NasaSaveSupportSmoother",
+      "object_path": "Station",
+      "native_type": "GroundStation",
+      "descriptor_id": 3,
+      "field": "NAIFIdReferenceFrame",
+      "parameter_type": "Integer",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-support-estimation-unattended-v1/QtGui.NasaSaveSupportSmoother/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261101/save-support-estimation-unattended-v1/QtGui.NasaSaveSupportSmoother/reloaded-native.json",
+      "before": 1399999,
+      "after": -123456789
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetNamed",
+      "object_path": "Sample",
+      "native_type": "Variable",
+      "descriptor_id": 2,
+      "field": "InitialValue",
+      "parameter_type": "String",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-named-headless-v2/QtGui.NasaSaveFixedOffsetNamed/reloaded-native.json",
+      "before": "0",
+      "after": "0.8226586376338799"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetBody",
+      "object_path": "Sample",
+      "native_type": "Variable",
+      "descriptor_id": 2,
+      "field": "InitialValue",
+      "parameter_type": "String",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetBody/reloaded-native.json",
+      "before": "0",
+      "after": "0.4631633108164637"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetHalfTurn",
+      "object_path": "Sample",
+      "native_type": "Variable",
+      "descriptor_id": 2,
+      "field": "InitialValue",
+      "parameter_type": "String",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetHalfTurn/reloaded-native.json",
+      "before": "0",
+      "after": "-1"
+    },
+    {
+      "test": "QtGui.NasaSaveFixedOffsetIdentity",
+      "object_path": "Sample",
+      "native_type": "Variable",
+      "descriptor_id": 2,
+      "field": "InitialValue",
+      "parameter_type": "String",
+      "runtime": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/runtime-native.json",
+      "reloaded": "/home/dan/GIT/GMAT-Qt/build/nasa-coverage/coverage95-20261104-save-fixed-offset/fixed-offset-remaining-headless-v2/QtGui.NasaSaveFixedOffsetIdentity/reloaded-native.json",
+      "before": "0",
+      "after": "1"
+    }
+  ],
+  "new_native_fields": 65,
+  "reused_native_fields": 66,
+  "pending_observed_value_changes": 22,
+  "whole_FRC_E132_qualified": false,
+  "new_requirement_credit": 0
+}

@@ -1,0 +1,23 @@
+{
+  "status": "frozen-before-execution",
+  "key": "FunctionRecovery",
+  "mu": 398600.4418,
+  "radius": 7000.0,
+  "reference_radius": 8000.0,
+  "epoch_mjd": 21545.125,
+  "expected_failure_status": -5,
+  "expected_recovery_status": 1,
+  "diagnostic_fragment": "singular Cartesian state map",
+  "expected_native_parameter_reads": 30,
+  "expected_native_rejections": 5,
+  "expected_reported_matrix_entries": 144,
+  "matrix_block_tolerances": [
+    2e-08,
+    2e-06,
+    2e-11,
+    2e-08
+  ],
+  "position_tolerance_km": 2e-05,
+  "velocity_tolerance_km_s": 2e-08,
+  "scope": "One missing native nested-function failure/unwind/rebuild/recovery route. Self-origin STM maps reject with diagnostics and no owner/guide/cache/partial-report mutation; caller native state, STM and selected VNB frame reads remain exact. Recovery changes only the invalid frame origin to Earth. No whole-row qualification."
+}

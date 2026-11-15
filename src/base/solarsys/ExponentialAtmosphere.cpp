@@ -32,6 +32,8 @@
 #include "ExponentialAtmosphere.hpp"
 #include "GmatBaseException.hpp"
 #include <typeinfo>
+#include <algorithm>
+#include <memory>
 #include "FileManager.hpp"
 #include "FileUtil.hpp"
 #include "StringUtil.hpp"
@@ -109,22 +111,23 @@ ExponentialAtmosphere::ExponentialAtmosphere(const ExponentialAtmosphere& atm) :
    refDensity           (NULL),
    scaleHeight          (NULL),
    altitudeBands        (atm.altitudeBands),
-   smoothDensity        (false),
+   smoothDensity        (atm.smoothDensity),
    parameterFileName    (atm.parameterFileName)
 {
-   if (altitudeBands != 0)
+   if (atm.altitudeBands < 0 || (atm.altitudeBands && (!atm.refHeight || !atm.refDensity || !atm.scaleHeight)))
+      throw AtmosphereException("Invalid exponential atmosphere table layout.");
+   std::unique_ptr<Real[]> heights(atm.altitudeBands ? new Real[atm.altitudeBands] : nullptr);
+   std::unique_ptr<Real[]> densities(atm.altitudeBands ? new Real[atm.altitudeBands] : nullptr);
+   std::unique_ptr<Real[]> scales(atm.altitudeBands ? new Real[atm.altitudeBands] : nullptr);
+   if (atm.altitudeBands)
    {
-      refHeight = new Real[altitudeBands];
-      refDensity = new Real[altitudeBands];
-      scaleHeight = new Real[altitudeBands];
-
-      for (Integer i = 0; i < altitudeBands; ++i)
-      {
-         refHeight[i] = atm.refHeight[i];
-         refDensity[i] = atm.refDensity[i];
-         scaleHeight[i] = atm.scaleHeight[i];
-      }
+      std::copy_n(atm.refHeight, atm.altitudeBands, heights.get());
+      std::copy_n(atm.refDensity, atm.altitudeBands, densities.get());
+      std::copy_n(atm.scaleHeight, atm.altitudeBands, scales.get());
    }
+   refHeight = heights.release();
+   refDensity = densities.release();
+   scaleHeight = scales.release();
 }
 
 //------------------------------------------------------------------------------
@@ -140,37 +143,46 @@ ExponentialAtmosphere::ExponentialAtmosphere(const ExponentialAtmosphere& atm) :
  *          atm.
  */
 //------------------------------------------------------------------------------
-ExponentialAtmosphere& ExponentialAtmosphere::operator=(
-      const ExponentialAtmosphere &atm)
+ExponentialAtmosphere& ExponentialAtmosphere::operator=(const ExponentialAtmosphere &atm)
 {
-   if (&atm == this)
+   if (&atm == this) return *this;
+   if (GmatBase::IsNativeRestorationCopy())
+   {
+      if (altitudeBands != atm.altitudeBands || parameterFileName != atm.parameterFileName ||
+          (altitudeBands && (!refHeight || !refDensity || !scaleHeight ||
+                            !atm.refHeight || !atm.refDensity || !atm.scaleHeight)))
+         throw AtmosphereException("Prepare exponential atmosphere tables before restoring changed configuration.");
+      AtmosphereModel::operator=(atm);
+      if (altitudeBands)
+      {
+         std::copy_n(atm.refHeight, altitudeBands, refHeight);
+         std::copy_n(atm.refDensity, altitudeBands, refDensity);
+         std::copy_n(atm.scaleHeight, altitudeBands, scaleHeight);
+      }
+      smoothDensity = atm.smoothDensity;
       return *this;
-
+   }
+   if (atm.altitudeBands < 0 || (atm.altitudeBands && (!atm.refHeight || !atm.refDensity || !atm.scaleHeight)))
+      throw AtmosphereException("Invalid exponential atmosphere table layout.");
+   std::unique_ptr<Real[]> heights(atm.altitudeBands ? new Real[atm.altitudeBands] : nullptr);
+   std::unique_ptr<Real[]> densities(atm.altitudeBands ? new Real[atm.altitudeBands] : nullptr);
+   std::unique_ptr<Real[]> scales(atm.altitudeBands ? new Real[atm.altitudeBands] : nullptr);
+   if (atm.altitudeBands)
+   {
+      std::copy_n(atm.refHeight, atm.altitudeBands, heights.get());
+      std::copy_n(atm.refDensity, atm.altitudeBands, densities.get());
+      std::copy_n(atm.scaleHeight, atm.altitudeBands, scales.get());
+   }
    AtmosphereModel::operator=(atm);
    parameterFileName = atm.parameterFileName;
-   
+   delete [] refHeight;
+   delete [] refDensity;
+   delete [] scaleHeight;
    altitudeBands = atm.altitudeBands;
-   if (altitudeBands == 0)
-   {
-      refHeight = NULL;
-      refDensity = NULL;
-      scaleHeight = NULL;
-   }
-   else
-   {
-      refHeight = new Real[altitudeBands];
-      refDensity = new Real[altitudeBands];
-      scaleHeight = new Real[altitudeBands];
-
-      for (Integer i = 0; i < altitudeBands; ++i)
-      {
-         refHeight[i] = atm.refHeight[i];
-         refDensity[i] = atm.refDensity[i];
-         scaleHeight[i] = atm.scaleHeight[i];
-      }
-   }
-
-   smoothDensity = false;   
+   refHeight = heights.release();
+   refDensity = densities.release();
+   scaleHeight = scales.release();
+   smoothDensity = atm.smoothDensity;
    return *this;
 }
 

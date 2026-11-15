@@ -36,6 +36,7 @@
 //#define DEBUG_CNP_COMPUTE // for computing DCM
 
 #include "MessageInterface.hpp"
+#include <memory>
 #include "StringUtil.hpp"
 #include "AttitudeConversionUtility.hpp"
 #include "AttitudeException.hpp"
@@ -176,7 +177,9 @@ bool CommandableNadirPointing::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* CommandableNadirPointing::Clone() const
 {
-	return (new CommandableNadirPointing(*this));
+	std::unique_ptr<CommandableNadirPointing> value(new CommandableNadirPointing(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 /* -------------------------
@@ -1666,5 +1669,7 @@ void CommandableNadirPointing::Copy(const GmatBase *original)
       throw GmatBaseException("Cannot copy incompatible object into CommandableNadirPointing");
    if (source == this)
       return;
+   const auto previousContext = GetFunctionValueContext();
    operator=(*source);
+   RebindFunctionValueContext(*source);
 }

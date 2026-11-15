@@ -38,7 +38,10 @@
  */
 class GMAT_API SolarPowerSystem : public PowerSystem
 {
+   friend class Spacecraft;
 public:
+   using PowerSystem::SetField;
+   void SetField(const Integer id, const StringArray &value) override;
 
    SolarPowerSystem(const std::string &nomme);
    virtual ~SolarPowerSystem();
@@ -46,6 +49,9 @@ public:
    SolarPowerSystem&            operator=(const SolarPowerSystem& copy);
 
    virtual bool         Initialize();
+   bool InitializeClonedResource() override;
+   void RebindClonedReferences(const PowerSystem &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
    virtual GmatBase*    Clone() const;
    virtual void         Copy(const GmatBase*);
    virtual void         SetSpacecraft(Spacecraft *sc);
@@ -104,6 +110,7 @@ public:
    virtual bool         WriteEmptyStringArray(Integer id);
 
 protected:
+   bool InitializeResource(bool preserveBindings);
    /// Published parameters for solar power systems
    enum
    {

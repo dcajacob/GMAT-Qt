@@ -45,6 +45,7 @@
 #include "StringUtil.hpp"
 
 #include <algorithm>             // for find()
+#include <exception>             // for deferred RunComplete errors
 #include <sstream>               // for command summary generation
 #include <cmath>                 // for Cartesian to Keplerian conversion; 
                                  // remove it when the real conversions are
@@ -111,6 +112,77 @@ CommandExecutionObserver *GmatCommand::SetExecutionObserver(CommandExecutionObse
 void GmatCommand::NotifyBeforeExecution(GmatCommand *command)
 {
    if (executionObserver) executionObserver->BeforeExecution(command);
+}
+
+GmatCommand::DefinitionCommandLinks GmatCommand::GetDefinitionCommandLinks() const
+{
+   // BranchEnd::next returns to its parent. Its destructor does not own next.
+   return {{next, !IsOfType("BranchEnd")}};
+}
+
+void GmatCommand::RebindClonedCommandLinks(const GmatCommand &source,
+      const std::function<GmatCommand*(const GmatCommand*)> &resolve)
+{
+   if (typeid(*this) != typeid(source))
+      throw CommandException("Incompatible command definition copy.\n");
+   GmatCommand *following = resolve(source.next);
+   GmatCommand *preceding = resolve(source.previous);
+   next = following;
+   previous = preceding;
+   level = source.level;
+   currentFunction = nullptr;
+   callingFunction = nullptr;
+   configObjectMap = nullptr;
+   objectMap = nullptr;
+   globalObjectMap = nullptr;
+   solarSys = nullptr;
+   internalCoordSys = nullptr;
+   forces = nullptr;
+   // Publisher/trigger managers are borrowed engine services, not run stores.
+   streamID = -1;
+   isInitialized = false;
+   commandChangedState = false;
+   commandSummary.clear();
+   satVector.clear();
+   satsInMaps = 0;
+}
+
+void GmatCommand::DetachCommandLinks() noexcept
+{
+   next = nullptr;
+   previous = nullptr;
+}
+
+void GmatCommand::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   SetCloneNotificationsEnabled(false);
+   objectMap = nullptr;
+   globalObjectMap = nullptr;
+   configObjectMap = nullptr;
+   currentFunction = nullptr;
+   callingFunction = nullptr;
+   solarSys = nullptr;
+   internalCoordSys = nullptr;
+   summaryCoordSys = nullptr;
+   forces = nullptr;
+   satVector.clear();
+   satsInMaps = 0;
+   streamID = -1;
+   isInitialized = false;
+   // Preserve command syntax, topology and completed summary text. Derived
+   // commands with additional runtime references must retire those too.
+}
+
+ObjectArray GmatCommand::GetCommandOwnedObjects() const
+{
+   return {};
+}
+
+void GmatCommand::RetainCommandResourceOwner(const std::shared_ptr<const void> &owner)
+{
+   if (owner && std::find(commandResourceOwners.begin(), commandResourceOwners.end(), owner) ==
+         commandResourceOwners.end()) commandResourceOwners.push_back(owner);
 }
 
 const std::string 
@@ -2288,10 +2360,23 @@ void GmatCommand::RunComplete(bool isHead)
             this, typeName.c_str());
    #endif
 
-   RunComplete();
-   
-   if (IsOfType("BranchEnd"))
+   if (!isHead || IsOfType("BranchEnd"))
+   {
+      RunComplete();
       return;
+   }
+
+   // A terminal error must not leave later commands in their running state.
+   // Visit the whole sequence, then propagate the first original exception.
+   std::exception_ptr firstError;
+   try
+   {
+      RunComplete();
+   }
+   catch (...)
+   {
+      firstError = std::current_exception();
+   }
    
    if (isHead)
    {
@@ -2302,10 +2387,22 @@ void GmatCommand::RunComplete(bool isHead)
       {
          // Branch command ends point back to start; this line prevents looping
          if (!current->IsOfType("BranchEnd"))
-            current->RunComplete();
-         current = current->GetNext();
+         {
+            try
+            {
+               current->RunComplete();
+            }
+            catch (...)
+            {
+               if (!firstError)
+                  firstError = std::current_exception();
+            }
+         }
+         current = current->GetNextWhileExecuting();
       }
    }
+   if (firstError)
+      std::rethrow_exception(firstError);
 }
 
 //------------------------------------------------------------------------------
@@ -2596,7 +2693,9 @@ void GmatCommand::BuildCommandSummaryString(bool commandCompleted)
       commandSummary = data.str();
       return;
    }
-   if (!summaryForEntireMission && (!includeInSummary))
+   // BeginMissionSequence captures the initial spacecraft state. It remains
+   // omitted from aggregate reports, but that state can be inspected directly.
+   if (!summaryForEntireMission && !includeInSummary && typeName != "BeginMissionSequence")
    {
       data << "No summary data for " << typeName << " command " << summaryName << "\n";
       commandSummary = data.str();
@@ -4010,8 +4109,8 @@ void GmatCommand::CollectOldWrappers(ElementWrapper **wrapper)
       if (find(oldWrappers.begin(), oldWrappers.end(), *wrapper) == oldWrappers.end())
       {
          oldWrappers.push_back(*wrapper);
-         *wrapper = NULL;
       }
+      *wrapper = NULL;
    }
    
    #ifdef DEBUG_WRAPPER_CODE

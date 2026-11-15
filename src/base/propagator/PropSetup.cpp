@@ -40,6 +40,9 @@
 #include "PointMassForce.hpp"
 #include "StringUtil.hpp"               // for GmatStringUtil::Replace()
 #include "MessageInterface.hpp"
+#include <memory>
+#include <utility>
+#include <typeinfo>
 
 //#define DEBUG_PROPSETUP
 //#define DEBUG_PROPSETUP_SET
@@ -181,6 +184,9 @@ PropSetup::PropSetup(const std::string &name)
    #endif
    
    mODEModel->AddForce(pmf);
+   mPropagator->SetCloneOwner(this);
+   mODEModel->SetCloneOwner(this);
+   SetCloneNotificationsEnabled(true);
    
    #ifdef DEBUG_MEMORY
    MemoryTracker::Instance()->Add
@@ -213,6 +219,7 @@ PropSetup::PropSetup(const PropSetup &ps) :
    mPropagator                  (NULL),
    mODEModel                    (NULL)
 {
+   GmatBase::FunctionValueCopyGuard nativeChildren;
    #ifdef DEBUG_PROPSETUP
    MessageInterface::ShowMessage
       ("PropSetup::PropSetup(copy) <%p>'%s' entered, ps.Propagator=<%p>, ps.ODEModel=<%p>\n",
@@ -239,8 +246,12 @@ PropSetup::PropSetup(const PropSetup &ps) :
    //// first delete old propagator and ODEModel (loj: 2008.11.04)
    //DeleteOwnedObject(PROPAGATOR);
    //DeleteOwnedObject(ODE_MODEL);
-   ClonePropagator(ps.mPropagator);
-   CloneODEModel(ps.mODEModel);
+   ClonePropagator(ps.mPropagator, true);
+   const auto releasePropagator = [this](Propagator *) { DeleteOwnedObject(PROPAGATOR, true); };
+   std::unique_ptr<Propagator, decltype(releasePropagator)> pendingPropagator(mPropagator, releasePropagator);
+   CloneODEModel(ps.mODEModel, true);
+   const auto releaseModel = [this](ODEModel *) { DeleteOwnedObject(ODE_MODEL, true); };
+   std::unique_ptr<ODEModel, decltype(releaseModel)> pendingModel(mODEModel, releaseModel);
    
    #ifdef DEBUG_PROPSETUP
    MessageInterface::ShowMessage
@@ -251,6 +262,8 @@ PropSetup::PropSetup(const PropSetup &ps) :
        mODEModel ? mODEModel->GetTypeName().c_str() : "NULL",
        mODEModel ? mODEModel->GetName().c_str() : "NULL");
    #endif
+   pendingPropagator.release();
+   pendingModel.release();
 }
 
 //------------------------------------------------------------------------------
@@ -262,6 +275,7 @@ PropSetup::PropSetup(const PropSetup &ps) :
 //------------------------------------------------------------------------------
 PropSetup& PropSetup::operator= (const PropSetup &ps)
 {
+   GmatBase::FunctionValueCopyGuard nativeChildren;
    #ifdef DEBUG_PROPSETUP
    MessageInterface::ShowMessage
       ("PropSetup::operator=() <%p>'%s' entered, Propagator=<%p>, ODEModel=<%p>\n",
@@ -272,7 +286,14 @@ PropSetup& PropSetup::operator= (const PropSetup &ps)
    
    if (this == &ps)
       return *this;
-   
+
+   // Finish both component clones and destination naming before changing this
+   // object. A failed second clone must not destroy the existing pair.
+   PropSetup replacement(ps);
+   if (replacement.mPropagator)
+      replacement.mPropagator->SetName(instanceName + "_Clone");
+   mInitialized = false;
+   isInitialized = false;
    GmatBase::operator=(ps);
    
    ownedObjectCount = ps.ownedObjectCount;
@@ -281,22 +302,20 @@ PropSetup& PropSetup::operator= (const PropSetup &ps)
    mInitialized               = false;
    mMcsCreated                = ps.mMcsCreated;
    includeODEModelInGenString = ps.includeODEModelInGenString;
-   mPropagatorName            = ps.mPropagatorName;
-   
    psm                        = ps.psm;
-   
-   if (ps.mPropagator != NULL)
-      mPropagatorName = ps.mPropagator->GetName();
+   isInitialized = false;
 
-   mODEModelName = "";
-   if (ps.mODEModel != NULL)
-      mODEModelName = ps.mODEModel->GetName();
-   
-   // first delete old propagator and ODEModel
-   DeleteOwnedObject(PROPAGATOR, true);
-   DeleteOwnedObject(ODE_MODEL, true);
-   ClonePropagator(ps.mPropagator);
-   CloneODEModel(ps.mODEModel);
+   std::swap(mPropagator, replacement.mPropagator);
+   std::swap(mODEModel, replacement.mODEModel);
+   if (replacement.mPropagator && mPropagator)
+      GmatBase::RetargetCloneSources(*replacement.mPropagator, *mPropagator);
+   if (replacement.mODEModel && mODEModel)
+      GmatBase::RetargetCloneSources(*replacement.mODEModel, *mODEModel);
+   mPropagatorName.swap(replacement.mPropagatorName);
+   mODEModelName.swap(replacement.mODEModelName);
+   if (mPropagator) mPropagator->SetCloneOwner(this);
+   if (mODEModel) mODEModel->SetCloneOwner(this);
+   // replacement now owns the old pair and their matching deletion markers.
    
    #ifdef DEBUG_PROPSETUP
    MessageInterface::ShowMessage
@@ -417,7 +436,7 @@ void PropSetup::SetPropagator(Propagator *propagator, bool fromGUI)
 
    if (!fromGUI)
    {
-      if ((mPropagatorName != "InternalPropagator") && !mMcsCreated)
+      if (mPropagator && (mPropagatorName != "InternalPropagator") && !mMcsCreated)
       {
          if (propagator != NULL)
          {
@@ -431,11 +450,7 @@ void PropSetup::SetPropagator(Propagator *propagator, bool fromGUI)
    if (propagator == NULL)
       throw PropSetupException("SetPropagator() failed: propagator is NULL");
    
-   DeleteOwnedObject(PROPAGATOR, true);
-//   mPropagator = propagator;
-
-   // Not cloned here; the propagator is owned by the PropSetup, and doesn't
-   // get configured -- need to track this re: memory management
+   // Clone before replacement, including when the input is our own component.
    ClonePropagator(propagator);
 
    if (mPropagator->UsesODEModel() == false)
@@ -473,16 +488,19 @@ void PropSetup::SetODEModel(ODEModel *odeModel)
    #ifdef DEBUG_PROPSETUP_SET
    MessageInterface::ShowMessage
       ("PropSetup::SetODEModel() this=<%p> '%s' entered, mODEModel=<%p>'%s', "
-       "odeModel=<%p>'%s'\n", this, GetName().c_str(), mODEModel, mODEModel->GetName().c_str(),
-       odeModel, odeModel->GetName().c_str());
+       "odeModel=<%p>'%s'\n", this, GetName().c_str(), mODEModel, mODEModel ? mODEModel->GetName().c_str() : "NULL",
+       odeModel, odeModel ? odeModel->GetName().c_str() : "NULL");
    #endif
-   
-   DeleteOwnedObject(ODE_MODEL, true);
+   if (!mPropagator)
+      throw PropSetupException("SetODEModel() failed: propagator is not set");
    if (mPropagator->UsesODEModel())
    {
+      std::string referenceName = odeModel ? odeModel->GetName() : "";
       CloneODEModel(odeModel);      // Makes clone or sets pointer to NULL
-      mODEModelName = odeModel->GetName();
+      mODEModelName.swap(referenceName);
    }
+   else
+      CloneODEModel(NULL);
    
    #ifdef DEBUG_PROPSETUP_SET
    MessageInterface::ShowMessage
@@ -541,7 +559,7 @@ Integer PropSetup::GetNumForces()
  //------------------------------------------------------------------------------
 void PropSetup::AddPropObject(GmatBase* sat)
 {
-   psm.SetObject(sat);
+   if (psm.SetObject(sat)) mInitialized = isInitialized = false;
 }
 
 //------------------------------------------------------------------------------
@@ -559,7 +577,9 @@ void PropSetup::AddPropObject(GmatBase* sat)
 //------------------------------------------------------------------------------
 bool PropSetup::RemovePropObject(GmatBase* sat)
 {
-   return psm.RemoveObject(sat);
+   const bool removed = psm.RemoveObject(sat);
+   if (removed) mInitialized = isInitialized = false;
+   return removed;
 }
 
 //------------------------------------------------------------------------------
@@ -572,6 +592,10 @@ bool PropSetup::RemovePropObject(GmatBase* sat)
  //------------------------------------------------------------------------------
 void PropSetup::PrepareInternals()
 {
+   if (!mPropagator) throw PropSetupException("Cannot prepare a PropSetup without a propagator.");
+   if (mPropagator->UsesODEModel() && !mODEModel)
+      throw PropSetupException("Cannot prepare a numerical PropSetup without a force model.");
+
    // Use precision time setting from ODE model if it exists
    if (mODEModel)
    {
@@ -769,7 +793,9 @@ bool PropSetup::IsOwnedObject(Integer id) const
 //------------------------------------------------------------------------------
 GmatBase* PropSetup::Clone(void) const
 {
-   return (new PropSetup(*this));
+   std::unique_ptr<PropSetup> value(new PropSetup(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -784,10 +810,20 @@ GmatBase* PropSetup::Clone(void) const
 //---------------------------------------------------------------------------
 void PropSetup::Copy(const GmatBase* orig)
 {
-   // We don't want to copy instanceName
+   const auto *source = dynamic_cast<const PropSetup*>(orig);
+   if (!source) throw PropSetupException("Incompatible PropSetup value copy.");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   // Native PropSetup Copy keeps its destination name, including on failure.
    std::string name = instanceName;
-   operator=(*((PropSetup *)(orig)));
-   instanceName = name;
+   try { operator=(*source); }
+   catch (...) { instanceName.swap(name); throw; }
+   instanceName.swap(name);
+   // A value Copy with a retained context carries its declarations. A native
+   // Clone remains empty unless FunctionManager requested a full snapshot.
+   if (source->GetFunctionValueContext())
+      psm.RebindClonedReferences(source->psm, [](GmatBase *object) {return object;});
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -1515,6 +1551,9 @@ bool PropSetup::Initialize()
       #endif
    }
    
+   // Runtime-owned setups receive notifications through their containing
+   // command. They must not stay active after that command retires its FOS.
+   SetCloneNotificationsEnabled(GetCloneOwner() == nullptr);
    return true;
 }
 
@@ -1671,76 +1710,116 @@ bool PropSetup::HasLocalClones()
 //------------------------------------------------------------------------------
 void PropSetup::UpdateClonedObject(GmatBase *obj)
 {
-   #ifdef DEBUG_CLONES
-      MessageInterface::ShowMessage("PropSetup::UpdateClonedObject(%s) "
-            "called\n", obj->GetName().c_str());
-   #endif
+   ApplyCloneUpdate(obj);
+}
 
-   if (obj->IsOfType(Gmat::ODE_MODEL) && (mODEModel != NULL))
+void PropSetup::UpdateClonedObjectParameter(GmatBase *obj, Integer parameterId)
+{
+   if (parameterId < 0) return;
+   ApplyCloneUpdate(obj, parameterId);
+}
+
+void PropSetup::BindCloneDefinition(PropSetup &source, GmatBase *owner)
+{
+   if (&source == this)
+      throw PropSetupException("A runtime setup cannot use itself as its definition.");
+   const auto compatible = [](GmatBase *copy, GmatBase *definition)
    {
-      #ifdef DEBUG_CLONES
-         MessageInterface::ShowMessage("Setting ODEModel on Propsetup %s\n",
-               instanceName.c_str());
-      #endif
-      if (obj->GetName() == mODEModel->GetName())
-      {
-         mODEModel->operator=(*((ODEModel*)obj));
-         isInitialized = false;
-      }
+      return (!copy && !definition) || (copy && definition && copy != definition &&
+         typeid(*copy) == typeid(*definition) && copy->GetTypeName() == definition->GetTypeName());
+   };
+   if (typeid(*this) != typeid(source) || GetTypeName() != source.GetTypeName() ||
+       !compatible(mPropagator, source.mPropagator) || !compatible(mODEModel, source.mODEModel))
+      throw PropSetupException("Runtime setup components do not match their actual definition.");
+   SetCloneSource(&source);
+   SetCloneOwner(owner);
+   if (owner) SetCloneNotificationsEnabled(false);
+   if (mPropagator)
+   {
+      mPropagator->SetCloneSource(source.mPropagator);
+      mPropagator->SetCloneOwner(this);
    }
-
-   if (obj->IsOfType(Gmat::PROP_SETUP))
+   if (mODEModel)
    {
-      #ifdef DEBUG_CLONES
-         MessageInterface::ShowMessage("Setting ODEModel on Propsetup %s to "
-               "match %s\n", instanceName.c_str(), obj->GetName().c_str());
-      #endif
-
-      ODEModel *odem = ((PropSetup*)obj)->GetODEModel();
-      if ((odem != NULL) && (mODEModel != NULL))
-      {
-         if (odem->GetName() == mODEModel->GetName())
-         {
-            mODEModel->operator=(*odem);
-            isInitialized = false;
-         }
-      }
+      mODEModel->SetCloneSource(source.mODEModel);
+      mODEModel->SetCloneOwner(this);
    }
 }
 
-
-//------------------------------------------------------------------------------
-// void UpdateClonedObjectParameter(GmatBase *obj, Integer updatedParameterId)
-//------------------------------------------------------------------------------
-/**
- * This method changes a single parameter on an owned clone
- *
- * @param obj The master object holding the new parameter value
- * @param updatedParameterId The ID of the updated parameter
- */
-//------------------------------------------------------------------------------
-void PropSetup::UpdateClonedObjectParameter(GmatBase *obj,
-      Integer updatedParameterId)
+bool PropSetup::ApplyCloneUpdate(GmatBase *source, Integer parameterId,
+      bool preservePropagationState)
 {
-   #ifdef DEBUG_CLONES
-      MessageInterface::ShowMessage("PropSetup::UpdateClonedObject(%s) "
-            "called\n", obj->GetName().c_str());
-   #endif
+   if (!source) return false;
+   const bool root = source == this || GetCloneSource() == source;
+   GmatBase *target = root ? this : nullptr;
+   if (!target && mODEModel && (source == mODEModel || mODEModel->IsCloneOf(*source)))
+      target = mODEModel;
+   if (!target && mPropagator && (source == mPropagator || mPropagator->IsCloneOf(*source)))
+      target = mPropagator;
+   if (!target) return false;
+   if (typeid(*target) != typeid(*source) || target->GetTypeName() != source->GetTypeName())
+      throw PropSetupException("Object type mismatch when updating an owned engine clone.");
 
-   if ((obj->IsOfType(Gmat::ODE_MODEL) ||
-       obj->IsOfType(Gmat::PROP_SETUP)) && (mODEModel != NULL))
+   // Mark both readiness fields before any potentially throwing native copy.
+   mInitialized = isInitialized = false;
+   if (target == source) return true; // The actual owned object was edited directly.
+   const auto previousContext = target->GetFunctionValueContext();
+   GmatBase::FunctionValueCopyGuard copying;
+   if (root)
    {
-      #ifdef DEBUG_CLONES
-         MessageInterface::ShowMessage("Setting parameter on %s on Propsetup "
-               "%s\n", obj->GetTypeName().c_str(), instanceName.c_str());
-      #endif
-      if (obj->GetName() == mODEModel->GetName())
+      auto *definition = static_cast<PropSetup*>(source);
+      if (parameterId < 0)
       {
-
-         mODEModel->CopyParameter(*obj, updatedParameterId);
-         isInitialized = false;
+         // A command's actual propagated objects/state remain its own. A
+         // definition assignment must not replace them with an empty scene PSM.
+         PropagationStateManager retainedState(psm);
+         Copy(definition);
+         if (preservePropagationState) psm = retainedState;
       }
+      else
+      {
+         const std::string label = source->GetParameterText(parameterId);
+         const Integer localId = GetParameterID(label);
+         if (localId == ODE_MODEL)
+            CloneODEModel(definition->mODEModel, true);
+         else if (localId == PROPAGATOR)
+         {
+            // A Type change can add/remove the numerical model as well. Prepare
+            // the coupled pair before retiring either current component.
+            PropSetup replacement(*definition);
+            if (replacement.mPropagator)
+            {
+               replacement.mPropagator->SetName(instanceName + "_Clone");
+               replacement.mPropagator->SetCloneOwner(this);
+            }
+            if (replacement.mODEModel) replacement.mODEModel->SetCloneOwner(this);
+            std::swap(mPropagator, replacement.mPropagator);
+            std::swap(mODEModel, replacement.mODEModel);
+            if (replacement.mPropagator && mPropagator)
+               GmatBase::RetargetCloneSources(*replacement.mPropagator, *mPropagator);
+            if (replacement.mODEModel && mODEModel)
+               GmatBase::RetargetCloneSources(*replacement.mODEModel, *mODEModel);
+            mPropagatorName.swap(replacement.mPropagatorName);
+            mODEModelName.swap(replacement.mODEModelName);
+         }
+         else
+            CopyParameter(*source, parameterId);
+      }
+      BindCloneDefinition(*definition, GetCloneOwner());
    }
+   else if (parameterId >= 0)
+      target->CopyParameter(*source, parameterId);
+   else if (target == mPropagator)
+   {
+      // Propagator leaf types expose concrete Clone, but do not all provide
+      // virtual Copy. Clone the complete leaf instead of slicing its base.
+      const GmatBase *definition = target->GetCloneSource();
+      ClonePropagator(static_cast<Propagator*>(source), true);
+      mPropagator->SetCloneSource(definition);
+   }
+   else
+      target->Copy(source);
+   return true;
 }
 
 
@@ -1751,68 +1830,89 @@ void PropSetup::UpdateClonedObjectParameter(GmatBase *obj,
 //------------------------------------------------------------------------------
 // void ClonePropagator(Propagator *prop)
 //------------------------------------------------------------------------------
-void PropSetup::ClonePropagator(Propagator *prop)
+void PropSetup::ClonePropagator(Propagator *prop, bool inheritSource)
 {
-   #ifdef DEBUG_PROPSETUP_CLONE
-   MessageInterface::ShowMessage
-      ("PropSetup::ClonePropagator() <%p>'%s' entered, prop=<%p>\n", this,
-       GetName().c_str(), prop);
-   #endif
-   if (prop != NULL)
+   std::unique_ptr<GmatBase> pending(prop ? prop->Clone() : nullptr);
+   if (pending && (pending.get() == prop || pending.get() == mPropagator || pending.get() == mODEModel))
    {
-      mPropagatorName = "";
-      mPropagator = (Propagator *)(prop->Clone());
-      mPropagator->SetName(instanceName+"_Clone"); //LOJ: Appended _Clone to name (2014.12.16)
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (mPropagator, mPropagatorName, "PropSetup::ClonePropagator()",
-          "mPropagator = prop->Clone()", this);
-      #endif
+      pending.release();
+      throw PropSetupException("Native component Clone returned a borrowed object.");
    }
-   else
+   auto *replacement = dynamic_cast<Propagator *>(pending.get());
+   if (prop && (!replacement || typeid(*replacement) != typeid(*prop) ||
+       replacement->GetTypeName() != prop->GetTypeName()))
+      throw PropSetupException("Cloning the propagator did not produce a Propagator");
+   if (replacement)
    {
-      mPropagatorName = "";
-      mPropagator = NULL;
+      replacement->SetName(instanceName + "_Clone");
+      if (!inheritSource)
+         replacement->SetCloneSource(prop == mPropagator ? prop->GetCloneSource() : prop);
+      replacement->SetCloneOwner(this);
    }
-   #ifdef DEBUG_PROPSETUP_CLONE
-   MessageInterface::ShowMessage
-      ("PropSetup::ClonePropagator() exiting, mPropagatorName='%s', mPropagator=<%p>\n",
-       mPropagatorName.c_str(), mPropagator);
+
+   #ifdef DEBUG_MEMORY
+      if (replacement)
+         MemoryTracker::Instance()->Add
+            (replacement, "", "PropSetup::ClonePropagator()", "prepared propagator clone", this);
    #endif
+   #ifdef DEBUG_PROPSETUP_CLONE
+      MessageInterface::ShowMessage
+         ("PropSetup::ClonePropagator() <%p>'%s' prepared replacement <%p>\n",
+          this, GetName().c_str(), replacement);
+   #endif
+
+   // The input may be the current component. Keep it alive until cloning and
+   // naming have finished, then publish the owned replacement exactly once.
+   if (mPropagator && replacement) GmatBase::RetargetCloneSources(*mPropagator, *replacement);
+   DeleteOwnedObject(PROPAGATOR, true);
+   mPropagatorName.clear();
+   mPropagator = replacement;
+   pending.release();
+   mInitialized = false;
+   isInitialized = false;
 }
 
 
 //------------------------------------------------------------------------------
 // void CloneODEModel(ODEModel *fm)
 //------------------------------------------------------------------------------
-void PropSetup::CloneODEModel(ODEModel *fm)
+void PropSetup::CloneODEModel(ODEModel *fm, bool inheritSource)
 {
-   #ifdef DEBUG_PROPSETUP_CLONE
-   MessageInterface::ShowMessage
-      ("PropSetup::CloneODEModel() <%p>'%s' entered, fm=<%p>, mODEModel=<%p>, "
-       "mODEModelName='%s'\n", this, GetName().c_str(), fm, mODEModel,
-       mODEModelName.c_str());
-   #endif
-   if (fm != NULL)
+   std::unique_ptr<GmatBase> pending(fm ? fm->Clone() : nullptr);
+   if (pending && (pending.get() == fm || pending.get() == mPropagator || pending.get() == mODEModel))
    {
-      mODEModelName = "";
-      mODEModel = (ODEModel *)(fm->Clone());
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (mODEModel, mODEModelName, "PropSetup::CloneODEModel()",
-          "mODEModel = fm->Clone()", this);
-      #endif
+      pending.release();
+      throw PropSetupException("Native component Clone returned a borrowed object.");
    }
-   else
+   auto *replacement = dynamic_cast<ODEModel *>(pending.get());
+   if (fm && (!replacement || typeid(*replacement) != typeid(*fm) ||
+       replacement->GetTypeName() != fm->GetTypeName()))
+      throw PropSetupException("Cloning the force model did not produce an ODEModel");
+   if (replacement)
    {
-      mODEModelName = "";
-      mODEModel = NULL;
+      if (!inheritSource)
+         replacement->SetCloneSource(fm == mODEModel ? fm->GetCloneSource() : fm);
+      replacement->SetCloneOwner(this);
    }
-   #ifdef DEBUG_PROPSETUP_CLONE
-   MessageInterface::ShowMessage
-      ("PropSetup::CloneODEModel() exiting, mODEModelName='%s', mODEModel=<%p>\n",
-       mODEModelName.c_str(), mODEModel);
+
+   #ifdef DEBUG_MEMORY
+      if (replacement)
+         MemoryTracker::Instance()->Add
+            (replacement, "", "PropSetup::CloneODEModel()", "prepared ODE model clone", this);
    #endif
+   #ifdef DEBUG_PROPSETUP_CLONE
+      MessageInterface::ShowMessage
+         ("PropSetup::CloneODEModel() <%p>'%s' prepared replacement <%p>\n",
+          this, GetName().c_str(), replacement);
+   #endif
+
+   if (mODEModel && replacement) GmatBase::RetargetCloneSources(*mODEModel, *replacement);
+   DeleteOwnedObject(ODE_MODEL, true);
+   mODEModelName.clear();
+   mODEModel = replacement;
+   pending.release();
+   mInitialized = false;
+   isInitialized = false;
 }
 
 
@@ -1960,4 +2060,41 @@ bool PropSetup::SetPrecisionTimeFlag(bool onOff)
    psm.GetState()->SetPrecisionTimeFlag(onOff);
 
    return GmatBase::SetPrecisionTimeFlag(onOff);
+}
+
+void PropSetup::RebindClonedReferences(const PropSetup &source, SolarSystem *,
+      const std::function<GmatBase*(GmatBase*)> &resolve,
+      const std::function<void(const ObjectArray&, const ObjectArray&)> &owned, bool bindObjects)
+{
+   if (&source == this) return;
+   const ObjectArray from{source.mPropagator, source.mODEModel};
+   const ObjectArray to{mPropagator, mODEModel};
+   for (UnsignedInt i = 0; i < from.size(); ++i)
+      if ((from[i] == NULL) != (to[i] == NULL) ||
+          (from[i] && from[i]->GetTypeName() != to[i]->GetTypeName()))
+         throw PropSetupException("Incompatible retained PropSetup component collection.");
+   owned(from, to);
+   psm.RebindClonedReferences(source.psm, resolve, bindObjects);
+   // Couple this exact owned pair/inline manager after all references map.
+   if (mODEModel)
+   {
+      mODEModel->SetPropStateManager(&psm);
+      mODEModel->SetState(psm.GetState());
+   }
+   if (mPropagator)
+   {
+      if (!mPropagator->UsesODEModel()) mPropagator->SetPhysicalModel(NULL);
+      else if (mODEModel) mPropagator->SetPhysicalModel(mODEModel);
+      mPropagator->SetPropStateManager(&psm);
+   }
+   mInitialized = isInitialized = false;
+}
+
+bool PropSetup::InitializeClonedResource()
+{
+   // Value initialization prepares references for reporting, not an integrator
+   // checkpoint. PrepareInternals later builds state and initializes the engine.
+   if (mODEModel && !mODEModel->InitializeForParameters()) return false;
+   mInitialized = isInitialized = false;
+   return true;
 }

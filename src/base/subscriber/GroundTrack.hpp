@@ -44,6 +44,8 @@
 class GMAT_API GroundTrack : public Subscriber
 {
 public:
+   bool HasSubscriberValueReferenceProvider() const override;
+   std::unique_ptr<FunctionInvocationState> SuspendFunctionBindings() override;
    virtual void SetRunState(Gmat::RunState state);
    GroundTrack(const std::string &name);
    virtual ~GroundTrack();
@@ -160,10 +162,15 @@ public:
    virtual void SetSolarSystem(SolarSystem *ss);
 
 protected:
+   bool HasNativeSubscriberBindings() const override;
+   void RebindSubscriberValueReferences(const Subscriber &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
    Integer integrationStepsToSkip = -1;
    IntegrationStepSampler integrationSampler;
    void ClearRuntimeResources();
    bool PlotSample(const Real *dat, Integer len, bool solving);
+   void PublishSatelliteColors();
+   void PublishStationData();
 
    /// Central body for the track
    std::string theBodyName;
@@ -234,6 +241,9 @@ protected:
 
    /// Spacecraft that are tracked
    std::vector<Spacecraft*> theSats;
+   /// Stable declaration/curve roles, parallel to the actual reference arrays.
+   StringArray satelliteNames;
+   StringArray stationNames;
 
    /// Map of state X indices by spacecraft
    std::map<Spacecraft*, int> stateMap;

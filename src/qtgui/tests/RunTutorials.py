@@ -35,8 +35,37 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def installation_base(startup):
+    runtime = os.environ.get('GMAT_QT_TUTORIAL_RUNTIME')
+    return Path(runtime).resolve().parent if runtime else Path(startup).resolve().parent
+
+
 def save_json(path, value):
     path.write_text(json.dumps(value, indent=2) + '\n')
+
+
+def publish_request(pending, destination):
+    deadline = time.monotonic() + 1
+    while True:
+        try:
+            pending.replace(destination)
+            return
+        except PermissionError:
+            if os.name != 'nt' or time.monotonic() >= deadline:
+                raise
+            time.sleep(.01)
+
+
+
+def read_snapshot(path):
+    deadline = time.monotonic() + 1
+    while True:
+        try:
+            return path.read_bytes()
+        except PermissionError:
+            if os.name != 'nt' or time.monotonic() >= deadline:
+                raise
+            time.sleep(.01)
 
 
 def scale_value(value):
@@ -118,7 +147,7 @@ class QtTestInputs:
         state.mkdir(exist_ok=True)
         request = state / 'input-request.pending'
         save_json(request, {'id': identifier, 'action': action})
-        request.replace(state / 'input-request.json')
+        publish_request(request, state / 'input-request.json')
         # Long literal function-editor lines can spend time in nested GUI
         # validation/highlighting. Keep selector lookup bounded, but allow an
         # accepted text event enough time to finish before sending another.
@@ -128,21 +157,21 @@ class QtTestInputs:
             self.session._alive()
             finished = state / 'input-finished' / (identifier+'.json')
             if finished.exists():
-                result = json.loads(finished.read_text())
+                result = json.loads(read_snapshot(finished))
                 if not result['ok']:
                     raise RuntimeError(result['error'])
                 return result
             suspended = state / 'input-suspended' / (identifier+'.json')
             if suspended.exists():
-                return json.loads(suspended.read_text())
+                return json.loads(read_snapshot(suspended))
             if (state/'input-accepted'/(identifier+'.json')).exists():
                 deadline=max(deadline,started+max(60,len(action.get('text',''))*.4))
             status = state / 'state.json'
-            if status.exists() and json.loads(status.read_text()).get('running'):
+            if status.exists() and json.loads(read_snapshot(status)).get('running'):
                 deadline = max(deadline, self.session.deadline-1)
             time.sleep(.02)
         pending = state / 'input-pending.json'
-        detail = json.loads(pending.read_text()).get('error', '') if pending.exists() else ''
+        detail = json.loads(read_snapshot(pending)).get('error', '') if pending.exists() else ''
         raise RuntimeError('QtTest input did not complete: '+detail)
 
 
@@ -229,6 +258,8 @@ class TutorialSession(IsolatedX11Session):
         env['QT_SCALE_FACTOR'] = str(self.ui_scale)
         env['QT_ENABLE_HIGHDPI_SCALING'] = '1'
         env['QT_SCALE_FACTOR_ROUNDING_POLICY'] = 'PassThrough'
+        if os.environ.get('GMAT_QT_TUTORIAL_PLUGIN_PATH'):
+            env['QT_PLUGIN_PATH'] = os.environ['GMAT_QT_TUTORIAL_PLUGIN_PATH']
         if self.seed is not None:
             env['GMAT_QT_TUTORIAL_SEED'] = str(self.seed)
         else:
@@ -249,7 +280,7 @@ class TutorialSession(IsolatedX11Session):
         # literals against the supplied *installation* startup, not that tree.
         text = self.clone.read_text()
         text = re.sub(r'^(\w+\s*=\s*)([^\n]*)$', lambda m: m[1] + (
-            str((self.startup.parent / m[2].strip()).resolve())
+            str((installation_base(self.startup) / m[2].strip()).resolve())
             if m[2].strip().startswith(('../', './')) else m[2]), text, flags=re.M)
         self.clone.write_text(text)
         self.record['startup_change'] = 'Private output and absolute installation-relative literals'
@@ -272,6 +303,95 @@ class TutorialSession(IsolatedX11Session):
             if os.environ.get('XAUTHORITY'):
                 env['XAUTHORITY'] = os.environ['XAUTHORITY']
         return super()._spawn(argv, name, env, **kwargs)
+
+
+class NativeTutorialSession(TutorialSession):
+    """Use the same QtTest event protocol on the host platform's Qt backend."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.update(visible=False, resizable=False, wm_command=[])
+        super().__init__(*args, **kwargs)
+
+    def _environment(self):
+        environment = super()._environment()
+        for name in ['QT_PLUGIN_PATH', 'QT_QPA_PLATFORM_PLUGIN_PATH']:
+            if name in os.environ:
+                environment[name] = os.environ[name]
+        environment['QT_QPA_PLATFORM'] = ('windows' if os.name == 'nt' else
+                                          'cocoa' if sys.platform == 'darwin' else 'offscreen')
+        if sys.platform.startswith('linux') and os.environ.get('GMAT_QT_TUTORIAL_QPA') == 'xcb':
+            environment['QT_QPA_PLATFORM'] = 'xcb'
+            for name in ['DISPLAY', 'XAUTHORITY']:
+                if name in os.environ:
+                    environment[name] = os.environ[name]
+        environment.pop('QT_OPENGL', None)
+        environment['GMAT_QT_TUTORIAL_WINDOW_SIZE'] = f'{self.width}x{self.height}'
+        if os.name == 'nt':
+            environment['QT_QPA_FONTDIR'] = str(Path(os.environ.get('SystemRoot', 'C:/Windows'))/'Fonts')
+        return environment
+
+    def start(self):
+        try:
+            self.env = self._environment()
+            command = [str(self.app), '--startup', str(self.clone), '--settings-dir', str(self.settings)]
+            if self.script:
+                command.append(str(self.script))
+            self._spawn(command, 'application', self.env)
+            until = min(self.deadline, time.monotonic()+30)
+            state = self.directory/'state/state.json'
+            while time.monotonic() < until:
+                self._alive()
+                if state.is_file():
+                    self.record.update(qpa=self.env['QT_QPA_PLATFORM'],
+                                       input='QtTest events on native Qt widgets')
+                    save_json(self.directory/'session.json', self.record)
+                    return self.record
+                time.sleep(.05)
+            raise TimeoutError('The native tutorial window did not initialize within 30 seconds')
+        except BaseException:
+            self.close()
+            raise
+
+    def screenshot(self, label='screen'):
+        self._alive()
+        if not isinstance(label, str) or not re.fullmatch(r'[A-Za-z0-9_.-]{1,64}', label):
+            raise ValueError('Screenshot label must be 1..64 filename characters')
+        self.count += 1
+        filename = f'{self.count:03d}-{label}.png'
+        state = self.directory/'state'
+        save_json(state/'screenshot-request.pending', {'filename': filename})
+        publish_request(state/'screenshot-request.pending', state/'screenshot-request.json')
+        until = min(self.deadline, time.monotonic()+15)
+        response = state/'screenshot-response.json'
+        while time.monotonic() < until:
+            self._alive()
+            if response.is_file():
+                result = json.loads(read_snapshot(response))
+                if result.get('filename') == filename:
+                    if not result.get('ok'):
+                        raise RuntimeError('Native tutorial screenshot failed')
+                    return str(self.directory/'screenshots'/filename)
+            time.sleep(.05)
+        raise TimeoutError('Native tutorial screenshot did not complete')
+
+    def close(self):
+        if self.closed:
+            return
+        self.closed = True
+        for _, process in reversed(self.processes):
+            if process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+        for log in self.logs:
+            log.close()
+        self.runtime.cleanup()
+        self.record['closed'] = True
+        self.record['exit_codes'] = {name: process.returncode for name, process in self.processes}
+        save_json(self.directory/'session.json', self.record)
 
 
 def match_anchor(encoded, x, y, current):
@@ -311,7 +431,7 @@ def match_anchor(encoded, x, y, current):
 def relocate(text, work):
     # Recipe generation enumerates every writable path. No arbitrary historical
     # output location or prior authored mission is accessed during construction.
-    return text.replace('${WORK}', str(work)).replace('${REPO}', str(REPO))
+    return text.replace('${WORK}', work.as_posix()).replace('${REPO}', REPO.as_posix())
 
 
 def control_target(action, inventory):
@@ -379,21 +499,21 @@ def synchronize_input(session, token):
     token = token.encode()
     (state / 'barrier.request').write_bytes(token)
     inventory = state / 'controls.json'
-    file_dialog = inventory.exists() and any(e.get('name') == 'fileNameEdit' for e in json.loads(inventory.read_text()))
+    file_dialog = inventory.exists() and any(e.get('name') == 'fileNameEdit' for e in json.loads(read_snapshot(inventory)))
     acknowledgement_seconds = 60 if file_dialog else 20
     deadline = time.monotonic() + acknowledgement_seconds
     while time.monotonic() < deadline:
         session._alive()
         response = state / 'barrier.response'
-        if response.exists() and response.read_bytes() == token:
+        if response.exists() and read_snapshot(response) == token:
             break
         current = state / 'state.json'
-        if current.exists() and json.loads(current.read_text()).get('running'):
+        if current.exists() and json.loads(read_snapshot(current)).get('running'):
             deadline = max(deadline, session.deadline-1)
         time.sleep(.015)
     else:
         raise RuntimeError('GUI input acknowledgement timed out')
-    while (state / 'state.json').exists() and json.loads((state / 'state.json').read_text()).get('running'):
+    while (state / 'state.json').exists() and json.loads(read_snapshot((state / 'state.json'))).get('running'):
         session._alive()
         time.sleep(.05)
     # Dialog acceptance can acknowledge input inside a nested event loop before
@@ -404,7 +524,7 @@ def synchronize_input(session, token):
     deadline = time.monotonic()+(60 if file_dialog else 10)
     while time.monotonic()<deadline:
         session._alive()
-        if (state / 'barrier.response').exists() and (state / 'barrier.response').read_bytes()==settled:
+        if (state / 'barrier.response').exists() and read_snapshot(state / 'barrier.response')==settled:
             return
         time.sleep(.015)
     raise RuntimeError('GUI settling acknowledgement timed out')
@@ -454,7 +574,8 @@ def replay(recipe, args, directory, probe, wm):
         pacing_seconds=(len(stage['actions'])*args.input_delay_ms+
                         sum(a.get('ms',0) for a in stage['actions'] if a['action']=='wait')+
                         sum(args.pause_ms for a in stage['actions'] if a['action']=='screenshot'))/1000
-        with TutorialSession(probe, args.startup, directory / f'stage-{number:02}',
+        session_type = NativeTutorialSession if args.desktop == 'native' else TutorialSession
+        with session_type(probe, args.startup, directory / f'stage-{number:02}',
                              seconds=600+math.ceil(pacing_seconds), script=script, wm_command=wm,
                              wm_library_path=args.wm_library_path, wm_data_dir=args.wm_data_dir,
                              visible=args.visible, work=work, seed=args.seed,
@@ -491,7 +612,7 @@ def replay(recipe, args, directory, probe, wm):
                 anchor = action.pop('anchor', None)
                 if filename_pending and action['action'] == 'key' and action.get('keys') == 'ENTER':
                     inventory_path = session.directory / 'state/controls.json'
-                    dialog = json.loads(inventory_path.read_text())
+                    dialog = json.loads(read_snapshot(inventory_path))
                     accepts = [e for e in dialog if e.get('role') == 'button' and e.get('text', '').replace('&', '') in {'Save', 'Open'}]
                     if any(e.get('name') == 'fileNameEdit' for e in dialog) and accepts:
                         x, y, w, h = accepts[0]['rect']
@@ -501,7 +622,7 @@ def replay(recipe, args, directory, probe, wm):
                     action['text'] = relocate(action['text'], work)
                     inventory_path = session.directory / 'state/controls.json'
                     if action['text'].startswith(str(work)+'/') and inventory_path.exists():
-                        dialog_entries = json.loads(inventory_path.read_text())
+                        dialog_entries = json.loads(read_snapshot(inventory_path))
                         previous = next((a for a in reversed(stage['actions'][:index]) if a['action'] not in {'wait', 'screenshot'}), {})
                         expects_dialog = (original.get('target_name') == 'fileNameEdit' or
                                           previous.get('target_name') == 'fileNameEdit' or
@@ -510,7 +631,7 @@ def replay(recipe, args, directory, probe, wm):
                         while expects_dialog and not any(e.get('name') == 'fileNameEdit' for e in dialog_entries) and time.monotonic()<ready_by:
                             session._alive()
                             time.sleep(.05)
-                            dialog_entries = json.loads(inventory_path.read_text())
+                            dialog_entries = json.loads(read_snapshot(inventory_path))
                         if expects_dialog and not any(e.get('name') == 'fileNameEdit' for e in dialog_entries):
                             raise RuntimeError(f'Stage {number}, action {index+1}: the requested file dialog did not become ready')
                         if any(e.get('name') == 'fileNameEdit' for e in dialog_entries):
@@ -527,11 +648,11 @@ def replay(recipe, args, directory, probe, wm):
                 if action['action'] in {'click', 'select', 'check'} or action.get('target_name'):
                     inventory = session.directory / 'state/controls.json'
                     if inventory.exists():
-                        entries = json.loads(inventory.read_text())
+                        entries = json.loads(read_snapshot(inventory))
                         if action.get('target_name') and any(e.get('role') == 'popup' and e.get('kind') == 'combo' and e.get('owner') != action['target_name'] for e in entries):
                             session.action({'action': 'key', 'keys': 'ENTER'})
                             synchronize_input(session, f'{number}:{index}:commit-choice')
-                            entries = json.loads(inventory.read_text())
+                            entries = json.loads(read_snapshot(inventory))
                         if action['action'] == 'select':
                             choices = sorted((e for e in entries if action.get('target_name') and e.get('name') == action['target_name'] and 'options' in e),
                                              key=lambda e: (not e.get('active_panel'), not e.get('focused')))
@@ -550,7 +671,7 @@ def replay(recipe, args, directory, probe, wm):
                                 session.action({'action': 'click', 'x': x+3, 'y': y+height//2,
                                                 'button': 5 if target['direction'] > 0 else 4})
                                 synchronize_input(session, f'{number}:{index}:scroll:{scroll_attempt}')
-                                entries = json.loads(inventory.read_text())
+                                entries = json.loads(read_snapshot(inventory))
                                 target = control_target(dict(action, x=action.get('x', 800), y=action.get('y', 600)), entries)
                             else:
                                 raise RuntimeError('Required control could not be scrolled into view')
@@ -568,7 +689,7 @@ def replay(recipe, args, directory, probe, wm):
                         session.action({'action': 'click', 'x': target[0], 'y': target[1]})
                         if action['action'] == 'select':
                             synchronize_input(session, f'{number}:{index}:open-choice')
-                            entries = json.loads(inventory.read_text())
+                            entries = json.loads(read_snapshot(inventory))
                 elif anchor:
                     screen = session.directory / 'pointer-check.png'
                     subprocess.run(['import', '-display', session.display, '-window', 'root', str(screen)],
@@ -635,7 +756,7 @@ def replay(recipe, args, directory, probe, wm):
                             break
                     if action['action'] in {'click', 'text', 'key', 'button'}:
                         if action['action'] == 'text' and not entries and (session.directory / 'state/controls.json').exists():
-                            entries = json.loads((session.directory / 'state/controls.json').read_text())
+                            entries = json.loads(read_snapshot((session.directory / 'state/controls.json')))
                         if action['action'] == 'text' and any(e.get('name') == 'fileNameEdit' for e in entries):
                             # QFileDialog's path completion can defer timer
                             # callbacks until the following Enter/click. Keep
@@ -657,10 +778,10 @@ def replay(recipe, args, directory, probe, wm):
                 session.wait(300)
                 session.screenshot('stage-finished')
             state = session.directory / 'state'
-            final_ui = json.loads((state / 'state.json').read_text())
+            final_ui = json.loads(read_snapshot((state / 'state.json')))
             if number == len(stage_list) and final_ui.get('selected_document_active') is False:
                 raise RuntimeError(f"Guide stage {stage['name']} ended on an inactive script document")
-            candidate = (state / 'current.script').read_bytes()
+            candidate = read_snapshot(state / 'current.script')
             stage_source = directory / f'stage-{number:02}-authored.script'
             stage_source.write_bytes(candidate)
             stage_runs = []
@@ -717,7 +838,11 @@ def execute_reference(reference, args, directory, probe, authored_work, input_al
     output.mkdir()
     work = root / 'bin'
     work.mkdir()
-    (work / 'output').symlink_to(output, target_is_directory=True)
+    if os.name == 'nt':
+        subprocess.run(['cmd', '/c', 'mklink', '/J', str(work/'output'), str(output)],
+                       check=True, stdout=subprocess.DEVNULL)
+    else:
+        (work / 'output').symlink_to(output, target_is_directory=True)
     reference_copy = work / reference.name
     shutil.copyfile(reference, reference_copy)
     reference_text=reference.read_text()
@@ -768,9 +893,9 @@ def execute_reference(reference, args, directory, probe, authored_work, input_al
     input_baseline = {p.name: (p.stat().st_mtime_ns, digest(p)) for p in output.iterdir() if p.is_file()}
     startup_text = args.startup.read_text()
     startup_text = re.sub(r'^(\w+\s*=\s*)([^\n]*)$', lambda m: m[1] + (
-        str((args.startup.parent / m[2].strip()).resolve())
+        str((installation_base(args.startup) / m[2].strip()).resolve())
         if m[2].strip().startswith(('../', './')) else m[2]), startup_text, flags=re.M)
-    startup_text = re.sub(r'^OUTPUT_PATH\s*=.*$', 'OUTPUT_PATH = ' + str(output) + '/', startup_text, flags=re.M)
+    startup_text = re.sub(r'^OUTPUT_PATH\s*=.*$', lambda _: 'OUTPUT_PATH = ' + output.as_posix() + '/', startup_text, flags=re.M)
     startup = root / 'startup.txt'
     startup.write_text(startup_text)
     environment = dict(os.environ, QT_QPA_PLATFORM='offscreen', LIBGL_ALWAYS_SOFTWARE='1',
@@ -778,6 +903,8 @@ def execute_reference(reference, args, directory, probe, authored_work, input_al
                        GMAT_QT_TUTORIAL_WORKDIR=str(work), XDG_CONFIG_HOME=str(root / 'config'),
                        XDG_DATA_HOME=str(root / 'data'), XDG_DATA_DIRS='/usr/local/share:/usr/share',
                        XDG_CACHE_HOME=str(root / 'cache'))
+    if os.name == 'nt':
+        environment['QT_QPA_FONTDIR'] = str(Path(os.environ.get('SystemRoot', 'C:/Windows'))/'Fonts')
     if args.seed is not None:
         environment['GMAT_QT_TUTORIAL_SEED'] = str(args.seed)
     else:
@@ -791,11 +918,11 @@ def execute_reference(reference, args, directory, probe, authored_work, input_al
         try:
             code = child.wait(timeout=300)
         except (subprocess.TimeoutExpired, KeyboardInterrupt):
-            os.killpg(child.pid, signal.SIGTERM)
+            child.terminate()
             try:
                 child.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                os.killpg(child.pid, signal.SIGKILL)
+                child.kill()
                 child.wait()
             raise
     results = [json.loads(p.read_text()) for p in sorted((root / 'state').glob('run-*.json'))]
@@ -885,6 +1012,9 @@ def main():
     parser.add_argument('--scale', type=scale_value, default=None, metavar='auto|FACTOR', help='UI scale: auto uses the host display for visible replay; numbers 0.5..4 override it (1.5 = 150%%)')
     parser.add_argument('--fixed-size', action='store_true', help='Disable resizing of the visible replay window')
     parser.add_argument('--driver', choices=['qttest', 'legacy-x11'], default='qttest', help='QtTest semantic selectors; legacy-x11 is retained only for old-recording diagnosis')
+    parser.add_argument('--desktop', choices=['isolated-x11', 'native'], default='isolated-x11',
+                        help='Use a private X11 desktop or the native Qt platform backend')
+    parser.add_argument('--probe', type=Path, help='Explicit matching tutorial probe executable')
     parser.add_argument('--tutorial', action='append', help='Tutorial number/id; repeat to select more (default: all published tutorials)')
     parser.add_argument('--list', action='store_true')
     parser.add_argument('--pause-ms', type=int, default=700, help='Pause at each named viewing checkpoint, 0..60000')
@@ -899,6 +1029,8 @@ def main():
     parser.add_argument('--wm-library-path', type=Path)
     parser.add_argument('--wm-data-dir', type=Path)
     args = parser.parse_args()
+    if args.desktop == 'native' and (args.driver != 'qttest' or args.visible):
+        parser.error('Native desktop replay uses the QtTest driver without --visible')
     if args.unseeded:
         args.seed = None
     if args.seed is not None and not 0 <= args.seed <= 4294967295:
@@ -926,8 +1058,8 @@ def main():
         parser.error('No recorded tutorial recipes are installed')
     if args.build:
         subprocess.run(['cmake', '--build', str(args.build_dir), '--target', 'GmatQtTutorialProbe', '--parallel', '4'], check=True)
-    probe = args.build_dir.resolve() / 'src/qtgui/GmatQtTutorialProbe'
-    if not args.wm:
+    probe = args.probe.resolve() if args.probe else args.build_dir.resolve() / 'src/qtgui/GmatQtTutorialProbe'
+    if args.desktop == 'isolated-x11' and not args.wm:
         private = REPO / 'build/tools/tutorial-desktop/extracted/usr'
         if (private / 'bin/openbox').is_file():
             args.wm = private / 'bin/openbox'
@@ -935,7 +1067,7 @@ def main():
             args.wm_data_dir = args.wm_data_dir or private / 'share'
         elif shutil.which('openbox'):
             args.wm = Path(shutil.which('openbox'))
-    if not probe.is_file() or not args.wm:
+    if not probe.is_file() or (args.desktop == 'isolated-x11' and not args.wm):
         parser.error('Build GmatQtTutorialProbe and supply --wm /absolute/path/to/openbox; see doc/DevelopersDocs/Qt6TutorialReplay.rst')
     configure_display(args, probe)
     out = args.output.absolute() if args.output else Path(tempfile.mkdtemp(prefix='gmat-tutorial-replay-'))
@@ -944,13 +1076,13 @@ def main():
     print('Tutorial evidence: ' + str(out), flush=True)
     print(f'Replay UI scale: {args.scale:g} ({args.scale_source}); starting desktop: {args.width}x{args.height}', flush=True)
     config = RECIPES / 'openbox.xml'
-    wm = [str(args.wm.resolve()), '--sm-disable', '--config-file', str(config)]
+    wm = [str(args.wm.resolve()), '--sm-disable', '--config-file', str(config)] if args.wm else []
     report = {'probe_sha256': digest(probe), 'visible': args.visible, 'pause_ms': args.pause_ms,
               'random_seed': args.seed, 'screen': [args.width, args.height],
               'resizable': args.visible and not args.fixed_size and args.driver == 'qttest',
               'ui_scale': args.scale, 'ui_scale_source': args.scale_source, 'host_display': args.host_display,
               'input': 'QtTest events on live identified widgets' if args.driver == 'qttest' else 'Legacy XTest recordings with coordinate fallback',
-              'driver': args.driver, 'tutorials': []}
+              'driver': args.driver, 'desktop': args.desktop, 'tutorials': []}
     code = 0
     try:
         for recipe in recipes:

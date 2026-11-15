@@ -66,6 +66,7 @@
 // **************************************************************************
 
 #include "GravityField.hpp"
+#include "OrbitStmForceGradient.hpp"
 #include "GmatBaseException.hpp"
 #include <typeinfo>
 #include "ODEModelException.hpp"
@@ -236,15 +237,11 @@ GravityField::GravityField(const GravityField &gf) :
     now                    (gf.now),
     nowGT                  (gf.nowGT)
 {
-   objectTypeNames.push_back("GravityField");
    bodyName = gf.bodyName;
 
 
    parameterCount = GravityFieldParamCount;
 
-   derivativeIds.push_back(Gmat::CARTESIAN_STATE);
-   derivativeIds.push_back(Gmat::ORBIT_STATE_TRANSITION_MATRIX);
-   derivativeIds.push_back(Gmat::ORBIT_A_MATRIX);
 
    isInitialized = false;
 }
@@ -265,6 +262,9 @@ GravityField& GravityField::operator=(const GravityField &gf)
    if (&gf == this)
       return *this;
 
+   const bool restoring = GmatBase::IsNativeRestorationCopy();
+   if (restoring && (tideFilenameFullPath != gf.tideFilenameFullPath || TideModel != gf.TideModel))
+      throw ODEModelException("Prepare gravity tide files before restoring changed configuration.");
    HarmonicField::operator=(gf);
    mu                     = gf.mu;
    a                      = gf.a;
@@ -274,20 +274,20 @@ GravityField& GravityField::operator=(const GravityField &gf)
    defaultMu              = gf.defaultMu;
    defaultA               = gf.defaultA;
    bodyName               = gf.bodyName;
-   gfInitialized          = false;  // is that what I want to do?
+   if (!restoring) gfInitialized = false;
    orderTruncateReported  = gf.orderTruncateReported;
    degreeTruncateReported = gf.degreeTruncateReported;
    offsetBodyOrigin       = gf.offsetBodyOrigin;
 //   if ((gravityModel) && (gravityModel->GetFilename() == "")) delete gravityModel;  // delete only Body ones
-   gravityModel           = gf.gravityModel;
+   if (!restoring) gravityModel = gf.gravityModel;
 //   gravityModel           = NULL;
-   j2k                    = NULL;
+   if (!restoring) j2k = NULL;
    frv                    = gf.frv;
    trv                    = gf.trv;
    now                    = gf.now;
    nowGT                  = gf.nowGT;
 
-   isInitialized = false;
+   if (!restoring) isInitialized = false;
 
    return *this;
 }
@@ -769,17 +769,10 @@ bool GravityField::GetDerivatives(Real * state, Real dt, Integer dvorder,
 //------------------------------------------------------------------------------
 Rvector6 GravityField::GetDerivativesForSpacecraft(Spacecraft *sc)
 {
-   Real theEpoch = sc->GetEpoch();
-   GmatTime theEpochGT = sc->GetEpochGT();
-   Real *j2kState = sc->GetState().GetState();
-
-   epoch = theEpoch;
-   epochGT = theEpochGT;
-
-   const Rvector6 dv = EvaluateCartesianAcceleration(j2kState, false);
-   epoch = theEpoch;
-   epochGT = theEpochGT;
-   return dv;
+   if (!sc)
+      throw ODEModelException("Gravity sampling requires a spacecraft.");
+   const GmatTime atEpoch = sc->HasPrecisionTime() ? sc->GetEpochGT() : GmatTime(sc->GetEpoch());
+   return GetDerivativesAtState(Rvector6(sc->GetState().GetState()),atEpoch);
 }
 
 Rvector6 GravityField::GetDerivativesAtState(const Rvector6 &cartesian,
@@ -850,6 +843,11 @@ Rvector6 GravityField::EvaluateCartesianAcceleration(const Real *j2kState,
 
    Real accnew[3];
    Calculate(0.0, satState, accnew, gradnew);
+
+   // The indirect origin acceleration is independent of spacecraft state.
+   // Retain the direct Cartesian derivative before the native indirect-term
+   // bookkeeping below. No request changes the ordinary force evaluation.
+   OrbitStmForceGradient::Request::Capture(this, gradnew);
 
    // Translate to the force origin
    if ((body != forceOrigin) && (inputCS->GetOriginName() != fixedCS->GetOriginName()))
@@ -1190,6 +1188,13 @@ bool GravityField::SetStringParameter(const Integer id,
    }
    if (id == TIDE_MODEL)
    {
+       // A standalone field may be saved before a potential file is selected.
+       // Disabling tides in that state does not require loading gravity data.
+       if (value == "None" && filenameFullPath.empty())
+       {
+           TideModel = value;
+           return true;
+       }
        HarmonicGravity *gm = GetHarmonicGravity(filenameFullPath, tideFilenameFullPath, a, mu, bodyName, true);
 
        if (gm != NULL)
@@ -1574,16 +1579,22 @@ void GravityField::Calculate (Real dt, Real state[6],
       eop->GetPolarMotionAndLod(utcmjd, xp, yp, lod);
    }
 
-   bool computeMatrix = fillAMatrix || fillSTM;
+   bool computeMatrix = fillAMatrix || fillSTM ||
+      OrbitStmForceGradient::Request::For(this) != nullptr;
+   // Native variational propagation may intentionally truncate the field
+   // gradient. A frame's Cartesian differential needs the derivative of its
+   // actual acceleration, including all configured harmonic degrees.
+   const Integer gradientLimit = OrbitStmForceGradient::Request::For(this) ?
+      degree : stmLimit;
 
    if (hasPrecisionTime)
       gravityModel->CalculateFullField(jdayGT.GetMjd(), tmpState, degree, order, tideLevel,
          sunpos, sunmukm, otherpos, othermukm,
-         xp, yp, computeMatrix, stmLimit, rotacc, rotgrad);
+         xp, yp, computeMatrix, gradientLimit, rotacc, rotgrad);
    else
       gravityModel->CalculateFullField (jday, tmpState, degree, order, tideLevel, 
          sunpos, sunmukm, otherpos, othermukm,
-         xp, yp, computeMatrix, stmLimit, rotacc, rotgrad);
+         xp, yp, computeMatrix, gradientLimit, rotacc, rotgrad);
 
    #ifdef DEBUG_DERIVATIVES
       MessageInterface::ShowMessage("after CalculateFullField, rotgrad = %s\n", rotgrad.ToString().c_str());

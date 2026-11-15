@@ -30,6 +30,20 @@
 
 
 #include "DataFilter.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration dataFilterValueProvider({
+   DataFilter::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const DataFilter*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<DataFilter*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "GmatBase.hpp"
 #include "TimeSystemConverter.hpp"
 #include "MessageInterface.hpp"
@@ -38,6 +52,7 @@
 #include "StringUtil.hpp"
 #include "DataFile.hpp"
 #include <sstream>
+#include <map>
 
 
 //#define DEBUG_CONSTRUCTION
@@ -240,7 +255,60 @@ DataFilter& DataFilter::operator=(const DataFilter& saf)
 //------------------------------------------------------------------------------
 GmatBase* DataFilter::Clone() const
 {
-   return new DataFilter(*this);
+   std::unique_ptr<DataFilter> value(new DataFilter(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
+}
+
+void DataFilter::Copy(const GmatBase *source)
+{
+   const auto *filter = dynamic_cast<const DataFilter*>(source);
+   if (!filter || typeid(*filter) != typeid(DataFilter) || typeid(*this) != typeid(DataFilter))
+      throw MeasurementException("Cannot copy incompatible object into DataFilter.\n");
+   if (filter == this) return;
+   const auto previous = GetFunctionValueContext();
+   operator=(*filter);
+   RebindFunctionValueContext(*filter);
+}
+
+bool DataFilter::RebindFunctionValueReferencesImpl(const GmatBase &source,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *filter = dynamic_cast<const DataFilter*>(&source);
+   if (!filter || filter->GetTypeName() != GetTypeName())
+      throw MeasurementException("Incompatible DataFilter function value.\n");
+   auto bind = [&resolve](const ObjectArray &from, const StringArray &names,
+         ObjectArray &to, StringArray &boundNames, bool observer)
+   {
+      std::map<std::string, std::string> aliases;
+      for (GmatBase *original : from)
+      {
+         GmatBase *value = original ? resolve(original) : NULL;
+         if (!value || (!value->IsOfType(Gmat::SPACECRAFT) &&
+               (observer || !value->IsOfType(Gmat::GROUND_STATION))))
+            throw MeasurementException("Invalid participant in retained DataFilter.\n");
+         const auto alias = aliases.emplace(original->GetName(), value->GetName());
+         if (!alias.second && alias.first->second != value->GetName())
+            throw MeasurementException("Ambiguous participant names in retained DataFilter.\n");
+         to.push_back(value);
+      }
+      boundNames = names;
+      for (std::string &name : boundNames)
+      {
+         const auto alias = aliases.find(name);
+         if (alias != aliases.end()) name = alias->second;
+      }
+   };
+   ObjectArray boundObservers, boundTrackers;
+   StringArray observerNames, trackerNames;
+   bind(filter->observerObjects, filter->observers, boundObservers, observerNames, true);
+   bind(filter->trackerObjects, filter->trackers, boundTrackers, trackerNames, false);
+   observerObjects.swap(boundObservers);
+   trackerObjects.swap(boundTrackers);
+   observers.swap(observerNames);
+   trackers.swap(trackerNames);
+   isChecked = filter->isChecked;
+   return true;
 }
 
 
@@ -1246,16 +1314,18 @@ GmatBase* DataFilter::GetRefObject(const UnsignedInt type,
    {
       for(UnsignedInt i = 0; i < observerObjects.size(); ++i)
       {
-         if (observerObjects[i]->GetName() == name)
+         if (observerObjects[i] && observerObjects[i]->GetName() == name)
             return observerObjects[i];
       }
    }
 
-   if ((type == Gmat::UNKNOWN_OBJECT) || (type == Gmat::GROUND_STATION))
+   if ((type == Gmat::UNKNOWN_OBJECT) || (type == Gmat::GROUND_STATION) ||
+         (type == Gmat::SPACECRAFT))
    {
       for(UnsignedInt i = 0; i < trackerObjects.size(); ++i)
       {
-         if (trackerObjects[i]->GetName() == name)
+         if (trackerObjects[i] && trackerObjects[i]->GetName() == name &&
+               (type == Gmat::UNKNOWN_OBJECT || trackerObjects[i]->IsOfType(type)))
             return trackerObjects[i];
       }
    }
@@ -1303,49 +1373,32 @@ GmatBase* DataFilter::GetRefObject(const UnsignedInt type,
 bool DataFilter::SetRefObject(GmatBase *obj, const UnsignedInt type,
       const std::string & name)
 {
+   if (!obj) return false;
    #ifdef DEBUG_INITIALIZATION
       MessageInterface::ShowMessage("Setting ref object %s with type %s  %d\n",
             name.c_str(), obj->GetTypeName().c_str(), type);
    #endif
-      bool isTracker = false;
-      bool isObserver = false;
-
-      for (int i = 0;i<trackers.size();i++)
-      {
-         if (trackers[i] == obj->GetName())
-         {
-            isTracker = true;
-         }
-      }
-      for (int i = 0; i < observers.size(); i++)
-      {
-         if (observers[i] == obj->GetName())
-         {
-            isObserver = true;
-         }
-      }
-   if (obj->IsOfType(Gmat::SPACECRAFT) && isObserver)
+   auto declared = [&name, obj](const StringArray &names)
    {
-      for(UnsignedInt i = 0; i < observerObjects.size(); ++i)
-      {
-         if (observerObjects[i]->GetName() == name)
-            return true;
-      }
-      observerObjects.push_back(obj);
-      return true;
-   }
-
-
-   if ((obj->IsOfType(Gmat::GROUND_STATION) || obj->IsOfType(Gmat::SPACECRAFT)) && isTracker)
+      return std::find(names.begin(), names.end(), obj->GetName()) != names.end() ||
+            (!name.empty() && std::find(names.begin(), names.end(), name) != names.end());
+   };
+   auto associate = [&name, obj](ObjectArray &objects)
    {
-      for(UnsignedInt i = 0; i < trackerObjects.size(); ++i)
-      {
-         if (trackerObjects[i]->GetName() == name)
-            return true;
-      }
-      trackerObjects.push_back(obj);
-      return true;
-   }
+      bool replaced = false;
+      for (GmatBase *&current : objects)
+         if (current && (current->GetName() == name || current->GetName() == obj->GetName()))
+         { current = obj; replaced = true; }
+      if (!replaced) objects.push_back(obj);
+   };
+   bool handled = false;
+   if (obj->IsOfType(Gmat::SPACECRAFT) && declared(observers))
+   { associate(observerObjects); handled = true; }
+   // A spacecraft can be both observer and tracker. Bind both configured
+   // roles, and replace stale same-role pointers rather than append or ignore.
+   if ((obj->IsOfType(Gmat::GROUND_STATION) || obj->IsOfType(Gmat::SPACECRAFT)) && declared(trackers))
+   { associate(trackerObjects); handled = true; }
+   if (handled) return true;
 
    return GmatBase::SetRefObject(obj, type, name);
 }

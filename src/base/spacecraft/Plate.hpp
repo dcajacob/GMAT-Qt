@@ -34,6 +34,7 @@
 #define Plate_hpp
 
 #include "GmatBase.hpp"
+#include <functional>
 #include "GmatBaseException.hpp"
 #include "Rvector3.hpp"
 #include "Rvector6.hpp"
@@ -53,6 +54,13 @@ public:
    virtual void         Copy(const GmatBase*);
 
    virtual bool         Initialize();
+   bool InitializeClonedResource();
+   void RebindClonedReferences(const Plate &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve,
+         const std::function<CoordinateSystem*(const std::string&)> &resolveName);
+   std::string GetHistoryCoordinateSystemName() const;
+   void BindHistoryCoordinateSystem(CoordinateSystem *frame, bool scoped = false);
+   CoordinateSystem *GetBoundHistoryCoordinateSystem() const;
    
    virtual Integer      GetParameterID(const std::string &str) const;
    virtual std::string  GetParameterText(const Integer id) const;
@@ -220,6 +228,13 @@ protected:
 private:
    // This provide information about spacecraft's coordinate system which is used to calculate face normal from history file
    CoordinateSystem *      scInertialCS;
+   std::weak_ptr<const void> inertialCoordinateSystemToken;
+   CoordinateSystem *      historyCoordinateSystem;
+   std::weak_ptr<const void> historyCoordinateSystemToken;
+   std::string             historyCoordinateSystemRole;
+   bool                    requireBoundHistoryCoordinateSystem;
+   CoordinateSystem *ResolveHistoryCoordinateSystem();
+   void PrepareHistoryReader();
 
    /// Refectance of the plate
    Rvector3                reflectance;

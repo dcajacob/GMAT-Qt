@@ -70,6 +70,7 @@ TdmErrorHandler::~TdmErrorHandler()
 //------------------------------------------------------------------------------
 TdmErrorHandler::TdmErrorHandler(const TdmErrorHandler &teh)
 {
+   errType = teh.errType;
    errName = teh.errName;
 }
 

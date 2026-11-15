@@ -39,6 +39,8 @@ class ESTIMATION_API ErrorModel : public GmatBase
 //class GMAT_API ErrorModel : public GmatBase
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = GmatBase::NativeValueProviderDepth + 1;
+
    ErrorModel(const std::string name);
    virtual ~ErrorModel();
    ErrorModel(const ErrorModel& em);
@@ -145,6 +147,10 @@ public:
    Real                 GetPassBias(GmatTime currentTime);
    Real                 GetPassBias(const Integer passNum);
 
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source,
+         SolarSystem *solarSystem,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+
    /// @todo: Check this
    DEFAULT_TO_NO_CLONES
    DEFAULT_TO_NO_REFOBJECTS
@@ -175,6 +181,10 @@ protected:
    /// Pass bias vector. It is vector B used in step function model in GMAT Measurement Bias Estimation math spec
    Rvector                passBiases;
    std::vector<GmatTime*> passBiasStartEpoches;
+   // Native measurement-manager bindings remain borrowed. Default epochs and
+   // explicit function-value snapshots are owned by this model instead.
+   std::vector<std::unique_ptr<GmatTime>> ownedPassBiasStartEpochs;
+   void CopyPassEpochs(const ErrorModel &source, bool snapshotBorrowed);
                                                 /// Solve-for parameters
    StringArray   solveforNames;                 // It contains a name list of solve-for parameters
    /// ErrorModel ID

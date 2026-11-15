@@ -33,6 +33,7 @@
 //------------------------------------------------------------------------------
 
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <iomanip>
 #include "Attitude.hpp"
@@ -161,7 +162,9 @@ bool PrecessingSpinner::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* PrecessingSpinner::Clone() const
 {
-	return (new PrecessingSpinner(*this)); //???(Yeerang Lim)
+	std::unique_ptr<PrecessingSpinner> value(new PrecessingSpinner(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release(); //???(Yeerang Lim)
 }
 
 //------------------------------------------------------------------------------
@@ -331,5 +334,7 @@ void PrecessingSpinner::Copy(const GmatBase *original)
       throw GmatBaseException("Cannot copy incompatible object into PrecessingSpinner");
    if (source == this)
       return;
+   const auto previousContext = GetFunctionValueContext();
    operator=(*source);
+   RebindFunctionValueContext(*source);
 }

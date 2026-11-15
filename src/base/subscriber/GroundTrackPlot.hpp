@@ -36,6 +36,8 @@
 class GMAT_API GroundTrackPlot : public OrbitPlot
 {
 public:
+   bool HasSubscriberValueReferenceProvider() const override;
+   std::unique_ptr<FunctionInvocationState> SuspendFunctionBindings() override;
    GroundTrackPlot(const std::string &name);
    GroundTrackPlot(const GroundTrackPlot &plot);
    GroundTrackPlot& operator=(const GroundTrackPlot &plot);
@@ -101,6 +103,9 @@ public:
    };
    
 protected:
+   bool HasNativeSubscriberBindings() const override;
+   void RebindSubscriberValueReferences(const Subscriber &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
    
    /// Calls PlotInterface for plotting solver data
    virtual bool         UpdateSolverData();

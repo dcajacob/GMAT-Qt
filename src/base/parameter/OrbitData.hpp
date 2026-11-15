@@ -149,6 +149,11 @@ public:
                                            const std::string &name = "");
 
 protected:
+   Rvector6 ConvertBrouwerState(const Rvector6 &state, const std::string &from,
+         const std::string &to);
+   void RebindClonedParameterCaches(const RefData &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
+
 
    // Inherited methods from RefData
    virtual bool AddRefObject(const UnsignedInt type,

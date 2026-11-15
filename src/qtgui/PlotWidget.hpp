@@ -48,6 +48,7 @@ private:
    std::shared_ptr<PlotModel> data;
    QPointF lastMouse, pan;
    double zoom = 1, yaw = 0.55, pitch = 0.45;
+   std::optional<std::array<double,9>> orbitRotation;
    quint64 visibleFrame = std::numeric_limits<quint64>::max();
    OrbitRenderer *renderer=nullptr;
    QRectF groundViewport;
@@ -56,7 +57,7 @@ private:
    QRectF xyViewport,selectionViewport;
    QTransform xyToCanvas,selectionToData;
    bool xyTransformValid=false;
-   std::optional<QRectF> xySelectionView;
+   std::optional<QRectF> selectionView;
    std::optional<QPointF> selectionStart;
    QRubberBand *selectionBand=nullptr;
    QString standardTooltip,groundCoordinates;
@@ -69,7 +70,8 @@ class PlotWidget final : public QWidget
 public:
    explicit PlotWidget(std::shared_ptr<PlotModel> data, QWidget *parent = nullptr);
    void refresh();
-   void setSharedReplayPosition(int value);
+   void setSharedReplayPosition(double value);
+   void setReplayLinked(bool linked);
    void setSharedReplayMode(PlotReplayMode mode);
    enum class SimulationCommand { Seek, Play, Start, Latest, Rate, Multiplier, Mode };
    std::function<void(SimulationCommand,double)> simulationRequested;
@@ -101,6 +103,10 @@ private:
 
    QAction *replay=nullptr;
    QLabel *replayPosition=nullptr;
+   QLabel *replayScope=nullptr;
+   QString replayClockRoot;
+   bool replayLinked=false;
+   double replayProgress=1000;
    QAction *saveProjection=nullptr;
    std::function<QString(bool,double)> projectionSaver;
    std::function<QStringList()> protectedPaths;
@@ -112,6 +118,7 @@ private:
    quint64 replaySourceGeneration=std::numeric_limits<quint64>::max();
    size_t replayPointCount=0;
    void updateReplayFrame();
+   void updateReplayModeUi();
    void editPlotStyle();
    QString exportPathError(const QString &path) const;
 };

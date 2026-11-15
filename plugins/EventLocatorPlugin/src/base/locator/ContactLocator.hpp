@@ -61,6 +61,8 @@
 class LOCATOR_API ContactLocator : public EventLocator
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = EventLocator::NativeValueProviderDepth + 1;
+
    ContactLocator(const std::string &name);
    virtual ~ContactLocator();
    ContactLocator(const ContactLocator& el);
@@ -161,6 +163,12 @@ public:
    void                 WriteStationEvents();
 
 
+   bool HasEventLocatorValueReferenceProvider() const override;
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source,
+         SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+
    DEFAULT_TO_NO_CLONES
 
 protected:
@@ -204,6 +212,8 @@ protected:
    // The stored results
    std::vector<ContactResult*> contactResults;
    /// An omitted selection retains the existing contact-interval behavior.
+   std::string rootFindingMethod = "SPICE";
+   Real rootTolerance = 1.0e-6;
    StringArray eventTypes;
    bool eventTypesExplicit = false;
    struct StationEvent
@@ -241,6 +251,8 @@ protected:
       REPORT_TIME_FORMAT,
       EVENT_TYPES,
       ADDITIONAL_TARGETS,
+      ROOT_FINDING_METHOD,
+      ROOT_TOLERANCE,
       ContactLocatorParamCount
     };
 

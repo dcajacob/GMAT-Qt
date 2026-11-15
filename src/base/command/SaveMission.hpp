@@ -67,6 +67,7 @@ public:
                                            const std::string &value);
    virtual bool         SetStringParameter(const std::string &label, 
                                            const std::string &value);
+   virtual const StringArray& GetPropertyEnumStrings(const Integer id) const;
    
    // for generating string
    virtual const std::string&
@@ -82,10 +83,13 @@ protected:
    enum  
    {
       FILE_NAME = GmatCommandParamCount,
+      EXECUTION_POLICY,
       SaveMissionParamCount
    };
    
    std::string fileName;
+   std::string executionPolicy;
+   bool executionPolicySpecified;
    
    static const std::string
       PARAMETER_TEXT[SaveMissionParamCount - GmatCommandParamCount];

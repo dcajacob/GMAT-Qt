@@ -17,7 +17,10 @@
 #include <stdexcept>
 #include <memory>
 #include <QSignalBlocker>
+#include <QScrollBar>
+#include <QTextCursor>
 #include <tuple>
+#include <algorithm>
 
 InspectionDialog::InspectionDialog(const QString &title,const QString &contents,const QString &context,
                                    QWidget *parent,ProtectedPaths paths)
@@ -45,7 +48,22 @@ InspectionDialog::InspectionDialog(const QString &title,const QString &contents,
    }
    connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);
 }
-void InspectionDialog::setText(const QString &contents) { text->setPlainText(contents); }
+void InspectionDialog::setText(const QString &contents)
+{
+   if (text->toPlainText()==contents) return;
+   const auto previous=text->textCursor();
+   const int position=previous.position(),anchor=previous.anchor();
+   const int vertical=text->verticalScrollBar()->value();
+   const int horizontal=text->horizontalScrollBar()->value();
+   text->setPlainText(contents);
+   auto cursor=text->textCursor();
+   const int last=text->document()->characterCount()-1;
+   cursor.setPosition(std::min(anchor,last));
+   cursor.setPosition(std::min(position,last),QTextCursor::KeepAnchor);
+   text->setTextCursor(cursor);
+   text->verticalScrollBar()->setValue(vertical);
+   text->horizontalScrollBar()->setValue(horizontal);
+}
 QString InspectionDialog::exportText(const QString &path) const
 {
    if (path.isEmpty()) return "Choose a file for the summary.";

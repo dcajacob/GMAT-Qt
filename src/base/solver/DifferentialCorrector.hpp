@@ -48,6 +48,8 @@
 class GMAT_API DifferentialCorrector : public Solver
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = Solver::NativeValueProviderDepth + 1;
+
    DifferentialCorrector(std::string name);
    virtual ~DifferentialCorrector();
    DifferentialCorrector(const DifferentialCorrector &dc);
@@ -61,6 +63,8 @@ public:
    
    // inherited from GmatBase
    virtual GmatBase*   Clone() const;
+   bool HasSolverValueReferenceProviderImpl() const;
+   void PrepareClonedSolverValueImpl(const Solver &source);
    virtual void        Copy(const GmatBase* orig);
    
    // Access methods overriden from the base class
@@ -100,6 +104,10 @@ public:
    DEFAULT_TO_NO_REFOBJECTS
 
 protected:
+   Integer allocatedVariables = 0;
+   Integer allocatedGoals = 0;
+   Integer allocatedIndexCount = 0;
+
    // Updates from KARI
    // Modified by MH
    /// Script parameter specifying the inversion algorithm

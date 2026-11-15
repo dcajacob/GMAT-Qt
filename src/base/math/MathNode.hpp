@@ -68,6 +68,8 @@ public:
 
    // for function node returning string
    virtual std::string  EvaluateString();
+
+   virtual Rvector      VectorEvaluate();
    
    // abstract methods
    virtual bool         ValidateInputs() = 0;
@@ -86,6 +88,17 @@ public:
                                         const std::string &newName);
 
    DEFAULT_TO_NO_CLONES
+
+   virtual void RebindExpressionReferences(const MathNode &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve, WrapperMap *wrappers);
+   // Release invocation references while preserving the parsed definition.
+   virtual void RetireExpressionReferences();
+
+   // Structural ownership includes expression arguments outside left/right.
+   // A definition copy reconnects all these edges before ownership transfers.
+   virtual std::vector<MathNode*> GetStructuralChildren() const;
+   virtual void RebindClonedChildren(const MathNode &source,
+         const std::function<MathNode*(MathNode*)> &resolve);
 
 protected:
    

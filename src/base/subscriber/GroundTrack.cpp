@@ -31,11 +31,18 @@
 
 #include "SolverBranchCommand.hpp"
 #include "GroundTrack.hpp"
+#include <algorithm>
+#include "Spacecraft.hpp"
+#include "GroundstationInterface.hpp"
+#include "SubscriberBindingState.hpp"
+#include "PlotOriginScope.hpp"
 #include "PlotInterface.hpp"         // for XY plot
 #include "SubscriberException.hpp"
 #include "StringUtil.hpp"            // for GmatStringUtil::ReplaceName(), GetArrayName()
 #include "MessageInterface.hpp"      // for ShowMessage()
 #include "SpaceObject.hpp"
+#include "BodyFixedPoint.hpp"
+#include "FileManager.hpp"
 #include <cstring>
 #include <cmath>
 #include <limits>
@@ -87,6 +94,29 @@ GroundTrack::PARAMETER_TYPE[GroundTrackParamCount - SubscriberParamCount] =
          Gmat::INTEGER_TYPE,
          Gmat::INTEGER_TYPE
       };
+
+namespace
+{
+   template<class T> void BindGroundTrackRole(std::vector<T*> &objects,
+         StringArray &roles, T *object, const std::string &role)
+   {
+      if (objects.size() != roles.size())
+         throw SubscriberException("GroundTrack reference roles and objects differ.");
+      const auto found = std::find(roles.begin(), roles.end(), role);
+      if (found != roles.end())
+      {
+         objects[static_cast<size_t>(found - roles.begin())] = object;
+         return;
+      }
+      // Both parallel arrays publish together if appending requires allocation.
+      auto stagedObjects = objects;
+      auto stagedRoles = roles;
+      stagedObjects.push_back(object);
+      stagedRoles.push_back(role);
+      objects.swap(stagedObjects);
+      roles.swap(stagedRoles);
+   }
+}
 
 void GroundTrack::SetRunState(Gmat::RunState state)
 {
@@ -162,7 +192,12 @@ GroundTrack::GroundTrack(const GroundTrack& gt) :
    longlat(nullptr),
    pointlonglat(nullptr)
 {
-   *this = gt;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      *this = gt;
+   }
+   if (typeid(gt) == typeid(GroundTrack)) ReconnectSubscriberCopy(gt);
+
 }
 
 //------------------------------------------------------------------------------
@@ -176,8 +211,11 @@ GroundTrack::GroundTrack(const GroundTrack& gt) :
 //------------------------------------------------------------------------------
 GroundTrack& GroundTrack::operator=(const GroundTrack& gt)
 {
-   if (this != &gt)
+   if (this == &gt) return *this;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = typeid(*this) == typeid(GroundTrack) ? BeginSubscriberValueCopy(gt) : SubscriberValueCopyToken{};
    {
+      FunctionValueCopyGuard nativeCopy;
       ClearRuntimeResources();
       Subscriber::operator=(gt);
       isInitialized = false;
@@ -207,12 +245,15 @@ GroundTrack& GroundTrack::operator=(const GroundTrack& gt)
       footprintType = gt.footprintType;
       ccvt = gt.ccvt;
       theSats = gt.theSats;
+      satelliteNames = gt.satelliteNames;
       theStations = gt.theStations;
+      stationNames = gt.stationNames;
       theBodies = gt.theBodies;
       thePoints = gt.thePoints;
       stateMap = gt.stateMap;
       stateIndices = gt.stateIndices;
    }
+   if (typeid(*this) == typeid(GroundTrack)) CompleteSubscriberValueCopy(gt, transaction);
    return *this;
 }
 
@@ -242,7 +283,15 @@ void GroundTrack::ClearRuntimeResources()
 //------------------------------------------------------------------------------
 GmatBase* GroundTrack::Clone() const
 {
-   return new GroundTrack(*this);
+   if (typeid(*this) != typeid(GroundTrack))
+      throw GmatBaseException("A derived GroundTrack must provide its complete Clone.\n");
+   std::unique_ptr<GroundTrack> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new GroundTrack(*this));
+   }
+   value->ReconnectSubscriberCopy(*this);
+   return value.release();
 }
 
 //------------------------------------------------------------------------------
@@ -252,10 +301,19 @@ GmatBase* GroundTrack::Clone() const
  * The default copy constructor
  */
 //------------------------------------------------------------------------------
-void GroundTrack::Copy(const GmatBase* orig)
+void GroundTrack::Copy(const GmatBase *original)
 {
-   if (orig->IsOfType("GroundTrack"))
-      operator=(*((GroundTrack*)orig));
+   const auto *source = dynamic_cast<const GroundTrack*>(original);
+   if (!source || typeid(*source) != typeid(*this) || !HasSubscriberValueReferenceProvider())
+      throw GmatBaseException("Cannot copy an incompatible GroundTrack value.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = BeginSubscriberValueCopy(*source);
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   CompleteSubscriberValueCopy(*source, transaction);
 }
 
 //------------------------------------------------------------------------------
@@ -289,7 +347,7 @@ bool GroundTrack::Initialize()
       // Check that the objects are set matching the object list
       int count = theSats.size() + theStations.size();
 
-      if (count == theObjects.size())
+      if (HasNativeSubscriberBindings())
          retval = true;
 
       // Access spacecraft state origin and ensure it matches for all spacecraft
@@ -362,7 +420,7 @@ bool GroundTrack::Initialize()
    }
 
    // Now interact with the GUI
-   if (showPlot && PlotInterface::CreateGroundTrackWindow(instanceName,
+   if (showPlot && PlotInterface::CreateGroundTrackWindow(GetRuntimePlotName(),
           "", mPlotUpperLeft[0], mPlotUpperLeft[1],
           mPlotSize[0], mPlotSize[1], isMaximized))
    {
@@ -373,57 +431,60 @@ bool GroundTrack::Initialize()
          backgroundMap = theBody->GetStringParameter(
                theBody->GetParameterID("TextureMapFullPath"));
       // Pass in GroundTrack parameters
-      PlotInterface::SetGroundTrackOption(instanceName, "TextureMap", backgroundMap);
+      if (!backgroundMap.empty())
+      {
+         std::string file, resolved;
+         if (FileManager::Instance()->GetTextureMapFile(backgroundMap, theBodyName,
+               instanceName, file, resolved, false)) backgroundMap = resolved;
+      }
+      PlotInterface::SetGroundTrackOption(GetRuntimePlotName(), "TextureMap", backgroundMap);
 
       // Remove stale data if present - we might be reusing the window
-      PlotInterface::TakeGroundTrackAction(instanceName, "Reinitialize");
-      PlotInterface::TakeGroundTrackAction(instanceName, "ClearData");
+      PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), "Reinitialize");
+      PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), "ClearData");
+      // Supply this native instance's settings, including private function plots
+      // which have no configured object under their physical backend key.
+      PlotInterface::SetGroundTrackOption(GetRuntimePlotName(), "LineWidth", std::to_string(lineWidth));
+      PlotInterface::SetGroundTrackOption(GetRuntimePlotName(), "MaxPlotPoints", std::to_string(maxData));
+      PlotInterface::SetGroundTrackOption(GetRuntimePlotName(), "NumPointsToRedraw", std::to_string(redrawCount));
+      PlotInterface::SetGroundTrackOption(GetRuntimePlotName(), "ShowFootPrints", footprintType);
 
       // A solver may start before the first propagator sets its data labels.
       // Name the empty curves now so its Current-mode break can be anchored
       // before trial data arrives. This publishes no trajectory samples.
       std::string satellites = "Satellites=";
-      for (auto *satellite : theSats)
+      for (const auto &role : satelliteNames)
       {
          if (satellites.back() != '=') satellites += '|';
-         satellites += satellite->GetName();
+         satellites += role;
       }
-      PlotInterface::TakeGroundTrackAction(instanceName, satellites);
+      PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), satellites);
+      PublishSatelliteColors();
 
       if (updateFrequency > 0)
       {
          std::string theAction = "PlotUpdateFrequency=" +
                std::to_string(updateFrequency);
-         PlotInterface::TakeGroundTrackAction(instanceName, theAction);
+         PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), theAction);
       }
 
       if (useGrid)
       {
-         PlotInterface::TakeGroundTrackAction(instanceName, "UseGrid=True");
+         PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), "UseGrid=True");
 
          std::string theAction = "LatitudeLineCount=" +
                std::to_string(latLineCount);
-         PlotInterface::TakeGroundTrackAction(instanceName, theAction);
+         PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), theAction);
          theAction = "LongitudeLineCount=" +
                std::to_string(longLineCount);
-         PlotInterface::TakeGroundTrackAction(instanceName, theAction);
+         PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), theAction);
       }
       else
-         PlotInterface::TakeGroundTrackAction(instanceName, "UseGrid=False");
+         PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), "UseGrid=False");
 
-      if (stationCount > 0)
-      {
-         for (int i = 0; i < theStations.size(); ++i)
-         {
-             if (theBodyName == theStations[i]->GetStringParameter("CentralBody"))
-             {
-                std::string theAction = "AddStation=" + theStations[i]->GetName();
-                PlotInterface::TakeGroundTrackAction(instanceName, theAction);
-             }
-         }
-      }
+      if (stationCount > 0) PublishStationData();
 
-      PlotInterface::TakeGroundTrackAction(instanceName, "Refresh");
+      PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), "Refresh");
    }
 
    isInitialized = retval;
@@ -1475,28 +1536,14 @@ bool GroundTrack::SetRefObject(GmatBase *obj, const UnsignedInt type,
    }
    else if (obj->IsOfType(Gmat::SPACECRAFT))
    {
-      for (auto &reference : theSats)
-      {
-         if (reference->GetName() == obj->GetName())
-         {
-            reference = (Spacecraft*)obj;
-            return true;
-         }
-      }
-      theSats.push_back((Spacecraft*)obj);
+      BindGroundTrackRole(theSats, satelliteNames, static_cast<Spacecraft*>(obj),
+         name.empty() ? obj->GetName() : name);
       return true;
    }
    else if (obj->IsOfType(Gmat::GROUND_STATION))
    {
-      for (auto &reference : theStations)
-      {
-         if (reference->GetName() == obj->GetName())
-         {
-            reference = (GroundstationInterface*)obj;
-            return true;
-         }
-      }
-      theStations.push_back((GroundstationInterface*)obj);
+      BindGroundTrackRole(theStations, stationNames, static_cast<GroundstationInterface*>(obj),
+         name.empty() ? obj->GetName() : name);
       return true;
    }
 
@@ -1554,6 +1601,11 @@ bool GroundTrack::RenameRefObject(const UnsignedInt type,
       }
    }
 
+   if (type == Gmat::SPACECRAFT || type == Gmat::GROUND_STATION || type == Gmat::CALCULATED_POINT)
+   {
+      for (auto &role : satelliteNames) if (role == oldName) role = newName;
+      for (auto &role : stationNames) if (role == oldName) role = newName;
+   }
    if (type == Gmat::CELESTIAL_BODY)
    {
       if (theBodyName == oldName)
@@ -1591,6 +1643,8 @@ void GroundTrack::SetDataLabels(const StringArray& elements)
          MessageInterface::ShowMessage("   %3d:  %s\n", i, elements[i].c_str());
    #endif
 
+   if (satelliteNames.size() != theSats.size())
+      throw SubscriberException("GroundTrack satellite curve roles are incomplete.");
    stateMap.clear();
    stateIndices.assign(theSats.size(), IntegerArray(6, -1));
    const char *components[] = {"X", "Y", "Z", "Vx", "Vy", "Vz"};
@@ -1632,30 +1686,44 @@ void GroundTrack::SetDataLabels(const StringArray& elements)
          theAction = theAction + "|";
          theColors = theColors + "|";
       }
-      theAction = theAction + theSats[i]->GetName();
+      theAction = theAction + satelliteNames[i];
       theColors = theColors + theSats[i]->GetOrbitColorString();
    }
    theAction = "Satellites=" + theAction;
-   PlotInterface::TakeGroundTrackAction(instanceName, theAction);
+   PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), theAction);
 
    #ifdef DEBUG_GROUNDTRACK_ACTION
       MessageInterface::ShowMessage("Setting colors next\n");
    #endif
 
    theAction = "SatColors=" + theColors;
-   PlotInterface::TakeGroundTrackAction(instanceName, theAction);
+   PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), theAction);
+   PublishSatelliteColors();
+   PublishStationData();
 }
 
 //------------------------------------------------------------------------------
 // Segment colors are display metadata; receivers may handle this optional
 // action without changing state publication or geodetic calculations.
-void GroundTrack::SetSegmentOrbitColor(GmatBase *, bool overrideColor,
+void GroundTrack::SetSegmentOrbitColor(GmatBase *originator, bool overrideColor,
                                       UnsignedInt orbitColor, const StringArray &objNames)
 {
+   StringArray roles;
+   for (size_t i = 0; i < theSats.size() && i < satelliteNames.size(); ++i)
+   {
+      bool identified = false;
+      const bool exact = Publisher::IsPublishedEventSubject(Publisher::ObjectEvent::SegmentColor,
+         originator, theSats[i], identified);
+      const bool named = !identified &&
+         (std::find(objNames.begin(), objNames.end(), satelliteNames[i]) != objNames.end() ||
+          std::find(objNames.begin(), objNames.end(), theSats[i]->GetName()) != objNames.end());
+      if (exact || named) roles.push_back(satelliteNames[i]);
+   }
+   if (roles.empty()) return;
    std::ostringstream action;
    action << "SegmentColor=" << (overrideColor ? "On" : "Off") << '|' << orbitColor;
-   for (const auto &name : objNames) action << '|' << name;
-   PlotInterface::TakeGroundTrackAction(instanceName, action.str());
+   for (const auto &role : roles) action << '|' << role;
+   PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), action.str());
 }
 
 // In a decimated regular trajectory a Propagate command echoes its initial
@@ -1736,7 +1804,7 @@ bool GroundTrack::Distribute(const double * dat, Integer len)
    {
       // FlushData also ends individual propagation/solver blocks. Only the
       // engine's SetEndOfRun notification completes the retained display.
-      PlotInterface::TakeGroundTrackAction(instanceName,
+      PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(),
             isEndOfRun ? "RunComplete" :
             integrationStepsToSkip >= 0 ? "RefreshPreservingCadence" : "Refresh");
 
@@ -1764,11 +1832,23 @@ bool GroundTrack::Distribute(const double * dat, Integer len)
    if (mSolverIterations == "None" && solving)
       return true;
 
+   auto frameReferences=[&]()
+   {
+      std::vector<SpaceObject*> references;
+      PlotOriginScope::CollectReferences(viewCoordinates,references);
+      if (const auto *columns=Publisher::GetPublishedCartesianColumns(dat,len))
+         for (const auto &column : *columns)
+            if (std::find(theSats.begin(),theSats.end(),column.object)!=theSats.end())
+               PlotOriginScope::CollectReferences(Publisher::GetPublishedSpacecraftFrame(dat,len,column.object),references);
+      return references;
+   };
+
    if (integrationStepsToSkip >= 0)
    {
       const auto *steps = Publisher::GetPublishedIntegrationSteps(dat, len);
       if (!steps) return true; // Nonintegrating providers have no step identity.
       const StringArray originalLabels = theDataLabels.empty() ? StringArray{} : theDataLabels[0];
+      PlotOriginScope::Packet originPacket(dat,len,frameReferences());
       std::map<const GmatBase*,int> packetSpacecraft;
       for (const auto &record : *steps)
          for (const auto &sample : record.states)
@@ -1779,8 +1859,10 @@ bool GroundTrack::Distribute(const double * dat, Integer len)
          {
             StringArray labels(1, "Epoch");
             RealArray values(1, step.epoch.GetMjd());
+            std::vector<Publisher::CartesianColumns> columns;
             const char *components[] = {".X", ".Y", ".Z", ".Vx", ".Vy", ".Vz"};
             auto selection = packetSpacecraft;
+            PlotOriginScope originState(originPacket,step.epoch);
             for (const auto &sample : step.states)
             {
                bool newArc = false;
@@ -1790,26 +1872,41 @@ bool GroundTrack::Distribute(const double * dat, Integer len)
                   selection[sample.object] = 3; // Present but intentionally uncollected.
                   continue;
                }
+               if (!originState.Available())
+               {
+                  integrationSampler.MarkUnavailable(sample.object);
+                  selection[sample.object]=0;
+                  continue;
+               }
                selection[sample.object] = newArc ? 2 : 1;
+               Publisher::CartesianColumns column;
+               column.object = sample.object;
+               column.hasEpoch = true;
+               column.epoch = sample.epoch;
+               column.frame = Publisher::GetPublishedSpacecraftFrame(dat,len,sample.object);
+               if (column.frame) column.frameIdentity = column.frame->GetLifetimeToken();
                for (Integer c = 0; c < 6; ++c)
                {
+                  column.indices[c] = static_cast<Integer>(values.size());
                   labels.push_back(sample.object->GetName() + components[c]);
                   values.push_back(sample.state[c]);
                }
+               columns.push_back(column);
             }
             if (values.size() == 1) continue;
             SetDataLabels(labels);
+            Publisher::CartesianColumnScope columnScope(values.data(), values.size(), columns);
             std::ostringstream mask;
             mask.imbue(std::locale::classic());
             mask << "PlotStepAvailability:" << std::setprecision(17) << values[0] << ' ' << theSats.size();
-            for (const auto *sat : theSats)
-               mask << ' ' << std::quoted(sat->GetName()) << ' ' << selection[sat];
-            PlotInterface::TakeGroundTrackAction(instanceName, mask.str());
+            for (size_t i = 0; i < theSats.size(); ++i)
+               mask << ' ' << std::quoted(satelliteNames.at(i)) << ' ' << selection[theSats[i]];
+            PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), mask.str());
             if (!PlotSample(values.data(), values.size(), solving))
-            { PlotInterface::TakeGroundTrackAction(instanceName, "ClearStepAvailability"); SetDataLabels(originalLabels); return false; }
+            { PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), "ClearStepAvailability"); SetDataLabels(originalLabels); return false; }
          }
       }
-      catch (...) { PlotInterface::TakeGroundTrackAction(instanceName, "ClearStepAvailability"); SetDataLabels(originalLabels); throw; }
+      catch (...) { PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), "ClearStepAvailability"); SetDataLabels(originalLabels); throw; }
       SetDataLabels(originalLabels);
       return true;
    }
@@ -1824,6 +1921,38 @@ bool GroundTrack::Distribute(const double * dat, Integer len)
       return true;
    }
    samplesUntilCollect = collectFrequency - 1;
+   const auto epochs=Publisher::GetPublishedEpochGroups(dat,len,ObjectArray(theSats.begin(),theSats.end()));
+   if (!epochs.empty())
+   {
+      const auto *all=Publisher::GetPublishedCartesianColumns(dat,len);
+      PlotOriginScope::Packet originPacket(dat,len,frameReferences());
+      try
+      {
+         for (const auto &group : epochs)
+         {
+            RealArray values(dat,dat+len); values[0]=group.epoch.GetMjd();
+            PlotOriginScope originState(originPacket,group.epoch);
+            auto columns=group.columns;
+            if (!originState.Available()) columns.clear();
+            Publisher::CartesianColumnScope view(values.data(),len,columns);
+            std::ostringstream mask; mask.imbue(std::locale::classic());
+            mask<<"PlotStepAvailability:"<<std::setprecision(17)<<values[0]<<' '<<theSats.size();
+            for (size_t i=0;i<theSats.size();++i)
+            {
+               const bool present=std::any_of(group.columns.begin(),group.columns.end(),
+                  [&](const Publisher::CartesianColumns &entry){return entry.object==theSats[i];});
+               const bool elsewhere=std::any_of(all->begin(),all->end(),
+                  [&](const Publisher::CartesianColumns &entry){return entry.object==theSats[i];});
+               mask<<' '<<std::quoted(satelliteNames.at(i))<<' '<<(present?(originState.Available()?1:0):(elsewhere?3:0));
+            }
+            PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(),mask.str());
+            if (!PlotSample(values.data(),len,solving))
+            {PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(),"ClearStepAvailability");return false;}
+         }
+      }
+      catch (...) {PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(),"ClearStepAvailability");throw;}
+      return true;
+   }
    return PlotSample(dat, len, solving);
 }
 
@@ -1834,14 +1963,19 @@ bool GroundTrack::PlotSample(const Real *dat, Integer len, bool solving)
    // Preserve curve slots and explicitly mark absent states for the receiver.
    const double absent = std::numeric_limits<double>::quiet_NaN();
    bool hasPosition = false;
+   const auto *columns = Publisher::GetPublishedCartesianColumns(dat, len);
    for (unsigned int i = 0; i < theSats.size(); ++i)
    {
       longlat[2*i] = longlat[2*i + 1] = absent;
       double state[6], bodyState[6];
-      bool complete = i < stateIndices.size();
+      const Publisher::CartesianColumns *binding = NULL;
+      if (columns)
+         for (const auto &column : *columns)
+            if (column.object == theSats[i]) { binding = &column; break; }
+      bool complete = columns ? binding != NULL : i < stateIndices.size();
       for (int component = 0; component < 6 && complete; ++component)
       {
-         const int index = stateIndices[i][component];
+         const int index = binding ? binding->indices[component] : stateIndices[i][component];
          complete = index > 0 && index < len;
          if (complete)
          {
@@ -1855,7 +1989,12 @@ bool GroundTrack::PlotSample(const Real *dat, Integer len, bool solving)
       if (!complete || !std::isfinite(dat[0]))
          continue;
 
-      ccvt.Convert(dat[0], state, inertialSystem, bodyState, viewCoordinates);
+      auto *sourceFrame=Publisher::GetPublishedSpacecraftFrame(dat,len,theSats[i]);
+      if (!sourceFrame) sourceFrame=inertialSystem;
+      GmatTime epoch;
+      if (Publisher::GetPublishedSpacecraftEpoch(dat,len,theSats[i],epoch))
+         ccvt.Convert(epoch,state,sourceFrame,bodyState,viewCoordinates);
+      else ccvt.Convert(dat[0],state,sourceFrame,bodyState,viewCoordinates);
       CalculateLatLong(bodyState, longlat[2*i], longlat[2*i + 1]);
       hasPosition = true;
    }
@@ -1863,10 +2002,24 @@ bool GroundTrack::PlotSample(const Real *dat, Integer len, bool solving)
    {
       // Notify the receiver of absent slots even when every spacecraft is
       // unavailable, so the next valid sample cannot bridge this interval.
-      return PlotInterface::UpdateGroundTrackData(instanceName,
+      return PlotInterface::UpdateGroundTrackData(GetRuntimePlotName(),
             dat[0], longlat, theSats.size());
    }
 
+   PublishSatelliteColors();
+
+   // The ground-track callback has no run-state argument. Supply it as an
+   // optional action for receivers that distinguish trial and accepted arcs.
+   PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(),
+         solving ? "SolverData=On" : "SolverData=Off");
+   retval = PlotInterface::UpdateGroundTrackData(GetRuntimePlotName(),
+         dat[0], longlat, theSats.size());
+
+   return retval;
+}
+
+void GroundTrack::PublishSatelliteColors()
+{
    // Colors belong to the live sandbox objects, not the configuration copies.
    // Include them as display metadata so runtime assignments and late-opened
    // views use the current default/solver palettes. Segment overrides remain
@@ -1876,19 +2029,31 @@ bool GroundTrack::PlotSample(const Real *dat, Integer len, bool solving)
    for (unsigned int i = 0; i < theSats.size(); ++i)
    {
       if (i > 0) colors << '|';
-      colors << theSats[i]->GetName() << '|' << theSats[i]->GetCurrentOrbitColor()
+      colors << satelliteNames.at(i) << '|' << theSats[i]->GetCurrentOrbitColor()
              << '|' << theSats[i]->GetCurrentTargetColor();
    }
-   PlotInterface::TakeGroundTrackAction(instanceName, colors.str());
+   PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), colors.str());
 
-   // The ground-track callback has no run-state argument. Supply it as an
-   // optional action for receivers that distinguish trial and accepted arcs.
-   PlotInterface::TakeGroundTrackAction(instanceName,
-         solving ? "SolverData=On" : "SolverData=Off");
-   retval = PlotInterface::UpdateGroundTrackData(instanceName,
-         dat[0], longlat, theSats.size());
+}
 
-   return retval;
+void GroundTrack::PublishStationData()
+{
+   for (size_t i = 0; i < theStations.size() && i < stationNames.size(); ++i)
+   {
+      auto *point = dynamic_cast<BodyFixedPoint*>(theStations[i]);
+      if (!point || theBodyName != point->GetStringParameter("CentralBody")) continue;
+      // Match the legacy receiver's body-fixed location convention, while
+      // reading the actual sandbox/function station instead of a configured peer.
+      const auto location = point->GetSphericalLocation(21545.0);
+      const Real longitude = std::remainder(location[1] * GmatMathConstants::DEG_PER_RAD, 360.0);
+      const Real latitude = location[0] * GmatMathConstants::DEG_PER_RAD;
+      std::ostringstream action;
+      action.imbue(std::locale::classic());
+      action << "StationData=" << std::quoted(stationNames[i]) << ' ' << std::setprecision(17)
+             << longitude << ' ' << latitude << ' ' << point->GetCurrentOrbitColor();
+      if (!PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), action.str()))
+         PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), "AddStation=" + stationNames[i]);
+   }
 }
 
 //------------------------------------------------------------------------------
@@ -1915,6 +2080,8 @@ bool GroundTrack::TakeAction(const std::string &action,
       theObjects.clear();
       showName.clear();
       theSats.clear();
+      satelliteNames.clear();
+      stationNames.clear();
       theBodies.clear();
       thePoints.clear();
       theStations.clear();
@@ -1926,28 +2093,28 @@ bool GroundTrack::TakeAction(const std::string &action,
       // ReceiveData skips inactive subscribers, so the receiver cannot infer
       // the disabled interval from samples. Keep retained arcs separated when
       // Toggle resumes without changing the sampled states or coordinates.
-      PlotInterface::TakeGroundTrackAction(instanceName, action);
+      PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), action);
       return true;
    }
    if (action == "PenUp")
    {
-      PlotInterface::TakeGroundTrackAction(instanceName, "PenUp");
+      PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), "PenUp");
       return true;
    }
    if (action == "PenDown")
    {
-      PlotInterface::TakeGroundTrackAction(instanceName, "PenDown");
+      PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), "PenDown");
       return true;
    }
    if (action == "SolverScope")
    {
-      PlotInterface::TakeGroundTrackAction(instanceName, "SolverScope=" + actionData);
+      PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(), "SolverScope=" + actionData);
       return true;
    }
    if (action == "MarkBreak" || action == "ClearFromBreak")
    {
       if (mSolverIterations == "Current")
-         PlotInterface::TakeGroundTrackAction(instanceName,
+         PlotInterface::TakeGroundTrackAction(GetRuntimePlotName(),
                action == "MarkBreak" ? action : action + "=" + actionData);
       return true;
    }
@@ -1979,7 +2146,7 @@ void GroundTrack::CalculateLatLong(const double *state, double &longitude,
    latitude = atan2(state[2], rxy);
 
    double delta = 1.0;
-   double geodeticTolerance = 1.0e-7;    // Better than 0.0001 degrees
+   double geodeticTolerance = 1.0e-12;   // Match native latitude parameter precision (radians).
    double ecc2 = 2.0 * bodyFlattening - bodyFlattening * bodyFlattening;
 
    while (delta > geodeticTolerance)
@@ -1998,4 +2165,79 @@ void GroundTrack::CalculateLatLong(const double *state, double &longitude,
 //   sinlat = sin(latitude);
 //   cFactor = originRadius / sqrt(1.0 - ecc2 * sinlat * sinlat);
 //   double altitude =  rxy / cos(latitude) - cFactor;
+}
+
+
+std::unique_ptr<FunctionInvocationState> GroundTrack::SuspendFunctionBindings()
+{
+   auto native = std::make_shared<SubscriberBindingState>();
+   native->Capture(theSS);
+   native->Capture(theBody);
+   native->Capture(theSats);
+   native->CaptureMetadata(satelliteNames);
+   native->CaptureMetadata(stationNames);
+   native->Capture(theBodies);
+   native->Capture(thePoints);
+   native->Capture(theStations);
+   native->Capture(stateMap);
+   native->CaptureMetadata(stateIndices);
+   native->Require([this, role0 = theBodyName, role1 = theObjects]
+   {
+      return role0 == theBodyName &&
+            role1 == theObjects;
+   });
+   return WrapFunctionBindings(std::move(native), Subscriber::SuspendFunctionBindings());
+}
+
+
+bool GroundTrack::HasSubscriberValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(GroundTrack);
+}
+
+
+void GroundTrack::RebindSubscriberValueReferences(const Subscriber &original,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &source = dynamic_cast<const GroundTrack&>(original);
+   auto *system = MapSubscriberReference(source.theSS, resolve);
+   auto *body = MapSubscriberReference(source.theBody, resolve);
+   std::vector<Spacecraft*> satellites;
+   std::vector<GroundstationInterface*> stations;
+   std::vector<SpacePoint*> bodies, points;
+   satellites.reserve(source.theSats.size()); stations.reserve(source.theStations.size());
+   bodies.reserve(source.theBodies.size()); points.reserve(source.thePoints.size());
+   for (auto *point : source.theSats) satellites.push_back(MapSubscriberReference(point, resolve));
+   for (auto *point : source.theStations) stations.push_back(MapSubscriberReference(point, resolve));
+   for (auto *point : source.theBodies) bodies.push_back(MapSubscriberReference(point, resolve));
+   for (auto *point : source.thePoints) points.push_back(MapSubscriberReference(point, resolve));
+   std::map<Spacecraft*, int> indices;
+   for (const auto &entry : source.stateMap)
+      if (!indices.emplace(MapSubscriberReference(entry.first, resolve), entry.second).second)
+         throw GmatBaseException("GroundTrack spacecraft bindings merged distinct index roles.\n");
+   Subscriber::RebindSubscriberValueReferences(source, resolve);
+   theSS = system;
+   theBody = body;
+   satelliteNames = source.satelliteNames;
+   stationNames = source.stationNames;
+   theSats.swap(satellites); theStations.swap(stations);
+   theBodies.swap(bodies); thePoints.swap(points);
+   stateMap.swap(indices);
+   // Private runtime frames/buffers remain owned by this native instance.
+   // Ordinary initialization reconstructs them after binding the definitions.
+}
+
+bool GroundTrack::HasNativeSubscriberBindings() const
+{
+   return theSS && theSats.size() + theStations.size() == theObjects.size() &&
+         satelliteNames.size() == theSats.size() && stationNames.size() == theStations.size() &&
+         std::all_of(theObjects.begin(), theObjects.end(), [this](const std::string &role)
+         {
+            return std::count(satelliteNames.begin(), satelliteNames.end(), role) +
+                  std::count(stationNames.begin(), stationNames.end(), role) == 1;
+         }) &&
+         std::all_of(theSats.begin(), theSats.end(), [](auto *point) {return point != nullptr;}) &&
+         std::all_of(theStations.begin(), theStations.end(), [](auto *point) {return point != nullptr;}) &&
+         std::all_of(theBodies.begin(), theBodies.end(), [](auto *point) {return point != nullptr;}) &&
+         std::all_of(thePoints.begin(), thePoints.end(), [](auto *point) {return point != nullptr;});
 }

@@ -164,17 +164,23 @@ Burn::Burn(UnsignedInt type, const std::string &typeStr,
  */
 //------------------------------------------------------------------------------
 Burn::~Burn()
-{   
-   if (usingLocalCoordSys && localCoordSystem)
+{
+   ClearLocalCoordinateSystem();
+}
+
+void Burn::ClearLocalCoordinateSystem()
+{
+   // Local factory frames are owned. A configured-frame alias, if a provider
+   // stored one here, remains borrowed independently of the current mode flag.
+   if (localCoordSystem && localCoordSystem != coordSystem)
    {
       #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (localCoordSystem, "localCoordSystem", "Burn::~Burn()",
-          "deleting localCoordSystem");
+      MemoryTracker::Instance()->Remove(localCoordSystem, "localCoordSystem",
+            "Burn::ClearLocalCoordinateSystem()", "deleting owned local frame");
       #endif
       delete localCoordSystem;
-      localCoordSystem = NULL;
    }
+   localCoordSystem = NULL;
 }
 
 
@@ -255,6 +261,7 @@ Burn& Burn::operator=(const Burn &b)
    if (this == &b)
       return *this;
    
+   ClearLocalCoordinateSystem();
    GmatBase::operator=(b);
    
    solarSystem          = b.solarSystem;
@@ -698,6 +705,12 @@ bool Burn::SetStringParameter(const Integer id, const std::string &value)
    switch (id)
    {
    case COORDINATESYSTEM:
+      if (coordSystemName != value)
+      {
+         ClearLocalCoordinateSystem();
+         coordSystem = NULL;
+         isInitialized = false;
+      }
       coordSystemName = value;
       if (coordSystemName == "Local")
          usingLocalCoordSys = true;
@@ -705,6 +718,12 @@ bool Burn::SetStringParameter(const Integer id, const std::string &value)
          usingLocalCoordSys = false;
       return true;
    case BURNORIGIN:
+      if (localOriginName != value)
+      {
+         ClearLocalCoordinateSystem();
+         localOrigin = NULL;
+         isInitialized = false;
+      }
       localOriginName = value;
       #ifdef DEBUG_BURN_SET
       MessageInterface::ShowMessage
@@ -714,18 +733,17 @@ bool Burn::SetStringParameter(const Integer id, const std::string &value)
       return true;
    case BURNAXES:
       {
-         localAxesName = value;
          
          // Do we need to determine Local CS here?
          // Yes, old ImpulsiveBurn script doesn't have CoordinateSystem field, 
          // so Axes should be used to determine Local CS or not
-         if (find(localAxesLabels.begin(), localAxesLabels.end(), localAxesName)
+         if (find(localAxesLabels.begin(), localAxesLabels.end(), value)
              != localAxesLabels.end())
          {
             #ifdef DEBUG_BURN_SET
             MessageInterface::ShowMessage
                ("   Local axes '%s' found, so setting coordSystemName to Local\n",
-                localAxesName.c_str());
+                value.c_str());
             #endif
             if (usingLocalCoordSys)
                coordSystemName = "Local";
@@ -755,6 +773,8 @@ bool Burn::SetStringParameter(const Integer id, const std::string &value)
             
             if (value == "Inertial")
             {
+               ClearLocalCoordinateSystem();
+               if (coordSystemName != "EarthMJ2000Eq") coordSystem = NULL;
                coordSystemName = "EarthMJ2000Eq";
                usingLocalCoordSys = false;
             }
@@ -763,6 +783,11 @@ bool Burn::SetStringParameter(const Integer id, const std::string &value)
             
          }
          
+         localAxesName = value;
+         ClearLocalCoordinateSystem();
+         isMJ2000EqAxes = localAxesName == "MJ2000Eq";
+         isSpacecraftBodyAxes = localAxesName == "SpacecraftBody";
+         isInitialized = false;
          return true;
       }
    case VECTORFORMAT: // deprecated
@@ -894,43 +919,73 @@ const StringArray& Burn::GetRefObjectNameArray(const UnsignedInt type)
  *
  */
 //------------------------------------------------------------------------------
+GmatBase* Burn::GetRefObject(const UnsignedInt type, const std::string &name)
+{
+   if (type == Gmat::COORDINATE_SYSTEM)
+      return name.empty() || name == coordSystemName ? coordSystem : NULL;
+   if (type == Gmat::SPACECRAFT)
+      return name.empty() || name == satName ? spacecraft : NULL;
+   if (type == Gmat::SPACE_POINT || type == Gmat::CELESTIAL_BODY)
+   {
+      if ((name.empty() || name == localOriginName) &&
+          (type == Gmat::SPACE_POINT || dynamic_cast<CelestialBody*>(localOrigin))) return localOrigin;
+      if (name == j2000BodyName) return j2000Body;
+      return NULL;
+   }
+   return GmatBase::GetRefObject(type, name);
+}
+
 bool Burn::SetRefObject(GmatBase *obj, const UnsignedInt type,
                         const std::string &name)
 {
-   #ifdef DEBUG_BURN_SET
-   MessageInterface::ShowMessage
-      ("Burn::SetRefObject() this=<%p> '%s', objType=%d, objTypeName=%s, "
-       "objName=%s, type=%d, name=%s\n", this, GetName().c_str(), obj->GetType(),
-       obj->GetTypeName().c_str(), obj->GetName().c_str(), type, name.c_str());
-   #endif
-   
+   if (!obj) return false;
+   const std::string key = name.empty() ? obj->GetName() : name;
    switch (type)
    {
    case Gmat::COORDINATE_SYSTEM:
       {
-         if (coordSystemName == name)
-            coordSystem = (CoordinateSystem*)obj;
-         
+         auto *frame = dynamic_cast<CoordinateSystem*>(obj);
+         if (!frame) return false;
+         if (coordSystemName == key && coordSystem != frame)
+         {
+            ClearLocalCoordinateSystem();
+            coordSystem = frame;
+            isInitialized = false;
+         }
          return true;
       }
    case Gmat::SPACE_POINT:
    case Gmat::CELESTIAL_BODY:
       {
-         // Set j2000Body here for now(loj: 2008.11.13)
-         //@todo We need to make sure SetSolarSystem() is called during object
-         // initialization in ObjectInitializer
-         // localOriginName is set through SetStringParameter()
-         //localOriginName = obj->GetName();
-         if (localOriginName == obj->GetName())
-            localOrigin = (SpacePoint*)obj;
-         if (j2000BodyName == obj->GetName())
-            j2000Body = (CelestialBody*)obj;
+         auto *point = dynamic_cast<SpacePoint*>(obj);
+         auto *body = dynamic_cast<CelestialBody*>(obj);
+         if (!point || (type == Gmat::CELESTIAL_BODY && !body) ||
+             (key == j2000BodyName && !body)) return false;
+         if (localOriginName == key && localOrigin != point)
+         {
+            ClearLocalCoordinateSystem();
+            localOrigin = point;
+            isInitialized = false;
+         }
+         if (j2000BodyName == key && j2000Body != body)
+         {
+            ClearLocalCoordinateSystem();
+            j2000Body = body;
+            isInitialized = false;
+         }
          return true;
       }
    case Gmat::SPACECRAFT:
       {
-         satName = obj->GetName();
-         spacecraft = (Spacecraft*)obj;
+         auto *satellite = dynamic_cast<Spacecraft*>(obj);
+         if (!satellite) return false;
+         if (spacecraft != satellite)
+         {
+            ClearLocalCoordinateSystem();
+            spacecraft = satellite;
+            isInitialized = false;
+         }
+         satName = satellite->GetName();
          return true;
       }
    default:
@@ -999,20 +1054,9 @@ void Burn::SetSpacecraftToManeuver(Spacecraft *sat)
       spacecraft = sat;
       satName = spacecraft->GetName();
       
+      ClearLocalCoordinateSystem();
       if (usingLocalCoordSys)
-      {
-         if (localCoordSystem)
-         {
-            #ifdef DEBUG_MEMORY
-            MemoryTracker::Instance()->Remove
-               (localCoordSystem, "localCoordSystem", "Burn::SetSpacecraftToManeuver()",
-                "deleting localCoordSystem");
-            #endif
-            delete localCoordSystem;
-            localCoordSystem = NULL;
-         }
          localCoordSystem = CreateLocalCoordinateSystem();
-      }
    }
    
    #ifdef DEBUG_BURN_SET
@@ -1077,18 +1121,8 @@ bool Burn::Initialize()
             localOriginName + " was not set for the burn.");
    }
    
-   // delete old local coordinate system
-   if (usingLocalCoordSys && localCoordSystem != NULL)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (localCoordSystem, "localCoordSystem", "Burn::Initialize()",
-          "deleting localCoordSystem");
-      #endif
-      delete localCoordSystem;
-      localCoordSystem = NULL;
-   }
-   
+   ClearLocalCoordinateSystem();
+
    // If spacecraft is available, create new local coordinate system
    if (usingLocalCoordSys && spacecraft != NULL)
       localCoordSystem = CreateLocalCoordinateSystem();
@@ -1106,6 +1140,56 @@ bool Burn::Initialize()
    return retval;
 }
 
+
+void Burn::RebindClonedReferences(const Burn &source, SolarSystem *system,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   auto *frame = dynamic_cast<CoordinateSystem*>(resolve(source.coordSystem));
+   auto *origin = dynamic_cast<SpacePoint*>(resolve(source.localOrigin));
+   auto *j2000 = dynamic_cast<CelestialBody*>(resolve(source.j2000Body));
+   auto *satellite = dynamic_cast<Spacecraft*>(resolve(source.spacecraft));
+   if ((source.coordSystem && !frame) || (source.localOrigin && !origin) ||
+       (source.j2000Body && !j2000) || (source.spacecraft && !satellite))
+      throw BurnException("Incompatible retained Burn reference for " + instanceName);
+   ClearLocalCoordinateSystem();
+   solarSystem = system;
+   coordSystem = frame;
+   localOrigin = origin;
+   j2000Body = j2000;
+   spacecraft = satellite;
+   // Role labels can differ from the actual resource's caller/formal alias.
+   coordSystemName = source.coordSystemName;
+   localOriginName = source.localOriginName;
+   j2000BodyName = source.j2000BodyName;
+   satName = source.satName;
+   isMJ2000EqAxes = localAxesName == "MJ2000Eq";
+   isSpacecraftBodyAxes = localAxesName == "SpacecraftBody";
+   isInitialized = false;
+}
+
+bool Burn::InitializeClonedResource()
+{
+   ClearLocalCoordinateSystem();
+   isInitialized = false;
+   isMJ2000EqAxes = localAxesName == "MJ2000Eq";
+   isSpacecraftBodyAxes = localAxesName == "SpacecraftBody";
+   // An unbound maneuver definition is a valid value, not a request to fire.
+   if (!spacecraft) return true;
+   if (!solarSystem) throw BurnException("Retained Burn has no SolarSystem: " + instanceName);
+   if (!localOrigin) localOrigin = solarSystem->GetBody(localOriginName);
+   if (!j2000Body) j2000Body = solarSystem->GetBody(j2000BodyName);
+   if (!localOrigin || !j2000Body)
+      throw BurnException("Retained Burn has unresolved origin/J2000 references: " + instanceName);
+   if (usingLocalCoordSys)
+   {
+      localCoordSystem = CoordinateSystem::CreateLocalCoordinateSystem("Local",
+            localAxesName, spacecraft, localOrigin, spacecraft, j2000Body, solarSystem);
+      if (!localCoordSystem) return false;
+   }
+   else if (!coordSystem) return false;
+   isInitialized = true;
+   return true;
+}
 
 //------------------------------------------------------------------------------
 // CoordinateSystem* CreateLocalCoordinateSystem()
@@ -1152,7 +1236,7 @@ CoordinateSystem* Burn::CreateLocalCoordinateSystem()
       }
       
       // Call CoordinateSystem static method to create a local coordinate system
-      localOrigin = solarSystem->GetBody(localOriginName);
+      if (!localOrigin) localOrigin = solarSystem->GetBody(localOriginName);
       localCS = CoordinateSystem::CreateLocalCoordinateSystem
          ("Local", localAxesName, spacecraft, localOrigin, spacecraft,
           j2000Body, solarSystem);
@@ -1160,17 +1244,15 @@ CoordinateSystem* Burn::CreateLocalCoordinateSystem()
       if (localCS == NULL)
          return NULL;
       
-      if (localAxesName == "MJ2000Eq")
-         isMJ2000EqAxes = true;
-      else if (localAxesName == "SpacecraftBody")
-         isSpacecraftBodyAxes = true;
+      isMJ2000EqAxes = localAxesName == "MJ2000Eq";
+      isSpacecraftBodyAxes = localAxesName == "SpacecraftBody";
       
    }
    else
    {
       // If not using local cooordinate system, then it is using configured CS and
       // it should have been set by this time
-      if (coordSystem)
+      if (!coordSystem)
       {
          throw BurnException
             ("Unable to initialize the Burn object " + 

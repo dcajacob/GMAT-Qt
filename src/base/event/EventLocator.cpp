@@ -33,6 +33,20 @@
 #include <iostream>
 
 #include "EventLocator.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration eventLocatorValueProvider({
+   EventLocator::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const EventLocator*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<EventLocator*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "EventException.hpp"
 #include "Spacecraft.hpp"
 #include "FileManager.hpp"      // for GetPathname()
@@ -44,6 +58,10 @@
 #include "MessageInterface.hpp"
 #include "RealUtilities.hpp"
 #include "EphemManager.hpp"
+#include "SolarSystem.hpp"
+#include <map>
+#include <typeinfo>
+#include <filesystem>
 
 
 //#define DEBUG_DUMPEVENTDATA
@@ -237,6 +255,7 @@ EventLocator::EventLocator(const EventLocator& el) :
    targetName              (el.targetName),
    sat                     (NULL),
    region                  (NULL),
+   targetIsRegion          (el.targetIsRegion),
    solarSys                (el.solarSys),
    em                      (NULL),
    initialEpochSet         (el.initialEpochSet),
@@ -302,6 +321,7 @@ EventLocator& EventLocator::operator=(const EventLocator& el)
       targetName           = el.targetName;
       sat                  = el.sat;     // NULL;
       region               = el.region;
+      targetIsRegion       = el.targetIsRegion;
       solarSys             = el.solarSys;
       em                   = NULL;
       initialEpochSet      = el.initialEpochSet;
@@ -1209,6 +1229,120 @@ void EventLocator::SetSolarSystem(SolarSystem *ss)
    solarSys = ss;
 }
 
+GmatBase *EventLocator::GetRefObject(const UnsignedInt type,
+      const std::string &name)
+{
+   // Dispatch to a derived indexed provider too (ContactLocator). Native
+   // initialization can then preserve the actual retained binding by identity.
+   return GetRefObject(type, name, 0);
+}
+
+GmatBase *EventLocator::GetRefObject(const UnsignedInt type,
+      const std::string &name, const Integer index)
+{
+   auto matches = [type, &name](GmatBase *object, const std::string &role)
+   {
+      return object && (type == Gmat::UNKNOWN_OBJECT || object->IsOfType(type)) &&
+            (object->GetName() == name || (!role.empty() && role == name));
+   };
+   if (targetIsRegion && matches(region, targetName)) return region;
+   if (matches(sat, targetIsRegion ? "" : targetName)) return sat;
+   for (CelestialBody *body : occultingBodies)
+      if (matches(body, "")) return body;
+   return GmatBase::GetRefObject(type, name, index);
+}
+
+bool EventLocator::HasEventLocatorValueReferenceProvider() const
+{
+   return false;
+}
+
+GmatBase *EventLocator::MapFunctionValueReference(GmatBase *source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   if (!source) return nullptr;
+   GmatBase *value = resolve(source);
+   if (!value || !value->IsOfType(source->GetType()) ||
+         value->GetTypeName() != source->GetTypeName())
+      throw EventException("Incompatible retained event-locator reference '" +
+            source->GetName() + "'.\n");
+   return value;
+}
+
+ObjectArray EventLocator::MapFunctionValueObjects(const ObjectArray &source,
+      const StringArray &names, StringArray &boundNames,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   ObjectArray values;
+   std::map<std::string, std::string> aliases;
+   auto alias = [&aliases](const std::string &from, const std::string &to)
+   {
+      if (from.empty()) return;
+      const auto entry = aliases.emplace(from, to);
+      if (!entry.second && entry.first->second != to)
+         throw EventException("Ambiguous names in retained event-locator references.\n");
+   };
+   for (GmatBase *original : source)
+   {
+      GmatBase *value = MapFunctionValueReference(original, resolve);
+      values.push_back(value);
+      if (original)
+      {
+         alias(original->GetName(), value->GetName());
+         if (original->GetFullName() != original->GetName())
+            alias(original->GetFullName(), value->GetFullName());
+      }
+   }
+   boundNames = names;
+   for (std::string &name : boundNames)
+   {
+      const auto entry = aliases.find(name);
+      if (entry != aliases.end()) name = entry->second;
+   }
+   return values;
+}
+
+bool EventLocator::RebindFunctionValueReferencesImpl(const GmatBase &source,
+      SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *locator = dynamic_cast<const EventLocator*>(&source);
+   if (!locator || locator == this || typeid(*locator) != typeid(*this) ||
+         !HasEventLocatorValueReferenceProvider())
+      throw EventException("Incompatible event-locator function value.\n");
+   auto *boundSat = dynamic_cast<Spacecraft*>(MapFunctionValueReference(locator->sat, resolve));
+   auto *boundRegion = locator->targetIsRegion ?
+         dynamic_cast<PlanetographicRegion*>(MapFunctionValueReference(locator->region, resolve)) : nullptr;
+   const ObjectArray bodies(locator->occultingBodies.begin(), locator->occultingBodies.end());
+   StringArray names, defaults;
+   const ObjectArray mapped = MapFunctionValueObjects(bodies, locator->occultingBodyNames, names, resolve);
+   MapFunctionValueObjects(bodies, locator->defaultOccultingBodies, defaults, resolve);
+   std::vector<CelestialBody*> boundBodies;
+   for (GmatBase *body : mapped)
+   {
+      auto *value = dynamic_cast<CelestialBody*>(body);
+      if (body && !value) throw EventException("Invalid retained occulting body.\n");
+      boundBodies.push_back(value);
+   }
+   std::string boundTarget = locator->targetName;
+   if (locator->targetIsRegion && boundRegion) boundTarget = boundRegion->GetName();
+   else if (!locator->targetIsRegion && boundSat) boundTarget = boundSat->GetName();
+   // A copied value owns no live report or ephemeris-manager session. The
+   // native locator obtains the mapped spacecraft's manager when used.
+   if (theReport.is_open()) theReport.close();
+   solarSys = system;
+   sat = boundSat;
+   region = boundRegion;
+   targetIsRegion = locator->targetIsRegion;
+   targetName.swap(boundTarget);
+   occultingBodyNames.swap(names);
+   defaultOccultingBodies.swap(defaults);
+   occultingBodies.swap(boundBodies);
+   em = nullptr;
+   fileWasWritten = false;
+   isInitialized = false;
+   return true;
+}
+
 //------------------------------------------------------------------------------
 // virtual bool HasRefObjectTypeArray()
 //------------------------------------------------------------------------------
@@ -1726,6 +1860,23 @@ bool EventLocator::Initialize()
       throw EventException(errmsg);
    }
 
+   // Geometry Finder reads celestial-body states from kernels. An analytic
+   // body must not silently use an unrelated kernel with the same NAIF ID.
+   if (solarSys && runMode!="Disabled")
+   {
+      const StringArray references=GetRefObjectNameArray(Gmat::UNKNOWN_OBJECT);
+      for (const auto &name : references)
+      {
+         auto *body=solarSys->GetBody(name);
+         if (body && body->GetStringParameter(body->GetParameterID("PosVelSource"))=="TwoBodyPropagation")
+            throw EventException("Event locator " + instanceName + " requires SPICE geometry for body " + name +
+                  "; TwoBodyPropagation is not a SPICE kernel provider");
+      }
+      auto *body=targetIsRegion && region ? region->GetCentralBody() : nullptr;
+      if (body && body->GetStringParameter(body->GetParameterID("PosVelSource"))=="TwoBodyPropagation")
+         throw EventException("Event location for region " + region->GetName() + " requires SPICE geometry for its central body");
+   }
+
 //   // For now, call this method here to load the planetary PCKs
 //   #ifdef __USE_SPICE__
 //      solarSys->LoadPCKs();
@@ -1794,6 +1945,10 @@ bool EventLocator::ReportEventData(const std::string &reportNotice)
 //------------------------------------------------------------------------------
 void EventLocator::LocateEvents(const std::string &reportNotice)
 {
+   // Function values remain dormant during copying. Prepare their native
+   // runtime only when an actual search requests it.
+   if (runMode != "Disabled" && GetFunctionValueContext() && !isInitialized && !Initialize())
+      throw EventException("Cannot initialize retained event locator '" + GetName() + "'.\n");
    #ifdef DEBUG_EVENTLOCATOR_DATA
       MessageInterface::ShowMessage("In EL::LocateEvents, about to call ProvideEphemerisData\n");
    #endif
@@ -2048,7 +2203,15 @@ bool EventLocator::OpenReportFile(bool renameOld)
       withoutExt = fullFileName.substr(0, lastDot);
    }
 
-   bool fileDoesExist = GmatFileUtil::DoesFileExist(fullFileName);
+   // Qt supplies UTF-8 filenames. Windows narrow streams use the active code
+   // page, which can write a different file from the one selected by the user.
+#ifdef _WIN32
+   const auto nativeReportPath = std::filesystem::u8path(fullFileName);
+   const bool fileDoesExist = std::filesystem::exists(nativeReportPath);
+#else
+   const auto &nativeReportPath = fullFileName;
+   const bool fileDoesExist = GmatFileUtil::DoesFileExist(fullFileName);
+#endif
 
    #ifdef DEBUG_EVENTLOCATOR_WRITE
       MessageInterface::ShowMessage("In ReportEventData, fullFileName  = %s\n", fullFileName.c_str());
@@ -2057,7 +2220,7 @@ bool EventLocator::OpenReportFile(bool renameOld)
    #endif
 
    if (appendReport)
-      theReport.open(fullFileName.c_str(), std::fstream::out | std::fstream::app);
+      theReport.open(nativeReportPath, std::fstream::out | std::fstream::app);
    else
    {
       // Rename any old existing files here if necessary
@@ -2114,9 +2277,15 @@ bool EventLocator::OpenReportFile(bool renameOld)
       else // if not renaming, if it already exists, delete it
       {
          if (fileDoesExist)
+         {
+#ifdef _WIN32
+            std::filesystem::remove(nativeReportPath);
+#else
             remove(fullFileName.c_str());
+#endif
+         }
       }
-      theReport.open(fullFileName.c_str(), std::fstream::out);
+      theReport.open(nativeReportPath, std::fstream::out);
    }
 
    if (!theReport.is_open())

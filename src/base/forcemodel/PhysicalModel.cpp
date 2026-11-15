@@ -97,6 +97,7 @@
 //
 // **************************************************************************
 
+#include "Spacecraft.hpp"
 #include "PhysicalModel.hpp"
 #include "gmatdefs.hpp"
 #include "GmatBase.hpp"
@@ -104,6 +105,80 @@
 #include "MessageInterface.hpp"
 #include "TimeTypes.hpp"
 #include "PropagationStateManager.hpp"
+#include "ODEModel.hpp"
+#include <algorithm>
+#include <atomic>
+#include <map>
+#include <memory>
+#include <mutex>
+
+namespace
+{
+struct ForceBorrower
+{
+   std::weak_ptr<const void> identity;
+   bool transient = false;
+};
+struct ForceBorrowerRegistry
+{
+   std::mutex mutex;
+   std::map<const PhysicalModel*, std::map<ODEModel*, ForceBorrower>> forces;
+};
+
+// Retirement does not allocate a registry on the destructor path. The registry
+// itself stays available through singleton/native-provider teardown.
+std::atomic<ForceBorrowerRegistry*> existingForceBorrowers{nullptr};
+ForceBorrowerRegistry& ForceBorrowers()
+{
+   static auto *registry = []()
+   {
+      auto *value = new ForceBorrowerRegistry;
+      existingForceBorrowers.store(value);
+      return value;
+   }();
+   return *registry;
+}
+}
+
+void PhysicalModel::RegisterODEBorrower(ODEModel *model)
+{
+   if (!model) throw ODEModelException("Cannot register a null force borrower.");
+   const ForceBorrower borrower{model->GetLifetimeToken(), IsTransient()};
+   auto &registry = ForceBorrowers();
+   std::lock_guard<std::mutex> lock(registry.mutex);
+   registry.forces[this][model] = borrower;
+}
+
+void PhysicalModel::UnregisterODEBorrower(ODEModel *model) noexcept
+{
+   auto *registry = existingForceBorrowers.load();
+   if (!registry) return;
+   std::lock_guard<std::mutex> lock(registry->mutex);
+   const auto force = registry->forces.find(this);
+   if (force == registry->forces.end()) return;
+   force->second.erase(model);
+   if (force->second.empty()) registry->forces.erase(force);
+}
+
+void PhysicalModel::RetireODEBorrowers() noexcept
+{
+   auto *registry = existingForceBorrowers.load();
+   if (!registry) return;
+   std::map<ODEModel*, ForceBorrower> borrowers;
+   {
+      std::lock_guard<std::mutex> lock(registry->mutex);
+      const auto force = registry->forces.find(this);
+      if (force == registry->forces.end()) return;
+      borrowers.swap(force->second);
+      registry->forces.erase(force);
+   }
+   // No callback runs under the registry mutex or dereferences the dying force.
+   // Native command/model destruction remains serialized by its owning engine.
+   for (const auto &borrower : borrowers)
+      if (GmatBase::IsLiveReference(borrower.first, borrower.second.identity))
+         borrower.first->RetireForceReference(this, borrower.second.transient);
+}
+
 
 
 //#define PHYSICAL_MODEL_DEBUG_INIT
@@ -191,6 +266,7 @@ PhysicalModel::PhysicalModel(UnsignedInt id, const std::string &typeStr,
    stmStart                    (-1),
    stmCount                    (0),
    stmRowCount                 (6),
+   totalSTMSize                (0),
    fillAMatrix                 (false),
    aMatrixStart                (-1),
    aMatrixCount                (0),
@@ -219,52 +295,13 @@ PhysicalModel::PhysicalModel(UnsignedInt id, const std::string &typeStr,
 //------------------------------------------------------------------------------
 PhysicalModel::~PhysicalModel()
 {
+   RetireODEBorrowers();
    #ifdef DEBUG_STATE_ALLOCATION
       MessageInterface::ShowMessage("Deleting PhysicalModel (type %s) at %p\n",
             typeName.c_str(), this);
    #endif
 
-   if (rawState != modelState)
-   {
-      if (rawState)
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (rawState, "rawState", "PhysicalModel::~PhysicalModel()",
-             "deleting rawState", this);
-         #endif
-         #ifdef DEBUG_STATE_ALLOCATION
-            MessageInterface::ShowMessage("Deleting rawState at %p\n",
-                  rawState);
-         #endif
-         delete [] rawState;
-      }
-   }
-
-   if (modelState)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (modelState, "modelState", "PhysicalModel::~PhysicalModel()",
-          "deleting modelState", this);
-      #endif
-
-      #ifdef DEBUG_STATE_ALLOCATION
-         MessageInterface::ShowMessage("Deleting modelState at %p\n",
-               modelState);
-      #endif
-      delete [] modelState;
-   }
-
-   if (deriv)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (deriv, "deriv", "PhysicalModel::~PhysicalModel()",
-          "deleting deriv", this);
-      #endif
-      delete [] deriv;
-   }
+   ReleaseOwnedArrays();
 }
 
 //------------------------------------------------------------------------------
@@ -308,6 +345,7 @@ PhysicalModel::PhysicalModel(const PhysicalModel& pm) :
    stmStart                    (pm.stmStart),
    stmCount                    (pm.stmCount),
    stmRowCount                 (pm.stmRowCount),
+   totalSTMSize                (pm.totalSTMSize),
    fillAMatrix                 (pm.fillAMatrix),
    aMatrixStart                (pm.aMatrixStart),
    aMatrixCount                (pm.aMatrixCount),
@@ -317,46 +355,9 @@ PhysicalModel::PhysicalModel(const PhysicalModel& pm) :
    hasTimeJacobian             (pm.hasTimeJacobian),
    fillTimeJacobian            (pm.fillTimeJacobian)
 {
-   if (pm.modelState != NULL) 
-   {
-      // At this point, modelState is always NULL
-      //if (modelState != NULL)
-      //{
-      //   #ifdef DEBUG_STATE_ALLOCATION
-      //      MessageInterface::ShowMessage("Deleting modelState at %p\n", 
-      //            modelState);
-      //   #endif
-      //   delete [] modelState;
-      //   modelState = NULL;
-      //}
-      modelState = new Real[dimension];
-
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (modelState, "modelState", "PhysicalModel::PhysicalModel(copy)",
-          "modelState = new Real[dimension]", this);
-      #endif
-      if (modelState != NULL) 
-         memcpy(modelState, pm.modelState, dimension * sizeof(Real));
-      else
-         isInitialized = false;
-   }
-   rawState = modelState;
-
-   if (pm.deriv != NULL) 
-   {
-      deriv = new Real[dimension];
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (deriv, "deriv", "PhysicalModel::PhysicalModel(copy)",
-          "deriv = new Real[dimension]", this);
-      #endif
-      if (deriv != NULL) 
-         memcpy(deriv, pm.deriv, dimension * sizeof(Real));
-      else
-         isInitialized = false;
-   }
-
+   // Preserve all owned numerical buffers, including a separately translated
+   // raw state and optional Jacobian columns, without borrowing source storage.
+   CopyOwnedArrays(pm);
    theTimeConverter = TimeSystemConverter::Instance();
 }
 
@@ -373,216 +374,149 @@ PhysicalModel::PhysicalModel(const PhysicalModel& pm) :
 //------------------------------------------------------------------------------
 PhysicalModel& PhysicalModel::operator=(const PhysicalModel& pm)
 {
-   if (&pm == this)
-      return *this;
+   if (&pm == this) return *this;
+   const bool restoring = GmatBase::IsNativeRestorationCopy();
+   const bool ready = isInitialized;
+   if (restoring) ValidateRestorationLayout(pm);
+   else CopyOwnedArrays(pm);
 
    GmatBase::operator=(pm);
-   #ifdef DEBUG_PM_CONSTRUCT
-      MessageInterface::ShowMessage("Entering copy constructor for PM:  object name is: %s\n",
-            pm.GetName().c_str());
-      MessageInterface::ShowMessage("   epoch = %le\n", pm.epoch);
-      MessageInterface::ShowMessage("   epoch from state = %le\n", (pm.theState)->GetEpoch());
-      MessageInterface::ShowMessage("   epochGT = %s\n", GmatTime(pm.epochGT).ToString().c_str());
-      MessageInterface::ShowMessage("   epochGT from state = %s\n", (pm.theState)->GetEpochGT().ToString().c_str());
-
-   #endif
-   
-   /// @note: Since the next two are global objects, assignment works
-   body        = pm.body;
-   forceOrigin = pm.forceOrigin;
-
-   bodyName        = pm.bodyName;
-   dimension       = pm.dimension;
-   allowODEDelete  = pm.allowODEDelete;
-   isInitialized   = false; //pm.initialized;
-   epoch           = pm.epoch;
-   epochGT         = pm.epochGT;
-   elapsedTime     = pm.elapsedTime;
-   direction       = pm.direction;
+   if (!restoring)
+   {
+      body = pm.body;
+      forceOrigin = pm.forceOrigin;
+      solarSystem = pm.solarSystem;
+      theState = pm.theState;
+      scObjs = pm.scObjs;
+      allowODEDelete = pm.allowODEDelete;
+   }
+   bodyName = pm.bodyName;
+   dimension = pm.dimension;
+   epoch = pm.epoch;
+   epochGT = pm.epochGT;
+   elapsedTime = pm.elapsedTime;
    prevElapsedTime = pm.prevElapsedTime;
+   direction = pm.direction;
    relativeErrorThreshold = pm.relativeErrorThreshold;
-   solarSystem     = pm.solarSystem;
-   
-   fillCartesian  = pm.fillCartesian;
+   fillCartesian = pm.fillCartesian;
    cartesianStart = pm.cartesianStart;
    cartesianCount = pm.cartesianCount;
-   fillSTM        = pm.fillSTM;
-   stmStart       = pm.stmStart;
-   stmCount       = pm.stmCount;
-   stmRowCount    = pm.stmRowCount;
-   fillAMatrix    = pm.fillAMatrix;
-   aMatrixStart   = pm.aMatrixStart;
-   aMatrixCount   = pm.aMatrixCount;
-   theState       = pm.theState;
-
-   isConservative   = pm.isConservative;
-   hasMassJacobian  = pm.hasMassJacobian;   // Might remove after MJ work
+   fillSTM = pm.fillSTM;
+   stmStart = pm.stmStart;
+   stmCount = pm.stmCount;
+   stmRowCount = pm.stmRowCount;
+   totalSTMSize = pm.totalSTMSize;
+   fillAMatrix = pm.fillAMatrix;
+   aMatrixStart = pm.aMatrixStart;
+   aMatrixCount = pm.aMatrixCount;
+   derivativeIds = pm.derivativeIds;
+   derivativeNames = pm.derivativeNames;
+   isConservative = pm.isConservative;
+   hasMassJacobian = pm.hasMassJacobian;
    fillMassJacobian = pm.fillMassJacobian;
-   hasTimeJacobian  = pm.hasTimeJacobian;
+   hasTimeJacobian = pm.hasTimeJacobian;
    fillTimeJacobian = pm.fillTimeJacobian;
+   stateChanged = pm.stateChanged;
 
-   theState = pm.theState;
-   scObjs         = pm.scObjs;
-
-   if (pm.modelState) 
+   if (restoring)
    {
-      if (modelState) 
+      const auto values = [](Real *target, const Real *source, Integer count)
       {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (modelState, "modelState", "PhysicalModel::operator=()",
-             "deleting modelState", this);
-         #endif
-
-         #ifdef DEBUG_STATE_ALLOCATION
-            MessageInterface::ShowMessage("Deleting modelState at %p\n",
-                  modelState);
-         #endif
-         if (modelState != rawState)
-         {
-            delete [] modelState;
-            modelState = NULL;
-         }
-      }
-      
-      modelState = new Real[dimension];
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (modelState, "modelState", "ODEModel::operator=()",
-          "modelState = new Real[dimension]", this);
-      #endif
-      
-      if (modelState != NULL) 
-         memcpy(modelState, pm.modelState, dimension * sizeof(Real));
-      else
-         isInitialized = false;
-   
-      stateChanged = pm.stateChanged;
+         if (source) std::copy_n(source, count, target);
+      };
+      values(modelState, pm.modelState, dimension);
+      if (rawState != modelState) values(rawState, pm.rawState, dimension);
+      values(deriv, pm.deriv, dimension);
+      values(massJacobian, pm.massJacobian, stmRowCount);
+      values(timeJacobian, pm.timeJacobian, stmRowCount);
    }
-   else
-   {
-      if (modelState != NULL)
-      {
-         #ifdef DEBUG_STATE_ALLOCATION
-            MessageInterface::ShowMessage("Deleting modelState at %p\n",
-                  modelState);
-         #endif
-         if (modelState != rawState)
-         {
-            delete [] modelState;
-            modelState = NULL;
-         }
-      }
-   }
-
-   if (rawState != NULL)
-   {
-      delete [] rawState;
-      rawState = NULL;
-   }
-   rawState = modelState;
-
-   if (pm.deriv)
-   {
-      if (deriv)
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (deriv, "deriv", "PhysicalModel::operator=()",
-             "deleting deriv", this);
-         #endif
-         delete [] deriv;
-         deriv = NULL;
-      }
-      
-      deriv = new Real[dimension];
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (deriv, "deriv", "ODEModel::operator=()",
-          "deriv = new Real[dimension]", this);
-      #endif
-      
-      if (deriv != NULL) 
-         memcpy(deriv, pm.deriv, dimension * sizeof(Real));
-      else
-         isInitialized = false;
-   }
-   else
-   {
-      if (deriv)
-      {
-         delete [] deriv;
-         deriv = NULL;
-      }
-   }
-
-   if (pm.massJacobian)
-   {
-      if (massJacobian)
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (massJacobian, "massJacobian", "PhysicalModel::operator=()",
-             "deleting massJacobian", this);
-         #endif
-         delete [] massJacobian;
-      }
-
-      massJacobian = new Real[stmRowCount];
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (massJacobian, "massJacobian", "PhysicalModel::operator=()",
-          "massJacobian = new Real[stmRowCount]", this);
-      #endif
-
-      if (massJacobian != NULL)
-         memcpy(massJacobian, pm.massJacobian, stmRowCount * sizeof(Real));
-      else
-         isInitialized = false;
-   }
-   else
-   {
-      if (massJacobian)
-      {
-         delete [] massJacobian;
-         massJacobian = NULL;
-      }
-   }
-
-   if (pm.timeJacobian)
-   {
-      if (timeJacobian)
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (timeJacobian, "timeJacobian", "PhysicalModel::operator=()",
-            "deleting timeJacobian", this);
-         #endif
-         delete[] timeJacobian;
-      }
-
-      timeJacobian = new Real[stmRowCount];
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (timeJacobian, "timeJacobian", "PhysicalModel::operator=()",
-         "timeJacobian = new Real[stmRowCount]", this);
-      #endif
-
-      if (timeJacobian != NULL)
-         memcpy(timeJacobian, pm.timeJacobian, stmRowCount * sizeof(Real));
-      else
-         isInitialized = false;
-   }
-   else
-   {
-      if (timeJacobian)
-      {
-         delete[] timeJacobian;
-         timeJacobian = NULL;
-      }
-   }
-
+   isInitialized = restoring ? ready : false;
    return *this;
+}
+
+void PhysicalModel::ValidateRestorationLayout(const PhysicalModel &source) const
+{
+   if (dimension < 0 || stmRowCount < 0 || dimension != source.dimension ||
+       stmRowCount != source.stmRowCount || totalSTMSize != source.totalSTMSize ||
+       hasPrecisionTime != source.hasPrecisionTime || bodyName != source.bodyName ||
+       fillCartesian != source.fillCartesian || cartesianStart != source.cartesianStart ||
+       cartesianCount != source.cartesianCount || fillSTM != source.fillSTM ||
+       stmStart != source.stmStart || stmCount != source.stmCount ||
+       fillAMatrix != source.fillAMatrix || aMatrixStart != source.aMatrixStart ||
+       aMatrixCount != source.aMatrixCount || derivativeIds != source.derivativeIds ||
+       derivativeNames != source.derivativeNames ||
+       hasMassJacobian != source.hasMassJacobian || fillMassJacobian != source.fillMassJacobian ||
+       hasTimeJacobian != source.hasTimeJacobian || fillTimeJacobian != source.fillTimeJacobian ||
+       (modelState == nullptr) != (source.modelState == nullptr) ||
+       (rawState == nullptr) != (source.rawState == nullptr) ||
+       (rawState == modelState) != (source.rawState == source.modelState) ||
+       (deriv == nullptr) != (source.deriv == nullptr) ||
+       (massJacobian == nullptr) != (source.massJacobian == nullptr) ||
+       (timeJacobian == nullptr) != (source.timeJacobian == nullptr))
+      throw ODEModelException("Prepare the physical model before restoring a changed propagation layout.");
+   if ((body && source.body && body != source.body) ||
+       (forceOrigin && source.forceOrigin && forceOrigin != source.forceOrigin) ||
+       (solarSystem && source.solarSystem && solarSystem != source.solarSystem) ||
+       (psm && source.psm && psm != source.psm) ||
+       (theState && source.theState && theState != source.theState))
+      throw ODEModelException("Restoration requires the same active physical-model environment bindings.");
+}
+
+void PhysicalModel::CopyOwnedArrays(const PhysicalModel &source)
+{
+   if (source.dimension < 0 || source.stmRowCount < 0)
+      throw ODEModelException("Cannot copy physical-model buffers with a negative dimension.");
+   const auto copy = [](const Real *values, Integer count)
+   {
+      std::unique_ptr<Real[]> result;
+      if (values)
+      {
+         result.reset(new Real[count]);
+         std::copy_n(values, count, result.get());
+      }
+      return result;
+   };
+   auto nextModel = copy(source.modelState, source.dimension);
+   auto nextRaw = source.rawState != source.modelState ? copy(source.rawState, source.dimension) : std::unique_ptr<Real[]>();
+   auto nextDeriv = copy(source.deriv, source.dimension);
+   auto nextMass = copy(source.massJacobian, source.stmRowCount);
+   auto nextTime = copy(source.timeJacobian, source.stmRowCount);
+   const bool sharedState = source.rawState == source.modelState;
+   ReleaseOwnedArrays();
+   modelState = nextModel.release();
+   rawState = sharedState ? modelState : nextRaw.release();
+   deriv = nextDeriv.release();
+   massJacobian = nextMass.release();
+   timeJacobian = nextTime.release();
+   #ifdef DEBUG_MEMORY
+   const auto track = [&](Real *value, const char *name)
+   {
+      if (value) MemoryTracker::Instance()->Add(value, name, "PhysicalModel::CopyOwnedArrays()", "copied owned buffer", this);
+   };
+   track(modelState, "modelState");
+   if (rawState != modelState) track(rawState, "rawState");
+   track(deriv, "deriv");
+   track(massJacobian, "massJacobian");
+   track(timeJacobian, "timeJacobian");
+   #endif
+}
+
+void PhysicalModel::ReleaseOwnedArrays()
+{
+   const auto retire = [&](Real *value, const char *name)
+   {
+      if (!value) return;
+      #ifdef DEBUG_MEMORY
+      MemoryTracker::Instance()->Remove(value, name, "PhysicalModel::ReleaseOwnedArrays()", "retiring owned buffer", this);
+      #endif
+      delete [] value;
+   };
+   if (rawState != modelState) retire(rawState, "rawState");
+   retire(modelState, "modelState");
+   retire(deriv, "deriv");
+   retire(massJacobian, "massJacobian");
+   retire(timeJacobian, "timeJacobian");
+   rawState = modelState = deriv = massJacobian = timeJacobian = nullptr;
 }
 
 //------------------------------------------------------------------------------
@@ -645,6 +579,25 @@ void PhysicalModel::SetForceOrigin(CelestialBody* toBody)
     forceOrigin = toBody;
 }
 
+
+void PhysicalModel::RebindClonedBodyReferences(const PhysicalModel &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   auto bind = [&](CelestialBody *original)
+   {
+      if (!original) return original;
+      auto *value = dynamic_cast<CelestialBody*>(resolve(original));
+      if (!value) throw ODEModelException("Incompatible body in copied force.\n");
+      return value;
+   };
+   CelestialBody *newBody = bind(source.body);
+   CelestialBody *newOrigin = bind(source.forceOrigin);
+   if (newBody && source.body && newBody->GetName() != source.body->GetName())
+      bodyName = newBody->GetName();
+   body = newBody;
+   forceOrigin = newOrigin;
+   isInitialized = false;
+}
 
 CelestialBody* PhysicalModel::GetForceOrigin()
 {
@@ -1503,6 +1456,15 @@ bool PhysicalModel::IsTransient()
    return false;
 }
 
+
+bool PhysicalModel::TargetsSpacecraft(const Spacecraft *spacecraft) const
+{
+   if (!spacecraft) return false;
+   auto *model = const_cast<PhysicalModel*>(this);
+   if (!model->IsTransient()) return true;
+   const StringArray names = model->GetRefObjectNameArray(Gmat::SPACECRAFT);
+   return std::find(names.begin(), names.end(), spacecraft->GetName()) != names.end();
+}
 
 //------------------------------------------------------------------------------
 // bool DepletesMass()

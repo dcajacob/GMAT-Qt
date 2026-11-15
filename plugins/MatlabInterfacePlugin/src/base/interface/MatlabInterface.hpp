@@ -36,6 +36,8 @@
 
 #include "matlabinterface_defs.hpp"
 #include "Interface.hpp"
+#include "InterfaceException.hpp"
+#include "MatlabValue.hpp"
 
 // Clear a build error with Visual Studio 2010
 #ifdef _CHAR16T
@@ -45,7 +47,18 @@
 #include "engine.h"           // for Matlab Engine
 
 #include <string>
+#include <memory>
 #include <map>
+#include <vector>
+
+// Keep transport failures distinct from a MATLAB function's own error text.
+class MATLAB_API MatlabEngineConnectionException : public InterfaceException
+{
+public:
+   explicit MatlabEngineConnectionException(const std::string &message) : InterfaceException(message) {}
+};
+
+struct MatlabCallbackState;
 
 class MATLAB_API MatlabInterface : public Interface
 {
@@ -61,6 +74,9 @@ public:
    };
    
    static MatlabInterface* Instance();
+   static std::string CharacterLiteral(const std::string &value);
+   std::string   CreateTemporaryVariable();
+   std::string   CreateTemporaryVariable(const StringArray &excluded);
    
    Integer       Open(const std::string &name = "");
    Integer       Close(const std::string &name = "");
@@ -74,6 +90,9 @@ public:
                               double outArray[], Integer &numRowsReceived,
                               Integer &numColsReceived);
    Integer       GetString(const std::string &matlabVarName, std::string &outStr);
+   MatlabValue   GetValue(const std::string &matlabVarName);
+   // Character values are constructed as native character rows.
+   Integer       PutValue(const std::string &matlabVarName, const MatlabValue &value);
    Integer       EvalString(const std::string &evalString);
    Integer       SetOutputBuffer(Integer size);
    char*         GetOutputBuffer();
@@ -135,6 +154,7 @@ private:
    Integer CloseSharedEngine();
    Integer OpenSingleEngine(const std::string &engineName);
    Integer CloseSingleEngine(const std::string &engineName);
+   std::shared_ptr<MatlabCallbackState> GetCallbackState();
 };
 
 #endif // MatlabInterface_hpp

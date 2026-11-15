@@ -143,7 +143,12 @@ bool FMAcceleration::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* FMAcceleration::Clone() const
 {
-   return new FMAcceleration(*this);
+   return CompleteParameterClone(new FMAcceleration(*this));
+}
+
+void FMAcceleration::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FMAcceleration>(source);
 }
 
 
@@ -260,7 +265,12 @@ bool FMAccelerationX::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* FMAccelerationX::Clone() const
 {
-   return new FMAccelerationX(*this);
+   return CompleteParameterClone(new FMAccelerationX(*this));
+}
+
+void FMAccelerationX::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FMAccelerationX>(source);
 }
 
 
@@ -378,7 +388,12 @@ bool FMAccelerationY::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* FMAccelerationY::Clone() const
 {
-   return new FMAccelerationY(*this);
+   return CompleteParameterClone(new FMAccelerationY(*this));
+}
+
+void FMAccelerationY::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FMAccelerationY>(source);
 }
 
 
@@ -496,5 +511,10 @@ bool FMAccelerationZ::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* FMAccelerationZ::Clone() const
 {
-   return new FMAccelerationZ(*this);
+   return CompleteParameterClone(new FMAccelerationZ(*this));
+}
+
+void FMAccelerationZ::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FMAccelerationZ>(source);
 }

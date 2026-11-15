@@ -1,0 +1,99 @@
+{
+  "scope": "Missing physical time, angle, station and radio input units. Observation only; source/native/history/file isolation; no mission execution or whole-row credit.",
+  "cases": [
+    {
+      "key": "ContactLocator",
+      "group": "TimingHardwareRepair",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create ContactLocator Probe;\n",
+      "units": {
+        "StepSize": "s",
+        "IntervalStepSize": "s"
+      }
+    },
+    {
+      "key": "EclipseLocator",
+      "group": "TimingHardwareRepair",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create EclipseLocator Probe;\n",
+      "units": {
+        "StepSize": "s"
+      }
+    },
+    {
+      "key": "IntrusionLocator",
+      "group": "TimingHardwareRepair",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create IntrusionLocator Probe;\n",
+      "units": {
+        "StepSize": "s"
+      }
+    },
+    {
+      "key": "ExtendedKalmanFilter",
+      "group": "TimingHardwareRepair",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create ExtendedKalmanFilter Probe;\n",
+      "units": {
+        "DelayRectifyTimeSpan": "s",
+        "PredictTimeSpan": "s"
+      }
+    },
+    {
+      "key": "Smoother",
+      "group": "TimingHardwareRepair",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Smoother Probe;\n",
+      "units": {
+        "DelayRectifyTimeSpan": "s",
+        "PredictTimeSpan": "s"
+      }
+    },
+    {
+      "key": "ProcessNoiseModel",
+      "group": "TimingHardwareRepair",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create ProcessNoiseModel Probe;\n",
+      "units": {
+        "UpdateTimeStep": "s"
+      }
+    },
+    {
+      "key": "Simulator",
+      "group": "TimingHardwareRepair",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Simulator Probe;\n",
+      "units": {
+        "MeasurementTimeStep": "s"
+      }
+    },
+    {
+      "key": "Transponder",
+      "group": "TimingHardwareRepair",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Transponder Probe;\n",
+      "units": {
+        "HardwareDelay": "s"
+      }
+    },
+    {
+      "key": "TrackingFileSet",
+      "group": "TimingHardwareRepair",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create TrackingFileSet Probe;\n",
+      "units": {
+        "TimeGapForPassBreak": "s",
+        "MaxCentralAngleOfRayPath": "deg"
+      }
+    }
+  ]
+}

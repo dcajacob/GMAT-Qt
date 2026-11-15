@@ -89,6 +89,9 @@ enum AnomalyType
 // general state conversion methods
 //------------------------------------------------------------------------------
 
+// anomalyType selects the sixth element of Keplerian/ModifiedKeplerian inputs
+// and outputs. Other representations retain their own angle definitions;
+// Delaunay's first element is always mean anomaly.
 static Rvector6 Convert(const Real *state,
                         const std::string &fromType, const std::string &toType,
                         Real mu         = GmatSolarSystemDefaults::PLANET_MU[GmatSolarSystemDefaults::EARTH],

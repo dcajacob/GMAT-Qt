@@ -1,0 +1,12 @@
+{
+  "cases": [
+    {
+      "type": "CustomFOV",
+      "fixture": "Create CustomFOV Probe;\nProbe.ConeAngles = [10 10 10];\nProbe.ClockAngles = [0 120 240];\nProbe.InterpolationStepSize = 0.4;\n"
+    },
+    {
+      "type": "PlanetographicRegion",
+      "fixture": "Create PlanetographicRegion Probe;\nProbe.Latitude = [-10 20 20 -10];\nProbe.Longitude = [-10 -10 20 20];\n"
+    }
+  ]
+}

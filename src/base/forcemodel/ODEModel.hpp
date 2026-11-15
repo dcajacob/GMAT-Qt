@@ -76,6 +76,7 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <memory>
 #include <string.h>
 
 #include <fstream>            // Used for streams in debugging methods
@@ -93,6 +94,8 @@
 class GMAT_API ODEModel : public PhysicalModel
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = PhysicalModel::NativeValueProviderDepth + 1;
+
    // Optional live dynamics context for object-referenced frame derivatives.
    // No class-layout or virtual-interface change; unavailable contexts are
    // distinguishable from a physically zero acceleration.
@@ -117,9 +120,20 @@ public:
    virtual ~ODEModel();
    ODEModel(const ODEModel& fdf);
    ODEModel&   operator=(const ODEModel& fdf);
+   // Detached acceleration-reporting values use current Sandbox transients,
+   // independently of the copied model's static force configuration.
+   void RebindClonedReportingReferences(const ODEModel &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve,
+         const std::function<void(const ObjectArray&, const ObjectArray&)> &owned);
+   void RebindClonedReferences(const ODEModel &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve,
+         const std::function<void(const ObjectArray&, const ObjectArray&)> &owned);
+   const std::vector<CoordinateSystem*>& GetInternalCoordinateSystems() const;
+   bool InitializeForParameters();
    
    virtual GmatBase*    Clone() const;
    virtual void         Copy(const GmatBase* orig);
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
    
    // Methods needed to run an ODEModel 
    virtual void SetSolarSystem(SolarSystem *ss);
@@ -283,6 +297,7 @@ public:
    // Copy a captured force-origin vector into internal J2000-body coordinates.
    // No live spacecraft, ODE state or epoch is modified.
    RealArray GetJ2KStateSnapshot(const RealArray &local, const GmatTime &atEpoch) const;
+   RealArray GetJ2KStateSnapshot(const RealArray &local, Real atEpoch) const;
    void                 UpdateInitialData(bool dynamicOnly = false, bool updateEpoch = true);
    void                 ReportEpochData();
    
@@ -325,6 +340,12 @@ public:
                                                             const std::string &torqueType);
 
 protected:
+   friend class BeginFiniteBurn;
+   friend class EndFiniteBurn;
+   friend class BeginFileThrust;
+   friend class EndFileThrust;
+   static void SetTransientAccelerationContext(PhysicalModel *force, bool active);
+
    /// Count of the number of forces in the model
    Integer numForces;
    /// Index of the force currently in use
@@ -343,6 +364,9 @@ protected:
    StringArray forceTypeNames;
    /// Array of the forces
    std::vector<PhysicalModel *> forceList;
+   // Native value copies own every force they clone, including transients.
+   // Borrowed Sandbox transients added later are absent from this owner map.
+   std::map<PhysicalModel*, std::unique_ptr<PhysicalModel>> copiedForceOwners;
 //   /// User defined forces
 //   std::vector<PhysicalModel *> userForces;
    
@@ -426,6 +450,17 @@ protected:
    
    std::string         BuildForceNameString(PhysicalModel *force);
    void                ClearForceList(bool deleteTransient = false);
+   void CopySolveForValues(const ODEModel &source);
+   void                ReleaseForce(PhysicalModel *force, bool deleteTransient = false);
+   void RebindClonedForceReferences(const ODEModel &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve,
+         const std::function<void(const ObjectArray&, const ObjectArray&)> &owned,
+         bool reporting);
+
+   friend class PhysicalModel;
+   // Called by PhysicalModel destruction after the derived force has retired.
+   void                RetireForceReference(PhysicalModel *force, bool wasTransient) noexcept;
+
    void                ClearInternalCoordinateSystems();
    void                SetInternalCoordinateSystem(const std::string csId,
                                                    PhysicalModel *currentPm);

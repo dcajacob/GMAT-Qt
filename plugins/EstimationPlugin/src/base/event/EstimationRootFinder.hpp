@@ -61,6 +61,7 @@ public:
    EstimationRootFinder& operator=(const EstimationRootFinder& rl);
 
    virtual void SetPropSetup(PropSetup* ps);
+   void ClearPropSetup(PropSetup *source);
    virtual void FixState(Event *thisOne);
    virtual Real Locate(ObjectArray &whichOnes);
 

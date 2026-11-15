@@ -27,7 +27,24 @@
  */
  //------------------------------------------------------------------------------
 
+#include "ExpressionBinding.hpp"
+#include <memory>
+#include <typeinfo>
 #include "QuaternionProduct.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration quaternionProductValueProvider({
+   QuaternionProduct::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const QuaternionProduct*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<QuaternionProduct*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "FunctionException.hpp"
 #include "RealUtilities.hpp"
 #include "MessageInterface.hpp"
@@ -164,9 +181,7 @@ void QuaternionProduct::SetOutputTypes(WrapperTypeArray& outputTypes,
    #endif
 
    // Set output wrapper type for QuaternionProduct
-   outputWrapperTypes = outputTypes;
-   outputRowCounts = rowCounts;
-   outputColCounts = colCounts;
+   Function::SetOutputTypes(outputTypes, rowCounts, colCounts);
 }
 
 //------------------------------------------------------------------------------
@@ -514,7 +529,15 @@ void QuaternionProduct::Finalize(bool cleanUp)
  //------------------------------------------------------------------------------
 GmatBase* QuaternionProduct::Clone() const
 {
-   return (new QuaternionProduct(*this));
+   std::unique_ptr<QuaternionProduct> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new QuaternionProduct(*this));
+   }
+   if (typeid(*value) != typeid(*this))
+      throw FunctionException("A derived QuaternionProduct must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -529,5 +552,32 @@ GmatBase* QuaternionProduct::Clone() const
  //---------------------------------------------------------------------------
 void QuaternionProduct::Copy(const GmatBase* orig)
 {
-   operator=(*((QuaternionProduct*)(orig)));
+   const auto *source = dynamic_cast<const QuaternionProduct*>(orig);
+   if (!source || typeid(*this) != typeid(QuaternionProduct) || typeid(*this) != typeid(*source))
+      throw FunctionException("Incompatible QuaternionProduct value copy or missing derived Copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   const auto previousFunctionBindings = functionBindings;
+   const auto previousObjectBindings = objectBindings;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
+}
+
+
+bool QuaternionProduct::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const QuaternionProduct*>(&original);
+   if (!source || typeid(*this) != typeid(QuaternionProduct) || typeid(original) != typeid(QuaternionProduct))
+      throw FunctionException("Derived QuaternionProduct references need their own passive provider.\n");
+   RebindObjectManagedFunctionValue(*source, resolve);
+   return true;
+}
+
+bool QuaternionProduct::HasFunctionValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(QuaternionProduct);
 }

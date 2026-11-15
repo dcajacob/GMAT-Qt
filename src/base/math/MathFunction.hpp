@@ -51,6 +51,10 @@ public:
    virtual MathNode* GetLeft();
    virtual MathNode* GetRight();
    
+   void RebindExpressionReferences(const MathNode &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve, WrapperMap *wrappers) override;
+   void RetireExpressionReferences() override;
+
 protected:
 
    MathNode *leftNode;

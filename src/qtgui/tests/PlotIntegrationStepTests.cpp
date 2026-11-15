@@ -82,7 +82,8 @@ void editInteger(Rig &rig,const QString &name,const QString &field,int value) {
  events();require(spin->isVisible()&&spin->isEnabled(),"Skip control inaccessible");acceptanceView(*spin);
  spin->setFocus();QTest::keyClick(spin,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(spin,QString::number(value));QTest::keyClick(spin,Qt::Key_Tab);events();
  require(spin->value()==value&&panel->hasChanges()&&rig.source->toPlainText()==before,"Skip typed draft isolation failed");
- panel->findChild<QDialogButtonBox *>("resourceButtons")->button(QDialogButtonBox::Apply)->click();events();require(!panel->hasChanges(),"Skip Apply failed");rig.closePanels();
+ panel->findChild<QDialogButtonBox *>("resourceButtons")->button(QDialogButtonBox::Apply)->click();events();
+ panel=dynamic_cast<ResourceEditor *>(child->widget());require(panel&&!panel->hasChanges(),"Skip Apply failed");rig.closePanels();
  const auto applied=rig.source->toPlainText();rig.source->undo();require(rig.source->toPlainText()==before&&rig.window.buildScript(),"Skip Undo failed");rig.source->redo();require(rig.source->toPlainText()==applied&&rig.window.buildScript(),"Skip Redo failed");
  require(Moderator::Instance()->GetConfiguredObject(name.toStdString())->GetIntegerParameter(field.toStdString())==value,"Skip native value differs");
 }
@@ -216,6 +217,9 @@ int main(int argc,char **argv) {
   QJsonArray completed;const auto filter=qEnvironmentVariable("GMAT_PLOT_STEP_CASE");
   for(const auto &test:cases) {
    if(!filter.isEmpty()&&!filter.split(',').contains(test.name))continue;
+   // Keep each case's message baseline independent of previous missions.
+   // Drain queued callbacks before clearing; retain the production UI limit.
+   events();rig.messages->clear();
    const bool live=test.name.startsWith("Live")||test.name.startsWith("Retain2Live");const bool paint=test.name.startsWith("Paint");const QString kind=paint?test.name.mid(5):live?test.name.mid(test.name.indexOf("Live")+4):test.name;
    const bool lac=test.name.startsWith("LAC"),lacNested=test.name.startsWith("LACConstraint");
    const bool rotating=test.name.startsWith("Rotating");

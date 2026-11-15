@@ -403,6 +403,8 @@
   <refsection>
     <title>Remarks</title>
 
+    <para>Error-model value copies preserve captured Bias and PassBiases covariance entries and correlations independently of BiasSigma. Editing BiasSigma still performs its normal explicit prior update. Restoring an unchanged covariance layout retains the current matrix and the most recently requested parameter-block storage.</para>
+
     <refsection>
       <title>Units for Bias, BiasSigma, and NoiseSigma</title>
 

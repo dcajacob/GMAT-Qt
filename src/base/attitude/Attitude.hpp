@@ -47,6 +47,7 @@
 #define Attitude_hpp
 
 #include "gmatdefs.hpp"
+#include <functional>
 #include "GmatBase.hpp"
 #include "CoordinateSystem.hpp"
 #include "Rmatrix33.hpp"
@@ -105,6 +106,9 @@ public:
    virtual bool       Validate();
    /// Method to initialize the Attitude
    virtual bool       Initialize();
+   bool InitializeClonedResource();
+   virtual void RebindClonedReferences(const Attitude &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
 
    /// Methods to get/set the epoch and the reference coordinate system name
 //private:

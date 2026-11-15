@@ -2145,6 +2145,14 @@
   <refsection xml:id="ForceModel_Remarks">
     <title>Remarks</title>
 
+    <para>Restoring a force model within an unchanged prepared propagation graph updates values in its current force objects. Current internal frames, state-manager connections, solve-for holders and acceleration-reporting bindings remain selected. Changes to force collections, native propagation roles, external modules or shape files require preparation before reuse.</para>
+
+    <para>Drag values include independent density, prefactor and translated-state buffers and an owned atmosphere value. Restoring an unchanged prepared drag model keeps its buffers and owned atmosphere, including loaded weather data and angular-velocity values. Changed atmosphere files, body/frame bindings or propagation roles require preparation. A shared external atmosphere remains selected by its owning body.</para>
+
+    <para>Restoring solar-radiation-pressure values within an unchanged configuration retains current shadow and Sun bindings and restores its captured numerical buffers. Finite-thrust restoration retains the same live burns and spacecraft roles. Prepare the force again after changing these bindings.</para>
+
+    <para>Restoring captured physical-model values within an unchanged propagation layout keeps existing state, derivative and optional Jacobian storage. Point-mass, harmonic gravity and relativistic forces also retain their selected body and frame bindings. Changes to propagation roles, potential or tide files, or frame configuration require preparation before the next run.</para>
+
     <refsection>
       <title>Overview of Primary Body/Central Body and Field
       Interactions</title>
@@ -2535,8 +2543,9 @@ aForceModel.Drag.AtmosphereModel = NRLMSISE00
         </warning>
 
         <para>When using the <guilabel>MarsGRAM2005</guilabel> atmosphere
-        model, three new fields are available in the script language (but not
-        the GUI):<itemizedlist spacing="compact">
+        model, two additional fields are available in the script language and
+        the Qt atmosphere editor when the plugin is available. The legacy GUI
+        exposes these fields through script only:<itemizedlist spacing="compact">
             <listitem>
               <para><guilabel>Drag.InputFile</guilabel></para>
             </listitem>

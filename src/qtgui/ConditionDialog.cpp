@@ -1,5 +1,6 @@
 #include "ConditionDialog.hpp"
 #include "ReportParameterDialog.hpp"
+#include "ParameterReferences.hpp"
 #include "TableColumns.hpp"
 #include <QRegularExpression>
 #include <QComboBox>
@@ -8,6 +9,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QDialogButtonBox>
+#include <cmath>
 namespace {
 const QString operand=R"((?:[A-Za-z_][A-Za-z0-9_.]*(?:\(\s*[1-9][0-9]*\s*,\s*[1-9][0-9]*\s*\))?|[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?))";
 const QRegularExpression comparison("^\\s*("+operand+")\\s*(==|~=|<=|>=|<|>)\\s*("+operand+")\\s*$");
@@ -28,6 +30,7 @@ ConditionDialog::ConditionDialog(const QString &value,QWidget *parent) : QDialog
    help->setWordWrap(true); layout->addWidget(help);
    table=new QTableWidget(0,4,this); table->setObjectName("conditionTable"); table->setHorizontalHeaderLabels({"Join","Left side","Relation","Right side"});
    configureTableColumns(table,{8,22,8,22}); layout->addWidget(table);
+   auto *unitNotice=new QLabel(this);unitNotice->setObjectName("conditionUnits");unitNotice->setWordWrap(true);layout->addWidget(unitNotice);
    status=new QLabel(this); status->setObjectName("conditionStatus"); layout->addWidget(status);
    auto *actions=new QHBoxLayout; layout->addLayout(actions);
    auto addButton=[&](const QString &text,const QString &name,auto callback) {
@@ -41,6 +44,7 @@ ConditionDialog::ConditionDialog(const QString &value,QWidget *parent) : QDialog
       const int row=table->currentRow(),column=table->currentColumn();
       if (row<0 || (column!=1 && column!=3)) { status->setText("Select a left or right operand cell first."); return; }
       ReportParameterDialog dialog({table->item(row,column)->text()},this,ReportParameterDialog::Mode::Single);
+      dialog.setProperty("unitContext",parameterUnitDescription(table->item(row,column==1?3:1)->text()));
       if (dialog.exec()!=QDialog::Accepted) return;
       table->item(row,column)->setText(dialog.selection().first());
    });
@@ -54,6 +58,7 @@ ConditionDialog::ConditionDialog(const QString &value,QWidget *parent) : QDialog
       if (joins.hasNext()) join=joins.next().captured();
    }
    connect(table,&QTableWidget::itemChanged,this,[this] { validate(); });
+   connect(table,&QTableWidget::itemSelectionChanged,this,[this] { validate(); });
    validate(); fitTableColumns(table,3);
 }
 void ConditionDialog::addRow(const QString &join,const QString &left,const QString &relation,const QString &right)
@@ -66,6 +71,14 @@ void ConditionDialog::addRow(const QString &join,const QString &left,const QStri
 }
 void ConditionDialog::validate()
 {
+   if(auto *notice=findChild<QLabel *>("conditionUnits")) {
+      const int row=table->currentRow();
+      if(row>=0 && table->item(row,1) && table->item(row,3)) {
+         const auto left=table->item(row,1)->text().trimmed(),right=table->item(row,3)->text().trimmed();
+         const auto number=[](const QString &s){bool ok=false;const auto n=s.toDouble(&ok);return ok&&std::isfinite(n);};
+         notice->setText("Left: "+parameterUnitDescription(number(left)&&!number(right)?right:left)+"; Right: "+parameterUnitDescription(number(right)&&!number(left)?left:right));
+      } else notice->clear();
+   }
    bool valid=table->rowCount()>0;
    for (int row=0;row<table->rowCount();++row) {
       table->cellWidget(row,0)->setEnabled(row!=0);

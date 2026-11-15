@@ -54,6 +54,7 @@ class GMAT_API Report : public GmatCommand
 public:
    Report();
    virtual ~Report();
+   void RetireFunctionBindings(ObjectMap *store) override;
    Report(const Report &rep);
    Report& operator=(const Report &rep);
    

@@ -1,0 +1,55 @@
+{
+  "scope": "Power and electric polynomial coefficient unit display; no new mission execution or whole-row acceptance.",
+  "cases": [
+    {
+      "key": "ElectricCoefficients",
+      "type": "ElectricThruster",
+      "object": "Probe",
+      "fixture": "Create ElectricThruster Probe;\nProbe.DecrementMass = false;\nProbe.ThrustModel = ThrustMassPolynomial;\n",
+      "units": {
+        "ThrustCoeff1": "mN",
+        "ThrustCoeff2": "mN/kW",
+        "ThrustCoeff3": "mN/kW^2",
+        "ThrustCoeff4": "mN/kW^3",
+        "ThrustCoeff5": "mN/kW^4",
+        "MassFlowCoeff1": "mg/s",
+        "MassFlowCoeff2": "mg/s/kW",
+        "MassFlowCoeff3": "mg/s/kW^2",
+        "MassFlowCoeff4": "mg/s/kW^3",
+        "MassFlowCoeff5": "mg/s/kW^4"
+      }
+    }
+  ],
+  "power_cases": [
+    {
+      "key": "NuclearPowerSystem",
+      "group": "PowerSystemUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create NuclearPowerSystem Probe;\n",
+      "units": {
+        "AnnualDecayRate": "percent/year",
+        "BusCoeff1": "kW",
+        "BusCoeff2": "kW*AU",
+        "BusCoeff3": "kW*AU^2",
+        "InitialMaxPower": "kW",
+        "Margin": "percent"
+      }
+    },
+    {
+      "key": "SolarPowerSystem",
+      "group": "PowerSystemUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create SolarPowerSystem Probe;\n",
+      "units": {
+        "AnnualDecayRate": "percent/year",
+        "BusCoeff1": "kW",
+        "BusCoeff2": "kW*AU",
+        "BusCoeff3": "kW*AU^2",
+        "InitialMaxPower": "kW",
+        "Margin": "percent"
+      }
+    }
+  ]
+}

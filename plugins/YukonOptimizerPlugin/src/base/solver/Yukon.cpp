@@ -31,6 +31,8 @@
 //------------------------------------------------------------------------------
 
 #include "Yukon.hpp"
+#include "OptimizerValueCopy.hpp"
+#include <utility>
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
@@ -67,7 +69,7 @@ bool qpParallelBoundsConsistent(const Rmatrix &jac,const Rvector &lower,
          bool same=true;
          for (Integer col=0;col<jac.GetNumColumns();++col)
             if (std::abs(jac(row,col)-jac(other,col))>1e-12) {same=false;break;}
-         if (same) {low=std::max(low,lower[other]);high=std::min(high,upper[other]);}
+         if (same) {low=(std::max)(low,lower[other]);high=(std::min)(high,upper[other]);}
       }
       if (low>high) return false;
    }
@@ -156,6 +158,28 @@ bool restoreOriginalQpRows(const Rmatrix &jac,const Rvector &lower,
 * @param inputUserProblem Pointer to the user problem
 */
 //------------------------------------------------------------------------------
+namespace
+{
+OptionsList CopyYukonOptions(const OptionsList &source)
+{
+   return OptionsList{
+      source.hessUpdateMethod,
+      source.meritFunction,
+      OptimizerValueCopy::Vector(source.finiteDiffVector),
+      source.derivativeMethod,
+      source.maxIter,
+      source.maxFunEvals,
+      source.tolCon,
+      source.tolF,
+      source.tolGrad,
+      OptimizerValueCopy::Vector(source.maxVarStepSize),
+      source.QPMethod,
+      source.display,
+      source.maxElasticWeight
+   };
+}
+}
+
 Yukon::Yukon(YukonUserProblem *inputUserProblem,
                std::string hessianUpdateMethod, Integer maximumIterations,
                Integer maximumFunctionEvals, Real feasibilityTolerance,
@@ -214,7 +238,7 @@ Yukon::Yukon(YukonUserProblem *inputUserProblem,
    options.maxElasticWeight = maximumElasticWeight;
 
    // Instantiate function manager
-   userFuncManager = new NLPFunctionGenerator(inputUserProblem);
+   userFuncManager.reset(new NLPFunctionGenerator(inputUserProblem));
    userProblem = inputUserProblem;
 
    SetNLPAndBoundsInfo();
@@ -242,64 +266,83 @@ Yukon::Yukon(YukonUserProblem *inputUserProblem,
 * Copy constructor
 */
 //------------------------------------------------------------------------------
-Yukon::Yukon(const Yukon& obj)
+Yukon::Yukon(const Yukon &obj) :
+   options(CopyYukonOptions(obj.options)),
+   userFuncManager(obj.userFuncManager ? new NLPFunctionGenerator(*obj.userFuncManager) : nullptr),
+   totalNumCon(obj.totalNumCon),
+   numFuncEvals(obj.numFuncEvals),
+   numDecisionVars(obj.numDecisionVars),
+   decVec(OptimizerValueCopy::Vector(obj.decVec)),
+   varLowerBounds(OptimizerValueCopy::Vector(obj.varLowerBounds)),
+   varUpperBounds(OptimizerValueCopy::Vector(obj.varUpperBounds)),
+   conLowerBounds(OptimizerValueCopy::Vector(obj.conLowerBounds)),
+   conUpperBounds(OptimizerValueCopy::Vector(obj.conUpperBounds)),
+   userProblem(obj.userProblem),
+   costFunction(obj.costFunction),
+   conFunctions(OptimizerValueCopy::Vector(obj.conFunctions)),
+   costJac(OptimizerValueCopy::Vector(obj.costJac)),
+   conJac(OptimizerValueCopy::Matrix(obj.conJac)),
+   gradLagrangian(OptimizerValueCopy::Vector(obj.gradLagrangian)),
+   deltaGradLagrangian(OptimizerValueCopy::Vector(obj.deltaGradLagrangian)),
+   stepTaken(OptimizerValueCopy::Vector(obj.stepTaken)),
+   hessLagrangian(OptimizerValueCopy::Matrix(obj.hessLagrangian)),
+   lagMultipliers(OptimizerValueCopy::Vector(obj.lagMultipliers)),
+   eqInd(OptimizerValueCopy::Vector(obj.eqInd)),
+   ineqInd(OptimizerValueCopy::Vector(obj.ineqInd)),
+   constraintTypes(OptimizerValueCopy::Vector(obj.constraintTypes)),
+   isModeElastic(obj.isModeElastic),
+   firstElasticStep(obj.firstElasticStep),
+   elasticWeight(obj.elasticWeight),
+   method(obj.method),
+   isConverged(obj.isConverged),
+   numNLPIterations(obj.numNLPIterations),
+   sigma(obj.sigma),
+   tau(obj.tau),
+   eta(obj.eta),
+   mu(OptimizerValueCopy::Vector(obj.mu)),
+   iterSinceHeaderWrite(obj.iterSinceHeaderWrite),
+   alpha(obj.alpha),
+   meritF(obj.meritF),
+   foundStep(obj.foundStep),
+   usePreviousMerits(obj.usePreviousMerits),
+   stepAttempts(obj.stepAttempts),
+   allowSkippedReduction(obj.allowSkippedReduction),
+   skipsTaken(obj.skipsTaken),
+   forceReductionSteps(obj.forceReductionSteps),
+   testSkippedReduction(obj.testSkippedReduction),
+   fold(obj.fold),
+   xold(OptimizerValueCopy::Vector(obj.xold)),
+   Jold(OptimizerValueCopy::Matrix(obj.Jold)),
+   gradFold(OptimizerValueCopy::Vector(obj.gradFold)),
+   cViolOld(OptimizerValueCopy::Vector(obj.cViolOld)),
+   srchCount(obj.srchCount),
+   failedSrchCount(obj.failedSrchCount),
+   xk(OptimizerValueCopy::Vector(obj.xk)),
+   qpExitFlag(obj.qpExitFlag),
+   px(OptimizerValueCopy::Vector(obj.px)),
+   plam(OptimizerValueCopy::Vector(obj.plam)),
+   qpIter(obj.qpIter),
+   activeSet(OptimizerValueCopy::Vector(obj.activeSet)),
+   removeConIdx(OptimizerValueCopy::Vector(obj.removeConIdx)),
+   modifiedConIdxs(OptimizerValueCopy::Matrix(obj.modifiedConIdxs)),
+   meritFalpha(obj.meritFalpha),
+   maxConViolation(obj.maxConViolation),
+   stepScalingFactor(obj.stepScalingFactor),
+   minMeritFAlpha(obj.minMeritFAlpha),
+   minDecreaseCond(obj.minDecreaseCond),
+   minDecVec(OptimizerValueCopy::Vector(obj.minDecVec)),
+   minCost(obj.minCost),
+   minConFuncs(OptimizerValueCopy::Vector(obj.minConFuncs)),
+   minConViol(OptimizerValueCopy::Vector(obj.minConViol)),
+   minAlpha(obj.minAlpha),
+   minCostJac(OptimizerValueCopy::Vector(obj.minCostJac)),
+   minConJac(OptimizerValueCopy::Matrix(obj.minConJac)),
+   minHessian(OptimizerValueCopy::Matrix(obj.minHessian)),
+   isFinished(obj.isFinished),
+   currentState(obj.currentState)
 {
-   isModeElastic = obj.isModeElastic;
-   firstElasticStep = obj.firstElasticStep;
-   elasticWeight = obj.elasticWeight;
-   totalNumCon = obj.totalNumCon;
-   method = obj.method;
-   isConverged = obj.isConverged;
-   numNLPIterations = obj.numNLPIterations;
-   iterSinceHeaderWrite = obj.iterSinceHeaderWrite;
-   foundStep = obj.foundStep;
-   usePreviousMerits = obj.usePreviousMerits;
-   stepAttempts = obj.stepAttempts;
-   fold = obj.fold;
-   currentState = obj.currentState;
-   sigma = obj.sigma;
-   tau = obj.tau;
-   eta = obj.eta;
-   alpha = obj.alpha;
-   qpIter = obj.qpIter;
-   qpExitFlag = obj.qpExitFlag;
-   srchCount = obj.srchCount;
-   failedSrchCount = obj.failedSrchCount;
-   isFinished = obj.isFinished;
-   costFunction = obj.costFunction;
-   maxConViolation = obj.maxConViolation;
-   stepScalingFactor = obj.stepScalingFactor;
-   meritFalpha = obj.meritFalpha;
-   meritF = obj.meritF;
-   minMeritFAlpha = obj.minMeritFAlpha;
-   minDecreaseCond = obj.minDecreaseCond;
-   minCost = obj.minCost;
-   minAlpha = obj.minAlpha;
-   options.hessUpdateMethod = obj.options.hessUpdateMethod;
-   options.meritFunction = obj.options.hessUpdateMethod;
-   options.finiteDiffVector = obj.options.finiteDiffVector;
-   options.derivativeMethod = obj.options.derivativeMethod;
-   options.maxIter = obj.options.maxIter;
-   options.maxFunEvals = obj.options.maxFunEvals;
-   options.tolCon = obj.options.tolCon;
-   options.tolF = obj.options.tolF;
-   options.tolGrad = obj.options.tolGrad;
-   options.QPMethod = obj.options.QPMethod;
-   options.display = obj.options.display;
-   options.maxElasticWeight = obj.options.maxElasticWeight;
-   userFuncManager = obj.userFuncManager;
-   userProblem = obj.userProblem;
-   SetNLPAndBoundsInfo();
-   PrepareInitialGuess();
-   numFuncEvals = obj.numFuncEvals;
-   allowSkippedReduction = obj.allowSkippedReduction;
-   testSkippedReduction = obj.testSkippedReduction;
-   skipsTaken = obj.skipsTaken;
-   forceReductionSteps = obj.forceReductionSteps;
-   numDecisionVars = obj.numDecisionVars;
-   currentState = obj.currentState;
-   options.maxVarStepSize = obj.options.maxVarStepSize;
 }
+
 
 //------------------------------------------------------------------------------
 // Yukon& operator=(const Yukon& obj)
@@ -310,67 +353,116 @@ Yukon::Yukon(const Yukon& obj)
 //------------------------------------------------------------------------------
 Yukon& Yukon::operator=(const Yukon& obj)
 {
-   if (&obj != this)
-   {
-      isModeElastic = obj.isModeElastic;
-      firstElasticStep = obj.firstElasticStep;
-      elasticWeight = obj.elasticWeight;
-      totalNumCon = obj.totalNumCon;
-      method = obj.method;
-      isConverged = obj.isConverged;
-      numNLPIterations = obj.numNLPIterations;
-      iterSinceHeaderWrite = obj.iterSinceHeaderWrite;
-      foundStep = obj.foundStep;
-      usePreviousMerits = obj.usePreviousMerits;
-      stepAttempts = obj.stepAttempts;
-      fold = obj.fold;
-      currentState = obj.currentState;
-      sigma = obj.sigma;
-      tau = obj.tau;
-      eta = obj.eta;
-      alpha = obj.alpha;
-      qpIter = obj.qpIter;
-      qpExitFlag = obj.qpExitFlag;
-      srchCount = obj.srchCount;
-      failedSrchCount = obj.failedSrchCount;
-      isFinished = obj.isFinished;
-      costFunction = obj.costFunction;
-      maxConViolation = obj.maxConViolation;
-      stepScalingFactor = obj.stepScalingFactor;
-      meritFalpha = obj.meritFalpha;
-      meritF = obj.meritF;
-      minMeritFAlpha = obj.minMeritFAlpha;
-      minDecreaseCond = obj.minDecreaseCond;
-      minCost = obj.minCost;
-      minAlpha = obj.minAlpha;
-      options.hessUpdateMethod = obj.options.hessUpdateMethod;
-      options.meritFunction = obj.options.hessUpdateMethod;
-      options.finiteDiffVector = obj.options.finiteDiffVector;
-      options.derivativeMethod = obj.options.derivativeMethod;
-      options.maxIter = obj.options.maxIter;
-      options.maxFunEvals = obj.options.maxFunEvals;
-      options.tolCon = obj.options.tolCon;
-      options.tolF = obj.options.tolF;
-      options.tolGrad = obj.options.tolGrad;
-      options.QPMethod = obj.options.QPMethod;
-      options.display = obj.options.display;
-      options.maxElasticWeight = obj.options.maxElasticWeight;
-      userFuncManager = obj.userFuncManager;
-      userProblem = obj.userProblem;
-      SetNLPAndBoundsInfo();
-      PrepareInitialGuess();
-      numFuncEvals = obj.numFuncEvals;
-      allowSkippedReduction = obj.allowSkippedReduction;
-      testSkippedReduction = obj.testSkippedReduction;
-      skipsTaken = obj.skipsTaken;
-      forceReductionSteps = obj.forceReductionSteps;
-      numDecisionVars = obj.numDecisionVars;
-      currentState = obj.currentState;
-      options.maxVarStepSize = obj.options.maxVarStepSize;
-   }
-
+   if (&obj == this) return *this;
+   Yukon prepared(obj);
+   SwapValueState(prepared);
    return *this;
 }
+
+void Yukon::SwapValueState(Yukon &other)
+{
+   using std::swap;
+   swap(options.hessUpdateMethod, other.options.hessUpdateMethod);
+   swap(options.meritFunction, other.options.meritFunction);
+   options.finiteDiffVector.Swap(other.options.finiteDiffVector);
+   swap(options.derivativeMethod, other.options.derivativeMethod);
+   swap(options.maxIter, other.options.maxIter);
+   swap(options.maxFunEvals, other.options.maxFunEvals);
+   swap(options.tolCon, other.options.tolCon);
+   swap(options.tolF, other.options.tolF);
+   swap(options.tolGrad, other.options.tolGrad);
+   options.maxVarStepSize.Swap(other.options.maxVarStepSize);
+   swap(options.QPMethod, other.options.QPMethod);
+   swap(options.display, other.options.display);
+   swap(options.maxElasticWeight, other.options.maxElasticWeight);
+   userFuncManager.swap(other.userFuncManager);
+   swap(totalNumCon, other.totalNumCon);
+   swap(numFuncEvals, other.numFuncEvals);
+   swap(numDecisionVars, other.numDecisionVars);
+   decVec.Swap(other.decVec);
+   varLowerBounds.Swap(other.varLowerBounds);
+   varUpperBounds.Swap(other.varUpperBounds);
+   conLowerBounds.Swap(other.conLowerBounds);
+   conUpperBounds.Swap(other.conUpperBounds);
+   swap(userProblem, other.userProblem);
+   swap(costFunction, other.costFunction);
+   conFunctions.Swap(other.conFunctions);
+   costJac.Swap(other.costJac);
+   conJac.Swap(other.conJac);
+   gradLagrangian.Swap(other.gradLagrangian);
+   deltaGradLagrangian.Swap(other.deltaGradLagrangian);
+   stepTaken.Swap(other.stepTaken);
+   hessLagrangian.Swap(other.hessLagrangian);
+   lagMultipliers.Swap(other.lagMultipliers);
+   eqInd.Swap(other.eqInd);
+   ineqInd.Swap(other.ineqInd);
+   constraintTypes.Swap(other.constraintTypes);
+   swap(isModeElastic, other.isModeElastic);
+   swap(firstElasticStep, other.firstElasticStep);
+   swap(elasticWeight, other.elasticWeight);
+   swap(method, other.method);
+   swap(isConverged, other.isConverged);
+   swap(numNLPIterations, other.numNLPIterations);
+   swap(sigma, other.sigma);
+   swap(tau, other.tau);
+   swap(eta, other.eta);
+   mu.Swap(other.mu);
+   swap(iterSinceHeaderWrite, other.iterSinceHeaderWrite);
+   swap(alpha, other.alpha);
+   swap(meritF, other.meritF);
+   swap(foundStep, other.foundStep);
+   swap(usePreviousMerits, other.usePreviousMerits);
+   swap(stepAttempts, other.stepAttempts);
+   swap(allowSkippedReduction, other.allowSkippedReduction);
+   swap(skipsTaken, other.skipsTaken);
+   swap(forceReductionSteps, other.forceReductionSteps);
+   swap(testSkippedReduction, other.testSkippedReduction);
+   swap(fold, other.fold);
+   xold.Swap(other.xold);
+   Jold.Swap(other.Jold);
+   gradFold.Swap(other.gradFold);
+   cViolOld.Swap(other.cViolOld);
+   swap(srchCount, other.srchCount);
+   swap(failedSrchCount, other.failedSrchCount);
+   xk.Swap(other.xk);
+   swap(qpExitFlag, other.qpExitFlag);
+   px.Swap(other.px);
+   plam.Swap(other.plam);
+   swap(qpIter, other.qpIter);
+   activeSet.Swap(other.activeSet);
+   removeConIdx.Swap(other.removeConIdx);
+   modifiedConIdxs.Swap(other.modifiedConIdxs);
+   swap(meritFalpha, other.meritFalpha);
+   swap(maxConViolation, other.maxConViolation);
+   swap(stepScalingFactor, other.stepScalingFactor);
+   swap(minMeritFAlpha, other.minMeritFAlpha);
+   swap(minDecreaseCond, other.minDecreaseCond);
+   minDecVec.Swap(other.minDecVec);
+   swap(minCost, other.minCost);
+   minConFuncs.Swap(other.minConFuncs);
+   minConViol.Swap(other.minConViol);
+   swap(minAlpha, other.minAlpha);
+   minCostJac.Swap(other.minCostJac);
+   minConJac.Swap(other.minConJac);
+   minHessian.Swap(other.minHessian);
+   swap(isFinished, other.isFinished);
+   swap(currentState, other.currentState);
+}
+
+YukonUserProblem* Yukon::GetUserProblem() const
+{
+   return userProblem;
+}
+
+void Yukon::RebindUserProblem(YukonUserProblem *original, YukonUserProblem *replacement)
+{
+   if (!original || !replacement || userProblem != original ||
+         (userFuncManager && userFuncManager->GetUserProblem() != original))
+      throw UtilityException("Incompatible Yukon callback ownership binding.\n");
+   if (userFuncManager) userFuncManager->RebindUserProblem(original, replacement);
+   userProblem = replacement;
+}
+
 
 //------------------------------------------------------------------------------
 // ~Yukon()
@@ -669,6 +761,7 @@ void Yukon::CheckStatus(Integer &status, Integer &funTypes,
       isNewX = false;
       return;
    }
+   throw UtilityException("Unknown Yukon optimizer state: " + currentState);
 }
 
 //------------------------------------------------------------------------------
@@ -1252,30 +1345,38 @@ void Yukon::CheckIfFinished()
    isConverged = CheckConvergence(gradLagrangian, fold, costFunction,
       decVec, xold, alpha, maxConViolation);
 
-   // Update the Hessian of the Lagrangian
-   if (isConverged == 0)
-      method = UpdateHessian();
-
-   if (currentState == "StepTooSmall")
-      return;
-
-   // Test for various reasons to stop iteration and set flage to stop of one
-   // occurs
-   if (!isConverged && numNLPIterations <= options.maxIter &&
-      numFuncEvals <= options.maxFunEvals)
-   {
-      isFinished = false;
-      currentState = "LineSearchIteration";
-   }
-   else if (isConverged < 0)
+   // Finished denotes convergence only. A resource limit must retain its
+   // own terminal reason so the GMAT wrapper cannot report false success.
+   if (isConverged < 0)
    {
       isFinished = true;
       currentState = "InfeasibleProblem";
    }
-   else
+   else if (isConverged > 0)
    {
       isFinished = true;
       currentState = "Finished";
+   }
+   else if (numFuncEvals >= options.maxFunEvals)
+   {
+      isFinished = true;
+      currentState = "MaxFuncEvalsReached";
+   }
+   else if (numNLPIterations >= options.maxIter)
+   {
+      isFinished = true;
+      currentState = "MaxIterCountReached";
+   }
+   else
+   {
+      method = UpdateHessian();
+      if (currentState == "StepTooSmall")
+      {
+         isFinished = true;
+         return;
+      }
+      isFinished = false;
+      currentState = "LineSearchIteration";
    }
 
 
@@ -1441,9 +1542,7 @@ void Yukon::PrepareElasticMode()
    // Switch the user function generator to use elastic mode
    isModeElastic = true;
    Rvector oldDecVec = decVec;
-   userFuncManager->~NLPFunctionGenerator();
-   userFuncManager =
-      new NLPFunctionGenerator(userProblem, true, elasticWeight);
+   userFuncManager.reset(new NLPFunctionGenerator(userProblem, true, elasticWeight));
 
    // Update the bounds data for elastic mode
    Integer oldTotalNumCon = totalNumCon;
@@ -1857,7 +1956,7 @@ Integer Yukon::CheckConvergence(Rvector gradLag, Real f, Real fnew, Rvector x,
                constraintsSatisfied = 0;
             else
             {
-               const Real violation = std::max(Real(0), std::max(
+               const Real violation = (std::max)(Real(0), (std::max)(
                      conLowerBounds[i] - value, value - conUpperBounds[i]));
                if (!(violation < options.tolCon)) constraintsSatisfied = 0;
             }

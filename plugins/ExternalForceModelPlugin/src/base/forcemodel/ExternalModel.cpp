@@ -27,6 +27,12 @@
 #include "ExternalModel.hpp"
 #include "GmatBaseException.hpp"
 #include <typeinfo>
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <memory>
+#include "OrbitStmForceGradient.hpp"
+#include "Spacecraft.hpp"
 #include <sstream>                      // For stringstream
 #include "MessageInterface.hpp"
 #include "GmatConstants.hpp"
@@ -35,6 +41,8 @@
 #include "InterfaceException.hpp"
 #include "FileManager.hpp"
 #include "StringUtil.hpp"
+#include "ObjectScriptExportScope.hpp"
+#include "ScriptStringLiteral.hpp"
 
 //#define DEBUG_INITIALIZATION
 //#define DEBUG_REGISTRATION
@@ -131,16 +139,22 @@ ExternalModel& ExternalModel::operator=(const ExternalModel &external)
 {
    if (this != &external)
    {
+      const bool restoring = GmatBase::IsNativeRestorationCopy();
+      if (restoring && (scriptFilename != external.scriptFilename || fullFilePath != external.fullFilePath ||
+          entryPoint != external.entryPoint || torqueEntryPoint != external.torqueEntryPoint ||
+          excludeForces != external.excludeForces || satCount != external.satCount ||
+          (pythonIf && external.pythonIf && pythonIf != external.pythonIf)))
+         throw ODEModelException("Prepare the external-force module before restoring changed entry points or bindings.");
       PhysicalModel::operator=(external);
       scriptFilename = external.scriptFilename;
       fullFilePath = external.fullFilePath;
       excludeForces = external.excludeForces;
       entryPoint = external.entryPoint;
 	   torqueEntryPoint = external.torqueEntryPoint;
-      pythonIf = external.pythonIf;
+      if (!restoring) pythonIf = external.pythonIf;
       satCount = external.satCount;
       initializedMessagePrinted = external.initializedMessagePrinted;
-      isInitialized = false;
+      if (!restoring) isInitialized = false;
    }
    
    return *this;
@@ -198,7 +212,19 @@ const std::string& ExternalModel::GetGeneratingString(Gmat::WriteMode mode,
          prefix + "ExcludeOtherForces", excludeForces ? "true" : "false");
       return generatingString;
    }
-   return PhysicalModel::GetGeneratingString(mode, prefix, useName);
+   PhysicalModel::GetGeneratingString(mode, prefix, useName);
+   // The ordinary flags keep these fields owned by ForceModel. Preserve them
+   // when Save explicitly exports the named external contributor itself.
+   if (ObjectScriptExportScope::IsActive() &&
+         (mode == Gmat::SCRIPTING || mode == Gmat::SHOW_SCRIPT))
+   {
+      const auto object = (useName.empty() ? GetName() : useName) + ".";
+      if (!scriptFilename.empty())
+         generatingString += object + "ScriptFileName = " + GmatScriptString::Quote(scriptFilename) + ";\n";
+      generatingString += object + "DerivativesFunction = " + GmatScriptString::Quote(entryPoint) + ";\n";
+      generatingString += object + "ExcludeOtherForces = " + (excludeForces ? "true" : "false") + ";\n";
+   }
+   return generatingString;
 }
 
 //------------------------------------------------------------------------------
@@ -457,119 +483,154 @@ bool ExternalModel::Initialize()
  */
  //------------------------------------------------------------------------------
 bool ExternalModel::GetDerivatives(Real *state, Real dt, Integer order,
-	const Integer id) {
-
-   StringArray stateDescription = GetStateDateTypes();
-
-	Real now = epoch + (elapsedTime + dt) / GmatTimeConstants::SECS_PER_DAY;
-
-	for (Integer i = 0; i < satCount; i++)
-	{
-		Real * st = new Real[dimension];
-		Real * dv = new Real[dimension];
-
-      memcpy(st, state, dimension * sizeof(Real));
-
-		dv = PythonDerivatives(st, now, stateDescription, order);
-
-      memcpy(deriv, dv, dimension * sizeof(Real));
-
-   }
-
-
-	return true;
+   const Integer id)
+{
+   if (!state || !deriv || dimension <= 0)
+      throw ODEModelException("External force requires initialized state and derivative storage.");
+   const Real atEpoch = epoch + (elapsedTime + dt) / GmatTimeConstants::SECS_PER_DAY;
+   RealArray privateState(state,state+dimension);
+   const auto result = EvaluatePython(privateState.data(),atEpoch,GetStateDateTypes(),order);
+   // Publish only a complete, checked callback result.
+   std::copy(result.begin(),result.end(),deriv);
+   return true;
 }
 
-//------------------------------------------------------------------------------
-// bool ExternalModel::PythonDerivatives()(Real * state, Real dt, Integer order)
-//------------------------------------------------------------------------------
-/**
- * Calls the python function 
- *
- * @param state  The current state vector
- * @param now    The time to calculate at
- * @param ep     Entry Point for the python file 
- * @param order  Order of the derivative being calculated
- *
- * @return The derivative vector
- */
- //------------------------------------------------------------------------------
-Real* ExternalModel::PythonDerivatives(Real *state, Real now, StringArray stateDescription, Integer order,
-	const Integer id) {
-
-   if (initializedMessagePrinted == false)
+RealArray ExternalModel::EvaluatePython(Real *state, Real atEpoch,
+      const StringArray &description, Integer order)
+{
+   if (!pythonIf || !Py_IsInitialized())
+      throw ODEModelException("External-force Python interface is not initialized.");
+   if (!state || dimension <= 0 || static_cast<Integer>(description.size()) != dimension)
+      throw ODEModelException("External-force state and description dimensions differ.");
+   struct PythonLock
    {
-
+      PyGILState_STATE state = PyGILState_Ensure();
+      ~PythonLock() { PyGILState_Release(state); }
+   } lock;
+   if (!initializedMessagePrinted)
+   {
       fullFilePath = pythonIf->PyExternalGetPythonPath(scriptFilename);
-      //print python script and entry point to log
-      std::string msg = "External Force Model: \"" + instanceName + "\" was initialized using python file \"";
-      msg += fullFilePath + "\" and entry point \"" + entryPoint + "\".\n";
-      MessageInterface::ShowMessage(msg);
+      MessageInterface::ShowMessage("External Force Model: \"%s\" initialized from \"%s\", entry point \"%s\".\n",
+         instanceName.c_str(),fullFilePath.c_str(),entryPoint.c_str());
       initializedMessagePrinted = true;
    }
-	PyObject* pyRet;
-	Real * div = new Real[dimension];
-	
-   try
-	{
-		pyRet = pythonIf->PyExternalFunctionWrapper(scriptFilename, entryPoint, state, now, stateDescription, order, dimension, 4);
-	}	
-	catch (BaseException &ex)
-	{
-		throw CommandException("Error in the CallPython command execution:\n" +
-			ex.GetFullMessage());
-	}
-	catch (...)
-	{
-		throw InterfaceException("An unhandled Python exception was thrown during execution");
-	}
-
-	if (pyRet) {
-		for (Integer i = 0; i < dimension; ++i)
-		{
-			PyObject* pyItem = PyList_GetItem(pyRet, i);
-			div[i] = PyFloat_AsDouble(pyItem);
-		}
-	}
-
-	return div;
+   auto release = [](PyObject *object) { Py_XDECREF(object); };
+   using PythonObject = std::unique_ptr<PyObject,decltype(release)>;
+   PythonObject result(pythonIf->PyExternalFunctionWrapper(scriptFilename,entryPoint,
+      state,atEpoch,description,order,dimension,4),release);
+   PythonObject values(result ? PySequence_Fast(result.get(),"External force must return a numeric sequence.") : nullptr,release);
+   auto fail = [&]()
+   {
+      std::string message;
+      pythonIf->PyErrorMsg(nullptr,nullptr,nullptr,message);
+      throw InterfaceException("External-force callback failed: " + message);
+   };
+   if (!values) fail();
+   if (PySequence_Fast_GET_SIZE(values.get()) != dimension)
+      throw InterfaceException("External-force callback returned a derivative count different from the state dimension.");
+   RealArray output(dimension);
+   for (Integer index = 0; index < dimension; ++index)
+   {
+      output[index] = PyFloat_AsDouble(PySequence_Fast_GET_ITEM(values.get(),index));
+      if (PyErr_Occurred()) fail();
+      if (!std::isfinite(output[index]))
+         throw InterfaceException("External-force callback returned a nonfinite derivative.");
+   }
+   return output;
 }
 
+Real* ExternalModel::PythonDerivatives(Real *state, Real atEpoch,
+      StringArray description, Integer order, const Integer id)
+{
+   const auto values = EvaluatePython(state,atEpoch,description,order);
+   std::unique_ptr<Real[]> result(new Real[values.size()]);
+   std::copy(values.begin(),values.end(),result.get());
+   return result.release();
+}
 
-//------------------------------------------------------------------------------
-// Rvector6 GetDerivativesForSpacecraft(Spacecraft *sc)
-//------------------------------------------------------------------------------
-/**
- * Retrieves the Cartesian state vector of derivatives w.r.t. time
- *
- * @param sc The spacecraft that holds the state vector
- *
- * @return The derivative vector
- */
-//------------------------------------------------------------------------------
 Rvector6 ExternalModel::GetDerivativesForSpacecraft(Spacecraft *sc)
-{   
-	Rvector6 dv;
-	Real *j2kState = sc->GetState().GetState();
-	Real state[6];
-	Real now = sc->GetEpoch();
-	GmatTime nowgt = sc->GetEpochGT();
-   StringArray stateDescription = GetStateDateTypes();
-
-	if (hasPrecisionTime)
-	{
-		BuildModelStateGT(nowgt, state, j2kState);
-		dv = PythonDerivatives(state, nowgt.GetMjd(), stateDescription);
-	}
-	else
-	{
-		BuildModelState(now, state, j2kState);
-		dv = PythonDerivatives(state, now, stateDescription);
-	}	
-
-   return dv;
+{
+   if (!sc || !psm || !forceOrigin)
+      throw ODEModelException("External-force sampling requires a spacecraft and its propagation state manager.");
+   auto *aggregate = psm->GetState();
+   const auto &mapping = *psm->GetStateMap();
+   if (!aggregate || aggregate->GetSize() != dimension || static_cast<Integer>(mapping.size()) != dimension)
+      throw ODEModelException("External-force sampling state layout is inconsistent.");
+   const GmatTime atEpoch = hasPrecisionTime ? sc->GetEpochGT() : GmatTime(sc->GetEpoch());
+   const Rvector6 origin = hasPrecisionTime ? forceOrigin->GetMJ2000State(atEpoch) :
+      forceOrigin->GetMJ2000State(atEpoch.GetMjd());
+   RealArray state(aggregate->GetState(),aggregate->GetState()+dimension);
+   Integer ownerIndex = -1;
+   for (Integer index = 0; index < dimension; ++index)
+   {
+      if (mapping[index]->elementID != Gmat::CARTESIAN_STATE || mapping[index]->subelement != 1)
+         continue;
+      auto *owner = dynamic_cast<Spacecraft*>(mapping[index]->object);
+      if (!owner || index > dimension-6)
+         throw ODEModelException("External-force Cartesian state has no spacecraft owner.");
+      if (owner->GetEpoch() != sc->GetEpoch() ||
+            (hasPrecisionTime && owner->GetEpochGT() != atEpoch))
+         throw ODEModelException("External-force sampling requires coeval spacecraft states.");
+      for (Integer component = 0; component < 6; ++component)
+         state[index+component] = owner->GetState()[component]-origin[component];
+      if (owner == sc) ownerIndex = index;
+   }
+   if (ownerIndex < 0)
+      throw ODEModelException("External-force query spacecraft is absent from the propagation state.");
+   const auto description = GetStateDateTypes();
+   auto evaluate = [&](Integer component, Real offset)
+   {
+      RealArray trial(state);
+      trial[ownerIndex+component] += offset;
+      return EvaluatePython(trial.data(),atEpoch.GetMjd(),description,1);
+   };
+   const auto nominal = evaluate(0,0);
+   if (OrbitStmForceGradient::Request::For(this))
+   {
+      Rmatrix gradient(3,6);
+      for (Integer column = 0; column < 6; ++column)
+      {
+         Real step = column < 3 ? 1.0 : 0.01;
+         Rvector3 previous(0,0,0);
+         bool accepted = false;
+         for (Integer attempt = 0; attempt < 5; ++attempt)
+         {
+            const auto minusTwo = evaluate(column,-2*step);
+            const auto minusOne = evaluate(column,-step);
+            const auto plusOne = evaluate(column,step);
+            const auto plusTwo = evaluate(column,2*step);
+            Rvector3 current;
+            accepted = attempt > 0;
+            for (Integer row = 0; row < 3; ++row)
+            {
+               const Integer index = ownerIndex+3+row;
+               current[row] = (8*(plusOne[index]-minusOne[index])-(plusTwo[index]-minusTwo[index]))/(12*step);
+               const Real scale = std::max(std::abs(current[row]),std::abs(previous[row]));
+               const Real rounding = 512*std::numeric_limits<Real>::epsilon()*
+                  std::max({std::abs(nominal[index]),std::abs(minusTwo[index]),std::abs(plusTwo[index])})/step;
+               const Real tolerance = std::max(rounding,scale*1e-6);
+               const Real forward = (-3*nominal[index]+4*plusOne[index]-plusTwo[index])/(2*step);
+               const Real backward = (3*nominal[index]-4*minusOne[index]+minusTwo[index])/(2*step);
+               accepted = accepted && std::isfinite(current[row]) &&
+                  std::abs(current[row]-previous[row]) <= tolerance &&
+                  std::abs(forward-backward) <= tolerance;
+            }
+            if (accepted)
+            {
+               for (Integer row = 0; row < 3; ++row) gradient(row,column) = current[row];
+               break;
+            }
+            previous = current;
+            step /= 2;
+         }
+         if (!accepted)
+            throw ODEModelException("External-force sampling did not converge to a smooth finite gradient.");
+      }
+      OrbitStmForceGradient::Request::Capture(this,gradient);
+   }
+   return Rvector6(nominal[ownerIndex],nominal[ownerIndex+1],nominal[ownerIndex+2],
+      nominal[ownerIndex+3],nominal[ownerIndex+4],nominal[ownerIndex+5]);
 }
-
 
 //------------------------------------------------------------------------------
 // bool IsUnique(const std::string &forBody)
@@ -754,6 +815,8 @@ Rvector3 ExternalModel::GetTorquesForSpacecraft(Spacecraft *sc)
 StringArray ExternalModel::GetStateDateTypes()
 {
    StringArray elements;
+   if (!psm || static_cast<Integer>(psm->GetStateMap()->size()) != dimension)
+      throw ODEModelException("External-force state descriptions require a matching propagation state manager.");
    std::vector<ListItem*> stateMap = *(psm->GetStateMap());
    int cartesianCount = 0;
    //GmatState* psmState = psm->GetState();

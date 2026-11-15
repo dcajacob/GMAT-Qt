@@ -32,6 +32,7 @@
 #include "ParameterException.hpp"
 #include "StringUtil.hpp"         // for ToObject()
 #include "MessageInterface.hpp"
+#include "Subscriber.hpp"
 
 //#define DEBUG_OBJECT_WRAPPER
 
@@ -67,9 +68,11 @@ ObjectWrapper::ObjectWrapper() :
  */
 //------------------------------------------------------------------------------
 ObjectWrapper::ObjectWrapper(const ObjectWrapper &copy) :
-   ElementWrapper(copy),
-   theObject     (copy.theObject)
+   ElementWrapper(copy), theObject(nullptr)
 {
+   if (copy.ownedObject)
+      ownedObject = CloneOwnedReference(copy.theObject);
+   theObject = ownedObject ? ownedObject.get() : copy.theObject;
 }
 
 
@@ -86,12 +89,14 @@ ObjectWrapper::ObjectWrapper(const ObjectWrapper &copy) :
 //------------------------------------------------------------------------------
 const ObjectWrapper& ObjectWrapper::operator=(const ObjectWrapper &right)
 {
-   if (&right == this)
-      return *this;
-   
+   if (&right == this) return *this;
+   auto value = right.ownedObject ? CloneOwnedReference(right.theObject, theObject) : std::unique_ptr<GmatBase>();
    ElementWrapper::operator=(right);
-   theObject = right.theObject;
-
+   // The source can borrow this destination's owned result. Keep that owner
+   // when assignment reconnects the same identity.
+   if (!ownedObject || right.theObject != ownedObject.get() || right.ownedObject)
+      ownedObject = std::move(value);
+   theObject = ownedObject ? ownedObject.get() : right.theObject;
    return *this;
 }
 
@@ -121,6 +126,20 @@ ElementWrapper* ObjectWrapper::Clone() const
 {
    return new ObjectWrapper(*this);
 }
+
+void ObjectWrapper::RebindClonedReferences(const ElementWrapper &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   CheckCloneType(source);
+   const auto &original = static_cast<const ObjectWrapper&>(source);
+   auto *value = BindClonedReference(original.theObject, resolve);
+   if (value != theObject)
+   {
+      ownedObject.reset();
+      theObject = value;
+   }
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -179,33 +198,13 @@ GmatBase* ObjectWrapper::GetRefObject(const std::string &name)
 //---------------------------------------------------------------------------
 bool ObjectWrapper::SetRefObject(GmatBase *obj)
 {
-   #ifdef DEBUG_REF_OBJ
-   MessageInterface::ShowMessage
-      ("ObjectWrapper::SetRefObject() entered, obj=<%p>[%s]'%s'\n",
-       obj, obj ? obj->GetTypeName().c_str() : "NULL",
-       obj ? obj->GetName().c_str() : "NULL");
-   MessageInterface::ShowMessage("   refObjectNames.size() = %d\n", refObjectNames.size());
-   for (unsigned int i = 0; i < refObjectNames.size(); i++)
-      MessageInterface::ShowMessage("   refObjectNames[%d] = '%s'\n", i, refObjectNames[i].c_str());
-   #endif
-   
-   bool retval = false;
-   
-   if (obj->GetName() == refObjectNames[0])
+   if (!obj || refObjectNames.empty() || obj->GetName() != refObjectNames[0]) return false;
+   if (obj != theObject)
    {
+      ownedObject.reset();
       theObject = obj;
-      retval = true;
    }
-   else
-      retval = false;
-   
-   #ifdef DEBUG_REF_OBJ
-   MessageInterface::ShowMessage
-      ("ObjectWrapper::SetRefObject() returning %d, theObject=<%p>\n",
-       retval, theObject);
-   #endif
-   
-   return retval;
+   return true;
 }
 
 
@@ -314,6 +313,16 @@ bool ObjectWrapper::SetObject(GmatBase *obj)
          #endif
          
          theObject->Copy(obj);
+         if (theObject != obj)
+            if (auto *subscriber = dynamic_cast<Subscriber*>(theObject))
+               subscriber->CommitFunctionValueBindings();
+         // A station value copy owns fresh attachments and detached local
+         // frames. Make a copied output/direct assignment usable by subsequent
+         // commands while leaving a shared global identity assignment alone.
+         if (theObject != obj && theObject->IsOfType(Gmat::GROUND_STATION) &&
+             !theObject->IsInitialized() && !theObject->Initialize())
+            throw ParameterException("Cannot initialize copied GroundStation \"" +
+                  theObject->GetName() + "\"");
       }
       else
       {
@@ -348,4 +357,21 @@ bool ObjectWrapper::SetObject(GmatBase *obj)
 void ObjectWrapper::SetupWrapper()
 {
    refObjectNames.push_back(description);
+}
+
+// Explicitly take ownership of a newly generated expression result. Ordinary
+// SetRefObject still borrows configured/runtime objects.
+bool ObjectWrapper::OwnsRefObject() const { return ownedObject && ownedObject.get() == theObject; }
+
+void ObjectWrapper::AdoptRefObject(std::unique_ptr<GmatBase> value)
+{
+   if (value && value.get() == ownedObject.get())
+   {
+      value.release();
+      throw GmatBaseException("Expression result is already owned by this wrapper.\n");
+   }
+   if (!value || refObjectNames.empty() || value->GetName() != refObjectNames[0])
+      throw GmatBaseException("Expression result does not match its wrapper.\n");
+   ownedObject = std::move(value);
+   theObject = ownedObject.get();
 }

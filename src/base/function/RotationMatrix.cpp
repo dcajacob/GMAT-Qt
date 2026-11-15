@@ -28,7 +28,24 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ExpressionBinding.hpp"
+#include <memory>
+#include <typeinfo>
 #include "RotationMatrix.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration rotationMatrixValueProvider({
+   RotationMatrix::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const RotationMatrix*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<RotationMatrix*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "FunctionException.hpp"
 #include "MessageInterface.hpp"
 #include "ArrayWrapper.hpp"
@@ -118,9 +135,9 @@ RotationMatrix::~RotationMatrix()
  */
 //------------------------------------------------------------------------------
 RotationMatrix::RotationMatrix(const RotationMatrix &f) :
-   BuiltinGmatFunction(f)
+   BuiltinGmatFunction(f),
+   theTimeConverter (f.theTimeConverter)
 {
-   theTimeConverter = TimeSystemConverter::Instance();
 }
 
 
@@ -137,11 +154,9 @@ RotationMatrix::RotationMatrix(const RotationMatrix &f) :
 //------------------------------------------------------------------------------
 RotationMatrix& RotationMatrix::operator=(const RotationMatrix &f)
 {
-   if (this == &f)
-      return *this;
-
+   if (this == &f) return *this;
    BuiltinGmatFunction::operator=(f);
-
+   theTimeConverter = f.theTimeConverter;
    return *this;
 }
 
@@ -176,9 +191,7 @@ void RotationMatrix::SetOutputTypes(WrapperTypeArray &outputTypes,
    #endif
 
    // Set output wrapper type for RotationMatrix
-   outputWrapperTypes = outputTypes;
-   outputRowCounts = rowCounts;
-   outputColCounts = colCounts;
+   Function::SetOutputTypes(outputTypes, rowCounts, colCounts);
 }
 
 //------------------------------------------------------------------------------
@@ -572,7 +585,15 @@ void RotationMatrix::Finalize(bool cleanUp)
 //------------------------------------------------------------------------------
 GmatBase* RotationMatrix::Clone() const
 {
-   return (new RotationMatrix(*this));
+   std::unique_ptr<RotationMatrix> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new RotationMatrix(*this));
+   }
+   if (typeid(*value) != typeid(*this))
+      throw FunctionException("A derived RotationMatrix must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -587,8 +608,41 @@ GmatBase* RotationMatrix::Clone() const
 //---------------------------------------------------------------------------
 void RotationMatrix::Copy(const GmatBase* orig)
 {
-   operator=(*((RotationMatrix *)(orig)));
+   const auto *source = dynamic_cast<const RotationMatrix*>(orig);
+   if (!source || typeid(*this) != typeid(RotationMatrix) || typeid(*this) != typeid(*source))
+      throw FunctionException("Incompatible RotationMatrix value copy or missing derived Copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   const auto previousFunctionBindings = functionBindings;
+   const auto previousObjectBindings = objectBindings;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
 }
 
 
 
+
+
+bool RotationMatrix::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const RotationMatrix*>(&original);
+   if (!source || typeid(*this) != typeid(RotationMatrix) || typeid(original) != typeid(RotationMatrix))
+      throw FunctionException("Derived RotationMatrix references need their own passive provider.\n");
+   RebindObjectManagedFunctionValue(*source, resolve);
+   return true;
+}
+
+bool RotationMatrix::HasFunctionValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(RotationMatrix);
+}
+
+std::unique_ptr<FunctionInvocationState> RotationMatrix::SuspendInvocationState()
+{
+   return CaptureInvocationFields(BuiltinGmatFunction::SuspendInvocationState(),
+         theTimeConverter);
+}

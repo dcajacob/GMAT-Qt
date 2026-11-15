@@ -30,7 +30,10 @@
 //------------------------------------------------------------------------------
 
 #include "Publisher.hpp"
+#include "NativeRestoration.hpp"
 #include "PlotOriginScope.hpp"
+#include "AxisSystem.hpp"
+#include "Spacecraft.hpp"
 #include "SpaceObject.hpp"
 #include <limits>
 #include "PublisherException.hpp"
@@ -40,6 +43,7 @@
 #include <algorithm>               // for find()
 #include <cmath>
 #include <set>
+#include <exception>
 
 namespace
 {
@@ -206,21 +210,332 @@ namespace
       }
       ~IntegrationDispatch() { activeIntegration = previous; }
    };
+
+   struct ColumnPacket
+   {
+      const Real *data = NULL;
+      Integer count = 0;
+      const std::vector<Publisher::CartesianColumns> *columns = NULL;
+      const GmatBase *provider = NULL;
+      const Real *rootData = NULL;
+      Integer rootCount = 0;
+      const std::vector<Publisher::CartesianColumns> *rootColumns = NULL;
+   };
+   thread_local ColumnPacket requestedColumns;
+   thread_local ColumnPacket activeColumns;
+
+   void ValidateColumns(const Real *data, Integer count,
+      const std::vector<Publisher::CartesianColumns> &columns)
+   {
+      if (!data || count <= 0)
+         throw PublisherException("Cartesian column bindings require a nonempty packet.");
+      std::set<const GmatBase*> objects;
+      std::set<Integer> indices;
+      for (const auto &column : columns)
+      {
+         if (!column.object || !objects.insert(column.object).second)
+            throw PublisherException("Cartesian column bindings have an invalid or repeated object.");
+         for (Integer index : column.indices)
+            if (index <= 0 || index >= count || !indices.insert(index).second)
+               throw PublisherException("Cartesian column bindings have invalid or overlapping indices.");
+         auto optional = [&](const auto &fields)
+         {
+            const bool present = std::any_of(fields.begin(), fields.end(), [](Integer index) {return index != 0;});
+            if (!present) return;
+            for (Integer index : fields)
+               if (index <= 0 || index >= count || !indices.insert(index).second)
+                  throw PublisherException("Optional spacecraft columns are incomplete, overlapping or outside the packet.");
+         };
+         optional(column.covariance); optional(column.acceleration); optional(column.quaternion);
+         if (column.hasEpoch && (!std::isfinite(column.epoch.GetMjd()) || !std::isfinite(column.epoch.GetFracSec())))
+            throw PublisherException("Spacecraft publication epoch is invalid.");
+         if (column.frame && !GmatBase::IsLiveReference(column.frame, column.frameIdentity))
+            throw PublisherException("Spacecraft publication frame is no longer live.");
+      }
+   }
+
+   struct ColumnRequest
+   {
+      ColumnPacket previous;
+      ColumnRequest(const Real *data, Integer count,
+         const std::vector<Publisher::CartesianColumns> *columns, const GmatBase *provider) :
+         previous(requestedColumns)
+      { requestedColumns = {data, count, columns, provider, data, count, columns}; }
+      ~ColumnRequest() { requestedColumns = previous; }
+   };
+   struct ColumnDispatch
+   {
+      ColumnPacket previous;
+      ColumnDispatch(const Real *data, Integer count, const GmatBase *provider = NULL) : previous(activeColumns)
+      {
+         activeColumns = requestedColumns.data == data && requestedColumns.count == count &&
+               requestedColumns.provider == provider ? requestedColumns : ColumnPacket{};
+         // A nested legacy Publish must not inherit the outer packet's identities.
+         requestedColumns = ColumnPacket{};
+      }
+      ~ColumnDispatch() { activeColumns = previous; }
+   };
+}
+
+Publisher::CartesianColumnScope::CartesianColumnScope(const Real *data, Integer count,
+   const std::vector<CartesianColumns> &columns) :
+   previousData(activeColumns.data), previousCount(activeColumns.count),
+   previousColumns(activeColumns.columns), previousProvider(activeColumns.provider),
+   previousRootData(activeColumns.rootData), previousRootCount(activeColumns.rootCount),
+   previousRootColumns(activeColumns.rootColumns), frozen(columns)
+{
+   ValidateColumns(data, count, frozen);
+   activeColumns = {data, count, &frozen, previousProvider,
+      previousRootData, previousRootCount, previousRootColumns};
+}
+
+Publisher::CartesianColumnScope::~CartesianColumnScope()
+{
+   activeColumns = {previousData, previousCount, previousColumns, previousProvider,
+      previousRootData, previousRootCount, previousRootColumns};
+}
+
+const std::vector<Publisher::CartesianColumns> *Publisher::GetPublishedCartesianColumns(
+   const Real *data, Integer count)
+{
+   if (!data || count <= 0) return NULL;
+   if (data == activeColumns.data && count == activeColumns.count) return activeColumns.columns;
+   return data == activeColumns.rootData && count == activeColumns.rootCount ? activeColumns.rootColumns : NULL;
+}
+
+const std::vector<Publisher::CartesianColumns> *Publisher::GetPublishedCartesianColumns(
+   const GmatBase *provider)
+{
+   return provider && activeColumns.provider == provider ? activeColumns.columns : NULL;
+}
+
+bool Publisher::GetPublishedSpacecraftEpoch(const Real *data, Integer count,
+   const GmatBase *object, GmatTime &epoch)
+{
+   const auto *columns = GetPublishedCartesianColumns(data, count);
+   if (columns) for (const auto &column : *columns)
+      if (column.object == object && column.hasEpoch) {epoch = column.epoch; return true;}
+   return false;
+}
+
+CoordinateSystem *Publisher::GetPublishedSpacecraftFrame(const Real *data, Integer count,
+   const GmatBase *object)
+{
+   const auto *columns = GetPublishedCartesianColumns(data, count);
+   if (columns) for (const auto &column : *columns)
+      if (column.object == object && column.frame)
+      {
+         if (!GmatBase::IsLiveReference(column.frame, column.frameIdentity))
+            throw PublisherException("Spacecraft publication frame was retired during dispatch.");
+         return column.frame;
+      }
+   return NULL;
+}
+
+std::vector<Publisher::EpochColumns> Publisher::GetPublishedEpochGroups(const Real *data,
+   Integer count, const ObjectArray &objects)
+{
+   std::vector<EpochColumns> groups;
+   const auto *columns = GetPublishedCartesianColumns(data, count);
+   if (!columns) return groups;
+   for (const auto &column : *columns)
+   {
+      if (std::find(objects.begin(), objects.end(), column.object) == objects.end()) continue;
+      const GmatTime epoch = column.hasEpoch ? column.epoch : GmatTime(data[0]);
+      auto group = std::find_if(groups.begin(), groups.end(), [&](const EpochColumns &entry) {return entry.epoch == epoch;});
+      if (group == groups.end()) {groups.push_back({epoch, {}}); group = groups.end() - 1;}
+      group->columns.push_back(column);
+   }
+   return groups;
+}
+
+bool Publisher::PublishWithSpacecraftColumns(GmatBase *provider, Integer id, Real *data,
+   Integer count, const std::vector<CartesianColumns> &columns, Real direction,
+   const GmatTime *epoch, const std::vector<CartesianSample> *samples)
+{
+   if (samples && !epoch) throw PublisherException("Sampled spacecraft publication requires an epoch.");
+   const std::vector<CartesianColumns> frozen(columns);
+   ValidateColumns(data, count, frozen);
+   ColumnRequest request(data, count, &frozen, provider);
+   if (epoch)
+   {
+      const GmatTime time(*epoch);
+      if (samples) return PublishWithSamples(provider, id, data, count, time, *samples, direction);
+      return PublishWithEpoch(provider, id, data, count, time, direction);
+   }
+   return Publish(provider, id, data, count, direction);
+}
+
+namespace
+{
+   struct EventSubject
+   {
+      const GmatBase *object;
+      std::weak_ptr<const void> identity;
+   };
+   struct ObjectEventPacket
+   {
+      Publisher::ObjectEvent kind;
+      const GmatBase *originator;
+      std::weak_ptr<const void> originIdentity;
+      std::vector<EventSubject> subjects;
+   };
+   thread_local const ObjectEventPacket *requestedObjectEvent = NULL;
+   thread_local const ObjectEventPacket *activeObjectEvent = NULL;
+   bool MatchesObjectEvent(const ObjectEventPacket *packet,
+      Publisher::ObjectEvent kind, const GmatBase *originator)
+   {
+      return packet && packet->kind == kind && packet->originator == originator &&
+         (!originator || GmatBase::IsLiveReference(originator, packet->originIdentity));
+   }
+   struct ObjectEventRequest
+   {
+      const ObjectEventPacket *previous;
+      ObjectEventPacket packet;
+      ObjectEventRequest(Publisher::ObjectEvent kind, GmatBase *originator,
+         const ObjectArray &subjects) : previous(requestedObjectEvent),
+         packet{kind, originator, originator ? originator->GetLifetimeToken() : std::weak_ptr<const void>{}, {}}
+      {
+         // Snapshot identities before callbacks. An empty set is authoritative;
+         // a destroyed subject must not turn into a name-only fallback.
+         for (auto *subject : subjects)
+         {
+            if (!subject) throw PublisherException("Object event has a NULL subject.");
+            if (std::none_of(packet.subjects.begin(), packet.subjects.end(),
+                  [subject](const EventSubject &entry) {return entry.object == subject;}))
+               packet.subjects.push_back({subject, subject->GetLifetimeToken()});
+         }
+         requestedObjectEvent = &packet;
+      }
+      ~ObjectEventRequest() { requestedObjectEvent = previous; }
+   };
+   struct ObjectEventDispatch
+   {
+      const ObjectEventPacket *previous;
+      ObjectEventDispatch(Publisher::ObjectEvent kind, const GmatBase *originator) :
+         previous(activeObjectEvent)
+      {
+         activeObjectEvent = MatchesObjectEvent(requestedObjectEvent, kind, originator)
+            ? requestedObjectEvent : NULL;
+         // A recursive legacy notification, including the same kind/origin,
+         // cannot inherit a pending or active outer event's subjects.
+         requestedObjectEvent = NULL;
+      }
+      ~ObjectEventDispatch() { activeObjectEvent = previous; }
+   };
+}
+
+bool Publisher::IsPublishedEventSubject(ObjectEvent kind, const GmatBase *originator,
+   const GmatBase *subject, bool &identified)
+{
+   identified = activeObjectEvent && activeObjectEvent->kind == kind &&
+      activeObjectEvent->originator == originator;
+   if (!identified || !subject || !MatchesObjectEvent(activeObjectEvent, kind, originator)) return false;
+   for (const auto &entry : activeObjectEvent->subjects)
+      if (entry.object == subject && GmatBase::IsLiveReference(subject, entry.identity)) return true;
+   return false;
+}
+
+void Publisher::SetManeuvering(GmatBase *originator, bool flag, Real epoch,
+   const std::string &name, const std::string &desc, GmatBase *subject)
+{
+   ObjectEventRequest request(ObjectEvent::Maneuver, originator, ObjectArray{subject});
+   SetManeuvering(originator, flag, epoch, name, desc);
+}
+
+void Publisher::SetManeuvering(GmatBase *originator, bool flag, Real epoch,
+   const StringArray &names, const std::string &desc, const ObjectArray &subjects)
+{
+   ObjectEventRequest request(ObjectEvent::Maneuver, originator, subjects);
+   SetManeuvering(originator, flag, epoch, names, desc);
+}
+
+void Publisher::SetSpacecraftPropertyChanged(GmatBase *originator, Real epoch,
+   const std::string &name, const std::string &desc, GmatBase *subject)
+{
+   ObjectEventRequest request(ObjectEvent::SpacecraftProperty, originator, ObjectArray{subject});
+   SetSpacecraftPropertyChanged(originator, epoch, name, desc);
+}
+
+void Publisher::SetOrbitColorChanged(GmatBase *originator, const std::string &color,
+   const std::string &name, const std::string &desc, GmatBase *subject)
+{
+   ObjectEventRequest request(ObjectEvent::OrbitColor, originator, ObjectArray{subject});
+   SetOrbitColorChanged(originator, color, name, desc);
+}
+
+void Publisher::SetTargetColorChanged(GmatBase *originator, const std::string &color,
+   const std::string &name, const std::string &desc, GmatBase *subject)
+{
+   ObjectEventRequest request(ObjectEvent::TargetColor, originator, ObjectArray{subject});
+   SetTargetColorChanged(originator, color, name, desc);
+}
+
+void Publisher::SetSegmentOrbitColor(GmatBase *originator, bool overrideColor,
+   UnsignedInt color, const StringArray &names, const ObjectArray &subjects)
+{
+   ObjectEventRequest request(ObjectEvent::SegmentColor, originator, subjects);
+   SetSegmentOrbitColor(originator, overrideColor, color, names);
 }
 
 namespace { thread_local const PlotOriginScope *active = nullptr; }
+
+namespace {
+// A view can use spacecraft through an axes reference or through another
+// coordinate system (for example an LAC constraint frame). Keep the actual
+// runtime objects in the same packet scope as the view origin. Coordinate
+// systems may be shared, so visit each identity once before following edges.
+void CollectFrameReferences(CoordinateSystem *frame,
+      std::set<const CoordinateSystem*> &visited,
+      std::vector<SpaceObject*> &references)
+{
+   if (!frame || !visited.insert(frame).second) return;
+   for (auto *point : {frame->GetOrigin(), frame->GetPrimaryObject(),
+         frame->GetSecondaryObject(), frame->GetReferenceObject()})
+      if (auto *spacecraft = dynamic_cast<Spacecraft*>(point))
+         if (std::find(references.begin(), references.end(), spacecraft) == references.end())
+            references.push_back(spacecraft);
+   auto *axes = frame->GetAxisSystem();
+   if (!axes) return;
+   // Copy the returned list: some implementations reuse static storage, and
+   // traversing a nested frame must not invalidate the outer iteration.
+   const StringArray names = axes->GetRefObjectNameArray(Gmat::COORDINATE_SYSTEM);
+   for (const auto &name : names)
+      CollectFrameReferences(dynamic_cast<CoordinateSystem*>(
+            axes->GetRefObject(Gmat::COORDINATE_SYSTEM, name)), visited, references);
+}
+
+}
+
+void PlotOriginScope::CollectReferences(CoordinateSystem *frame, std::vector<SpaceObject*> &objects)
+{
+   std::set<const CoordinateSystem*> visited;
+   CollectFrameReferences(frame,visited,objects);
+}
 
 PlotOriginScope::Packet::Packet(const Real *raw, Integer length, SpaceObject *origin) :
    Packet(raw, length, origin ? std::vector<SpaceObject*>{origin} : std::vector<SpaceObject*>{}) {}
 
 PlotOriginScope::Packet::Packet(const Real *raw, Integer length,
       const std::vector<SpaceObject*> &dependencies) :
-   data(raw), count(length), steps(Publisher::GetPublishedIntegrationSteps(raw, length))
+   data(raw), count(length), steps(Publisher::GetPublishedIntegrationSteps(raw, length)),
+   columns(Publisher::GetPublishedCartesianColumns(raw, length))
 {
    for (auto *object : dependencies)
       if (object && std::find(objects.begin(),objects.end(),object)==objects.end())
          objects.push_back(object);
-   if (!steps) return;
+   if (!steps)
+   {
+      if (columns) for (const auto &column : *columns)
+         for (auto *object : objects)
+            if (column.object == object && column.hasEpoch)
+            {
+               Rvector6 state;
+               for (size_t i = 0; i < 6; ++i) state[i] = raw[column.indices[i]];
+               ordinaryStates[object].emplace(column.epoch, state);
+            }
+      return;
+   }
    for (const auto &step : *steps)
       for (const auto &sample : step.states)
          for (auto *object : objects)
@@ -237,7 +552,7 @@ PlotOriginScope::Packet::Packet(const Real *raw, Integer length,
 PlotOriginScope::PlotOriginScope(const Packet &source, const GmatTime &time) :
    previous(active), packet(source), epoch(time)
 {
-   if (packet.steps) for (auto *object : packet.objects)
+   if (packet.steps || packet.columns) for (auto *object : packet.objects)
    {
       Rvector6 state;
       bool valid=false, recorded=false;
@@ -249,6 +564,15 @@ PlotOriginScope::PlotOriginScope(const Packet &source, const GmatTime &time) :
          {
             recorded=true;
             if (found->second) { state=*found->second; valid=true; }
+         }
+      }
+      if (!packet.steps)
+      {
+         const auto ordinary = packet.ordinaryStates.find(object);
+         if (ordinary != packet.ordinaryStates.end())
+         {
+            const auto found = ordinary->second.find(epoch);
+            if (found != ordinary->second.end()) {recorded = valid = true; state = found->second;}
          }
       }
       if (!recorded && (object->HasPrecisionTime() ? object->GetEpochGT()==epoch :
@@ -279,8 +603,9 @@ SpaceObject *PlotOriginScope::MissingObject() const
 
 bool PlotOriginScope::Matches(const SpaceObject *candidate) const
 {
-   return states.count(candidate) && packet.steps &&
-      Publisher::GetPublishedIntegrationSteps(packet.data,packet.count)==packet.steps;
+   return states.count(candidate) &&
+      (packet.steps ? Publisher::GetPublishedIntegrationSteps(packet.data,packet.count)==packet.steps :
+       packet.columns && Publisher::GetPublishedCartesianColumns(packet.data,packet.count)==packet.columns);
 }
 
 bool PlotOriginScope::Epoch(const SpaceObject *candidate, Real mjd, GmatTime &time)
@@ -332,8 +657,11 @@ const ObjectArray *Publisher::GetPublishedPropagationObjects(const Real *data,
 
 bool Publisher::PublishPropagatePacket(GmatBase *provider, Integer id, Real *data,
    Integer count, Real direction, const ObjectArray &objects, bool initial,
-   const std::vector<IntegrationStep> *steps)
+   const std::vector<IntegrationStep> *steps, const std::vector<CartesianColumns> *columns)
 {
+   const std::vector<CartesianColumns> frozen = columns ? *columns : std::vector<CartesianColumns>{};
+   if (columns) ValidateColumns(data, count, frozen);
+   ColumnRequest columnRequest(data, count, columns ? &frozen : NULL, provider);
    IntegrationRequest request(data, count, objects, initial);
    if (steps) return PublishWithIntegrationSteps(provider, id, data, count, *steps, direction);
    return Publish(provider, id, data, count, direction);
@@ -358,6 +686,21 @@ bool Publisher::PublishWithIntegrationSteps(GmatBase *provider, Integer id,
          for (Integer i = 0; i < 6; ++i)
             if (!std::isfinite(sample.state[i]))
                throw PublisherException("Integration-step Cartesian state is nonfinite.");
+      }
+      if (!step.restartStates.empty())
+      {
+         std::set<const GmatBase*> restartObjects;
+         for (const auto &sample : step.restartStates)
+         {
+            if (!objects.count(sample.object) ||
+                !restartObjects.insert(sample.object).second || sample.epoch != step.epoch)
+               throw PublisherException("Integration-step restart object/epoch bindings are invalid.");
+            for (Integer i = 0; i < 6; ++i)
+               if (!std::isfinite(sample.state[i]))
+                  throw PublisherException("Integration-step restart state is nonfinite.");
+         }
+         if (restartObjects != objects)
+            throw PublisherException("Integration-step restart state set is incomplete.");
       }
    }
    const std::vector<IntegrationStep> frozen(steps);
@@ -582,6 +925,7 @@ bool Publisher::Publish(GmatBase *provider, Integer id, Real *data, Integer coun
 {
    EpochDispatch precision(data, count);
    IntegrationDispatch integration(data, count);
+   ColumnDispatch columns(data, count, provider);
    #if DBGLVL_PUBLISHER_PUBLISH
    MessageInterface::ShowMessage
       ("Publisher::Publish(Real) entered, provider=<%p><%s>, id=%d, "
@@ -769,6 +1113,7 @@ bool Publisher::Publish(Integer id, char *data, Integer count)
 {
    EpochDispatch precision(NULL, 0);
    IntegrationDispatch integration(NULL, 0);
+   ColumnDispatch columns(NULL, 0);
    Integer i;
     
    // No subscribers
@@ -832,6 +1177,7 @@ bool Publisher::Publish(Integer id, Integer *data, Integer count)
 {
    EpochDispatch precision(NULL, 0);
    IntegrationDispatch integration(NULL, 0);
+   ColumnDispatch columns(NULL, 0);
    // No subscribers
    if (subscriberList.empty())
       return false;
@@ -922,15 +1268,29 @@ bool Publisher::NotifyEndOfRun()
    if (subscriberList.empty())
       return false;
    
+   std::exception_ptr failure;
+   bool completed = true;
    std::list<Subscriber*>::iterator current = subscriberList.begin();
    while (current != subscriberList.end())
    {
-      if (!(*current)->SetEndOfRun())
-         return false;
+      try
+      {
+         if (!(*current)->SetEndOfRun())
+            completed = false;
+      }
+      catch (...)
+      {
+         // Every subscriber must receive its terminal notification even if an
+         // earlier output failed. Preserve the original error for the caller.
+         if (!failure)
+            failure = std::current_exception();
+      }
       current++;
    }
-   
-   return true;
+
+   if (failure)
+      std::rethrow_exception(failure);
+   return completed;
 }
 
 
@@ -1395,6 +1755,7 @@ void Publisher::SetManeuvering(GmatBase *originator, bool flag, Real epoch,
                                const std::string &satName,
                                const std::string &desc)
 {
+   ObjectEventDispatch event(ObjectEvent::Maneuver, originator);
    maneuvering = flag;
    std::list<Subscriber*>::iterator current = subscriberList.begin();
    while (current != subscriberList.end())
@@ -1423,6 +1784,7 @@ void Publisher::SetManeuvering(GmatBase *originator, bool flag, Real epoch,
                                const StringArray &satNames,
                                const std::string &desc)
 {
+   ObjectEventDispatch event(ObjectEvent::Maneuver, originator);
    maneuvering = flag;
    std::list<Subscriber*>::iterator current = subscriberList.begin();
    while (current != subscriberList.end())
@@ -1439,6 +1801,47 @@ void Publisher::SetManeuvering(GmatBase *originator, bool flag, Real epoch,
 bool Publisher::GetManeuvering()
 {
    return maneuvering;
+}
+
+Publisher::ManeuveringState Publisher::CaptureManeuveringState() const
+{
+   ManeuveringState result;
+   result.owner = this;
+   result.active = maneuvering;
+   result.subscribers.reserve(subscriberList.size());
+   for (auto *subscriber : subscriberList)
+      if (subscriber)
+         result.subscribers.push_back({subscriber, subscriber->GetLifetimeToken(),
+               subscriber->isManeuvering});
+   return result;
+}
+
+std::unique_ptr<NativeRestorationPlan> Publisher::PrepareManeuveringRestoration(
+      const ManeuveringState &source)
+{
+   if (source.owner != this)
+      throw PublisherException("Maneuvering restoration requires its captured publisher.");
+   auto saved = std::make_shared<ManeuveringState>(source);
+   return std::make_unique<NativeRestoration::PreparedAction>([this, saved]() noexcept
+   {
+      maneuvering = saved->active;
+      // Only current subscribers receive flags. Retired objects are never
+      // dereferenced; a new subscriber receives the restored scene's flag.
+      // No maneuver handler, history update or publication occurs here.
+      for (auto *subscriber : subscriberList)
+      {
+         if (!subscriber) continue;
+         bool active = saved->active;
+         for (const auto &entry : saved->subscribers)
+            if (entry.object == subscriber &&
+                  GmatBase::IsLiveReference(subscriber, entry.identity))
+            {
+               active = entry.active;
+               break;
+            }
+         subscriber->isManeuvering = active;
+      }
+   });
 }
 
 
@@ -1459,6 +1862,7 @@ void Publisher::SetSpacecraftPropertyChanged(GmatBase *originator, Real epoch,
                                              const std::string &satName,
                                              const std::string &desc)
 {
+   ObjectEventDispatch event(ObjectEvent::SpacecraftProperty, originator);
    std::list<Subscriber*>::iterator current = subscriberList.begin();
    while (current != subscriberList.end())
    {
@@ -1485,6 +1889,7 @@ void Publisher::SetOrbitColorChanged(GmatBase *originator,
                                      const std::string &objName,
                                      const std::string &desc)
 {
+   ObjectEventDispatch event(ObjectEvent::OrbitColor, originator);
    std::list<Subscriber*>::iterator current = subscriberList.begin();
    while (current != subscriberList.end())
    {
@@ -1511,6 +1916,7 @@ void Publisher::SetTargetColorChanged(GmatBase *originator,
                                       const std::string &objName,
                                       const std::string &desc)
 {
+   ObjectEventDispatch event(ObjectEvent::TargetColor, originator);
    std::list<Subscriber*>::iterator current = subscriberList.begin();
    while (current != subscriberList.end())
    {
@@ -1534,6 +1940,7 @@ void Publisher::SetTargetColorChanged(GmatBase *originator,
 void Publisher::SetSegmentOrbitColor(GmatBase *originator, bool overrideColor,
                                      UnsignedInt orbitColor, const StringArray &objNames)
 {
+   ObjectEventDispatch event(ObjectEvent::SegmentColor, originator);
    std::list<Subscriber*>::iterator current = subscriberList.begin();
    while (current != subscriberList.end())
    {

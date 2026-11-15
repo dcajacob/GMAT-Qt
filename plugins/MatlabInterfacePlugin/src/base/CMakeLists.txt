@@ -57,6 +57,7 @@ SET(PLUGIN_SRCS
     plugin/GmatPluginFunctions.cpp
     subscriber/MatlabWorkspace.cpp
     matwriter/MatWriter.cpp
+    matwriter/MatWriterQt.cpp
     matwriter/MatWriterMaker.cpp
     matwriter/MatData.cpp
     matwriter/RealMatData.cpp

@@ -246,7 +246,9 @@ Rmatrix FirstOrderGaussMarkov::GetProcessNoise(const GmatEpoch elapsedTime,
 //------------------------------------------------------------------------------
 GmatBase* FirstOrderGaussMarkov::Clone(void) const
 {
-   return (new FirstOrderGaussMarkov(*this));
+   std::unique_ptr<FirstOrderGaussMarkov> value(new FirstOrderGaussMarkov(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 // Whole-object assignment and function outputs dispatch through this API.
@@ -257,7 +259,9 @@ void FirstOrderGaussMarkov::Copy(const GmatBase* source)
    if (!typed || typed->GetTypeName() != GetTypeName())
       throw GmatBaseException("Cannot copy into " + GetTypeName() +
                              " from a null or incompatible object");
+   const auto previous = GetFunctionValueContext();
    operator=(*typed);
+   RebindFunctionValueContext(*typed);
 }
 
 

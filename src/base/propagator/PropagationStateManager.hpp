@@ -64,6 +64,9 @@ public:
    virtual Integer GetCompletionSize(const Integer which);
    virtual Integer GetSTMIndex(Integer forParameterID, GmatBase* scObj);
 
+   void RebindClonedReferences(const PropagationStateManager &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve, bool bindObjects = true);
+
    bool PropagateCovarianceMatrix(Integer indexNum, Rmatrix oldSTMMat, bool &propagatedCovarianceWithNoise);
    void UpdateProcessNoiseCholesky(Rmatrix &stm, Rmatrix &cov, Integer indexNum, Rmatrix &pBar);
    void UpdateProcessNoiseStandard(Rmatrix &stm, Rmatrix &cov, Integer indexNum, Rmatrix &pBar);
@@ -87,6 +90,7 @@ protected:
    IntegerArray   stmRowMapID;
 	ObjectArray    stmRowMapObj;
 
+   void ResetPreparedMappings();
    Integer        SortVector();
    /// Resources used for Covariance propagation
    Real timeBeforeLastUpdate =0;

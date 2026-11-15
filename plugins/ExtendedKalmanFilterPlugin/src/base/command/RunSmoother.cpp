@@ -435,7 +435,7 @@ void RunSmoother::Calculate()
          //else
             CreateNewSegments(currEpoch[0]);
       }
-      publisher->SetSpacecraftPropertyChanged(this, currEpochGT[0].GetMjd(), (*sat)->GetName(), "RunEstimator");
+      publisher->SetSpacecraftPropertyChanged(this, currEpochGT[0].GetMjd(), (*sat)->GetName(), "RunEstimator", *sat);
    }
 
 

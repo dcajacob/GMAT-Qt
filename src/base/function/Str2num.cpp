@@ -28,7 +28,24 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ExpressionBinding.hpp"
+#include <memory>
+#include <typeinfo>
 #include "Str2num.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration str2numValueProvider({
+   Str2num::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const Str2num*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<Str2num*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "FunctionException.hpp"
 #include "RealUtilities.hpp"       // for Str2num()
 #include "MessageInterface.hpp"
@@ -162,9 +179,7 @@ void Str2num::SetOutputTypes(WrapperTypeArray &outputTypes,
    #endif
 
    // Set output wrapper type for Str2num
-   outputWrapperTypes = outputTypes;
-   outputRowCounts = rowCounts;
-   outputColCounts = colCounts;
+   Function::SetOutputTypes(outputTypes, rowCounts, colCounts);
 }
 
 //------------------------------------------------------------------------------
@@ -433,7 +448,15 @@ void Str2num::Finalize(bool cleanUp)
 //------------------------------------------------------------------------------
 GmatBase* Str2num::Clone() const
 {
-   return (new Str2num(*this));
+   std::unique_ptr<Str2num> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new Str2num(*this));
+   }
+   if (typeid(*value) != typeid(*this))
+      throw FunctionException("A derived Str2num must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -448,7 +471,34 @@ GmatBase* Str2num::Clone() const
 //---------------------------------------------------------------------------
 void Str2num::Copy(const GmatBase* orig)
 {
-   operator=(*((Str2num *)(orig)));
+   const auto *source = dynamic_cast<const Str2num*>(orig);
+   if (!source || typeid(*this) != typeid(Str2num) || typeid(*this) != typeid(*source))
+      throw FunctionException("Incompatible Str2num value copy or missing derived Copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   const auto previousFunctionBindings = functionBindings;
+   const auto previousObjectBindings = objectBindings;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
 }
 
 
+
+
+bool Str2num::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const Str2num*>(&original);
+   if (!source || typeid(*this) != typeid(Str2num) || typeid(original) != typeid(Str2num))
+      throw FunctionException("Derived Str2num references need their own passive provider.\n");
+   RebindObjectManagedFunctionValue(*source, resolve);
+   return true;
+}
+
+bool Str2num::HasFunctionValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(Str2num);
+}

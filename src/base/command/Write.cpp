@@ -30,6 +30,7 @@
 //------------------------------------------------------------------------------
 
 
+#include <set>
 #include "Write.hpp"
 #include "MessageInterface.hpp"
 #include "StringUtil.hpp"       // for GetArrayIndex()
@@ -128,7 +129,7 @@ Write::Write(const Write &cmd) :
    reportFile        (cmd.reportFile),
    reporter          (NULL),
    hasExecuted       (false), // cmd.hasExecuted),
-   needsHeaders      (cmd.needsHeaders),
+   needsHeaders      (true),
    writeObjectPropertyWarning (true), // cmd.writeObjectPropertyWarning),
    messageWindowOn   (cmd.messageWindowOn),
    outputStyle       (cmd.outputStyle),
@@ -136,7 +137,8 @@ Write::Write(const Write &cmd) :
 {
    elementNames       = cmd.elementNames;
    actualElementNames = cmd.actualElementNames;
-   elementWrappers.clear();
+   numElements = actualElementNames.size();
+   elementWrappers.assign(actualElementNames.size(), nullptr);
    writableObjects.clear();
    origWritableFlagMap.clear();
 }
@@ -156,29 +158,23 @@ Write::Write(const Write &cmd) :
 //------------------------------------------------------------------------------
 Write& Write::operator=(const Write &cmd)
 {
-   if (this != &cmd)
-   {
-      elementNames       = cmd.elementNames;
-      actualElementNames = cmd.actualElementNames;
-      numElements        = cmd.numElements;
-      reportFile = cmd.reportFile;
-      reporter = NULL;
-      hasExecuted        = cmd.hasExecuted;
-      needsHeaders       = cmd.needsHeaders;
-      writeObjectPropertyWarning = cmd.writeObjectPropertyWarning;
-
-      messageWindowOn    = cmd.messageWindowOn;
-      outputStyle        = cmd.outputStyle;
-      logFileOn          = cmd.logFileOn;
-      // Should we be copying/cloning wrappers and writableObjects here?
-      // Answer: No. When we clone a spacecraft, the state of cloned spacecraft
-      // is not up to date whenever the original spacecraft is propagated.
-      // As a result, the content needed to write is incorrect due to the unupdated value.
-      elementWrappers    = cmd.elementWrappers;
-      writableObjects    = cmd.writableObjects;
-      origWritableFlagMap = cmd.origWritableFlagMap;
-   }
-   
+   if (this == &cmd) return *this;
+   ClearWrappers();
+   GmatCommand::operator=(cmd);
+   elementNames = cmd.elementNames;
+   actualElementNames = cmd.actualElementNames;
+   numElements = actualElementNames.size();
+   elementWrappers.assign(actualElementNames.size(), nullptr);
+   writableObjects.clear();
+   origWritableFlagMap.clear();
+   reportFile = cmd.reportFile;
+   reporter = nullptr;
+   hasExecuted = false;
+   needsHeaders = true;
+   writeObjectPropertyWarning = true;
+   messageWindowOn = cmd.messageWindowOn;
+   outputStyle = cmd.outputStyle;
+   logFileOn = cmd.logFileOn;
    return *this;
 }
 
@@ -265,91 +261,26 @@ bool Write::InterpretAction()
 // bool SetElementWrapper(ElementWrapper    *toWrapper,
 //                        const std::string &withName)
 //------------------------------------------------------------------------------
-bool Write::SetElementWrapper(ElementWrapper    *toWrapper,
-                              const std::string &withName)
+bool Write::SetElementWrapper(ElementWrapper *toWrapper,
+      const std::string &withName)
 {
-   #ifdef DEBUG_WRAPPER_CODE
-      MessageInterface::ShowMessage
-      ("Write::SetElementWrapper() this=<%p> '%s' entered, toWrapper=<%p>, "
-       "of type %d, withName='%s'\n", this,
-       GetGeneratingString(Gmat::NO_COMMENTS).c_str(),
-       toWrapper, toWrapper->GetWrapperType(), withName.c_str());
-   #endif
-   
-   if (toWrapper == NULL)
-      return false;
-   
-   // Do we need any type checking?
-   // CheckDataType(toWrapper, Gmat::REAL_TYPE, "Write", true);
-   
-   bool retval = false;
-   ElementWrapper *ew;
-   std::vector<ElementWrapper*> wrappersToDelete;
-   
-   //-------------------------------------------------------
-   // check element names
-   //-------------------------------------------------------
-   #ifdef DEBUG_WRAPPER_CODE
-      MessageInterface::ShowMessage
-      ("   Checking %d elements\n", actualElementNames.size());
-      for (UnsignedInt i=0; i<actualElementNames.size(); i++)
-         MessageInterface::ShowMessage("      %s\n",
-                                       actualElementNames[i].c_str());
-   #endif
-   
-   Integer sz = actualElementNames.size();
-   for (Integer i = 0; i < sz; i++)
-   {
-      if (actualElementNames.at(i) == withName)
+   if (!toWrapper) return false;
+   if (elementWrappers.size() != actualElementNames.size())
+      throw CommandException("Inconsistent Write wrapper declaration slots.\n");
+   std::set<ElementWrapper*> previous;
+   bool found = false;
+   for (size_t i = 0; i < actualElementNames.size(); ++i)
+      if (actualElementNames[i] == withName)
       {
-      #ifdef DEBUG_WRAPPER_CODE
-         MessageInterface::ShowMessage
-               ("   Found wrapper name \"%s\" in actualElementNames\n   "
-               "elementWrappers.at(%d)=<%p>",
-                withName.c_str(), i, elementWrappers.at(i));
-      #endif
-         if (elementWrappers.at(i) != NULL)
-         {
-            ew = elementWrappers.at(i);
-            elementWrappers.at(i) = toWrapper;
-            // if wrapper not found, add to the list to delete
-            if (find(wrappersToDelete.begin(), wrappersToDelete.end(), ew) ==
-                wrappersToDelete.end())
-               wrappersToDelete.push_back(ew);
-         }
-         else
-         {
-            elementWrappers.at(i) = toWrapper;
-         }
-         
-         retval = true;
+         if (elementWrappers[i] && elementWrappers[i] != toWrapper)
+            previous.insert(elementWrappers[i]);
+         elementWrappers[i] = toWrapper;
+         found = true;
       }
-   }
-   
-   #ifdef DEBUG_WRAPPER_CODE
-      MessageInterface::ShowMessage
-      ("   There are %d wrappers to delete\n", wrappersToDelete.size());
-   #endif
-   
-   // Delete old ElementWrappers (loj: 2008.11.20)
-   for (std::vector<ElementWrapper*>::iterator ewi = wrappersToDelete.begin();
-        ewi < wrappersToDelete.end(); ewi++)
-   {
-      #ifdef DEBUG_MEMORY
-            MemoryTracker::Instance()->Remove
-            ((*ewi), (*ewi)->GetDescription(), "Write::SetElementWrapper()",
-             GetGeneratingString(Gmat::NO_COMMENTS) + " deleting wrapper");
-      #endif
-      delete (*ewi);
-      (*ewi) = NULL;
-   }
-   
-   #ifdef DEBUG_WRAPPER_CODE
-      MessageInterface::ShowMessage
-      ("Write::SetElementWrapper() exiting with %d\n", retval);
-   #endif
-   
-   return retval;
+   for (ElementWrapper *wrapper : previous)
+      if (std::find(elementWrappers.begin(), elementWrappers.end(), wrapper) == elementWrappers.end())
+         delete wrapper;
+   return found;
 }
 
 //------------------------------------------------------------------------------
@@ -369,32 +300,12 @@ const StringArray& Write::GetWrapperObjectNameArray(bool completeSet)
 //------------------------------------------------------------------------------
 void Write::ClearWrappers()
 {
-   #ifdef DEBUG_WRAPPER_CODE
-      MessageInterface::ShowMessage
-      ("Write::ClearWrappers() this=<%p> '%s' entered.\nThere are %d wrappers "
-       "allocated, these will be deleted if not NULL\n", this,
-       GetGeneratingString(Gmat::NO_COMMENTS).c_str(), elementWrappers.size());
-   #endif
-   
-   std::vector<ElementWrapper*> wrappersToDelete;
-   
-   // delete wrappers (loj: 2008.11.20)
-   for (std::vector<ElementWrapper*>::iterator ewi = elementWrappers.begin();
-        ewi < elementWrappers.end(); ewi++)
-   {
-      if ((*ewi) == NULL)
-         continue;
-      
-      // if wrapper not found, add to the list to delete
-      if (find(wrappersToDelete.begin(), wrappersToDelete.end(), (*ewi)) ==
-          wrappersToDelete.end())
-         wrappersToDelete.push_back((*ewi));
-   }
-   
-   #ifdef DEBUG_WRAPPER_CODE
-      MessageInterface::ShowMessage
-      ("   There are %d wrappers to delete\n", wrappersToDelete.size());
-   #endif
+   std::set<ElementWrapper*> owned;
+   for (ElementWrapper *wrapper : elementWrappers) if (wrapper) owned.insert(wrapper);
+   // Preserve declaration slots for Validator and detach aliases before any
+   // wrapper destructor can revisit the command through a nested function.
+   for (auto &wrapper : elementWrappers) wrapper = nullptr;
+   for (ElementWrapper *wrapper : owned) delete wrapper;
 }
 
 
@@ -1087,6 +998,7 @@ bool Write::RenameRefObject(const UnsignedInt type,
    for (WrapperArray::iterator i = elementWrappers.begin();
         i < elementWrappers.end(); i++)
    {
+      if (!*i) continue;
       std::string desc = (*i)->GetDescription();
       if (desc.find(oldName) != oldName.npos)
       {
@@ -1675,3 +1587,15 @@ bool Write::VerifyObjects()
 }
 
 
+
+void Write::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   ClearWrappers();
+   writableObjects.clear();
+   origWritableFlagMap.clear();
+   reporter = nullptr;
+   hasExecuted = false;
+   needsHeaders = true;
+   GmatCommand::RetireFunctionBindings(store);
+}

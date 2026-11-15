@@ -1,0 +1,256 @@
+{
+  "scope": "Unit meanings tied to weighted residuals, solver expressions, error metrics, time intervals and record/time thinning modes. No mission execution or numerical solver qualification.",
+  "cases": [
+    {
+      "key": "BatchEstimator",
+      "group": "ResidualUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create BatchEstimator Probe;\n",
+      "units": {
+        "AbsoluteTol": "weighted-residual units",
+        "OLSEAdditiveConstant": "weighted-residual units",
+        "OLSEInitialRMSSigma": "weighted-residual units"
+      }
+    },
+    {
+      "key": "BatchEstimatorInv",
+      "group": "ResidualUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create BatchEstimatorInv Probe;\n",
+      "units": {
+        "AbsoluteTol": "weighted-residual units",
+        "OLSEAdditiveConstant": "weighted-residual units",
+        "OLSEInitialRMSSigma": "weighted-residual units"
+      }
+    },
+    {
+      "key": "ExtendedKalmanFilter",
+      "group": "ResidualUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create ExtendedKalmanFilter Probe;\n",
+      "units": {
+        "MeasDeweightingSigmaThreshold": "km"
+      }
+    },
+    {
+      "key": "Smoother",
+      "group": "ResidualUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Smoother Probe;\n",
+      "units": {
+        "MeasDeweightingSigmaThreshold": "km"
+      }
+    },
+    {
+      "key": "VF13ad",
+      "group": "OptimizerUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create VF13ad Probe;\n",
+      "units": {
+        "FeasibilityTolerance": "constraint units",
+        "Tolerance": "objective units"
+      }
+    },
+    {
+      "key": "Yukon",
+      "group": "OptimizerUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Yukon Probe;\n",
+      "units": {
+        "FeasibilityTolerance": "constraint units",
+        "FunctionTolerance": "dimensionless or objective units",
+        "MaximumElasticWeight": "objective / residual units",
+        "OptimalityTolerance": "Lagrangian-gradient units"
+      }
+    },
+    {
+      "key": "RungeKutta89",
+      "group": "PropagatorUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Propagator Probe;\nProbe.Type = RungeKutta89;\n",
+      "units": {
+        "Accuracy": "error-metric units",
+        "InitialStepSize": "s",
+        "MinStep": "s",
+        "MaxStep": "s"
+      }
+    },
+    {
+      "key": "PrinceDormand78",
+      "group": "PropagatorUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Propagator Probe;\nProbe.Type = PrinceDormand78;\n",
+      "units": {
+        "Accuracy": "error-metric units",
+        "InitialStepSize": "s",
+        "MinStep": "s",
+        "MaxStep": "s"
+      }
+    },
+    {
+      "key": "PrinceDormand45",
+      "group": "PropagatorUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Propagator Probe;\nProbe.Type = PrinceDormand45;\n",
+      "units": {
+        "Accuracy": "error-metric units",
+        "InitialStepSize": "s",
+        "MinStep": "s",
+        "MaxStep": "s"
+      }
+    },
+    {
+      "key": "RungeKutta68",
+      "group": "PropagatorUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Propagator Probe;\nProbe.Type = RungeKutta68;\n",
+      "units": {
+        "Accuracy": "error-metric units",
+        "InitialStepSize": "s",
+        "MinStep": "s",
+        "MaxStep": "s"
+      }
+    },
+    {
+      "key": "RungeKutta56",
+      "group": "PropagatorUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Propagator Probe;\nProbe.Type = RungeKutta56;\n",
+      "units": {
+        "Accuracy": "error-metric units",
+        "InitialStepSize": "s",
+        "MinStep": "s",
+        "MaxStep": "s"
+      }
+    },
+    {
+      "key": "PrinceDormand853",
+      "group": "PropagatorUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Propagator Probe;\nProbe.Type = PrinceDormand853;\n",
+      "units": {
+        "Accuracy": "error-metric units",
+        "InitialStepSize": "s",
+        "MinStep": "s",
+        "MaxStep": "s"
+      }
+    },
+    {
+      "key": "BulirschStoer",
+      "group": "PropagatorUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Propagator Probe;\nProbe.Type = BulirschStoer;\n",
+      "units": {
+        "Accuracy": "error-metric units",
+        "InitialStepSize": "s",
+        "MinStep": "s",
+        "MaxStep": "s"
+      }
+    },
+    {
+      "key": "AdamsBashforthMoulton",
+      "group": "PropagatorUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Propagator Probe;\nProbe.Type = AdamsBashforthMoulton;\n",
+      "units": {
+        "Accuracy": "error-metric units",
+        "InitialStepSize": "s",
+        "MinStep": "s",
+        "MaxStep": "s",
+        "LowerError": "error-metric units",
+        "TargetError": "error-metric units"
+      }
+    },
+    {
+      "key": "SPK",
+      "group": "PropagatorUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Propagator Probe;\nProbe.Type = 'SPK';\n",
+      "units": {
+        "StepSize": "s"
+      }
+    },
+    {
+      "key": "Code500",
+      "group": "PropagatorUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Propagator Probe;\nProbe.Type = 'Code500';\n",
+      "units": {
+        "StepSize": "s"
+      }
+    },
+    {
+      "key": "STK",
+      "group": "PropagatorUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Propagator Probe;\nProbe.Type = 'STK';\n",
+      "units": {
+        "StepSize": "s"
+      }
+    },
+    {
+      "key": "CCSDS-OEM",
+      "group": "PropagatorUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Propagator Probe;\nProbe.Type = 'CCSDS-OEM';\n",
+      "units": {
+        "StepSize": "s"
+      }
+    },
+    {
+      "key": "SPICESGP4",
+      "group": "PropagatorUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Propagator Probe;\nProbe.Type = 'SPICESGP4';\n",
+      "units": {
+        "InitialStepSize": "s"
+      }
+    },
+    {
+      "key": "Thinning",
+      "group": "ThinningUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create AcceptFilter Probe;\nProbe.ThinMode = Frequency;\n",
+      "units": {
+        "ThinningFrequency": "records"
+      },
+      "unit_selector": {
+        "field": "ThinMode",
+        "transitions": [
+          {
+            "value": "Time",
+            "units": {
+              "ThinningFrequency": "s"
+            }
+          },
+          {
+            "value": "Frequency",
+            "units": {
+              "ThinningFrequency": "records"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

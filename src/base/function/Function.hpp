@@ -36,6 +36,57 @@
 #include "CoordinateSystem.hpp"
 #include "PhysicalModel.hpp"
 #include "ObjectInitializer.hpp"
+#include "Rvector6.hpp"
+#include <memory>
+#include <tuple>
+#include <utility>
+
+struct ExpressionScopeCopies;
+
+// An invocation owns its saved fields; restoration never evaluates the model.
+// A derived layer restores before its enclosing layer releases dependencies.
+class GMAT_API FunctionInvocationState
+{
+public:
+   FunctionInvocationState(GmatBase &owner, std::function<void()> restore,
+         std::unique_ptr<FunctionInvocationState> enclosing = {},
+         bool restoreEnclosingFirst = false);
+   ~FunctionInvocationState() noexcept;
+   bool Restore() noexcept;
+   FunctionInvocationState(const FunctionInvocationState&) = delete;
+   FunctionInvocationState& operator=(const FunctionInvocationState&) = delete;
+private:
+   friend class SharedSubscriberBindings;
+   // Binding scopes can commit an explicit resource value instead of restoring
+   // old bindings. Keep captured owners until ordinary scope retirement.
+   void Dismiss() noexcept;
+   GmatBase *owner;
+   std::weak_ptr<const void> identity;
+   std::function<void()> restore;
+   std::unique_ptr<FunctionInvocationState> enclosing;
+   bool active = true;
+   bool restoredSuccessfully = true;
+   bool restoreEnclosingFirst;
+};
+
+namespace FunctionInvocationDetail
+{
+template<class T> void Swap(T &value, T &saved) noexcept(noexcept(std::swap(value, saved)))
+{
+   std::swap(value, saved);
+}
+inline void Swap(Rvector6 &value, Rvector6 &saved) noexcept
+{
+   for (Integer i = 0; i < 6; ++i) std::swap(value(i), saved(i));
+}
+template<class Locations, class Values, size_t... I>
+void Restore(Locations &locations, Values &saved, std::index_sequence<I...>) noexcept
+{
+   static_assert((noexcept(Swap(*std::get<I>(locations), std::get<I>(saved))) && ...),
+         "Invocation restoration must not allocate or throw");
+   (Swap(*std::get<I>(locations), std::get<I>(saved)), ...);
+}
+}
 
 /**
  * All function classes are derived from this base class.
@@ -43,6 +94,8 @@
 class GMAT_API Function : public GmatBase
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = GmatBase::NativeValueProviderDepth + 1;
+
    Function(const std::string &typeStr, const std::string &nomme);
    virtual ~Function();
    Function(const Function &f);
@@ -61,6 +114,8 @@ public:
    virtual bool         ErrorFound();
    
    virtual std::string  GetFunctionPathAndName();
+   void                 ValidateSourceFilePolicy(const std::string &path,
+                                                  bool includeFile = false) const;
    
    virtual bool         IsNewFunction();
    virtual void         SetNewFunction(bool flag);
@@ -75,6 +130,13 @@ public:
    virtual void         SetTransientForces(std::vector<PhysicalModel*> *tf);
    
    virtual bool         IsParameterReadOnly(const Integer id) const;
+   virtual bool         IsParameterCloaked(const Integer id) const;
+   virtual bool         IsParameterCommandModeSettable(const Integer id) const;
+   virtual const StringArray& GetPropertyEnumStrings(const Integer id) const;
+   virtual bool         GetBooleanParameter(const Integer id) const;
+   virtual bool         GetBooleanParameter(const std::string &label) const;
+   virtual bool         SetBooleanParameter(const Integer id, const bool value);
+   virtual bool         SetBooleanParameter(const std::string &label, const bool value);
    virtual std::string  GetParameterText(const Integer id) const;
    virtual Integer      GetParameterID(const std::string &str) const;
    virtual Gmat::ParameterType
@@ -101,16 +163,48 @@ public:
    
    virtual void         SetOutputName(const std::string &outputName);
 
+   // Definition-owned components must be registered before passive references
+   // bind. Native invocation stores/wrappers are rebuilt by FunctionManager.
+   virtual bool HasFunctionValueReferenceProvider() const;
+   using OutputObjectInitializer = std::function<void()>;
+   OutputObjectInitializer ExchangeOutputObjectInitializer(OutputObjectInitializer initializer);
+   std::unique_ptr<FunctionInvocationState> EnterInvocation();
+   bool HasActiveInvocation() const noexcept { return activeInvocationDepth != 0; }
+   virtual std::unique_ptr<FunctionInvocationState> SuspendInvocationState();
+   virtual void RetireInvocationInterfaces() noexcept;
+   virtual void PrepareClonedFunctionValue(const Function &source);
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
+   virtual void GetClonedOwnedObjects(const Function &target,
+         ObjectArray &sources, ObjectArray &copies) const;
+
    DEFAULT_TO_NO_CLONES
    DEFAULT_TO_NO_REFOBJECTS
 
 protected:
+   template<class... Fields>
+   std::unique_ptr<FunctionInvocationState> CaptureInvocationFields(
+         std::unique_ptr<FunctionInvocationState> enclosing, Fields &...fields)
+   {
+      auto saved = std::make_shared<std::tuple<Fields...>>(fields...);
+      auto restore = [locations = std::make_tuple(&fields...), saved]() mutable noexcept
+      {
+         FunctionInvocationDetail::Restore(locations, *saved,
+               std::index_sequence_for<Fields...>{});
+      };
+      return std::make_unique<FunctionInvocationState>(*this, std::move(restore),
+            std::move(enclosing));
+   }
+
    /// Call description to be written out in error message
    std::string          callDescription;
    /// Fully-qualified path for function script
    std::string          functionPath;
    /// Function name
    std::string          functionName;
+   /// Native parser behavior or strict seven-bit ASCII function sources
+   std::string          sourceFormat;
+   /// Require brackets on standalone calls that assign outputs
+   bool                 requireOutputBrackets;
    /// Function input names
    StringArray          inputNames;
    /// Function output names
@@ -122,6 +216,10 @@ protected:
    IntegerArray         outputRowCounts;
    /// Output column count used for returning one Array type
    IntegerArray         outputColCounts;
+   // Invocation services are never copied with a function definition/value.
+   OutputObjectInitializer outputObjectInitializer;
+   bool notifyingOutputObjects = false;
+   unsigned int activeInvocationDepth = 0;
    
    /// Solar System, set by the local Sandbox, to pass to the function
    SolarSystem          *solarSys;
@@ -132,6 +230,10 @@ protected:
    
    /// the flag indicating error found in function, this flag is set by Interpreter
    bool                 errorFound;
+
+   std::shared_ptr<ExpressionScopeCopies> functionBindings;
+   void RebindFunctionEnvironment(const Function &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
    
    enum
    {
@@ -139,6 +241,8 @@ protected:
       FUNCTION_NAME,
       FUNCTION_INPUT,
       FUNCTION_OUTPUT,
+      FUNCTION_SOURCE_FORMAT,
+      REQUIRE_OUTPUT_BRACKETS,
       FunctionParamCount  ///< Count of the parameters for this class
    };
    

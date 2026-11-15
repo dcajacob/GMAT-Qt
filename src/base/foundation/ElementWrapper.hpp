@@ -41,9 +41,12 @@
 #include "gmatdefs.hpp"
 #include "GmatBase.hpp"
 #include "Rmatrix.hpp"
+#include <typeinfo>
 
 // forward references
 class SolarSystem;
+class Parameter;
+struct ElementWrapperInvocationLease;
 
 class GMAT_API ElementWrapper
 {
@@ -57,6 +60,13 @@ public:
    const ElementWrapper& operator=(const ElementWrapper &er);
    // destructor
    virtual ~ElementWrapper();
+
+   using InvocationLease = std::shared_ptr<ElementWrapperInvocationLease>;
+   static InvocationLease RetainInvocationWrapper(ElementWrapper *wrapper);
+   static ElementWrapper *GetInvocationWrapper(const InvocationLease &lease) noexcept;
+   static bool MatchesInvocationWrapper(const InvocationLease &lease,
+         const ElementWrapper *wrapper) noexcept;
+   static void ReleaseOwnedWrapper(ElementWrapper *wrapper) noexcept;
    
    virtual std::string        ToString();
    virtual const StringArray& GetPropertyNames();
@@ -126,6 +136,15 @@ public:
  */
 //---------------------------------------------------------------------------
    virtual Real            EvaluateReal() const = 0;
+
+   // Calculation paths must distinguish a failed system-parameter evaluation
+   // from a valid finite value. Legacy evaluation/formatting remains available
+   // for metadata registration and reporting.
+   Real EvaluateRealForCalculation();
+   // Range endpoints and unlimited step sizes may use infinity, but never NaN
+   // or a failed native parameter evaluation.
+   Real EvaluateRealForRange();
+   static Real EvaluateParameterRealForCalculation(Parameter *parameter);
    
 //---------------------------------------------------------------------------
 //  bool SetReal(const Real value)
@@ -155,8 +174,48 @@ public:
    virtual bool            SetInteger(const Integer toValue); 
    virtual GmatBase*       EvaluateObject() const;
    virtual bool            SetObject(GmatBase *obj); 
+
+   // Passive retained-value binding. The declaration/description remains a
+   // lexical role; actual objects are resolved by identity without evaluation.
+   virtual void RebindClonedReferences(const ElementWrapper &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+   virtual bool OwnsRefObject() const;
+   void CollectOwnedReferences(ObjectArray &objects) const;
+   void ValidateOwnedWrapperGraph() const;
+   void CollectClonedOwnedReferences(const ElementWrapper &source,
+         ObjectArray &originals, ObjectArray &copies) const;
+   void CollectClonedOwnedReferences(const ElementWrapper &source,
+         ObjectArray &originals, ObjectArray &copies, bool sourceOwnedOnly) const;
+   static std::unique_ptr<ElementWrapper> CloneValue(const ElementWrapper *source,
+         const ElementWrapper *previous = NULL);
    
 protected:  
+
+   void CheckCloneType(const ElementWrapper &source) const;
+   template <class T> static std::unique_ptr<T> CloneOwnedReference(const T *source,
+         const T *previous = NULL)
+   {
+      if (!source) return {};
+      std::unique_ptr<GmatBase> copy(source->Clone());
+      if (copy.get() == source || (previous && copy.get() == previous))
+      {
+         copy.release();
+         throw GmatBaseException("Expression value Clone returned an existing object.\n");
+      }
+      T *value = dynamic_cast<T*>(copy.get());
+      if (!value || typeid(*value) != typeid(*source))
+         throw GmatBaseException("Cannot copy expression value with its native type.\n");
+      copy.release();
+      return std::unique_ptr<T>(value);
+   }
+   template <class T> static T *BindClonedReference(T *source,
+         const std::function<GmatBase*(GmatBase*)> &resolve)
+   {
+      if (!source) return NULL;
+      T *value = dynamic_cast<T*>(resolve(source));
+      if (!value) throw GmatBaseException("Invalid retained expression reference.\n");
+      return value;
+   }
 
    static const Real UNDEFINED_REAL;
    /// Description of the wrapper

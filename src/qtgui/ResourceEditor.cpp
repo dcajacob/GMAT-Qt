@@ -19,6 +19,9 @@
 #include <stdexcept>
 #include "ResourceProperties.hpp"
 #include "SpacecraftOrbit.hpp"
+#include "SatelliteElementsPanel.hpp"
+#include "VectorLineEdit.hpp"
+#include "MatrixTableWidget.hpp"
 #include "AtmosphereDialog.hpp"
 #include "GravityDialog.hpp"
 #include "ExternalForceDialog.hpp"
@@ -116,7 +119,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       originalScalarValue=numeric ? QString::number(object.GetRealParameter("Value"),'g',17) : QString::fromStdString(object.GetStringParameter("Expression"));
       auto *form=new QFormLayout; auto *value=new QLineEdit(originalScalarValue,this); value->setObjectName("parameterValue");
       value->setPlaceholderText(numeric ? "Finite number" : "Literal text (no enclosing quotes)");
-      form->addRow("Initial value",value); layout->addLayout(form);
+      form->addRow(numeric ? "Initial value (user-defined units)" : "Initial value",value); layout->addLayout(form);
       scalarValue=[value] { return value->text(); };
       status=new QLabel(numeric ? "Mission assignments can change this value during execution. Edit expressions in the mission sequence." : "Enter literal text without enclosing quotes. Mission assignments stay unchanged.",this);
       status->setObjectName("resourceStatus");
@@ -280,7 +283,10 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
          const auto values=object.GetStringArrayParameter(electric ? (family ? "MF_UNITS" : "T_UNITS") : (family ? "K_UNITS" : "C_UNITS"));
          const QString prefix=electric ? (family ? "MassFlowCoeff" : "ThrustCoeff") : (family ? "K" : "C");
          for (size_t i=0;i<values.size();++i) {
-            names[family].append(prefix+QString::number(i+1)); units[family].append(QString::fromStdString(values[i]));
+            const auto name=prefix+QString::number(i+1);
+            const auto displayUnit=electric ? electricThrusterCoefficientUnit(name) : QString();
+            names[family].append(name);
+            units[family].append(displayUnit.isEmpty() ? QString::fromStdString(values[i]) : displayUnit);
          }
       }
       auto *button=new QPushButton("Coefficients…",this); button->setObjectName("thrusterCoefficients"); layout->addWidget(button);
@@ -443,7 +449,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
          }
          QDialog dialog(this); dialog.setObjectName("arrayExpressionDialog"); dialog.setWindowTitle("Array expressions");
          auto *layout=new QVBoxLayout(&dialog);
-         auto *help=new QLabel("Nonempty cells run at mission start, in row order, before existing commands. Blank cells keep their numeric initial values. Apply validates formulas without running them. Numeric values and formulas are applied together.",&dialog);
+         auto *help=new QLabel("Nonempty cells run at mission start, in row order, before existing commands. Blank cells keep their numeric initial values. Apply validates formulas without running them. Numeric values and formulas are applied together. Units are user-defined per element; no automatic unit conversion is performed.",&dialog);
          help->setWordWrap(true); layout->addWidget(help);
          auto *grid=new QTableWidget(gridRows,gridColumns,&dialog); grid->setObjectName("arrayExpressionGrid");
          for (int r=0;r<gridRows;++r) for (int c=0;c<gridColumns;++c) {
@@ -820,6 +826,17 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
          try {
             QtResourcePreview copy(initial->Clone()); copy->SetStringParameter("Type",selected.toStdString()); const auto unit=QString::fromStdString(copy->GetParameterUnit(copy->GetParameterID("Bias")));
             for (int row=0;row<table->rowCount();++row) if (QStringList{"NoiseSigma","Bias","BiasSigma","PassBiases"}.contains(table->item(row,0)->text())) table->item(row,2)->setText(unit);
+         } catch (BaseException &failure) { reportStatus(QString::fromStdString(failure.GetFullMessage())); }
+      });
+   }
+   if (object.IsOfType("AcceptFilter")) {
+      auto initial=qtResourcePreviewShared(object.Clone()); QComboBox *mode=nullptr;
+      for (int row=0;row<table->rowCount();++row) if (table->item(row,0)->text()=="ThinMode") mode=qobject_cast<QComboBox *>(table->cellWidget(row,1));
+      if (mode) connect(mode,&QComboBox::currentTextChanged,this,[this,initial](const QString &selected) {
+         try {
+            QtResourcePreview copy(initial->Clone()); copy->SetStringParameter("ThinMode",selected.toStdString());
+            for (const auto &field:resourceProperties(*copy)) if (field.name=="ThinningFrequency")
+               for (int row=0;row<table->rowCount();++row) if (table->item(row,0)->text()==field.name) table->item(row,2)->setText(field.unit);
          } catch (BaseException &failure) { reportStatus(QString::fromStdString(failure.GetFullMessage())); }
       });
    }
@@ -1248,7 +1265,9 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
                for (int element=1;element<=6;++element) {
                   labels.append(spacecraftOrbitElementNames(*preview)[element-1]);
                   values.append(QString::number(converted[element-1],'g',17));
-                  units.append(QString::fromStdString(preview->GetStringParameter("Element"+std::to_string(element)+"Units")));
+                  auto unit=QString::fromStdString(preview->GetStringParameter("Element"+std::to_string(element)+"Units"));
+                  if(unit.isEmpty())unit=dimensionlessResourceUnit(*preview,labels.last());
+                  units.append(unit);
                }
                for (int i=0;i<6;++i) {
                   table->item(elementRows[i],0)->setText(labels[i]); table->item(elementRows[i],1)->setText(values[i]); table->item(elementRows[i],2)->setText(units[i]);
@@ -1279,15 +1298,34 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
    table->setColumnHidden(3,!hasCellEditor);
    fitTableColumns(table);
    QTimer::singleShot(0,table,[this] { fitTableColumns(table,1); });
-   connect(table,&QTableWidget::itemDoubleClicked,this,[this](QTableWidgetItem *item) {
+   const auto coefficientOwnerType=QString::fromStdString(object.GetTypeName());
+   connect(table,&QTableWidget::itemDoubleClicked,this,[this,coefficientOwnerType](QTableWidgetItem *item) {
       const int rows=item->data(Qt::UserRole).toInt(), columns=item->data(Qt::UserRole+1).toInt();
       if (item->column()!=1 || rows<=0 || columns<=0) return;
       QDialog dialog(this);
       dialog.setObjectName("numericGridDialog");
       dialog.setWindowTitle(table->item(item->row(),0)->text());
       auto *layout=new QVBoxLayout(&dialog);
-      auto *grid=new QTableWidget(rows,columns,&dialog);
+      auto *grid=new MatrixTableWidget(rows,columns,&dialog);
       grid->setObjectName("numericGrid");
+      const auto field=table->item(item->row(),0)->text();
+      QString coefficientBase;
+      if (coefficientOwnerType=="Transmitter" && QStringList{"FrequencyBias","FrequencyBiasSigma"}.contains(field)) coefficientBase="MHz";
+      if (coefficientOwnerType=="ThrustSegment" && QStringList{"ThrustAngle1","ThrustAngle2","ThrustAngle1Sigma","ThrustAngle2Sigma"}.contains(field)) coefficientBase="deg";
+      if (!coefficientBase.isEmpty()) {
+         auto *help=new QLabel("Coefficient cK multiplies elapsed seconds to power K, starting at K=0. Uncertainty coefficients have the same respective units.",&dialog);
+         help->setWordWrap(true);layout->addWidget(help);
+         const auto updateHeaders=[grid,coefficientBase] {
+            QStringList labels;
+            for (int k=0;k<grid->columnCount();++k) {
+               const auto unit=coefficientBase+(k==0 ? QString() : k==1 ? "/s" : "/s^"+QString::number(k));
+               labels.append("c"+QString::number(k)+" ("+unit+")");
+            }
+            grid->setHorizontalHeaderLabels(labels);
+         };
+         connect(grid->model(),&QAbstractItemModel::columnsInserted,&dialog,updateHeaders);
+         connect(grid->model(),&QAbstractItemModel::columnsRemoved,&dialog,updateHeaders);updateHeaders();
+      }
       const bool covariance=item->data(Qt::UserRole+4).toBool();
       if (covariance) {
          // Shorten presentation only. EditRole retains all original digits;
@@ -1337,6 +1375,8 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       layout->addWidget(grid);
       auto *error=new QLabel(&dialog); error->setObjectName("numericGridError"); error->setWordWrap(true); layout->addWidget(error);
       if (item->data(Qt::UserRole+2).toBool()) {
+         auto *notice=new QLabel("Units are user-defined per element. Each value follows its intended calculation; no automatic unit conversion is performed.",&dialog);
+         notice->setObjectName("arrayUnitNotice");notice->setWordWrap(true);layout->insertWidget(layout->indexOf(grid),notice);
          auto *cellControls=new QWidget(&dialog); auto *row=new QHBoxLayout(cellControls); row->setContentsMargins(0,0,0,0);
          auto *cellRow=new QSpinBox(cellControls),*cellColumn=new QSpinBox(cellControls);
          cellRow->setObjectName("arrayCellRow"); cellColumn->setObjectName("arrayCellColumn");
@@ -1410,7 +1450,7 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
    });
    if (sections) {
       // Use the engine's current element labels (Cartesian, Keplerian, etc.).
-      QSet<QString> orbit={"Epoch","DateFormat","StateType","DisplayStateType","AnomalyType","CoordinateSystem"};
+      QSet<QString> orbit={"Epoch","DateFormat","StateType","DisplayStateType","AnomalyType","CoordinateSystem","OrbitParameterAccess"};
       if (spacecraft) for (const auto &name:spacecraftOrbitElementNames(object)) orbit.insert(name);
       QSet<QString> attitudeFields;
       if (spacecraft) if (auto *attitude=object.GetOwnedObject(0))
@@ -1474,15 +1514,6 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
          };
          connect(table,&QTableWidget::itemChanged,this,[update](QTableWidgetItem *) { update(); });
          if (axes) connect(axes,&QComboBox::currentTextChanged,this,update); update();
-      }
-   }
-   if (object.IsOfType("ElectricThruster")) {
-      auto *coefficients=findChild<QPushButton *>("thrusterCoefficients");
-      for (int row=0;row<table->rowCount();++row) if (table->item(row,0)->text()=="ThrustModel") {
-         if (auto *model=qobject_cast<QComboBox *>(table->cellWidget(row,1))) {
-            auto update=[model,coefficients] { coefficients->setEnabled(model->currentText()=="ThrustMassPolynomial"); };
-            connect(model,&QComboBox::currentTextChanged,this,update); update();
-         }
       }
    }
    if (object.IsOfType("EphemerisFile")) {
@@ -1564,6 +1595,18 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
          }
       }
    }
+   if (object.IsOfType("ElectricThruster")) {
+      auto *coefficients=findChild<QPushButton *>("thrusterCoefficients");
+      // Setup owns this field when present; its pending model can differ from
+      // the hidden Advanced snapshot until Apply.
+      auto *model=primary->findChild<QComboBox *>("thruster_ThrustModel");
+      if (!model) for (int row=0;row<table->rowCount();++row)
+         if (table->item(row,0)->text()=="ThrustModel") model=qobject_cast<QComboBox *>(table->cellWidget(row,1));
+      if (model && coefficients) {
+         auto update=[model,coefficients] { coefficients->setEnabled(model->currentText()=="ThrustMassPolynomial"); };
+         connect(model,&QComboBox::currentTextChanged,this,update); update();
+      }
+   }
    auto *generic=new QScrollArea(pages); generic->setWidgetResizable(true); generic->setFrameShape(QFrame::NoFrame);
    auto *content=new QWidget(generic); auto *fields=new QFormLayout(content); generic->setWidget(content);
    PropagatorSettings *propagatorSettings=nullptr;
@@ -1585,6 +1628,8 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       fields->addRow(propagatorSettings);
    }
    int common=0;
+   QMap<QString,QLineEdit *> componentEdits;
+   QMap<QString,int> componentRows;
    for (int row=0;row<table->rowCount();++row) {
       auto *key=table->item(row,0); const auto name=key->text(),section=key->data(Qt::UserRole).toString();
       const bool advanced=name.contains('.') || name.contains("Covariance") || section=="SPICE" || name.startsWith("NAIF");
@@ -1604,10 +1649,11 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
          });
          lineLayout->addWidget(choice);
       } else {
-         auto *value=new QLineEdit(table->item(row,1)->text(),line); value->setObjectName("resource_"+name);
+         auto *value=new VectorLineEdit(table->item(row,1)->text(),line); value->setObjectName("resource_"+name);
+         componentEdits.insert(name,value); componentRows.insert(name,row);
          value->setReadOnly(!(table->item(row,1)->flags() & Qt::ItemIsEditable));
          connect(value,&QLineEdit::textChanged,this,[this,row](const QString &text) { if (table->item(row,1)->text()!=text) table->item(row,1)->setText(text); });
-         connect(table,&QTableWidget::itemChanged,value,[this,row,value](QTableWidgetItem *item) { if (item==table->item(row,1)) { const QSignalBlocker block(value); value->setText(item->text()); } });
+         connect(table,&QTableWidget::itemChanged,value,[this,row,value](QTableWidgetItem *item) { if (item==table->item(row,1) && value->text()!=item->text()) { const QSignalBlocker block(value); value->setText(item->text()); } });
          lineLayout->addWidget(value);
       }
       if (auto *source=qobject_cast<QPushButton *>(table->cellWidget(row,3))) {
@@ -1626,9 +1672,48 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       connect(table,&QTableWidget::itemChanged,label,[key,label](QTableWidgetItem *item) { if (item==key) label->setText(key->text()); });
       key->setData(Qt::UserRole+1,true); ++common;
    }
+   if (spacecraft) {
+      const auto elements=spacecraftOrbitElementNames(object);
+      const auto bindVector=[&](const QStringList &names,const QStringList &labels) {
+         std::array<QLineEdit *,3> components;
+         std::array<int,3> rows;
+         for (int index=0;index<3;++index) {
+            if (!componentEdits.contains(names[index])) return;
+            components[index]=componentEdits.value(names[index]);
+            rows[index]=componentRows.value(names[index]);
+         }
+         VectorLineEdit::link(components,[this,rows,labels] {
+            for (int index=0;index<3;++index)
+               if (table->item(rows[index],0)->text()!=labels[index]) return false;
+            return true;
+         });
+      };
+      if (elements.size()==6) {
+         bindVector(elements.mid(0,3),{"X","Y","Z"});
+         bindVector(elements.mid(3,3),{"VX","VY","VZ"});
+      }
+   }
    if (common || propagatorSettings) pages->addTab(generic,spacecraft ? "Orbit and hardware" : "Properties"); else generic->hide();
    if (!primary->isEmpty()) pages->insertTab(0,primary,"Setup"); else primary->hide();
    if (spacecraft && common) pages->setCurrentWidget(generic);
+   if (spacecraft) {
+      auto *elements=new SatelliteElementsPanel(pages);
+      const int tab=pages->addTab(elements,"Orbital elements");
+      const auto refresh=[this,elements,pages,tab] {
+         const auto value=[this](const QString &name) {
+            for (int row=0;row<table->rowCount();++row)
+               if (table->item(row,0)->text()==name) return table->item(row,1)->text();
+            return QString();
+         };
+         pages->setTabVisible(tab,elements->setSource(value("EphemerisName"),value("Id")));
+      };
+      connect(table,&QTableWidget::itemChanged,elements,[this,refresh](QTableWidgetItem *item) {
+         const auto name=table->item(item->row(),0)->text();
+         if (item->column()==1 && (name=="EphemerisName" || name=="Id")) refresh();
+      });
+      refresh();
+      if (pages->isTabVisible(tab)) pages->setCurrentIndex(tab);
+   }
    auto *advanced=new QWidget(pages); auto *advancedLayout=new QVBoxLayout(advanced);
    bool advancedProperties=false; int advancedActions=0;
    for (int row=0;row<table->rowCount();++row) advancedProperties=advancedProperties || !table->item(row,0)->data(Qt::UserRole+1).toBool();
@@ -1692,6 +1777,29 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
    connect(preview,&QPushButton::clicked,this,[this,previewText] {
       InspectionDialog dialog("Resource script",previewText,"Applied resource. Pending edits are not included.",this); dialog.exec();
    });
+   // A format change updates display metadata after the existing conversion
+   // handlers. The table's unit signals also update its primary-form labels.
+   QMap<int,int> epochUnitRows;
+   for (int row=0;row<table->rowCount();++row) {
+      const auto formatName=resourceEpochFormatField(object,table->item(row,0)->text());
+      if (formatName.isEmpty()) continue;
+      for (int formatRow=0;formatRow<table->rowCount();++formatRow)
+         if (table->item(formatRow,0)->text()==formatName) epochUnitRows.insert(row,formatRow);
+   }
+   auto refreshEpochUnits=[this,epochUnitRows] {
+      for (auto it=epochUnitRows.cbegin();it!=epochUnitRows.cend();++it) {
+         auto *choice=qobject_cast<QComboBox *>(table->cellWidget(it.value(),1));
+         const auto format=choice ? choice->currentText() : table->item(it.value(),1)->text();
+         const auto unit=epochInputUnit(format);
+         if (table->item(it.key(),2)->text()!=unit) table->item(it.key(),2)->setText(unit);
+      }
+   };
+   for (const int row:epochUnitRows) if (auto *choice=qobject_cast<QComboBox *>(table->cellWidget(row,1)))
+      connect(choice,&QComboBox::currentTextChanged,this,[refreshEpochUnits] { refreshEpochUnits(); });
+   connect(table,&QTableWidget::itemChanged,this,[epochUnitRows,refreshEpochUnits](QTableWidgetItem *item) {
+      if (item->column()==1 && epochUnitRows.values().contains(item->row())) refreshEpochUnits();
+   });
+   refreshEpochUnits();
    const auto filter=[this,search,sections] {
       const auto section=sections ? sections->tabText(sections->currentIndex()) : QString();
       bool actions=false;
@@ -1806,14 +1914,19 @@ ResourceEditor::ResourceEditor(GmatBase &object, Apply apply, QWidget *parent,co
       }
       if (changes.isEmpty() && !applyUnchanged && !creation) { applyDirty=false; updateApplyState(); reportStatus("No changes to apply."); return; }
       if (pendingOrbit) {
+         const auto orbitStateRow=[this](int row) {
+            const auto *item=table->item(row,0);
+            return item->data(Qt::UserRole).toString()=="Orbit" && item->text()!="OrbitParameterAccess";
+         };
          bool orbitChanged=false;
          for (int row=0;row<table->rowCount();++row)
-            orbitChanged=orbitChanged || (table->item(row,0)->data(Qt::UserRole).toString()=="Orbit" && changes.contains(table->item(row,0)->text()));
+            orbitChanged=orbitChanged || (orbitStateRow(row) && changes.contains(table->item(row,0)->text()));
          if (orbitChanged) try {
             const auto orbit=pendingOrbit();
             // The cached state supersedes the table snapshot. Include all
             // dependent selectors so paired edits are interpreted together.
-            for (int row=0;row<table->rowCount();++row) if (table->item(row,0)->data(Qt::UserRole).toString()=="Orbit") changes.remove(table->item(row,0)->text());
+            // The access policy is independent of the cached orbital state.
+            for (int row=0;row<table->rowCount();++row) if (orbitStateRow(row)) changes.remove(table->item(row,0)->text());
             for (auto it=orbit.cbegin();it!=orbit.cend();++it) changes.insert(it.key(),it.value());
          } catch (BaseException &error) { reportStatus(QString::fromStdString(error.GetFullMessage())); return; }
          catch (const std::exception &error) { reportStatus(QString::fromUtf8(error.what())); return; }
@@ -1869,6 +1982,7 @@ void ResourceEditor::updateApplyState()
    // succeeds. Keep invalid drafts enabled so validation/correction is possible.
    applyDirty=!applied && (applyDirty || hasChanges());
    if (applyButton) applyButton->setEnabled(allowUnchangedApply || applyDirty);
+   refreshCompletionActions();
 }
 
 bool ResourceEditor::hasChanges() const

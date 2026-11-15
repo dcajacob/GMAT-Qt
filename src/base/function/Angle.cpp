@@ -28,7 +28,24 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ExpressionBinding.hpp"
+#include <memory>
+#include <typeinfo>
 #include "Angle.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration angleValueProvider({
+   Angle::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const Angle*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<Angle*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "FunctionException.hpp"
 #include "RealUtilities.hpp"
 #include "MessageInterface.hpp"
@@ -153,9 +170,7 @@ void Angle::SetOutputTypes(WrapperTypeArray &outputTypes,
    #endif
 
    // Set output wrapper type for Angle
-   outputWrapperTypes = outputTypes;
-   outputRowCounts = rowCounts;
-   outputColCounts = colCounts;
+   Function::SetOutputTypes(outputTypes, rowCounts, colCounts);
 }
 
 //------------------------------------------------------------------------------
@@ -476,7 +491,15 @@ void Angle::Finalize(bool cleanUp)
 //------------------------------------------------------------------------------
 GmatBase* Angle::Clone() const
 {
-   return (new Angle(*this));
+   std::unique_ptr<Angle> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new Angle(*this));
+   }
+   if (typeid(*value) != typeid(*this))
+      throw FunctionException("A derived Angle must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -491,7 +514,34 @@ GmatBase* Angle::Clone() const
 //---------------------------------------------------------------------------
 void Angle::Copy(const GmatBase* orig)
 {
-   operator=(*((Angle *)(orig)));
+   const auto *source = dynamic_cast<const Angle*>(orig);
+   if (!source || typeid(*this) != typeid(Angle) || typeid(*this) != typeid(*source))
+      throw FunctionException("Incompatible Angle value copy or missing derived Copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   const auto previousFunctionBindings = functionBindings;
+   const auto previousObjectBindings = objectBindings;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
 }
 
 
+
+
+bool Angle::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const Angle*>(&original);
+   if (!source || typeid(*this) != typeid(Angle) || typeid(original) != typeid(Angle))
+      throw FunctionException("Derived Angle references need their own passive provider.\n");
+   RebindObjectManagedFunctionValue(*source, resolve);
+   return true;
+}
+
+bool Angle::HasFunctionValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(Angle);
+}

@@ -126,9 +126,11 @@ RFHardware & RFHardware::operator=(const RFHardware & rfh)
 {
    if (this != &rfh)
    {
+      if (GmatBase::IsNativeRestorationCopy() && primaryAntennaName != rfh.primaryAntennaName)
+         throw HardwareException("Restoration cannot change an active antenna reference role.");
       Sensor::operator=(rfh);
 
-      primaryAntenna     = rfh.primaryAntenna;
+      if (!GmatBase::IsNativeRestorationCopy()) primaryAntenna = rfh.primaryAntenna;
       primaryAntennaName = rfh.primaryAntennaName;
    }
 

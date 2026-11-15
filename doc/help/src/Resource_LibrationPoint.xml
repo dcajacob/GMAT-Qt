@@ -37,6 +37,13 @@
     configuring GMAT for common libration point regimes. This resource cannot
     be modified in the Mission Sequence.</para>
 
+    <para>Native MJ2000 acceleration is a fourth-order derivative of the
+    point's native velocity, sampled one second apart. It requires valid
+    ephemeris data for the samples; a valid one-sided stencil is used at a
+    coverage boundary. If no complete stencil is available, the query reports
+    the provider error instead of extrapolating or returning zero. Body update
+    intervals remain configured as before and are bypassed during sampling.</para>
+
     <para><phrase role="ref_seealso">See Also</phrase>: <xref
     linkend="Barycenter"/>, <xref linkend="Color"/></para>
   </refsection>

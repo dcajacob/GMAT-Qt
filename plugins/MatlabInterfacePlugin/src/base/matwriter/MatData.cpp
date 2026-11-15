@@ -74,7 +74,7 @@ MatData::MatData(const MatData &md) :
    pmat              (NULL),
    obj_name          (""),
    mat_struct        (NULL),
-   numDim            (0U)
+   numDim            (md.numDim)
 {
 }
 
@@ -91,14 +91,14 @@ MatData::MatData(const MatData &md) :
 //------------------------------------------------------------------------------
 MatData& MatData::operator=(const MatData &md)
 {
-   if (this == &md)
+   if (this != &md)
    {
       WriterData::operator=(md);
 
       pmat        = NULL;
       obj_name    = md.obj_name;
       mat_struct  = NULL;
-      numDim      = 0U;
+      numDim      = md.numDim;
    }
 
    return *this;

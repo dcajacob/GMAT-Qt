@@ -28,6 +28,8 @@
   <refsection>
     <title>Description</title>
 
+    <para>Spacecraft value copies preserve the complete captured covariance, including estimated correlations. The configured OrbitErrorCovariance and sigma fields retain their own captured values. Copying a spacecraft does not rebuild its estimated covariance from those prior settings; editing those settings still applies their normal prior updates.</para>
+
     <para>A <guilabel>Spacecraft</guilabel> resource is GMAT's spacecraft
     model and includes data and models for the spacecraft's orbit, epoch,
     attitude, and physical parameters (such as mass and drag coefficient), as
@@ -38,6 +40,18 @@
     certain fields that can be set in the Mission Sequence and some that
     cannot. See the field tables on the pages below for more
     information.</para>
+
+    <para><literal>OrbitParameterAccess = Native</literal> (default) retains
+    writable RMAG and SemilatusRectum calculation parameters. Set
+    <literal>OrbitParameterAccess = Worksheet</literal> before the mission
+    sequence to make these two derived calculation parameters read-only for
+    this spacecraft, as specified in the legacy NASA worksheet. Reads and all
+    other parameter access rules are unchanged. EA, MA and HA support writes in
+    both modes subject to their conic-domain restrictions. This setting is saved
+    with the spacecraft, follows spacecraft clones and function scope, and is
+    available in the Qt resource editor's Orbit section. It cannot be changed
+    by a mission command. State inputs in the spacecraft's selected display
+    representation remain available for defining its orbit.</para>
 
     <para>GMAT's documentation for <guilabel>Spacecraft</guilabel> is
     extensive and is broken down into the following sections:</para>
@@ -78,5 +92,10 @@
         xrefstyle="select:title"/></para>
       </listitem>
     </itemizedlist>
+    <para>Estimation restoration applies saved values within the spacecraft's
+    existing attitude, propulsion, power, hardware and plate components. Saved
+    values require compatible component and state layouts; changes to those
+    declarations require preparing a new run.</para>
+
   </refsection>
 </refentry>

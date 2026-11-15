@@ -142,5 +142,10 @@ bool AtmosDensity::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* AtmosDensity::Clone(void) const
 {
-   return new AtmosDensity(*this);
+   return CompleteParameterClone(new AtmosDensity(*this));
+}
+
+void AtmosDensity::Copy(const GmatBase *source)
+{
+   CopyParameterValue<AtmosDensity>(source);
 }

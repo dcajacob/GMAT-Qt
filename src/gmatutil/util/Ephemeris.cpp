@@ -37,6 +37,7 @@
 #include "MessageInterface.hpp"
 
 #include <sstream>
+#include <memory>
 
 //#define TEST_HERMITE_INTERP
 
@@ -395,12 +396,15 @@ Rvector6 Ephemeris::InterpolatePoint(const GmatTime &forEpoch)
                maxOrder);
       #endif
 
-      if (interp != NULL)
-         delete interp;
+      std::unique_ptr<Interpolator> incoming;
       if (useHermite)
-         interp = new HermiteInterpolator("", 6, maxOrder);
+         incoming.reset(new HermiteInterpolator("", 6, maxOrder));
       else
-         interp = new LagrangeInterpolator("", 6, maxOrder);
+         incoming.reset(new LagrangeInterpolator("", 6, maxOrder));
+      // Keep the previous cache intact if native construction/allocation
+      // fails. The new type and order become visible together.
+      delete interp;
+      interp = incoming.release();
       currentOrder = maxOrder;
    }
 

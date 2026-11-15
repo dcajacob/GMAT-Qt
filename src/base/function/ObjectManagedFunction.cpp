@@ -31,10 +31,61 @@
 //------------------------------------------------------------------------------
 
 #include "ObjectManagedFunction.hpp"
+#include "ExpressionBinding.hpp"
 #include "FunctionException.hpp"    // for exception
 #include "StringUtil.hpp"           // for GmatStringUtil::
 #include "Parameter.hpp"            // for GetOwner()
 #include "MessageInterface.hpp"
+#include "SolarSystem.hpp"
+#include <algorithm>
+#include <mutex>
+
+namespace {
+struct GlobalStoreView {
+   ObjectMap *store = nullptr;
+   std::function<bool()> isLive;
+   std::weak_ptr<const void> function;
+   const SolarSystem *solarSystem = nullptr;
+   std::weak_ptr<const void> solarSystemIdentity;
+};
+struct GlobalViewRegistry {
+   std::mutex mutex;
+   std::map<const ObjectManagedFunction*, GlobalStoreView> entries;
+};
+GlobalViewRegistry& GlobalViews() {
+   static auto *registry = new GlobalViewRegistry;
+   return *registry;
+}
+void ForgetGlobalView(const ObjectManagedFunction *function) noexcept {
+   try {
+      auto &registry = GlobalViews();
+      std::lock_guard<std::mutex> lock(registry.mutex);
+      registry.entries.erase(function);
+   } catch (...) {} // Expired function identities still reject reused addresses.
+}
+void RememberGlobalView(ObjectManagedFunction *function, ObjectMap *store,
+      std::function<bool()> isLive, const SolarSystem *system = nullptr) {
+   if (!store || !isLive || !isLive()) { ForgetGlobalView(function); return; }
+   GlobalStoreView view{store, std::move(isLive), function->GetLifetimeToken()};
+   view.solarSystem = system;
+   if (view.solarSystem)
+      view.solarSystemIdentity = view.solarSystem->GetLifetimeToken();
+   auto &registry = GlobalViews();
+   std::lock_guard<std::mutex> lock(registry.mutex);
+   registry.entries[function] = std::move(view);
+}
+GlobalStoreView FindGlobalView(const ObjectManagedFunction *function) {
+   auto &registry = GlobalViews();
+   std::lock_guard<std::mutex> lock(registry.mutex);
+   const auto found = registry.entries.find(function);
+   return found == registry.entries.end() ? GlobalStoreView{} : found->second;
+}
+void RestoreGlobalView(const ObjectManagedFunction *function, const GlobalStoreView &view) {
+   auto &registry = GlobalViews();
+   std::lock_guard<std::mutex> lock(registry.mutex);
+   registry.entries[function] = view;
+}
+}
 
 //#define DEBUG_FUNCTION_SET
 //#define DEBUG_FUNCTION_IN_OUT
@@ -88,6 +139,8 @@ ObjectManagedFunction::ObjectManagedFunction(const std::string &typeStr, const s
 //------------------------------------------------------------------------------
 ObjectManagedFunction::~ObjectManagedFunction()
 {
+   ForgetGlobalView(this);
+   RetireInvocationInterfaces();
 }
 
 
@@ -102,12 +155,14 @@ ObjectManagedFunction::~ObjectManagedFunction()
 //------------------------------------------------------------------------------
 ObjectManagedFunction::ObjectManagedFunction(const ObjectManagedFunction &f) :
    Function           (f),
-   inputArgMap        (f.inputArgMap), // do I want to do this?
-   outputArgMap       (f.outputArgMap), // do I want to do this?
    objectStore        (NULL),
    globalObjectStore  (NULL),
-   changingInputType  (false)
+   changingInputType  (f.changingInputType)
 {
+   for (const auto &entry : f.inputArgMap)
+      inputArgMap[entry.first] = NULL;
+   for (const auto &entry : f.outputArgMap)
+      outputArgMap[entry.first] = NULL;
 }
 
 
@@ -126,17 +181,244 @@ ObjectManagedFunction& ObjectManagedFunction::operator=(const ObjectManagedFunct
 {
    if (this == &f)
       return *this;
+
+   const auto previousBindings = objectBindings;
    
+   RetireInvocationInterfaces();
    Function::operator=(f);
    
    objectStore        = NULL;
    globalObjectStore  = NULL;
-   inputArgMap        = f.inputArgMap;   // do I want to do this?
-   outputArgMap       = f.outputArgMap;  // do I want to do this?
+   ForgetGlobalView(this);
+   objectBindings = previousBindings && previousBindings->OwnsMap(f.globalObjectStore) ?
+         previousBindings : f.objectBindings;
+   // Input wrappers remain borrowed from the caller. Copies retain formal
+   // names without borrowing another invocation's bindings or output queue.
+   ClearInOutArgMaps(false, false);
+   wrappersToDelete.clear();
+   for (const auto &entry : f.inputArgMap)
+      inputArgMap[entry.first] = NULL;
+   for (const auto &entry : f.outputArgMap)
+      outputArgMap[entry.first] = NULL;
    changingInputType  = f.changingInputType;
    return *this;
 }
 
+
+std::unique_ptr<FunctionInvocationState> ObjectManagedFunction::SuspendInvocationState()
+{
+   struct Wrappers
+   {
+      WrapperMap inputs, outputs;
+      WrapperArray queued, owned;
+      std::vector<ElementWrapper::InvocationLease> retained;
+      std::map<ElementWrapper*, ElementWrapper::InvocationLease> identities;
+      bool armed = false;
+      bool invalid = false;
+   };
+   auto saved = std::make_shared<Wrappers>();
+   saved->inputs = inputArgMap;
+   saved->outputs = outputArgMap;
+   saved->retained = invocationWrapperLeases;
+   auto retain = [&](ElementWrapper *wrapper)
+   {
+      if (!wrapper || saved->identities.count(wrapper)) return;
+      ElementWrapper::InvocationLease lease;
+      // Prefer the live generation if this address was legitimately reused.
+      for (const auto &current : invocationWrapperLeases)
+         if (ElementWrapper::GetInvocationWrapper(current) == wrapper)
+         { lease = current; break; }
+      if (!lease)
+         for (const auto &current : invocationWrapperLeases)
+            if (ElementWrapper::MatchesInvocationWrapper(current, wrapper))
+            { lease = current; break; }
+      if (!lease) lease = ElementWrapper::RetainInvocationWrapper(wrapper);
+      saved->identities.emplace(wrapper, lease);
+      if (std::find(saved->retained.begin(), saved->retained.end(), lease) == saved->retained.end())
+         saved->retained.push_back(std::move(lease));
+   };
+   for (const auto &entry : inputArgMap) retain(entry.second);
+   auto retainOutput = [&](ElementWrapper *wrapper)
+   {
+      retain(wrapper);
+      const bool input = std::any_of(inputArgMap.begin(), inputArgMap.end(),
+            [wrapper](const auto &entry) { return entry.second == wrapper; });
+      if (wrapper && !input && std::find(saved->owned.begin(), saved->owned.end(), wrapper) == saved->owned.end())
+         saved->owned.push_back(wrapper);
+   };
+   for (const auto &entry : outputArgMap) retainOutput(entry.second);
+   for (auto *wrapper : wrappersToDelete) retainOutput(wrapper);
+   // Stage cold interfaces with the same formal keys before detaching anything.
+   for (auto &entry : saved->inputs) entry.second = nullptr;
+   for (auto &entry : saved->outputs) entry.second = nullptr;
+
+   auto *local = objectStore;
+   auto *global = globalObjectStore;
+   auto localIsLive = CaptureObjectStoreLifetime(local);
+   auto globalIsLive = CaptureObjectStoreLifetime(global);
+   const auto globalView = FindGlobalView(this);
+   auto state = CaptureInvocationFields(Function::SuspendInvocationState(),
+         changingInputType, objectBindings);
+   auto restoreViews = [this, local, global, localIsLive, globalIsLive, globalView]()
+   {
+      const bool localAlive = !localIsLive || localIsLive();
+      const bool globalAlive = !globalIsLive || globalIsLive();
+      objectStore = localAlive ? local : nullptr;
+      globalObjectStore = globalAlive ? global : nullptr;
+      if (localAlive && globalAlive && GmatBase::IsLiveReference(this, globalView.function))
+         RestoreGlobalView(this, globalView);
+      else
+         ForgetGlobalView(this);
+      if (!localAlive || !globalAlive)
+      {
+         isInitialized = false;
+         throw FunctionException("An enclosing function object store was retired.\n");
+      }
+   };
+   // Validate after the base initialization flag is restored, so a retired
+   // store cannot become a ready invocation again. Do not revive stale maps.
+   state = std::make_unique<FunctionInvocationState>(*this, std::move(restoreViews),
+         std::move(state), true);
+   auto restoreWrappers = [this, saved]()
+   {
+      if (!saved->armed) return;
+      RetireInvocationInterfaces();
+      auto validate = [&](ElementWrapper *&wrapper)
+      {
+         if (!wrapper) return;
+         const auto found = saved->identities.find(wrapper);
+         if (found == saved->identities.end() ||
+               ElementWrapper::GetInvocationWrapper(found->second) != wrapper)
+         {
+            wrapper = nullptr;
+            saved->invalid = true;
+         }
+      };
+      for (auto &entry : saved->inputs) validate(entry.second);
+      for (auto &entry : saved->outputs) validate(entry.second);
+      for (auto &wrapper : saved->queued) validate(wrapper);
+      inputArgMap.swap(saved->inputs);
+      outputArgMap.swap(saved->outputs);
+      wrappersToDelete.swap(saved->queued);
+      invocationWrapperLeases.swap(saved->retained);
+      PruneInvocationWrapperLeases();
+   };
+   state = std::make_unique<FunctionInvocationState>(*this, std::move(restoreWrappers),
+         std::move(state));
+   auto validateRestoration = [this, saved]()
+   {
+      if (saved->invalid)
+      {
+         isInitialized = false;
+         throw FunctionException("An enclosing function argument or result wrapper was retired.\n");
+      }
+   };
+   auto result = std::make_unique<FunctionInvocationState>(*this,
+         std::move(validateRestoration), std::move(state), true);
+   // Ownership transfer is nonthrowing and occurs after all staging succeeds.
+   for (auto *wrapper : saved->owned)
+   {
+      const auto &lease = saved->identities.at(wrapper);
+      if (ElementWrapper::GetInvocationWrapper(lease) == wrapper)
+         ElementWrapper::ReleaseOwnedWrapper(wrapper);
+      else
+         saved->invalid = true;
+   }
+   inputArgMap.swap(saved->inputs);
+   outputArgMap.swap(saved->outputs);
+   wrappersToDelete.swap(saved->queued);
+   invocationWrapperLeases.clear();
+   saved->armed = true;
+   // A nested activation creates its own formals/local resources instead of
+   // borrowing and overwriting the enclosing call's installed dictionary.
+   objectStore = nullptr;
+   globalObjectStore = nullptr;
+   return result;
+}
+
+void ObjectManagedFunction::PruneInvocationWrapperLeases() noexcept
+{
+   auto unused = [this](const ElementWrapper::InvocationLease &lease)
+   {
+      auto *wrapper = ElementWrapper::GetInvocationWrapper(lease);
+      if (!wrapper) return true;
+      for (const auto &entry : inputArgMap) if (entry.second == wrapper) return false;
+      for (const auto &entry : outputArgMap) if (entry.second == wrapper) return false;
+      return std::find(wrappersToDelete.begin(), wrappersToDelete.end(), wrapper) == wrappersToDelete.end();
+   };
+   invocationWrapperLeases.erase(std::remove_if(invocationWrapperLeases.begin(),
+         invocationWrapperLeases.end(), unused), invocationWrapperLeases.end());
+}
+
+void ObjectManagedFunction::RetireInvocationInterfaces() noexcept
+{
+   ClearOutputWrappers();
+   for (auto &entry : inputArgMap) entry.second = nullptr;
+   for (auto &entry : outputArgMap) entry.second = nullptr;
+   invocationWrapperLeases.clear();
+}
+
+void ObjectManagedFunction::RetireArgumentWrappers(const WrapperMap &inputs,
+      const WrapperArray &outputs) noexcept
+{
+   auto retiring = [&](ElementWrapper *wrapper)
+   {
+      if (!wrapper) return false;
+      for (const auto &entry : inputs) if (entry.second == wrapper) return true;
+      for (auto *entry : outputs) if (entry == wrapper) return true;
+      return false;
+   };
+   // Release actual borrowed interfaces, including output aliases, without
+   // deleting wrappers owned by the retiring manager or touching another one.
+   for (auto &entry : inputArgMap) if (retiring(entry.second)) entry.second = NULL;
+   for (auto &entry : outputArgMap) if (retiring(entry.second)) entry.second = NULL;
+   for (auto &entry : wrappersToDelete) if (retiring(entry)) entry = NULL;
+   PruneInvocationWrapperLeases();
+}
+
+void ObjectManagedFunction::RetireFunctionObjectStore(ObjectMap *store) noexcept
+{
+   if (!store || objectStore != store) return;
+   // Keep only an owner-tracked observation of the actual global binding.
+   // Invocation resources and wrappers are still retired below.
+   try { RememberGlobalView(this, globalObjectStore, CaptureObjectStoreLifetime(globalObjectStore), solarSys); }
+   catch (...) { ForgetGlobalView(this); }
+   // The manager is retiring this actual invocation, not a same-name caller or
+   // a store currently owned by another manager of the shared function.
+   RetireInvocationInterfaces();
+   objectStore = nullptr;
+   globalObjectStore = nullptr;
+   solarSys = nullptr;
+   internalCoordSys = nullptr;
+   forces = nullptr;
+   changingInputType = false;
+   isInitialized = false;
+   functionBindings.reset();
+   objectBindings.reset();
+}
+
+void ObjectManagedFunction::RebindObjectManagedFunctionValue(const ObjectManagedFunction &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   if (objectStore || !wrappersToDelete.empty())
+      throw FunctionException("Retained Function binding requires a cold invocation interface.\n");
+   for (const auto &entry : inputArgMap)
+      if (entry.second) throw FunctionException("Copied Function still has bound invocation inputs.\n");
+   for (const auto &entry : outputArgMap)
+      if (entry.second) throw FunctionException("Copied Function still has bound invocation outputs.\n");
+   const auto previousBindings = objectBindings;
+   ExpressionBindingScope binding;
+   RebindFunctionEnvironment(source, resolve);
+   const bool valueGlobal = source.globalObjectStore == source.objectStore ||
+         (source.objectBindings && source.objectBindings->OwnsMap(source.globalObjectStore)) ||
+         (previousBindings && previousBindings->OwnsMap(source.globalObjectStore));
+   // Global commands use the caller's native shared store. Already value-owned
+   // environments (including local/global aliases) preserve independent storage.
+   globalObjectStore = valueGlobal ? binding.scopes->CopyMap(source.globalObjectStore, resolve) :
+         source.globalObjectStore;
+   objectBindings = binding.scopes;
+   changingInputType = false;
+}
 
 //------------------------------------------------------------------------------
 // bool Initialize(ObjectInitializer *objInit, bool reinitialize = false)
@@ -190,7 +472,37 @@ ObjectMap* ObjectManagedFunction::GetFunctionObjectStore()
 
 const ObjectMap* ObjectManagedFunction::GetGlobalObjectStore() const
 {
-   return globalObjectStore;
+   const auto view = FindGlobalView(this);
+   const bool validFunction = GmatBase::IsLiveReference(this, view.function);
+   if (globalObjectStore)
+   {
+      if (view.store == globalObjectStore && view.isLive && (!validFunction || !view.isLive()))
+         return nullptr;
+      return globalObjectStore; // Unregistered active maps retain their caller contract.
+   }
+   // An unbound nested activation must not borrow the enclosing observation.
+   if (HasActiveInvocation()) return nullptr;
+   return validFunction && view.isLive && view.isLive() ? view.store : nullptr;
+}
+
+const SolarSystem* ObjectManagedFunction::GetObservedSolarSystem() const
+{
+   if (HasActiveInvocation()) return nullptr;
+   const auto view = FindGlobalView(this);
+   return GmatBase::IsLiveReference(this, view.function) &&
+         view.isLive && view.isLive() &&
+         GmatBase::IsLiveReference(view.solarSystem, view.solarSystemIdentity) ?
+         view.solarSystem : nullptr;
+}
+
+void ObjectManagedFunction::ClearObservedSolarSystem()
+{
+   auto &registry = GlobalViews();
+   std::lock_guard<std::mutex> lock(registry.mutex);
+   const auto found = registry.entries.find(this);
+   if (found == registry.entries.end()) return;
+   found->second.solarSystem = nullptr;
+   found->second.solarSystemIdentity.reset();
 }
 
 //------------------------------------------------------------------------------
@@ -199,6 +511,7 @@ const ObjectMap* ObjectManagedFunction::GetGlobalObjectStore() const
 void ObjectManagedFunction::SetGlobalObjectMap(ObjectMap *objMap)
 {
    globalObjectStore = objMap;
+   RememberGlobalView(this, objMap, CaptureObjectStoreLifetime(objMap));
 }
 
 
@@ -227,6 +540,9 @@ bool ObjectManagedFunction::SetInputElementWrapper(const std::string &forName, E
       throw FunctionException(errMsg);
    }
    
+   auto lease = ElementWrapper::RetainInvocationWrapper(wrapper);
+   if (lease && std::find(invocationWrapperLeases.begin(), invocationWrapperLeases.end(), lease) == invocationWrapperLeases.end())
+      invocationWrapperLeases.push_back(std::move(lease));
    inputArgMap[forName] = wrapper;
    
    //@note old inputWrappers are deleted in the FunctionManager::CreateFunctionArgWrappers()
@@ -250,8 +566,7 @@ bool ObjectManagedFunction::SetInputElementWrapper(const std::string &forName, E
 //------------------------------------------------------------------------------
 ElementWrapper* ObjectManagedFunction::GetOutputArgument(Integer argNumber)
 {
-   if ((argNumber < 0) || (argNumber > (Integer) outputNames.size()) ||
-       (argNumber> (Integer) outputArgMap.size()))
+   if ((argNumber < 0) || (argNumber >= (Integer) outputNames.size()))
    {
       std::string errMsg = "Function error: argument number out-of-range\n";
       throw FunctionException(errMsg);
@@ -302,6 +617,39 @@ WrapperArray& ObjectManagedFunction::GetWrappersToDelete()
 
 
 //------------------------------------------------------------------------------
+// void ClearOutputWrappers()
+//------------------------------------------------------------------------------
+void ObjectManagedFunction::ClearOutputWrappers() noexcept
+{
+   // Neither allocation nor a copied deletion queue is needed. Clear every
+   // alias before deleting a wrapper, including outputs not selected by the
+   // caller and built-in outputs that are absent from wrappersToDelete.
+   auto release = [this](ElementWrapper *wrapper) noexcept
+   {
+      if (!wrapper)
+         return;
+      for (auto &entry : outputArgMap)
+         if (entry.second == wrapper)
+            entry.second = NULL;
+      for (auto &pending : wrappersToDelete)
+         if (pending == wrapper)
+            pending = NULL;
+      // Input wrappers remain owned by the invoking FunctionManager.
+      for (const auto &entry : inputArgMap)
+         if (entry.second == wrapper)
+            return;
+      ElementWrapper::ReleaseOwnedWrapper(wrapper);
+   };
+   for (auto &entry : outputArgMap)
+      release(entry.second);
+   for (auto *pending : wrappersToDelete)
+      release(pending);
+   wrappersToDelete.clear();
+   PruneInvocationWrapperLeases();
+}
+
+
+//------------------------------------------------------------------------------
 // void ClearInOutArgMaps(bool deleteInputs, bool deleteOutputs)
 //------------------------------------------------------------------------------
 void ObjectManagedFunction::ClearInOutArgMaps(bool deleteInputs, bool deleteOutputs)
@@ -315,7 +663,10 @@ void ObjectManagedFunction::ClearInOutArgMaps(bool deleteInputs, bool deleteOutp
        outputArgMap.size());
    #endif
    
-   std::vector<ElementWrapper *> wrappersToDelete;
+   if (deleteOutputs)
+      ClearOutputWrappers();
+
+   std::vector<ElementWrapper *> inputWrappersToDelete;
    std::map<std::string, ElementWrapper *>::iterator ewi;
    
    if (deleteInputs)
@@ -325,47 +676,31 @@ void ObjectManagedFunction::ClearInOutArgMaps(bool deleteInputs, bool deleteOutp
       {
          if (ewi->second)
          {         
-            if (find(wrappersToDelete.begin(), wrappersToDelete.end(), ewi->second) ==
-                wrappersToDelete.end())
-               wrappersToDelete.push_back(ewi->second);
-         }
-      }
-   }
-   
-   if (deleteOutputs)
-   {
-      // output wrappers
-      for (ewi = outputArgMap.begin(); ewi != outputArgMap.end(); ++ewi)
-      {
-         if (ewi->second)
-         {
-            if (find(wrappersToDelete.begin(), wrappersToDelete.end(), ewi->second) ==
-                wrappersToDelete.end())
-               wrappersToDelete.push_back(ewi->second);
+            if (find(inputWrappersToDelete.begin(), inputWrappersToDelete.end(), ewi->second) ==
+                inputWrappersToDelete.end())
+               inputWrappersToDelete.push_back(ewi->second);
          }
       }
    }
    
    #ifdef DEBUG_WRAPPER_CODE   
    MessageInterface::ShowMessage
-      ("   There are %d wrappers to delete\n", wrappersToDelete.size());
+      ("   There are %d wrappers to delete\n", inputWrappersToDelete.size());
    #endif
    
-   // Delete old ElementWrappers (loj: 2008.11.20)
-   for (std::vector<ElementWrapper*>::iterator ewi = wrappersToDelete.begin();
-        ewi < wrappersToDelete.end(); ewi++)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         ((*ewi), (*ewi)->GetDescription(), "ObjectManagedFunction::ClearInOutArgMaps()",
-          "deleting wrapper");
-      #endif
-      delete (*ewi);
-      (*ewi) = NULL;
-   }
-   
+   // Detach every role before releasing an owned input. The same interface can
+   // also occur in an output/deletion slot or a suspended invocation.
    inputArgMap.clear();
    outputArgMap.clear();
+   // Delete old ElementWrappers (loj: 2008.11.20)
+   for (std::vector<ElementWrapper*>::iterator ewi = inputWrappersToDelete.begin();
+        ewi < inputWrappersToDelete.end(); ewi++)
+   {
+      for (auto &pending : wrappersToDelete) if (pending == *ewi) pending = nullptr;
+      ElementWrapper::ReleaseOwnedWrapper(*ewi);
+      (*ewi) = NULL;
+   }
+   PruneInvocationWrapperLeases();
 }
 
 //------------------------------------------------------------------------------

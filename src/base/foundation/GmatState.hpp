@@ -35,6 +35,7 @@
 
 #include "gmatdefs.hpp"
 #include "GmatTime.hpp"
+#include <memory>
 
 
 /**
@@ -50,6 +51,11 @@ public:
 	virtual ~GmatState();
    GmatState(const GmatState& gs);
    GmatState& operator=(const GmatState& gs);
+   void ValidateRestorationLayout(const GmatState &source) const;
+   void RestoreValues(const GmatState &source);
+   std::shared_ptr<const void> GetLayoutIdentity() const;
+   void Swap(GmatState &other) noexcept;
+
    
    // Operator overloads
    Real&             operator[](const Integer index);
@@ -93,6 +99,9 @@ protected:
    
    /// Length of the state vector
    Integer           stateSize;
+   // A distinct allocation or element/precision layout has a distinct identity.
+   // Value and epoch updates retain it, including fixed-layout restoration.
+   std::shared_ptr<const void> layoutIdentity;
    
    void              Resize(Integer newSize, bool withCopy = true);
    void              Zero(Integer begin = 0, UnsignedInt length = 0);

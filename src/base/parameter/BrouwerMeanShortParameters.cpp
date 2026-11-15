@@ -90,7 +90,12 @@ bool BLshortSMAP::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BLshortSMAP::Clone(void) const
 {
-   return new BLshortSMAP(*this);
+   return CompleteParameterClone(new BLshortSMAP(*this));
+}
+
+void BLshortSMAP::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BLshortSMAP>(source);
 }
 
 
@@ -153,7 +158,12 @@ bool BLshortECCP::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BLshortECCP::Clone(void) const
 {
-   return new BLshortECCP(*this);
+   return CompleteParameterClone(new BLshortECCP(*this));
+}
+
+void BLshortECCP::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BLshortECCP>(source);
 }
 
 //==============================================================================
@@ -251,7 +261,12 @@ bool BLshortINCP::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BLshortINCP::Clone(void) const
 {
-   return new BLshortINCP(*this);
+   return CompleteParameterClone(new BLshortINCP(*this));
+}
+
+void BLshortINCP::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BLshortINCP>(source);
 }
 
 
@@ -355,7 +370,12 @@ bool BLshortRAANP::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BLshortRAANP::Clone(void) const
 {
-   return new BLshortRAANP(*this);
+   return CompleteParameterClone(new BLshortRAANP(*this));
+}
+
+void BLshortRAANP::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BLshortRAANP>(source);
 }
 
 
@@ -459,7 +479,12 @@ bool BLshortAOPP::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BLshortAOPP::Clone(void) const
 {
-   return new BLshortAOPP(*this);
+   return CompleteParameterClone(new BLshortAOPP(*this));
+}
+
+void BLshortAOPP::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BLshortAOPP>(source);
 }
 
 
@@ -563,7 +588,12 @@ bool BLshortMAP::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BLshortMAP::Clone(void) const
 {
-   return new BLshortMAP(*this);
+   return CompleteParameterClone(new BLshortMAP(*this));
+}
+
+void BLshortMAP::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BLshortMAP>(source);
 }
 
 
@@ -629,6 +659,11 @@ bool BLshortState::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* BLshortState::Clone(void) const
 {
-   return new BLshortState(*this);
+   return CompleteParameterClone(new BLshortState(*this));
+}
+
+void BLshortState::Copy(const GmatBase *source)
+{
+   CopyParameterValue<BLshortState>(source);
 }
 

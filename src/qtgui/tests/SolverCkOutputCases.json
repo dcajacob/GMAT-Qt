@@ -1,0 +1,63 @@
+{
+  "origin": "src/qtgui/tests/NasaSolverEphemerisCases.json",
+  "origin_sha256": "700d2358ad45e31957d3b092d5f31c75aba50f9cb3fe7a2d9113ca7304d37d40",
+  "control_tolerance": 1e-10,
+  "matrix_tolerance": 2e-08,
+  "epoch_tolerance_seconds": 5e-05,
+  "position_tolerance": 2e-05,
+  "velocity_tolerance": 2e-08,
+  "expected_matrix": [
+    0.6427876096865394,
+    0.766044443118978,
+    0,
+    -0.766044443118978,
+    0.6427876096865394,
+    0,
+    0,
+    0,
+    1
+  ],
+  "expected_packets": 25,
+  "expected_elapsed_seconds": [
+    0,
+    5,
+    10,
+    15,
+    20,
+    25,
+    30,
+    35,
+    40,
+    45,
+    50,
+    55,
+    60,
+    65,
+    70,
+    75,
+    80,
+    85,
+    90,
+    95,
+    100,
+    105,
+    110,
+    115,
+    120
+  ],
+  "cases": [
+    {
+      "key": "Target",
+      "solver_type": "DifferentialCorrector",
+      "script": "% Supplementary native CK final-pass witness \u0394\nCreate Spacecraft Sat;\nSat.DateFormat = UTCGregorian;\nSat.Epoch = '01 Jan 2000 12:00:00.000';\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = 7.546053287267836;\nSat.VZ = 0;\nSat.NAIFId = -100057;\nSat.Attitude = Spinner;\nSat.AttitudeCoordinateSystem = EarthMJ2000Eq;\nSat.AttitudeDisplayStateType = EulerAngles;\nSat.EulerAngleSequence = '123';\nSat.EulerAngle1 = 0;\nSat.EulerAngle2 = 0;\nSat.EulerAngle3 = 10;\nSat.AttitudeRateDisplayStateType = AngularVelocity;\nSat.AngularVelocityX = 0;\nSat.AngularVelocityY = 0;\nSat.AngularVelocityZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nCreate Propagator PropA;\nPropA.Type = RungeKutta89;\nPropA.FM = FM;\nPropA.InitialStepSize = 5;\nPropA.MinStep = 5;\nPropA.MaxStep = 5;\nPropA.Accuracy = 1e-12;\nCreate EphemerisFile Export;\nExport.Spacecraft = Sat;\nExport.FileFormat = CK;\nExport.StateType = Quaternion;\nExport.Filename = '@OUTPUT@/solution.bc';\nExport.CoordinateSystem = EarthMJ2000Eq;\nExport.StepSize = IntegratorSteps;\nExport.InterpolationOrder = 7;\nExport.WriteEphemeris = true;\nCreate Variable U Radius Cost CkHeading;\nU = 0;\nRadius = 7000;\nCost = 0;\nCkHeading = 10;\nCreate DifferentialCorrector DC;\nDC.MaximumIterations = 30;\nDC.ReportFile = '@OUTPUT@/target.txt';\nCreate Yukon Opt;\nOpt.MaximumIterations = 50;\nOpt.FeasibilityTolerance = 1e-12;\nOpt.OptimalityTolerance = 1e-12;\nOpt.FunctionTolerance = 1e-12;\nOpt.UseCentralDifferences = true;\nOpt.ReportFile = '@OUTPUT@/optimizer.txt';\nCreate ReportFile Trials;\nTrials.Filename = '@OUTPUT@/trials.csv';\nTrials.SolverIterations = All;\nTrials.WriteHeaders = false;\nTrials.FixedWidth = false;\nTrials.Delimiter = ',';\nTrials.Precision = 17;\nBeginMissionSequence;\nTarget 'Final solution only' DC {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary DC(U = 0, {Perturbation = 0.0001, Lower = -2, Upper = 4, MaxStep = 1});\nCkHeading = 10 + 20*U;\nSat.EulerAngle3 = CkHeading;\nRadius = 7000 + 100*U;\nSat.X = Radius;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = sqrt(398600.4415/Radius);\nSat.VZ = 0;\nPropagate 'Trial or final circle' PropA(Sat) {Sat.ElapsedSecs = 120};\nReport Trials U Sat.ElapsedSecs Sat.DCM11 Sat.DCM12 Sat.DCM13 Sat.DCM21 Sat.DCM22 Sat.DCM23 Sat.DCM31 Sat.DCM32 Sat.DCM33 Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ;\nAchieve DC(U = 2, {Tolerance = 0.0000000001});\nEndTarget;\n",
+      "origin_mission": "Target 'Final solution only' DC {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary DC(U = 0, {Perturbation = 0.0001, Lower = -2, Upper = 4, MaxStep = 1});\nRadius = 7000 + 100*U;\nSat.X = Radius;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = sqrt(398600.4415/Radius);\nSat.VZ = 0;\nPropagate 'Trial or final circle' PropA(Sat) {Sat.ElapsedSecs = 120};\nReport Trials U Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ;\nAchieve DC(U = 2, {Tolerance = 0.0000000001});\nEndTarget;\n"
+    },
+    {
+      "key": "Optimize",
+      "solver_type": "Yukon",
+      "script": "% Supplementary native CK final-pass witness \u0394\nCreate Spacecraft Sat;\nSat.DateFormat = UTCGregorian;\nSat.Epoch = '01 Jan 2000 12:00:00.000';\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = 7.546053287267836;\nSat.VZ = 0;\nSat.NAIFId = -100057;\nSat.Attitude = Spinner;\nSat.AttitudeCoordinateSystem = EarthMJ2000Eq;\nSat.AttitudeDisplayStateType = EulerAngles;\nSat.EulerAngleSequence = '123';\nSat.EulerAngle1 = 0;\nSat.EulerAngle2 = 0;\nSat.EulerAngle3 = 10;\nSat.AttitudeRateDisplayStateType = AngularVelocity;\nSat.AngularVelocityX = 0;\nSat.AngularVelocityY = 0;\nSat.AngularVelocityZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.SRP = Off;\nCreate Propagator PropA;\nPropA.Type = RungeKutta89;\nPropA.FM = FM;\nPropA.InitialStepSize = 5;\nPropA.MinStep = 5;\nPropA.MaxStep = 5;\nPropA.Accuracy = 1e-12;\nCreate EphemerisFile Export;\nExport.Spacecraft = Sat;\nExport.FileFormat = CK;\nExport.StateType = Quaternion;\nExport.Filename = '@OUTPUT@/solution.bc';\nExport.CoordinateSystem = EarthMJ2000Eq;\nExport.StepSize = IntegratorSteps;\nExport.InterpolationOrder = 7;\nExport.WriteEphemeris = true;\nCreate Variable U Radius Cost CkHeading;\nU = 0;\nRadius = 7000;\nCost = 0;\nCkHeading = 10;\nCreate DifferentialCorrector DC;\nDC.MaximumIterations = 30;\nDC.ReportFile = '@OUTPUT@/target.txt';\nCreate Yukon Opt;\nOpt.MaximumIterations = 50;\nOpt.FeasibilityTolerance = 1e-12;\nOpt.OptimalityTolerance = 1e-12;\nOpt.FunctionTolerance = 1e-12;\nOpt.UseCentralDifferences = true;\nOpt.ReportFile = '@OUTPUT@/optimizer.txt';\nCreate ReportFile Trials;\nTrials.Filename = '@OUTPUT@/trials.csv';\nTrials.SolverIterations = All;\nTrials.WriteHeaders = false;\nTrials.FixedWidth = false;\nTrials.Delimiter = ',';\nTrials.Precision = 17;\nBeginMissionSequence;\nOptimize 'Final solution only' Opt {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary Opt(U = 0, {Perturbation = 0.0001, Lower = -2, Upper = 4, MaxStep = 1});\nCkHeading = 10 + 20*U;\nSat.EulerAngle3 = CkHeading;\nRadius = 7000 + 100*U;\nSat.X = Radius;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = sqrt(398600.4415/Radius);\nSat.VZ = 0;\nPropagate 'Trial or final circle' PropA(Sat) {Sat.ElapsedSecs = 120};\nReport Trials U Sat.ElapsedSecs Sat.DCM11 Sat.DCM12 Sat.DCM13 Sat.DCM21 Sat.DCM22 Sat.DCM23 Sat.DCM31 Sat.DCM32 Sat.DCM33 Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ;\nCost = (U-2)^2;\nMinimize Opt(Cost);\nEndOptimize;\n",
+      "origin_mission": "Optimize 'Final solution only' Opt {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary Opt(U = 0, {Perturbation = 0.0001, Lower = -2, Upper = 4, MaxStep = 1});\nRadius = 7000 + 100*U;\nSat.X = Radius;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = sqrt(398600.4415/Radius);\nSat.VZ = 0;\nPropagate 'Trial or final circle' PropA(Sat) {Sat.ElapsedSecs = 120};\nReport Trials U Sat.ElapsedSecs Sat.EarthMJ2000Eq.X Sat.EarthMJ2000Eq.Y Sat.EarthMJ2000Eq.Z Sat.EarthMJ2000Eq.VX Sat.EarthMJ2000Eq.VY Sat.EarthMJ2000Eq.VZ;\nCost = (U-2)^2;\nMinimize Opt(Cost);\nEndOptimize;\n"
+    }
+  ],
+  "scope": "New CK format conjunction only. Original solver fixtures/assertions remain unchanged. Matrix bound reused from attitude acceptance; time bound from SPK epoch checks; original solver control/circle bounds retained."
+}

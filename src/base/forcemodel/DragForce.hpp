@@ -48,6 +48,8 @@ class CoordinateSystem;
 class GMAT_API DragForce : public PhysicalModel
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = PhysicalModel::NativeValueProviderDepth + 1;
+
    DragForce(const std::string &name = "");
    virtual ~DragForce();
    
@@ -81,6 +83,7 @@ public:
 
    // inherited from GmatBase
    virtual GmatBase*    Clone() const;
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
    void Copy(const GmatBase *original) override;
    
    // Parameter accessor methods -- overridden from GmatBase
@@ -141,6 +144,8 @@ public:
    bool                 SetInternalAtmosphereModel(AtmosphereModel* atm);
    AtmosphereModel*     GetInternalAtmosphereModel();
    AtmosphereModel*     GetAtmosphereModel();
+   void                 RebindClonedCoordinateSystems(const DragForce &source,
+                           const std::function<GmatBase*(GmatBase*)> &resolve);
    static std::string   CheckFluxFile(const std::string &filename, bool isHistoric);
    
    // Methods used by the ODEModel to set the state indexes, etc
@@ -158,6 +163,8 @@ public:
    DEFAULT_TO_NO_REFOBJECTS
 
 protected:
+   void CopyDragBuffers(const DragForce &source);
+   void ReleaseDragBuffers();
    /// Sun pointer for bulge calculations
    CelestialBody        *sun;
    /// Position of the Sun
@@ -317,6 +324,10 @@ protected:
 //   void                 GetDensity(Real *state, Real when = GmatTimeConstants::MJD_OF_J2000);
       
    Real                 CalculateAp(Real kp);
+   Rmatrix              SampledStateJacobian(Spacecraft *spacecraft,
+                                            const Real *bodyState = nullptr, Real atEpoch = 0);
+   Real                 GetDensityForSpacecraft(Real *state, Real when,
+                                               Integer count, Integer firstSpacecraft);
    Rvector3             Accelerate(Integer scID, Real *theState,
                                    GmatEpoch &theEpoch, Real prefactor);
 

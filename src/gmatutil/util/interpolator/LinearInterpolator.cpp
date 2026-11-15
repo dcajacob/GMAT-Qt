@@ -30,7 +30,11 @@
 //------------------------------------------------------------------------------
 
 
-#include "LinearInterpolator.hpp" // class's header file
+#include "LinearInterpolator.hpp"
+#include <algorithm>
+#include <array>
+#include <memory>
+#include <typeinfo> // class's header file
 
 //------------------------------------------------------------------------------
 //  LinearInterpolator(const std::string &name, Integer dim)
@@ -169,3 +173,17 @@ Interpolator* LinearInterpolator::Clone() const
    return (new LinearInterpolator(*this));
 }
 
+
+void LinearInterpolator::ValidateRestorationLayout(const LinearInterpolator &source) const
+{
+   if (typeid(*this) != typeid(LinearInterpolator))
+      throw InterpolatorException("A derived linear interpolator needs its own restoration provider.");
+   ValidateTableRestoration(source);
+}
+
+void LinearInterpolator::RestoreValues(const LinearInterpolator &source)
+{
+   if (&source == this) return;
+   ValidateRestorationLayout(source);
+   RestoreTableValues(source);
+}

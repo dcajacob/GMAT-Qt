@@ -84,6 +84,24 @@ RvectorVar::RvectorVar(const std::string &name, const std::string &typeStr,
    mVectorSize = size;
    mRvectorValue.SetSize(size);
    mReturnType = Gmat::RVECTOR_TYPE;
+   parameterCount = RvectorVarParamCount;
+}
+
+RvectorVar::RvectorVar(const std::string &name, Integer size) :
+   RvectorVar(name, "RvectorVar", GmatParam::USER_PARAM, NULL, "", "",
+         GmatParam::NO_DEP, Gmat::UNKNOWN_OBJECT, false, true,
+         Gmat::UNKNOWN_OBJECT, size)
+{
+}
+
+GmatBase* RvectorVar::Clone() const
+{
+   return CompleteParameterClone(new RvectorVar(*this));
+}
+
+void RvectorVar::Copy(const GmatBase *source)
+{
+   CopyParameterValue<RvectorVar>(source);
 }
 
 
@@ -118,9 +136,11 @@ RvectorVar& RvectorVar::operator= (const RvectorVar& param)
 {
    if (this != &param)
    {
+      const auto previousContext = GetFunctionValueContext();
+      Rvector value(param.mRvectorValue);
       Parameter::operator=(param);
       mVectorSize = param.mVectorSize;
-      mRvectorValue = param.mRvectorValue;
+      mRvectorValue.Swap(value);
    }
 
    return *this;
@@ -265,6 +285,13 @@ std::string RvectorVar::GetParameterText(const Integer id) const
       return Parameter::GetParameterText(id);
 }
 
+Gmat::ParameterType RvectorVar::GetParameterType(const Integer id) const
+{
+   if (id >= ParameterParamCount && id < RvectorVarParamCount)
+      return PARAMETER_TYPE[id - ParameterParamCount];
+   return Parameter::GetParameterType(id);
+}
+
 //---------------------------------------------------------------------------
 //  bool IsParameterReadOnly(const Integer id) const
 //---------------------------------------------------------------------------
@@ -299,6 +326,7 @@ bool RvectorVar::IsParameterReadOnly(const Integer id) const
 //------------------------------------------------------------------------------
 bool RvectorVar::IsParameterCommandModeSettable(const Integer id) const
 {
+   if (id == VECTOR_SIZE) return false;
    // For now, turn them all on
    return true;
 }

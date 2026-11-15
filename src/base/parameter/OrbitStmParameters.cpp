@@ -30,6 +30,7 @@
 //------------------------------------------------------------------------------
 
 #include "OrbitStmParameters.hpp"
+#include "ParameterException.hpp"
 #include "ColorTypes.hpp"
 
 
@@ -48,7 +49,7 @@
 // OrbitStm(const std::string &name, GmatBase *obj)
 //------------------------------------------------------------------------------
 OrbitStm::OrbitStm(const std::string &name, GmatBase *obj)
-   : OrbitRmat66(name, "OrbitSTM", obj, "Orbit STM", "", GmatParam::NO_DEP,
+   : OrbitRmat66(name, "OrbitSTM", obj, "Orbit STM", "", GmatParam::COORD_SYS,
          true)
 {
    mDepObjectName = "EarthMJ2000Eq";
@@ -103,7 +104,12 @@ bool OrbitStm::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* OrbitStm::Clone(void) const
 {
-   return new OrbitStm(*this);
+   return CompleteParameterClone(new OrbitStm(*this));
+}
+
+void OrbitStm::Copy(const GmatBase *source)
+{
+   CopyParameterValue<OrbitStm>(source);
 }
 
 
@@ -119,7 +125,7 @@ GmatBase* OrbitStm::Clone(void) const
 // OrbitStmA(const std::string &name, GmatBase *obj)
 //------------------------------------------------------------------------------
 OrbitStmA::OrbitStmA(const std::string &name, GmatBase *obj)
-   : OrbitRmat33(name, "OrbitSTMA", obj, "Orbit STM_A", "", GmatParam::NO_DEP, true)
+   : OrbitRmat33(name, "OrbitSTMA", obj, "Orbit STM_A", "", GmatParam::COORD_SYS, true)
 {
    mDepObjectName = "EarthMJ2000Eq";
    SetRefObjectName(Gmat::COORDINATE_SYSTEM, mDepObjectName);
@@ -173,7 +179,12 @@ bool OrbitStmA::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* OrbitStmA::Clone(void) const
 {
-   return new OrbitStmA(*this);
+   return CompleteParameterClone(new OrbitStmA(*this));
+}
+
+void OrbitStmA::Copy(const GmatBase *source)
+{
+   CopyParameterValue<OrbitStmA>(source);
 }
 
 
@@ -189,7 +200,7 @@ GmatBase* OrbitStmA::Clone(void) const
 // OrbitStmB(const std::string &name, GmatBase *obj)
 //------------------------------------------------------------------------------
 OrbitStmB::OrbitStmB(const std::string &name, GmatBase *obj)
-   : OrbitRmat33(name, "OrbitSTMB", obj, "Orbit STM_B", "", GmatParam::NO_DEP, true)
+   : OrbitRmat33(name, "OrbitSTMB", obj, "Orbit STM_B", "", GmatParam::COORD_SYS, true)
 {
    mDepObjectName = "EarthMJ2000Eq";
    SetRefObjectName(Gmat::COORDINATE_SYSTEM, mDepObjectName);
@@ -243,7 +254,12 @@ bool OrbitStmB::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* OrbitStmB::Clone(void) const
 {
-   return new OrbitStmB(*this);
+   return CompleteParameterClone(new OrbitStmB(*this));
+}
+
+void OrbitStmB::Copy(const GmatBase *source)
+{
+   CopyParameterValue<OrbitStmB>(source);
 }
 
 
@@ -259,7 +275,7 @@ GmatBase* OrbitStmB::Clone(void) const
 // OrbitStmC(const std::string &name, GmatBase *obj)
 //------------------------------------------------------------------------------
 OrbitStmC::OrbitStmC(const std::string &name, GmatBase *obj)
-   : OrbitRmat33(name, "OrbitSTMC", obj, "Orbit STM_C", "", GmatParam::NO_DEP, true)
+   : OrbitRmat33(name, "OrbitSTMC", obj, "Orbit STM_C", "", GmatParam::COORD_SYS, true)
 {
    mDepObjectName = "EarthMJ2000Eq";
    SetRefObjectName(Gmat::COORDINATE_SYSTEM, mDepObjectName);
@@ -313,7 +329,12 @@ bool OrbitStmC::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* OrbitStmC::Clone(void) const
 {
-   return new OrbitStmC(*this);
+   return CompleteParameterClone(new OrbitStmC(*this));
+}
+
+void OrbitStmC::Copy(const GmatBase *source)
+{
+   CopyParameterValue<OrbitStmC>(source);
 }
 
 
@@ -329,7 +350,7 @@ GmatBase* OrbitStmC::Clone(void) const
 // OrbitStmD(const std::string &name, GmatBase *obj)
 //------------------------------------------------------------------------------
 OrbitStmD::OrbitStmD(const std::string &name, GmatBase *obj)
-   : OrbitRmat33(name, "OrbitSTMD", obj, "Orbit STM_D", "", GmatParam::NO_DEP, true)
+   : OrbitRmat33(name, "OrbitSTMD", obj, "Orbit STM_D", "", GmatParam::COORD_SYS, true)
 {
    mDepObjectName = "EarthMJ2000Eq";
    SetRefObjectName(Gmat::COORDINATE_SYSTEM, mDepObjectName);
@@ -383,6 +404,40 @@ bool OrbitStmD::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* OrbitStmD::Clone(void) const
 {
-   return new OrbitStmD(*this);
+   return CompleteParameterClone(new OrbitStmD(*this));
+}
+
+void OrbitStmD::Copy(const GmatBase *source)
+{
+   CopyParameterValue<OrbitStmD>(source);
+}
+
+// These system matrices are already declared read-only. Enforce the same
+// contract at the generic native setter, rather than allowing the inherited
+// value-variable setter to replace only a cached report value. Native Clone
+// and Copy use their separate value/provider transport paths above.
+void OrbitStm::SetRmatrix(const Rmatrix &)
+{
+   throw ParameterException("OrbitSTM is read-only; propagate the spacecraft STM to calculate its value.\n");
+}
+
+void OrbitStmA::SetRmatrix(const Rmatrix &)
+{
+   throw ParameterException("OrbitSTMA is read-only; propagate the spacecraft STM to calculate its value.\n");
+}
+
+void OrbitStmB::SetRmatrix(const Rmatrix &)
+{
+   throw ParameterException("OrbitSTMB is read-only; propagate the spacecraft STM to calculate its value.\n");
+}
+
+void OrbitStmC::SetRmatrix(const Rmatrix &)
+{
+   throw ParameterException("OrbitSTMC is read-only; propagate the spacecraft STM to calculate its value.\n");
+}
+
+void OrbitStmD::SetRmatrix(const Rmatrix &)
+{
+   throw ParameterException("OrbitSTMD is read-only; propagate the spacecraft STM to calculate its value.\n");
 }
 

@@ -30,12 +30,40 @@
   <refsection>
     <title>Description</title>
 
+    <para>A smoother owns its filter copy. Copying or replacing that filter
+    prepares the new value before retiring the previous one. Its measurement
+    manager and estimation registrations use their own tracking definitions;
+    restarting the smoother resets its processing cursor and generated results
+    while retaining the supplied forward-filter input.</para>
+
     <para>A fixed-interval backward-running sequential estimator utilizing the
     Fraser-Potter algorithm for fusion of forward and reverse estimated
     states.</para>
 
     <para><phrase role="ref_seealso">See Also</phrase>: <xref
     linkend="ExtendedKalmanFilter"/>, <xref linkend="RunSmoother"/></para>
+    <para>A smoother owns its filter and copies supplied restoration objects
+    before retaining them. Copied forward-pass data belongs to the destination
+    smoother, whose filter points to that destination data. Function values
+    disclose these owned components so private references can be rebound before
+    native command preparation.</para>
+
+    <para>Restoration snapshots retain their captured destination references
+    independently of live definition updates. Function bindings remap those
+    references into the destination scope; reordered buffers do not change which
+    object receives each captured value. Expired, repeated, ambiguous or
+    incompatible destinations are rejected before restoration.</para>
+
+    <para>Saved station values remain associated with the station's configured
+    hardware, error models and fields of view. A saved buffer cannot be applied
+    after those component declarations or types change; prepare a new run after
+    changing that configuration.</para>
+
+    <para>Saved spacecraft states restore into their corresponding configured
+    components. Compatible state and state-transition matrix layouts retain
+    their current storage. A changed component, frame, attitude-file or burn
+    configuration must be prepared before using a saved state.</para>
+
   </refsection>
 
   <refsection>
@@ -591,6 +619,14 @@
 
   <refsection>
     <title>Remarks</title>
+
+    <para>Restoration preserves complete captured object covariance values within an unchanged layout. Existing covariance matrix storage and the most recently requested parameter block remain selected and receive restored values. Changes to covariance declarations or block sizes require preparation before restoration.</para>
+
+    <para>Force-model snapshots include their previous-state buffer, numerical derivative values and solve-for values. Restoration within an unchanged prepared graph keeps the current force objects, internal frames and propagation/measurement connections rather than replacing their identities.</para>
+
+    <para>Captured owned atmosphere values retain loaded weather-table metadata, angular-velocity and geodetic samples. Restoring unchanged prepared drag and atmosphere models updates values within their current objects and buffers. Changes to files or native propagation roles require preparation before reuse.</para>
+
+    <para>Physical-model snapshots include separate translated state and optional mass/time Jacobian values. Restoring these values within an unchanged layout keeps current storage and active body/frame bindings. Prepare the propagation model again after changing its state layout, force files or frame configuration.</para>
 
     <refsection>
       <title>Fraser-Potter Smoother</title>

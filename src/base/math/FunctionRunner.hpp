@@ -45,6 +45,11 @@ public:
    FunctionRunner(const std::string &nomme);
    virtual ~FunctionRunner();
    FunctionRunner(const FunctionRunner &copy);
+   FunctionRunner& operator=(const FunctionRunner &copy);
+   std::vector<MathNode*> GetStructuralChildren() const override;
+   void RetireExpressionReferences() override;
+   void RebindClonedChildren(const MathNode &source,
+         const std::function<MathNode*(MathNode*)> &resolve) override;
 
    // for Function
    void                 SetFunctionName(const std::string &fname);
@@ -63,6 +68,8 @@ public:
    // for calling function
    virtual void         SetCallingFunction(FunctionManager *fm);
    
+   void SetExpressionObjectMaps(ObjectMap *local, ObjectMap *global);
+
    // for setting objects to FunctionManager
    virtual void         SetObjectMap(ObjectMap *map);
    virtual void         SetGlobalObjectMap(ObjectMap *map);
@@ -77,12 +84,16 @@ public:
    virtual bool         ValidateInputs(); 
    virtual Real         Evaluate();
    virtual Rmatrix      MatrixEvaluate();
+   Rvector              VectorEvaluate() override;
    virtual GmatBase*    EvaluateObject();
    virtual void         Finalize();
    
    // inherited from GmatBase
    virtual GmatBase*    Clone() const;
    
+   void RebindExpressionReferences(const MathNode &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve, WrapperMap *wrappers) override;
+
 protected:
    
    FunctionManager theFunctionManager;

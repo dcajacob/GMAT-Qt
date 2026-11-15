@@ -1,0 +1,73 @@
+{
+  "cases": [
+    {
+      "key": "AdaptiveStepRatios",
+      "group": "NormalizedModels",
+      "object": "Probe",
+      "fixture": "Create Propagator Probe;\nProbe.Type = BulirschStoer;\nProbe.MinimumReduction = 0.6;\nProbe.MaximumReduction = 0.0001;\n",
+      "route": "table",
+      "units": {
+        "MinimumReduction": "dimensionless",
+        "MaximumReduction": "dimensionless"
+      }
+    },
+    {
+      "key": "FilterRatios",
+      "group": "NormalizedModels",
+      "object": "Probe",
+      "fixture": "Create ExtendedKalmanFilter Probe;\nProbe.ScaledResidualThreshold = 5.5;\nProbe.MeasDeweightingCoefficient = 0.25;\n",
+      "route": "table",
+      "units": {
+        "ScaledResidualThreshold": "dimensionless",
+        "MeasDeweightingCoefficient": "dimensionless"
+      }
+    },
+    {
+      "key": "SmootherRatio",
+      "group": "NormalizedModels",
+      "object": "Probe",
+      "fixture": "Create Spacecraft Sat;\nSat.NAIFId = -101019;\nSat.NAIFIdReferenceFrame = -910019;\nCreate GroundStation Station;\nCreate TrackingFileSet Data;\nData.AddTrackingConfig = {{Station,Sat,Station},'Range_Skin'};\nData.UseLightTime = false;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator Prop;\nProp.FM = FM;\nCreate ExtendedKalmanFilter Filter;\nFilter.Propagator = Prop;\nFilter.Measurements = {Data};\nData.FileName = {'unused-Save-acceptance.gmd'};\nSat.SolveFors = {CartesianState};\nCreate Smoother Probe;\nProbe.Filter = Filter;\nProbe.MeasDeweightingCoefficient = 1.25;\n",
+      "route": "table",
+      "units": {
+        "MeasDeweightingCoefficient": "dimensionless"
+      }
+    },
+    {
+      "key": "EstimatedCd",
+      "group": "NormalizedModels",
+      "object": "Probe",
+      "fixture": "Create EstimatedParameter Probe;\nProbe.SolveFor = Cd;\nProbe.SteadyStateValue = 2.1;\nProbe.SteadyStateSigma = 0.125;\n",
+      "route": "table",
+      "units": {
+        "SteadyStateValue": "dimensionless",
+        "SteadyStateSigma": "dimensionless"
+      }
+    },
+    {
+      "key": "EstimatedDensity",
+      "group": "NormalizedModels",
+      "object": "Probe",
+      "fixture": "Create EstimatedParameter Probe;\nProbe.SolveFor = AtmosDensityScaleFactor;\nProbe.SteadyStateValue = 1.25;\nProbe.SteadyStateSigma = 0.2;\n",
+      "route": "table",
+      "units": {
+        "SteadyStateValue": "dimensionless",
+        "SteadyStateSigma": "dimensionless"
+      }
+    },
+    {
+      "key": "SolarCoefficients",
+      "group": "SolarCoefficients",
+      "object": "Probe",
+      "fixture": "Create SolarPowerSystem Probe;\nProbe.SolarCoeff1 = 1.1;\nProbe.SolarCoeff2 = 0.1;\nProbe.SolarCoeff3 = 0.01;\nProbe.SolarCoeff4 = 0.001;\nProbe.SolarCoeff5 = 0.0001;\n",
+      "route": "table",
+      "units": {
+        "SolarCoeff1": "dimensionless",
+        "SolarCoeff2": "dimensionless",
+        "SolarCoeff3": "dimensionless",
+        "SolarCoeff4": "dimensionless",
+        "SolarCoeff5": "dimensionless"
+      }
+    }
+  ],
+  "scope": "Four normalized-model families and SolarPowerSystem coefficient labels; no conditional RMS tolerances, physical integrator accuracy scale, arbitrary estimated parameter, mission run, or whole-row credit."
+}

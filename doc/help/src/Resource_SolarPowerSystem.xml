@@ -40,6 +40,10 @@
 
     <para>See Also <xref linkend="ElectricTank"/>, <xref
     linkend="ElectricThruster"/>, <xref linkend="NuclearPowerSystem"/></para>
+    <para>Restoring saved spacecraft values retains the selected spacecraft,
+    Sun and shadow-body references when the shadow configuration is unchanged.
+    A changed shadow configuration requires a newly prepared run.</para>
+
   </refsection>
 
   <refsection>

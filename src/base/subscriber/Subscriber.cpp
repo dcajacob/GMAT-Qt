@@ -45,11 +45,36 @@
 //------------------------------------------------------------------------------
 
 #include "Subscriber.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration subscriberValueProvider({
+   Subscriber::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const Subscriber*>(object) != nullptr; },
+   [](const GmatBase *object) { return dynamic_cast<const Subscriber*>(object)->GetFunctionValueOwnedObjectsImpl(); },
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<Subscriber*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "Publisher.hpp"
 #include "SubscriberException.hpp"
 #include "Parameter.hpp"
+#include "VariableWrapper.hpp"
 #include "StringUtil.hpp"          // for Replace()
 #include "MessageInterface.hpp"
+#include "Function.hpp"
+#include "PlotInterface.hpp"
+#include "SubscriberBindingState.hpp"
+#include "FunctionManager.hpp"
+#include <atomic>
+#include <limits>
+#include <algorithm>
+#include <map>
+#include <set>
+#include <typeinfo>
 
 // Uncomment this line if cloning wrapper code is ready
 #define __ENABLE_CLONING_WRAPPERS__
@@ -70,6 +95,106 @@
 #ifdef DEBUG_MEMORY
 #include "MemoryTracker.hpp"
 #endif
+
+namespace
+{
+std::atomic<std::uint64_t> nextOutputIdentity{0};
+std::uint64_t NewOutputIdentity()
+{
+   auto current = nextOutputIdentity.load();
+   do
+   {
+      if (current == std::numeric_limits<std::uint64_t>::max())
+         throw SubscriberException("Subscriber output identity cannot be represented.\n");
+   } while (!nextOutputIdentity.compare_exchange_weak(current, current + 1));
+   return current + 1;
+}
+thread_local SharedSubscriberBindings *activeSubscriberBindings = nullptr;
+}
+
+struct SubscriberValueCopyState
+{
+   std::shared_ptr<const FunctionValueContext> oldContext, sourceContext;
+   std::shared_ptr<SubscriberValueCopyState> previous;
+   // Retire wrappers before their context/older captured dependencies.
+   std::vector<ElementWrapper::InvocationLease> wrappers;
+};
+
+struct SharedSubscriberBindings::State
+{
+   struct Entry
+   {
+      Subscriber *subscriber;
+      std::weak_ptr<const void> identity;
+      std::unique_ptr<FunctionInvocationState> bindings;
+      bool committed = false;
+   };
+   std::vector<Entry> entries;
+   bool restored = false, successful = true;
+};
+
+SharedSubscriberBindings::SharedSubscriberBindings(ObjectMap *local, ObjectMap *global) :
+   state(std::make_unique<State>()), previous(activeSubscriberBindings)
+{
+   activeSubscriberBindings = this;
+   std::set<Subscriber*> captured;
+   try
+   {
+      for (const auto *store : {local, global})
+         if (store)
+            for (const auto &entry : *store)
+               if (auto *subscriber = dynamic_cast<Subscriber*>(entry.second))
+                  if (captured.insert(subscriber).second)
+                     state->entries.push_back({subscriber, subscriber->GetLifetimeToken(),
+                           subscriber->SuspendFunctionBindings(), false});
+   }
+   catch (...) { Restore(); throw; }
+}
+
+void SharedSubscriberBindings::Unlink() noexcept
+{
+   auto **link = &activeSubscriberBindings;
+   while (*link)
+   {
+      if (*link == this) { *link = previous; return; }
+      link = &(*link)->previous;
+   }
+}
+
+void SharedSubscriberBindings::Commit(Subscriber &subscriber) noexcept
+{
+   for (auto *scope = activeSubscriberBindings; scope; scope = scope->previous)
+      for (auto &entry : scope->state->entries)
+         if (!entry.committed && entry.subscriber == &subscriber &&
+               GmatBase::IsLiveReference(entry.subscriber, entry.identity))
+         {
+            entry.committed = true;
+            if (entry.bindings) entry.bindings->Dismiss();
+         }
+}
+
+bool SharedSubscriberBindings::Restore() noexcept
+{
+   if (state->restored) return state->successful;
+   state->restored = true;
+   for (auto entry = state->entries.rbegin(); entry != state->entries.rend(); ++entry)
+      if (entry->bindings && !entry->bindings->Restore()) state->successful = false;
+   // Destructors can trigger nested cleanup. Retired entries must not remain
+   // visible in the registry while their captured owners are being released.
+   Unlink();
+   state->entries.clear();
+   return state->successful;
+}
+
+SharedSubscriberBindings::~SharedSubscriberBindings() noexcept
+{
+   Restore();
+}
+
+void Subscriber::CommitFunctionValueBindings() noexcept
+{
+   SharedSubscriberBindings::Commit(*this);
+}
 
 //---------------------------------
 // static data
@@ -144,6 +269,7 @@ Subscriber::Subscriber(const std::string &typeStr, const std::string &nomme) :
    mPlotSize             (2,0.0,0.0),
    propDirection         (1.0)
 {
+   runtimeOutputIdentity = NewOutputIdentity();
    objectTypes.push_back(Gmat::SUBSCRIBER);
    objectTypeNames.push_back("Subscriber");
    
@@ -174,9 +300,10 @@ Subscriber::Subscriber(const Subscriber &copy) :
    active                (copy.active),
    isManeuvering         (copy.isManeuvering),
    isEndOfReceive        (copy.isEndOfReceive),
+   isEndOfDataBlock      (copy.isEndOfDataBlock),
    isEndOfRun            (copy.isEndOfRun),
-   isInitialized         (copy.isInitialized),
-   isFinalized           (copy.isFinalized),
+   isInitialized         (false),
+   isFinalized           (false),
    isDataOn              (copy.isDataOn),
    isDataStateChanged    (copy.isDataStateChanged),
    relativeZOrder        (copy.relativeZOrder),
@@ -190,6 +317,8 @@ Subscriber::Subscriber(const Subscriber &copy) :
    yWrapperObjectNames   (copy.yWrapperObjectNames),
    allWrapperObjectNames (copy.allWrapperObjectNames)
 {
+   GmatBase::isInitialized = false;
+   runtimeOutputIdentity = NewOutputIdentity();
    mSolverIterations = copy.mSolverIterations;
    mSolverIterOption = copy.mSolverIterOption;
    wrappersCopied    = true;
@@ -205,11 +334,7 @@ Subscriber::Subscriber(const Subscriber &copy) :
    #endif
    
 #ifdef __ENABLE_CLONING_WRAPPERS__
-   // Clear old wrappers
-   ClearWrappers(true, true);
-   // Create new wrappers by cloning (LOJ: 2009.03.10)
-   CloneWrappers(xParamWrappers, copy.xParamWrappers);
-   CloneWrappers(yParamWrappers, copy.yParamWrappers);
+   CopyWrapperGraph(copy);
    #ifdef DEBUG_WRAPPER_CODE
    MessageInterface::ShowMessage("Subscriber(copy) cloned wrappers\n");
    WriteWrappers();
@@ -237,11 +362,13 @@ Subscriber& Subscriber::operator=(const Subscriber& rhs)
 {
    if (this == &rhs)
       return *this;
+   const auto previousContext = GetFunctionValueContext();
+   functionValueRolesBound = false;
    
    GmatBase::operator=(rhs);
    
-   data = rhs.data;
-   next = rhs.next;
+   data = nullptr;
+   // The destination keeps its actual subscriber-chain membership.
    
    theInternalCoordSystem = rhs.theInternalCoordSystem;
    theDataCoordSystem = rhs.theDataCoordSystem;
@@ -250,11 +377,14 @@ Subscriber& Subscriber::operator=(const Subscriber& rhs)
    currentProvider = NULL;
    
    active = rhs.active;
-   active = rhs.active;
    isManeuvering = rhs.isManeuvering;
+   isEndOfReceive = rhs.isEndOfReceive;
+   isEndOfDataBlock = rhs.isEndOfDataBlock;
    isEndOfRun = rhs.isEndOfRun;
-   isInitialized = rhs.isInitialized;
-   isFinalized = rhs.isFinalized;
+   // Readiness belongs to this actual resource and its output, not its peer.
+   isInitialized = false;
+   GmatBase::isInitialized = false;
+   isFinalized = false;
    isDataOn = rhs.isDataOn;
    isDataStateChanged = rhs.isDataStateChanged;
 
@@ -277,11 +407,9 @@ Subscriber& Subscriber::operator=(const Subscriber& rhs)
    wrappersCopied = true;
    
 #ifdef __ENABLE_CLONING_WRAPPERS__
-   // Clear old wrappers
-   ClearWrappers(true, true);
-   // Create new wrappers by cloning (LOJ: 2009.03.10)
-   CloneWrappers(xParamWrappers, rhs.xParamWrappers);
-   CloneWrappers(yParamWrappers, rhs.yParamWrappers);
+   // Stage the whole graph before retiring either axis. Aliases across axes
+   // must continue to select one independent copied wrapper.
+   CopyWrapperGraph(rhs);
    #ifdef DEBUG_WRAPPER_CODE
    MessageInterface::ShowMessage("Subscriber(=) cloned wrappers\n");
    WriteWrappers();
@@ -296,6 +424,7 @@ Subscriber& Subscriber::operator=(const Subscriber& rhs)
    #endif
 #endif
    
+   invocationWrapperLeases.clear();
    return *this;
 }
 
@@ -307,7 +436,7 @@ Subscriber::~Subscriber()
 {
    Publisher::SetIntegrationStepConsumer(this, false);
 #ifdef __ENABLE_CLONING_WRAPPERS__
-   ClearWrappers();
+   ClearWrappers(true, true);
 #else
    #ifdef DEBUG_WRAPPER_CODE
    MessageInterface::ShowMessage
@@ -328,12 +457,297 @@ Subscriber::~Subscriber()
       //ClearWrappers();
    }
 #endif
+   for (const auto &entry : runtimeOutputNames) PlotInterface::ForgetPlotDisplayName(entry.second);
 }
 
 
 //------------------------------------------------------------------------------
 // bool Initialize()
 //------------------------------------------------------------------------------
+void Subscriber::ConfigureRuntimeOutput(bool privateOutput)
+{
+   if (runtimeOutputStarted) return;
+   if (privateOutput)
+   {
+      if (!runtimeOutputIdentity) runtimeOutputIdentity = NewOutputIdentity();
+   }
+   else
+   {
+      for (const auto &entry : runtimeOutputNames) PlotInterface::ForgetPlotDisplayName(entry.second);
+      runtimeOutputNames.clear();
+      runtimeOutputIdentity = 0;
+   }
+}
+
+const std::string& Subscriber::GetRuntimePlotName() const
+{
+   return GetRuntimePlotName(instanceName);
+}
+
+const std::string& Subscriber::GetRuntimePlotName(const std::string &logicalName) const
+{
+   static const std::string empty;
+   if (logicalName.empty()) return empty;
+   if (!runtimeOutputIdentity)
+   {
+      // A cold copy never owned the source object's previous window name.
+      if (!runtimeOutputCreated && logicalName != instanceName) return empty;
+      return logicalName;
+   }
+   auto found = runtimeOutputNames.find(logicalName);
+   if (found == runtimeOutputNames.end())
+      found = runtimeOutputNames.emplace(logicalName,
+            logicalName + "::gmat-output-" + std::to_string(runtimeOutputIdentity)).first;
+   PlotInterface::SetPlotDisplayName(found->second, logicalName);
+   return found->second;
+}
+
+bool Subscriber::InitializeForRun()
+{
+   runtimeOutputStarted = true;
+   try
+   {
+      const bool initialized = Initialize();
+      isInitialized = initialized;
+      GmatBase::isInitialized = initialized;
+      runtimeOutputCreated = runtimeOutputCreated || initialized;
+      return initialized;
+   }
+   catch (...)
+   {
+      isInitialized = false;
+      GmatBase::isInitialized = false;
+      throw;
+   }
+}
+
+bool Subscriber::HasSubscriberValueReferenceProvider() const
+{
+   return false;
+}
+
+bool Subscriber::HasFunctionValueBindings()
+{
+   if (!GetFunctionValueContext() || !HasSubscriberValueReferenceProvider() || !functionValueRolesBound) return false;
+   GetWrapperObjectNameArray(); // Refresh role lists from the actual declaration.
+   if (functionValueXRoles != xWrapperObjectNames || functionValueYRoles != yWrapperObjectNames) return false;
+   auto matches = [](const StringArray &names, const WrapperArray &wrappers)
+   {
+      if (names.size() != wrappers.size()) return false;
+      for (size_t i = 0; i < names.size(); ++i)
+         if (!wrappers[i]) return false;
+      return true;
+   };
+   return matches(xWrapperObjectNames, xParamWrappers) &&
+         matches(yWrapperObjectNames, yParamWrappers) && HasNativeSubscriberBindings();
+}
+
+bool Subscriber::HasNativeSubscriberBindings() const
+{
+   return true;
+}
+
+bool Subscriber::EnsureFunctionValueOutput()
+{
+   if (isInitialized || !GetFunctionValueContext() || !HasSubscriberValueReferenceProvider()) return true;
+   if (!HasFunctionValueBindings())
+      throw SubscriberException("Copied subscriber declaration needs wrapper rebuilding.\n");
+   return InitializeForRun();
+}
+
+Subscriber::SubscriberValueCopyToken Subscriber::BeginSubscriberValueCopy(const Subscriber &source)
+{
+   if (&source == this || IsNativeFunctionValueCopy()) return {};
+   auto saved = std::make_shared<SubscriberValueCopyState>();
+   saved->oldContext = GetFunctionValueContext();
+   saved->sourceContext = source.GetFunctionValueContext();
+   saved->previous = copyRetirements;
+   const WrapperArray *arrays[] = {&xParamWrappers, &yParamWrappers, &oldWrappersToDelete,
+         &source.xParamWrappers, &source.yParamWrappers, &source.oldWrappersToDelete};
+   std::set<ElementWrapper*> seen;
+   for (const auto *array : arrays) for (auto *wrapper : *array)
+      if (wrapper && seen.insert(wrapper).second)
+      {
+         auto lease = ElementWrapper::RetainInvocationWrapper(wrapper);
+         if (ElementWrapper::GetInvocationWrapper(lease) != wrapper)
+            throw SubscriberException("Cannot copy a retired subscriber wrapper.\n");
+         saved->wrappers.push_back(std::move(lease));
+      }
+   copyRetirements = saved;
+   return saved;
+}
+
+void Subscriber::ReconnectSubscriberCopy(const Subscriber &source)
+{
+   if (&source == this || IsNativeFunctionValueCopy()) return;
+   if (source.GetFunctionValueContext()) RebindFunctionValueContext(source);
+   else
+   {
+      // Reuse the complete retained graph builder for native copies as well:
+      // nested wrapper-owned resources disclose their own owned components.
+      FunctionManager::RebindSubscriberCopy(source, *this, source.theSolarSystem);
+   }
+}
+
+void Subscriber::CompleteSubscriberValueCopy(const Subscriber &source,
+      const SubscriberValueCopyToken &transaction)
+{
+   if (&source == this || IsNativeFunctionValueCopy()) return;
+   ReconnectSubscriberCopy(source);
+   CommitFunctionValueBindings();
+   // Detach before retirement callbacks. A nested copy owns its own token and
+   // must not have its captured state removed by the enclosing completion.
+   if (transaction && copyRetirements == transaction) copyRetirements.reset();
+}
+
+ObjectArray Subscriber::GetFunctionValueOwnedObjectsImpl() const
+{
+   ObjectArray objects;
+   std::set<ElementWrapper*> seen;
+   for (const auto *axis : {&xParamWrappers, &yParamWrappers})
+      for (auto *wrapper : *axis)
+         if (wrapper && seen.insert(wrapper).second)
+            wrapper->CollectOwnedReferences(objects);
+   return objects;
+}
+
+void Subscriber::GetClonedOwnedObjects(const Subscriber &target,
+      ObjectArray &originals, ObjectArray &values) const
+{
+   if (this == &target || typeid(*this) != typeid(target))
+      throw SubscriberException("Incompatible subscriber component inventory.\n");
+   std::map<ElementWrapper*, ElementWrapper*> aliases, reverse;
+   std::map<GmatBase*, GmatBase*> components;
+   std::map<GmatBase*, GmatBase*> componentSources;
+   for (const auto &axes : {std::make_pair(&xParamWrappers, &target.xParamWrappers),
+         std::make_pair(&yParamWrappers, &target.yParamWrappers)})
+   {
+      if (axes.first->size() != axes.second->size())
+         throw SubscriberException("Copied subscriber wrapper collection changed shape.\n");
+      for (size_t i = 0; i < axes.first->size(); ++i)
+      {
+         auto *from = (*axes.first)[i];
+         auto *to = (*axes.second)[i];
+         if (!from && !to) continue;
+         if (!from || !to || from == to || typeid(*from) != typeid(*to))
+            throw SubscriberException("Missing independently copied subscriber wrapper.\n");
+         const auto previous = aliases.find(from);
+         if (previous != aliases.end())
+         {
+            if (previous->second != to)
+               throw SubscriberException("Copied subscriber split a wrapper alias.\n");
+            continue;
+         }
+         if (!reverse.emplace(to, from).second)
+            throw SubscriberException("Copied subscriber merged distinct wrappers.\n");
+         aliases.emplace(from, to);
+         ObjectArray sourceComponents, targetComponents;
+         to->CollectClonedOwnedReferences(*from, sourceComponents, targetComponents);
+         if (sourceComponents.size() != targetComponents.size())
+            throw SubscriberException("Copied subscriber component collection changed shape.\n");
+         for (size_t j = 0; j < sourceComponents.size(); ++j)
+         {
+            auto *original = sourceComponents[j];
+            auto *value = targetComponents[j];
+            if (!original || !value || original == value ||
+                  original->GetTypeName() != value->GetTypeName())
+               throw SubscriberException("Missing independent subscriber component.\n");
+            const auto role = componentSources.emplace(value, original);
+            if (!role.second && role.first->second != original)
+               throw SubscriberException("Copied subscriber merged distinct owned components.\n");
+            const auto inserted = components.emplace(sourceComponents[j], targetComponents[j]);
+            if (!inserted.second && inserted.first->second != targetComponents[j])
+               throw SubscriberException("Copied subscriber split an owned component alias.\n");
+         }
+      }
+   }
+   for (const auto &entry : components)
+   {
+      const auto found = std::find(originals.begin(), originals.end(), entry.first);
+      if (found != originals.end())
+      {
+         if (values.at(found - originals.begin()) != entry.second)
+            throw SubscriberException("Conflicting subscriber component copies.\n");
+      }
+      else { originals.push_back(entry.first); values.push_back(entry.second); }
+   }
+}
+
+void Subscriber::PrepareClonedSubscriberValue(const Subscriber &source)
+{
+   if (&source == this || typeid(*this) != typeid(source))
+      throw SubscriberException("Incompatible subscriber value copy.\n");
+   // Optional builds can use borrowed native wrappers. Retained function
+   // values always need an independent, alias-preserving wrapper graph.
+   bool borrowed = false;
+   for (const auto &axes : {std::make_pair(&source.xParamWrappers, &xParamWrappers),
+         std::make_pair(&source.yParamWrappers, &yParamWrappers)})
+      if (axes.first->size() == axes.second->size())
+         for (size_t i = 0; i < axes.first->size(); ++i)
+            borrowed = borrowed || ((*axes.first)[i] && (*axes.first)[i] == (*axes.second)[i]);
+   if (borrowed) CopyWrapperGraph(source);
+   ObjectArray from, to;
+   source.GetClonedOwnedObjects(*this, from, to);
+   isInitialized = false;
+   GmatBase::isInitialized = false;
+   isFinalized = false;
+   functionValueRolesBound = false;
+}
+
+void Subscriber::RebindSubscriberEnvironment(const Subscriber &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   if (&source == this || typeid(*this) != typeid(source))
+      throw SubscriberException("Incompatible subscriber environment copy.\n");
+   auto *internal = MapSubscriberReference(source.theInternalCoordSystem, resolve);
+   auto *coordinates = MapSubscriberReference(source.theDataCoordSystem, resolve);
+   auto *origin = MapSubscriberReference(source.theDataMJ2000EqOrigin, resolve);
+   auto *system = MapSubscriberReference(source.theSolarSystem, resolve);
+   ObjectArray from, to;
+   source.GetClonedOwnedObjects(*this, from, to);
+   std::set<ElementWrapper*> seen;
+   for (const auto &axes : {std::make_pair(&source.xParamWrappers, &xParamWrappers),
+         std::make_pair(&source.yParamWrappers, &yParamWrappers)})
+      for (size_t i = 0; i < axes.first->size(); ++i)
+      {
+         auto *wrapper = (*axes.second)[i];
+         if (wrapper && seen.insert(wrapper).second)
+            wrapper->RebindClonedReferences(*(*axes.first)[i], resolve);
+      }
+   theInternalCoordSystem = internal;
+   theDataCoordSystem = coordinates;
+   theDataMJ2000EqOrigin = origin;
+   theSolarSystem = system;
+   // A value does not retain an active publisher packet or linked-list entry.
+   data = nullptr;
+   currentProvider = nullptr;
+   isInitialized = false;
+   GmatBase::isInitialized = false;
+}
+
+void Subscriber::RebindSubscriberValueReferences(const Subscriber &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   RebindSubscriberEnvironment(source, resolve);
+}
+
+bool Subscriber::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   if (!HasSubscriberValueReferenceProvider()) return false;
+   const auto *source = dynamic_cast<const Subscriber*>(&original);
+   if (!source || !source->HasSubscriberValueReferenceProvider() ||
+         typeid(*source) != typeid(*this))
+      throw SubscriberException("Incompatible retained subscriber reference source.\n");
+   RebindSubscriberValueReferences(*source, resolve);
+   GetWrapperObjectNameArray();
+   StringArray xRoles(xWrapperObjectNames), yRoles(yWrapperObjectNames);
+   functionValueXRoles.swap(xRoles);
+   functionValueYRoles.swap(yRoles);
+   functionValueRolesBound = true;
+   return true;
+}
+
 bool Subscriber::Initialize()
 {
    #ifdef DEBUG_INIT
@@ -407,6 +821,7 @@ bool Subscriber::ReceiveData(const char *datastream,  const int len)
    // }
    
    
+   if (len > 0 && !EnsureFunctionValueOutput()) return false;
    data = datastream;
    if (!Distribute(len))
    {
@@ -456,7 +871,7 @@ bool Subscriber::ReceiveData(const Real *datastream, const int len)
    
    if (len == 0)
       return true;
-   
+   if (!EnsureFunctionValueOutput()) return false;
    if (!Distribute(datastream, len))
    {
       return false;
@@ -486,14 +901,16 @@ bool Subscriber::FlushData(bool endOfDataBlock)
 //------------------------------------------------------------------------------
 bool Subscriber::SetEndOfRun()
 {
+   struct EndRunFlags
+   {
+      bool &receive, &block, &run;
+      ~EndRunFlags() { receive = block = run = false; }
+   } reset{isEndOfReceive, isEndOfDataBlock, isEndOfRun};
    isEndOfReceive = true;
    isEndOfDataBlock = true;
    isEndOfRun = true;
    Distribute(0);
    Distribute(NULL, 0);
-   isEndOfReceive = false;
-   isEndOfDataBlock = false;
-   isEndOfRun = false;
    return true;
 }
 
@@ -537,8 +954,7 @@ void Subscriber::SetManeuvering(GmatBase *originator, bool flag, Real epoch,
                                 const std::string &satName,
                                 const std::string &desc)
 {
-   static StringArray satNames;
-   satNames.clear();
+   StringArray satNames;
    isManeuvering = flag;
    satNames.push_back(satName);
    HandleManeuvering(originator, flag, epoch, satNames, desc);
@@ -869,71 +1285,255 @@ const StringArray& Subscriber::GetWrapperObjectNameArray(bool completeSet)
 }
 
 
+std::unique_ptr<FunctionInvocationState> Subscriber::WrapFunctionBindings(
+      std::shared_ptr<SubscriberBindingState> native,
+      std::unique_ptr<FunctionInvocationState> enclosing)
+{
+   return std::make_unique<FunctionInvocationState>(*this, [this, native]()
+   {
+      if (!native->Restore())
+      {
+         isInitialized = false;
+         GmatBase::isInitialized = false;
+         throw SubscriberException("Cannot restore retired or reconfigured native subscriber bindings.\n");
+      }
+   }, std::move(enclosing));
+}
+
+std::unique_ptr<FunctionInvocationState> Subscriber::SuspendFunctionBindings()
+{
+   struct BindingFrame
+   {
+      // A committed value can replace the resource's public context while
+      // these enclosing wrappers still await ordered scope retirement.
+      std::shared_ptr<const FunctionValueContext> context;
+      WrapperArray x, y, queued;
+      StringArray xNames, yNames;
+      std::map<ElementWrapper*, ElementWrapper::InvocationLease> identities;
+      std::vector<ElementWrapper::InvocationLease> retained;
+      std::vector<std::unique_ptr<ElementWrapper>> clones;
+      bool armed = false, owns = true, copied = false;
+      bool ready = false, baseReady = false;
+      CoordinateSystem *internal = nullptr;
+      SolarSystem *solar = nullptr;
+      std::weak_ptr<const void> internalIdentity, solarIdentity;
+      ~BindingFrame()
+      {
+         if (!armed) return;
+         auto retire = [&](WrapperArray &array, bool owned)
+         {
+            for (auto *wrapper : array)
+            {
+               if (!wrapper) continue;
+               for (auto *aliases : {&x, &y, &queued})
+                  for (auto &alias : *aliases) if (alias == wrapper) alias = nullptr;
+               if (!owned) continue;
+               const auto found = identities.find(wrapper);
+               if (found == identities.end() ||
+                     ElementWrapper::GetInvocationWrapper(found->second) == wrapper)
+                  ElementWrapper::ReleaseOwnedWrapper(wrapper);
+            }
+         };
+         retire(x, owns);
+         retire(y, owns);
+         retire(queued, true);
+      }
+   };
+   auto saved = std::make_shared<BindingFrame>();
+   saved->context = GetFunctionValueContext();
+   auto native = std::make_shared<SubscriberBindingState>();
+   native->Capture(theDataCoordSystem);
+   native->Capture(theDataMJ2000EqOrigin);
+   native->Capture(currentProvider);
+   native->CaptureMetadata(theDataLabels);
+   native->CaptureMetadata(currProviderId);
+   native->CaptureMetadata(propDirection);
+   saved->xNames = xWrapperObjectNames;
+   saved->yNames = yWrapperObjectNames;
+   saved->copied = wrappersCopied;
+#ifndef __ENABLE_CLONING_WRAPPERS__
+   saved->owns = !wrappersCopied;
+#endif
+   saved->ready = isInitialized;
+   saved->baseReady = GmatBase::isInitialized;
+   saved->internal = theInternalCoordSystem;
+   saved->solar = theSolarSystem;
+   saved->retained = invocationWrapperLeases;
+   if (saved->internal) saved->internalIdentity = saved->internal->GetLifetimeToken();
+   if (saved->solar) saved->solarIdentity = saved->solar->GetLifetimeToken();
+   for (const auto *array : {&xParamWrappers, &yParamWrappers, &oldWrappersToDelete})
+      for (auto *wrapper : *array)
+         if (wrapper && !saved->identities.count(wrapper))
+         {
+            ElementWrapper::InvocationLease lease;
+            for (const auto &current : invocationWrapperLeases)
+               if (ElementWrapper::GetInvocationWrapper(current) == wrapper) { lease = current; break; }
+            if (!lease)
+               for (const auto &current : invocationWrapperLeases)
+                  if (ElementWrapper::MatchesInvocationWrapper(current, wrapper)) { lease = current; break; }
+            if (!lease) lease = ElementWrapper::RetainInvocationWrapper(wrapper);
+            if (ElementWrapper::GetInvocationWrapper(lease) != wrapper)
+               throw SubscriberException("Cannot suspend a retired subscriber wrapper.\n");
+            saved->identities.emplace(wrapper, lease);
+            if (std::find(saved->retained.begin(), saved->retained.end(), lease) == saved->retained.end())
+               saved->retained.push_back(std::move(lease));
+         }
+   std::map<ElementWrapper*, ElementWrapper*> copies;
+   auto stage = [&](const WrapperArray &from, WrapperArray &to)
+   {
+      to.reserve(from.size());
+      for (auto *wrapper : from)
+      {
+         if (!wrapper) { to.push_back(nullptr); continue; }
+         const auto found = copies.find(wrapper);
+         if (found != copies.end()) { to.push_back(found->second); continue; }
+         ElementWrapper *raw = wrapper->Clone();
+         if (!raw || saved->identities.count(raw) ||
+               std::any_of(saved->clones.begin(), saved->clones.end(),
+                     [raw](const auto &owned) { return owned.get() == raw; }))
+            throw SubscriberException("Subscriber wrapper Clone returned a source, peer or null.\n");
+         std::unique_ptr<ElementWrapper> copy(raw);
+         if (typeid(*raw) != typeid(*wrapper))
+            throw SubscriberException("Subscriber wrapper Clone changed its native type.\n");
+         // This frame copies bindings for a live shared output, not its values.
+         // VariableWrapper::Clone independently owns its numeric reference;
+         // retain the original borrowed scalar identity during the inner call.
+         // Deliberately owned wrapper values keep their independent copy.
+         if (typeid(*wrapper) == typeid(VariableWrapper) && !wrapper->OwnsRefObject())
+            raw->RebindClonedReferences(*wrapper, [](GmatBase *value) { return value; });
+         copies.emplace(wrapper, raw);
+         to.push_back(raw);
+         saved->clones.push_back(std::move(copy));
+      }
+   };
+   stage(xParamWrappers, saved->x);
+   stage(yParamWrappers, saved->y);
+   auto restore = [this, saved, native]()
+   {
+      if (!saved->armed) return;
+      bool valid = native->Restore();
+      for (auto *array : {&saved->x, &saved->y, &saved->queued})
+         for (auto &wrapper : *array)
+            if (wrapper)
+            {
+               const auto found = saved->identities.find(wrapper);
+               if (found == saved->identities.end() ||
+                     ElementWrapper::GetInvocationWrapper(found->second) != wrapper)
+               { wrapper = nullptr; valid = false; }
+            }
+      const bool sameNames = xWrapperObjectNames == saved->xNames &&
+            yWrapperObjectNames == saved->yNames;
+      xParamWrappers.swap(saved->x);
+      yParamWrappers.swap(saved->y);
+      oldWrappersToDelete.swap(saved->queued);
+      invocationWrapperLeases.swap(saved->retained);
+#ifdef __ENABLE_CLONING_WRAPPERS__
+      saved->owns = true;
+#else
+      saved->owns = !wrappersCopied;
+#endif
+      wrappersCopied = saved->copied;
+      theInternalCoordSystem = !saved->internal ||
+            GmatBase::IsLiveReference(saved->internal, saved->internalIdentity) ? saved->internal : nullptr;
+      theSolarSystem = !saved->solar ||
+            GmatBase::IsLiveReference(saved->solar, saved->solarIdentity) ? saved->solar : nullptr;
+      if ((saved->internal && !theInternalCoordSystem) || (saved->solar && !theSolarSystem)) valid = false;
+      isInitialized = isInitialized && saved->ready;
+      GmatBase::isInitialized = GmatBase::isInitialized && saved->baseReady;
+      if (!sameNames)
+      {
+         // Configuration changes persist. Old bindings cannot describe a new
+         // list; leave it unbound for the ordinary rebuild lifecycle.
+         ClearWrappers(true, true);
+         valid = false;
+      }
+      PruneInvocationWrapperLeases();
+      if (!valid)
+      {
+         isInitialized = false;
+         GmatBase::isInitialized = false;
+         throw SubscriberException("Cannot restore retired or reconfigured subscriber bindings.\n");
+      }
+   };
+   auto state = std::make_unique<FunctionInvocationState>(*this, std::move(restore));
+   xParamWrappers.swap(saved->x);
+   yParamWrappers.swap(saved->y);
+   oldWrappersToDelete.swap(saved->queued);
+   invocationWrapperLeases.clear();
+   wrappersCopied = false;
+   saved->armed = true;
+   for (auto &copy : saved->clones) copy.release();
+   return state;
+}
+
+void Subscriber::PruneInvocationWrapperLeases() noexcept
+{
+   std::vector<ElementWrapper::InvocationLease> retained, retired;
+   try
+   {
+      retained.reserve(invocationWrapperLeases.size());
+      retired.reserve(invocationWrapperLeases.size());
+      for (const auto &lease : invocationWrapperLeases)
+      {
+         auto *wrapper = ElementWrapper::GetInvocationWrapper(lease);
+         bool used = false;
+         if (wrapper)
+            for (const auto *array : {&xParamWrappers, &yParamWrappers, &oldWrappersToDelete})
+               if (std::find(array->begin(), array->end(), wrapper) != array->end()) used = true;
+         (used ? retained : retired).push_back(lease);
+      }
+   }
+   catch (...) { return; } // Staging failure leaves the original owners intact.
+   invocationWrapperLeases.swap(retained);
+   retained.clear(); // Every old lease still has an owner in one staged list.
+   // A wrapper destructor can retire a function and reenter this subscriber.
+   // Its live lease vector is fully published before releasing orphan owners.
+   retired.clear();
+}
+
 //------------------------------------------------------------------------------
 // bool SetElementWrapper(ElementWrapper* toWrapper, const std::string &name)
 //------------------------------------------------------------------------------
 bool Subscriber::SetElementWrapper(ElementWrapper* toWrapper,
                                    const std::string &name)
 {
-   #ifdef DEBUG_WRAPPER_CODE
-   MessageInterface::ShowMessage
-      ("\nSubscriber::SetElementWrapper() <%p>'%s' entered, toWrapper=<%p>, name='%s'\n",
-       this, GetName().c_str(), toWrapper, name.c_str());
-   #endif
-   
-   if (toWrapper == NULL)
-      return false;
-   
-   bool retval1 = true;
-   bool retval2 = true;
-   ElementWrapper *ew;
-   oldWrappersToDelete.clear();
-
-   #ifdef DEBUG_WRAPPER_CODE
-   MessageInterface::ShowMessage
-      ("   xWrapperObjectNames.size() = %d, yWrapperObjectNames.size() = %d\n",
-       xWrapperObjectNames.size(), yWrapperObjectNames.size());
-   MessageInterface::ShowMessage
-      ("   xParamWrappers.size() = %d, yParamWrappers.size() = %d\n",
-       xParamWrappers.size(), yParamWrappers.size());
-   for (unsigned int i = 0; i < xWrapperObjectNames.size(); i++)
-      MessageInterface::ShowMessage
-         ("   xWrapperObjectNames[%d] = '%s'\n", i, xWrapperObjectNames[i].c_str());
-   for (unsigned int i = 0; i < yWrapperObjectNames.size(); i++)
-      MessageInterface::ShowMessage
-         ("   yWrapperObjectNames[%d] = '%s'\n", i, yWrapperObjectNames[i].c_str());
-   #endif
-   
-   //if (xWrapperObjectNames.size() > 0)
-   if (xParamWrappers.size() > 0)
-      retval1 = SetActualElementWrapper(xWrapperObjectNames, xParamWrappers, toWrapper, name);  
-   
-   //if (yWrapperObjectNames.size() > 0)
-   if (yParamWrappers.size() > 0)
-      retval2 = SetActualElementWrapper(yWrapperObjectNames, yParamWrappers, toWrapper, name);
-   
-   // Delete old wrappers
-   for (unsigned int i = 0; i < oldWrappersToDelete.size(); i++)
+   if (!toWrapper) return false;
+   auto slot = [&name](const StringArray &names, const WrapperArray &wrappers) -> size_t
    {
-      ew = oldWrappersToDelete[i];
-      #ifdef DEBUG_WRAPPER_CODE
-      MessageInterface::ShowMessage("   Deleting old wrapper <%p>\n", ew);
-      #endif
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (ew, ew->GetDescription(), "Subscriber::SetElementWrapper",
-          "deleting old wrapper");
-      #endif
-      delete ew;
+      const auto found = std::find(names.begin(), names.end(), name);
+      if (found == names.end()) return wrappers.size();
+      const size_t index = static_cast<size_t>(found - names.begin());
+      if (index >= wrappers.size())
+         throw SubscriberException("Subscriber wrapper slots do not match their names.\n");
+      return index;
+   };
+   const size_t x = slot(xWrapperObjectNames, xParamWrappers);
+   const size_t y = slot(yWrapperObjectNames, yParamWrappers);
+   if (x == xParamWrappers.size() && y == yParamWrappers.size()) return false;
+   WrapperArray retired = oldWrappersToDelete;
+   retired.reserve(retired.size() + 2);
+   auto remember = [&](ElementWrapper *wrapper)
+   {
+      if (wrapper && wrapper != toWrapper && std::find(retired.begin(), retired.end(), wrapper) == retired.end())
+         retired.push_back(wrapper);
+   };
+   if (x < xParamWrappers.size()) remember(xParamWrappers[x]);
+   if (y < yParamWrappers.size()) remember(yParamWrappers[y]);
+   // All allocation precedes publication. Destructors see complete new slots
+   // and cannot observe or mutate the local queue that owns retired wrappers.
+   if (x < xParamWrappers.size()) xParamWrappers[x] = toWrapper;
+   if (y < yParamWrappers.size()) yParamWrappers[y] = toWrapper;
+   oldWrappersToDelete.clear();
+   for (size_t i = 0; i < retired.size(); ++i)
+   {
+      auto *wrapper = retired[i];
+      for (auto &alias : retired) if (alias == wrapper) alias = nullptr;
+      if (wrapper && std::find(xParamWrappers.begin(), xParamWrappers.end(), wrapper) == xParamWrappers.end() &&
+            std::find(yParamWrappers.begin(), yParamWrappers.end(), wrapper) == yParamWrappers.end())
+         ElementWrapper::ReleaseOwnedWrapper(wrapper);
    }
-   
-   #ifdef DEBUG_WRAPPER_CODE
-   MessageInterface::ShowMessage
-      ("Subscriber::SetElementWrapper() <%p>'%s' returing %d\n",
-       this, GetName().c_str(), (retval1 | retval2));
-   #endif
-   
-   return (retval1 | retval2);
+   PruneInvocationWrapperLeases();
+   return true;
 }
 
 
@@ -946,76 +1546,24 @@ bool Subscriber::SetElementWrapper(ElementWrapper* toWrapper,
 //------------------------------------------------------------------------------
 void Subscriber::ClearWrappers(bool clearX, bool clearY)
 {
-   #ifdef DEBUG_WRAPPER_CODE
-   MessageInterface::ShowMessage
-      ("Subscriber::ClearWrappers() <%p>'%s' entered, clearX=%d, clearY=%d\n",
-       this, GetName().c_str(), clearX, clearY);
-   WriteWrappers();
-   #endif
-   
-   ElementWrapper *wrapper;
-   
-   if (clearX)
-   {
-      for (UnsignedInt i = 0; i < xParamWrappers.size(); ++i)
+   WrapperArray x, y, queued;
+   if (clearX) x.swap(xParamWrappers);
+   if (clearY) y.swap(yParamWrappers);
+   if (clearX && clearY) queued.swap(oldWrappersToDelete);
+   for (auto *array : {&x, &y, &queued})
+      for (auto *wrapper : *array)
       {
-         wrapper = xParamWrappers[i];
-         
-         // check if wrapper is in the yParamWrappers
-         // if wrapper found in yParamWrappers, delete in the yParamWrappers
-         if (wrapper != NULL &&
-             find(yParamWrappers.begin(), yParamWrappers.end(), wrapper) ==
-             yParamWrappers.end())
+         if (!wrapper) continue;
+         for (auto *aliases : {&x, &y, &queued})
+            for (auto &alias : *aliases) if (alias == wrapper) alias = nullptr;
+         if (std::find(xParamWrappers.begin(), xParamWrappers.end(), wrapper) == xParamWrappers.end() &&
+               std::find(yParamWrappers.begin(), yParamWrappers.end(), wrapper) == yParamWrappers.end())
          {
-            #ifdef DEBUG_WRAPPER_CODE
-            MessageInterface::ShowMessage("   deleting depParamWrapper = <%p>\n", wrapper);
-            #endif
-            
-            #ifdef DEBUG_MEMORY
-            MemoryTracker::Instance()->Remove
-               (wrapper, wrapper->GetDescription(), "Subscriber::ClearWrappers()",
-                "deleting old dep wrapper");
-            #endif
-            delete wrapper;
-            wrapper = NULL;
+            for (auto &alias : oldWrappersToDelete) if (alias == wrapper) alias = nullptr;
+            ElementWrapper::ReleaseOwnedWrapper(wrapper);
          }
-         
-         xParamWrappers[i] = NULL;
       }
-      xParamWrappers.clear();
-   }
-   
-   if (clearY)
-   {
-      for (UnsignedInt i = 0; i < yParamWrappers.size(); ++i)
-      {
-         wrapper = yParamWrappers[i];
-         
-         #ifdef DEBUG_WRAPPER_CODE
-         MessageInterface::ShowMessage("   deleting paramWrapper = <%p>\n", wrapper);
-         #endif
-         
-         if (wrapper != NULL)
-         {
-            #ifdef DEBUG_MEMORY
-            MemoryTracker::Instance()->Remove
-               (wrapper, wrapper->GetDescription(), "Subscriber::ClearWrappers()",
-                "deleting old wrapper");
-            #endif
-            delete wrapper;
-            wrapper = NULL;
-         }
-         
-         yParamWrappers[i] = NULL;
-      }
-      yParamWrappers.clear();
-   }
-   
-   
-   #ifdef DEBUG_WRAPPER_CODE
-   MessageInterface::ShowMessage
-      ("Subscriber::ClearWrappers() <%p>'%s' leaving\n", this, GetName().c_str());
-   #endif
+   PruneInvocationWrapperLeases();
 }
 
 
@@ -1813,6 +2361,45 @@ bool Subscriber::SetActualElementWrapper(const StringArray &wrapperNames,
 //------------------------------------------------------------------------------
 // bool CloneWrappers(WrapperArray &toWrappers, const WrapperArray &fromWrappers);
 //------------------------------------------------------------------------------
+void Subscriber::CopyWrapperGraph(const Subscriber &source)
+{
+   WrapperArray x, y;
+   std::map<ElementWrapper*, ElementWrapper*> copies;
+   std::set<ElementWrapper*> forbidden;
+   std::vector<std::unique_ptr<ElementWrapper>> owned;
+   const WrapperArray *arrays[] = {&source.xParamWrappers, &source.yParamWrappers,
+         &xParamWrappers, &yParamWrappers, &oldWrappersToDelete};
+   for (const auto *array : arrays)
+      for (auto *wrapper : *array) if (wrapper) forbidden.insert(wrapper);
+   auto clone = [&](const WrapperArray &from, WrapperArray &to)
+   {
+      to.reserve(from.size());
+      for (auto *wrapper : from)
+      {
+         if (!wrapper) { to.push_back(nullptr); continue; }
+         const auto found = copies.find(wrapper);
+         if (found != copies.end()) { to.push_back(found->second); continue; }
+         auto value = ElementWrapper::CloneValue(wrapper);
+         if (forbidden.count(value.get()))
+         {
+            value.release();
+            throw SubscriberException("Subscriber Clone returned an existing wrapper.\n");
+         }
+         forbidden.insert(value.get());
+         copies.emplace(wrapper, value.get());
+         to.push_back(value.get());
+         owned.push_back(std::move(value));
+      }
+   };
+   clone(source.xParamWrappers, x);
+   clone(source.yParamWrappers, y);
+   ClearWrappers(true, true);
+   xParamWrappers.swap(x);
+   yParamWrappers.swap(y);
+   for (auto &value : owned) value.release();
+   wrappersCopied = false;
+}
+
 bool Subscriber::CloneWrappers(WrapperArray &toWrappers,
                                const WrapperArray &fromWrappers)
 {

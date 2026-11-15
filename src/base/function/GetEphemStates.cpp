@@ -41,7 +41,23 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ExpressionBinding.hpp"
 #include "GetEphemStates.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration getEphemStatesValueProvider({
+   GetEphemStates::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const GetEphemStates*>(object) != nullptr; },
+   [](const GmatBase *object) { return dynamic_cast<const GetEphemStates*>(object)->GetFunctionValueOwnedObjectsImpl(); },
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<GetEphemStates*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
+#include "FunctionException.hpp"
 #include "ArrayWrapper.hpp"
 #include "StringObjectWrapper.hpp"
 #include "FileManager.hpp"
@@ -51,6 +67,138 @@
 #include "CCSDSEphemerisFile.hpp"
 #include "TimeSystemConverter.hpp"
 #include "MessageInterface.hpp"
+#include "FunctionValueContext.hpp"
+#include <algorithm>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <typeinfo>
+
+struct EphemerisFunctionFrameOwner
+{
+   CoordinateSystem *frame = nullptr;
+   std::weak_ptr<const void> identity;
+   ~EphemerisFunctionFrameOwner();
+};
+
+namespace
+{
+struct EphemerisFrameOwners
+{
+   std::mutex mutex;
+   std::map<CoordinateSystem*, std::weak_ptr<EphemerisFunctionFrameOwner>> frames;
+};
+
+EphemerisFrameOwners &FrameOwners()
+{
+   // Weak entries never keep a frame alive. The registry also remains valid
+   // during shutdown of functions owned by another process-lifetime service.
+   static auto *owners = new EphemerisFrameOwners;
+   return *owners;
+}
+
+std::shared_ptr<EphemerisFunctionFrameOwner> FindFrameOwner(CoordinateSystem *frame)
+{
+   if (!frame) return {};
+   auto &owners = FrameOwners();
+   std::lock_guard<std::mutex> lock(owners.mutex);
+   const auto found = owners.frames.find(frame);
+   auto owner = found == owners.frames.end() ? nullptr : found->second.lock();
+   return owner && GmatBase::IsLiveReference(frame, owner->identity) ? owner : nullptr;
+}
+
+std::shared_ptr<EphemerisFunctionFrameOwner> OwnEphemerisFrame(CoordinateSystem *frame)
+{
+   if (!frame) return {};
+   auto &owners = FrameOwners();
+   std::lock_guard<std::mutex> lock(owners.mutex);
+   const auto found = owners.frames.find(frame);
+   if (found != owners.frames.end())
+      if (auto previous = found->second.lock())
+         if (GmatBase::IsLiveReference(frame, previous->identity)) return previous;
+   // Allocate the owner and registry slot before adopting the raw component.
+   // If either allocation fails, the original owner still owns that frame.
+   auto owner = std::make_shared<EphemerisFunctionFrameOwner>();
+   owner->identity = frame->GetLifetimeToken();
+   owners.frames[frame] = owner;
+   owner->frame = frame;
+   return owner;
+}
+
+void RetainFrame(std::vector<std::shared_ptr<EphemerisFunctionFrameOwner>> &frames,
+      const std::shared_ptr<EphemerisFunctionFrameOwner> &owner)
+{
+   if (owner && std::find(frames.begin(), frames.end(), owner) == frames.end())
+      frames.push_back(owner);
+}
+
+std::unique_ptr<CoordinateSystem> CloneEphemerisCoordinateSystem(
+      const CoordinateSystem *source, const CoordinateSystem *destination = nullptr)
+{
+   if (!source) return {};
+   GmatBase *raw = source->Clone();
+   if (!raw || raw == source || raw == destination)
+      throw FunctionException("Invalid owned ephemeris coordinate-system clone.\n");
+   std::unique_ptr<GmatBase> value(raw);
+   auto *frame = dynamic_cast<CoordinateSystem*>(raw);
+   if (!frame || typeid(*frame) != typeid(*source))
+      throw FunctionException("Incompatible owned ephemeris coordinate-system clone.\n");
+   value.release();
+   return std::unique_ptr<CoordinateSystem>(frame);
+}
+}
+
+EphemerisFunctionFrameOwner::~EphemerisFunctionFrameOwner()
+{
+   if (!frame) return;
+   auto &owners = FrameOwners();
+   {
+      std::lock_guard<std::mutex> lock(owners.mutex);
+      const auto found = owners.frames.find(frame);
+      if (found != owners.frames.end() && found->second.expired())
+         owners.frames.erase(found);
+   }
+   if (GmatBase::IsLiveReference(frame, identity)) delete frame;
+}
+
+std::shared_ptr<EphemerisFunctionFrameOwner> GetEphemStates::OwnFileFrame() const
+{
+   if (!coordSysOnFile) return {};
+   if (fileFrameOwner && fileFrameOwner->frame == coordSysOnFile &&
+         !GmatBase::IsLiveReference(coordSysOnFile, fileFrameOwner->identity))
+      throw FunctionException("Owned ephemeris coordinate-system lifetime has ended.\n");
+   if (!fileFrameOwner || fileFrameOwner->frame != coordSysOnFile)
+      fileFrameOwner = OwnEphemerisFrame(coordSysOnFile);
+   return fileFrameOwner;
+}
+
+void GetEphemStates::ReplaceFileFrame(std::unique_ptr<CoordinateSystem> frame)
+{
+   auto next = OwnEphemerisFrame(frame.get());
+   frame.release();
+   const auto previous = OwnFileFrame();
+   auto retained = retainedFileFrames;
+   if (previous && (outCoordSys == previous->frame || internalCoordSys == previous->frame))
+      RetainFrame(retained, previous);
+   retainedFileFrames.swap(retained);
+   fileFrameOwner = std::move(next);
+   coordSysOnFile = fileFrameOwner ? fileFrameOwner->frame : nullptr;
+}
+
+void GetEphemStates::RetireFileFrames() noexcept
+{
+   auto *frame = coordSysOnFile;
+   coordSysOnFile = nullptr;
+   // Protected native component storage may predate its first lease. Consult
+   // the actual owner before falling back to its original raw ownership rule.
+   if (frame && (!fileFrameOwner || fileFrameOwner->frame != frame))
+   {
+      const auto owner = FindFrameOwner(frame);
+      if (!owner) delete frame;
+   }
+   fileFrameOwner.reset();
+   retainedFileFrames.clear();
+}
 
 //#define DEBUG_FUNCTION_INIT
 //#define DEBUG_FUNCTION_EXEC
@@ -153,8 +301,7 @@ GetEphemStates::GetEphemStates(const std::string &typeStr, const std::string &na
 //------------------------------------------------------------------------------
 GetEphemStates::~GetEphemStates()
 {
-   if (coordSysOnFile != NULL)
-      delete coordSysOnFile;
+   RetireFileFrames();
 }
 
 
@@ -170,17 +317,28 @@ GetEphemStates::~GetEphemStates()
 GetEphemStates::GetEphemStates(const GetEphemStates &f) :
    BuiltinGmatFunction(f),
    inSat             (f.inSat),
+   coordSysOnFile    (NULL),
+   outCoordSys       (f.outCoordSys),
    inEphemType       (f.inEphemType),
    centralBodyOnFile (f.centralBodyOnFile),
    axisSystemOnFile  (f.axisSystemOnFile),
    outEpochFormat    (f.outEpochFormat),
-   coordSysOnFile    (f.coordSysOnFile),
-   outCoordSys       (f.outCoordSys),
    ephemInitialA1Mjd (f.ephemInitialA1Mjd),
    ephemFinalA1Mjd   (f.ephemFinalA1Mjd),
    ephemInitialState (f.ephemInitialState),
    ephemFinalState   (f.ephemFinalState)
 {
+   // This frame is owned by the function, unlike the borrowed input/output
+   // resources. Allocate after all other member copies have succeeded.
+   const auto sourceFrame = f.OwnFileFrame();
+   auto frame = CloneEphemerisCoordinateSystem(f.coordSysOnFile);
+   retainedFileFrames = f.retainedFileFrames;
+   fileFrameOwner = OwnEphemerisFrame(frame.get());
+   frame.release();
+   coordSysOnFile = fileFrameOwner ? fileFrameOwner->frame : nullptr;
+   if (outCoordSys && outCoordSys == f.coordSysOnFile) outCoordSys = coordSysOnFile;
+   if (f.internalCoordSys && f.internalCoordSys == f.coordSysOnFile)
+      internalCoordSys = coordSysOnFile;
 }
 
 
@@ -200,18 +358,41 @@ GetEphemStates& GetEphemStates::operator=(const GetEphemStates &f)
    if (this == &f)
       return *this;
    
+   auto frame = CloneEphemerisCoordinateSystem(f.coordSysOnFile, coordSysOnFile);
+   auto nextFrame = OwnEphemerisFrame(frame.get());
+   frame.release();
+   const auto previousFrame = OwnFileFrame();
+   const auto sourceFrame = f.OwnFileFrame();
+   auto sourceRetained = f.retainedFileFrames;
+   const auto sourceContext = f.GetFunctionValueContext();
+   if (previousFrame && (f.outCoordSys == previousFrame->frame ||
+         f.internalCoordSys == previousFrame->frame ||
+         (sourceContext && sourceContext->RetainsReference(previousFrame->frame))))
+      RetainFrame(sourceRetained, previousFrame);
+   auto retained = sourceRetained;
+   // Source borrows must survive replacement and destruction of this target,
+   // including a failed assignment. Only lifetime bookkeeping is extended.
+   f.retainedFileFrames.swap(sourceRetained);
+   const auto previousContext = GetFunctionValueContext();
    BuiltinGmatFunction::operator=(f);
    inSat             = f.inSat;
    inEphemType       = f.inEphemType;
    centralBodyOnFile = f.centralBodyOnFile;
    axisSystemOnFile  = f.axisSystemOnFile;
    outEpochFormat    = f.outEpochFormat;
-   coordSysOnFile    = f.coordSysOnFile;
-   outCoordSys       = f.outCoordSys;
    ephemInitialA1Mjd = f.ephemInitialA1Mjd;
    ephemFinalA1Mjd   = f.ephemFinalA1Mjd;
    ephemInitialState = f.ephemInitialState;
    ephemFinalState   = f.ephemFinalState;
+
+   // Publish pointers into the staged frame only after throwing value copies.
+   outCoordSys = f.outCoordSys && f.outCoordSys == f.coordSysOnFile ?
+         (nextFrame ? nextFrame->frame : nullptr) : f.outCoordSys;
+   if (internalCoordSys && internalCoordSys == f.coordSysOnFile)
+      internalCoordSys = nextFrame ? nextFrame->frame : nullptr;
+   retainedFileFrames.swap(retained);
+   fileFrameOwner = std::move(nextFrame);
+   coordSysOnFile = fileFrameOwner ? fileFrameOwner->frame : nullptr;
    
    return *this;
 }
@@ -247,9 +428,7 @@ void GetEphemStates::SetOutputTypes(WrapperTypeArray &outputTypes,
    #endif
    
    // Set output wrapper type for GetEphemStates
-   outputWrapperTypes = outputTypes;
-   outputRowCounts = rowCounts;
-   outputColCounts = colCounts;   
+   Function::SetOutputTypes(outputTypes, rowCounts, colCounts);
 }
 
 //------------------------------------------------------------------------------
@@ -597,6 +776,18 @@ bool GetEphemStates::Execute(ObjectInitializer *objInit, bool reinitialize)
 //------------------------------------------------------------------------------
 void GetEphemStates::Finalize(bool cleanUp)
 {
+   if (cleanUp)
+   {
+      inSat = nullptr;
+      outCoordSys = nullptr;
+      if (internalCoordSys && (internalCoordSys == coordSysOnFile ||
+            std::any_of(retainedFileFrames.begin(), retainedFileFrames.end(),
+               [this](const std::shared_ptr<EphemerisFunctionFrameOwner> &owner)
+               { return owner && owner->frame == internalCoordSys; })))
+         internalCoordSys = nullptr;
+      RetireFileFrames();
+   }
+
    #ifdef DEBUG_FUNCTION_FINALIZE
    MessageInterface::ShowMessage
       ("GetEphemStates::Finalize() <%p>'%s' entered, nothing to do here?\n",
@@ -617,7 +808,15 @@ void GetEphemStates::Finalize(bool cleanUp)
 //------------------------------------------------------------------------------
 GmatBase* GetEphemStates::Clone() const
 {
-   return (new GetEphemStates(*this));
+   std::unique_ptr<GetEphemStates> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new GetEphemStates(*this));
+   }
+   if (typeid(*value) != typeid(*this))
+      throw FunctionException("A derived GetEphemStates must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -632,7 +831,18 @@ GmatBase* GetEphemStates::Clone() const
 //---------------------------------------------------------------------------
 void GetEphemStates::Copy(const GmatBase* orig)
 {
-   operator=(*((GetEphemStates *)(orig)));
+   const auto *source = dynamic_cast<const GetEphemStates*>(orig);
+   if (!source || typeid(*this) != typeid(GetEphemStates) || typeid(*this) != typeid(*source))
+      throw FunctionException("Incompatible GetEphemStates value copy or missing derived Copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   const auto previousFunctionBindings = functionBindings;
+   const auto previousObjectBindings = objectBindings;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -793,14 +1003,8 @@ bool GetEphemStates::ReadSpiceEphemerisFile()
       axisSystemOnFile = "MJ2000Eq";
       bool needsConversion = false;
       
-      // Delete old local coordSysOnFile pointer
-      if (coordSysOnFile != NULL)
-      {
-         delete coordSysOnFile;
-         coordSysOnFile = NULL;
-      }
-      coordSysOnFile = CreateLocalCoordSystem("csOnSpk", centralBodyOnFile,
-                                              axisSystemOnFile, needsConversion);
+      ReplaceFileFrame(std::unique_ptr<CoordinateSystem>(CreateLocalCoordSystem(
+            "csOnSpk", centralBodyOnFile, axisSystemOnFile, needsConversion)));
       
       if (needsConversion && coordSysOnFile == NULL)
       {
@@ -930,14 +1134,8 @@ bool GetEphemStates::ReadCode500EphemerisFile()
             axisSystemOnFile = "BodyFixed";
 
          bool needsConversion = false;
-         // Delete old local coordSysOnFile pointer
-         if (coordSysOnFile != NULL)
-         {
-            delete coordSysOnFile;
-            coordSysOnFile = NULL;
-         }
-         coordSysOnFile = CreateLocalCoordSystem("csOnCode500Ephem", centralBodyOnFile,
-                                                 axisSystemOnFile, needsConversion);
+         ReplaceFileFrame(std::unique_ptr<CoordinateSystem>(CreateLocalCoordSystem(
+               "csOnCode500Ephem", centralBodyOnFile, axisSystemOnFile, needsConversion)));
          
          if (needsConversion && coordSysOnFile == NULL)
          {
@@ -1054,14 +1252,8 @@ bool GetEphemStates::ReadSTKEphemerisFile()
       if (retval)
       {
          bool needsConversion = false;
-         // Delete old local coordSysOnFile pointer
-         if (coordSysOnFile != NULL)
-         {
-            delete coordSysOnFile;
-            coordSysOnFile = NULL;
-         }
-         coordSysOnFile = CreateLocalCoordSystem("csOnStkEphem", centralBodyOnFile,
-                                                 axisSystemOnFile, needsConversion);
+         ReplaceFileFrame(std::unique_ptr<CoordinateSystem>(CreateLocalCoordSystem(
+               "csOnStkEphem", centralBodyOnFile, axisSystemOnFile, needsConversion)));
          
          if (needsConversion && coordSysOnFile == NULL)
          {
@@ -1178,14 +1370,8 @@ bool GetEphemStates::ReadCCSDSEphemerisFile()
       if (retval)
       {
          bool needsConversion = false;
-         // Delete old local coordSysOnFile pointer
-         if (coordSysOnFile != NULL)
-         {
-            delete coordSysOnFile;
-            coordSysOnFile = NULL;
-         }
-         coordSysOnFile = CreateLocalCoordSystem("csOnCCSDSEphem", centralBodyOnFile,
-            axisSystemOnFile, needsConversion);
+         ReplaceFileFrame(std::unique_ptr<CoordinateSystem>(CreateLocalCoordSystem(
+               "csOnCCSDSEphem", centralBodyOnFile, axisSystemOnFile, needsConversion)));
 
          if (needsConversion && coordSysOnFile == NULL)
          {
@@ -1433,3 +1619,57 @@ ElementWrapper* GetEphemStates::CreateOutputStateWrapper(Integer outIndex,
    return outWrapper;
 }
 
+
+
+bool GetEphemStates::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const GetEphemStates*>(&original);
+   if (!source || typeid(*this) != typeid(GetEphemStates) || typeid(original) != typeid(GetEphemStates))
+      throw FunctionException("Derived GetEphemStates references need their own passive provider.\n");
+   auto *frame = BindExpressionReference(source->coordSysOnFile, resolve);
+   if (frame != coordSysOnFile)
+      throw FunctionException("Missing owned ephemeris frame registration.\n");
+   auto *spacecraft = BindExpressionReference(source->inSat, resolve);
+   auto *outputFrame = BindExpressionReference(source->outCoordSys, resolve);
+   RebindObjectManagedFunctionValue(*source, resolve);
+   inSat = spacecraft;
+   outCoordSys = outputFrame;
+   return true;
+}
+
+ObjectArray GetEphemStates::GetFunctionValueOwnedObjectsImpl() const
+{
+   return coordSysOnFile ? ObjectArray{coordSysOnFile} : ObjectArray{};
+}
+
+void GetEphemStates::GetClonedOwnedObjects(const Function &target,
+      ObjectArray &sources, ObjectArray &copies) const
+{
+   const auto *value = dynamic_cast<const GetEphemStates*>(&target);
+   if (!value || typeid(*this) != typeid(target) ||
+         bool(coordSysOnFile) != bool(value->coordSysOnFile))
+      throw FunctionException("Incompatible owned ephemeris frame collection.\n");
+   sources.clear();
+   copies.clear();
+   if (coordSysOnFile)
+   {
+      sources.push_back(coordSysOnFile);
+      copies.push_back(value->coordSysOnFile);
+   }
+}
+
+bool GetEphemStates::HasFunctionValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(GetEphemStates);
+}
+
+std::unique_ptr<FunctionInvocationState> GetEphemStates::SuspendInvocationState()
+{
+   // Keep the enclosing owned frame alive across inner replacement/cleanup.
+   OwnFileFrame();
+   return CaptureInvocationFields(BuiltinGmatFunction::SuspendInvocationState(),
+         inSat, coordSysOnFile, outCoordSys, inEphemType, centralBodyOnFile,
+         axisSystemOnFile, outEpochFormat, ephemInitialA1Mjd, ephemFinalA1Mjd,
+         ephemInitialState, ephemFinalState, fileFrameOwner, retainedFileFrames);
+}

@@ -27,11 +27,15 @@ std::shared_ptr<ScriptDocument> MainWindow::createScriptDocument(const QString &
    source->setPlainText(text); source->document()->setModified(false);
    auto *window=new ScriptSubWindow; window->setWidget(source); workspace->addSubWindow(window);
    window->setProperty("scriptDocument",true); window->setProperty("helpTopic","UsingGmat"); window->resize(850,540);
+   window->setWindowState(Qt::WindowMaximized);
    document->editor=source; document->window=window; document->path=path; document->savedText=text;
    document->search=new FindReplaceDialog(source,source);
    scriptDocuments.append(document);
    window->mayClose=[this,document] { return closeScriptDocument(document); };
    connect(source->document(),&QTextDocument::modificationChanged,this,[this] { if (activeDocument) updateTitle(); });
+   connect(source,&QPlainTextEdit::textChanged,this,[this,document] {
+      if (document==activeDocument) updateModelStatus();
+   });
    return document;
 }
 std::shared_ptr<ScriptDocument> MainWindow::selectedScriptDocument() const
@@ -53,7 +57,10 @@ void MainWindow::updateScriptDocuments()
       document->editor->setObjectName(active ? "scriptEditor" : "inactiveScriptEditor");
       document->window->setProperty("activeScript",active); document->window->setProperty("scriptPath",document->path);
       document->window->setWindowTitle(label+(document->editor->document()->isModified() ? " *" : "")+(active ? " — Active mission" : " — Inactive script"));
-      document->editor->setToolTip(document->path+"\n"+(active ? "Resources, Mission and Output belong to this script." : "Editing and saving this script does not change the active mission. Use Make selected script active or Save and build script."));
+      const QString activeState=modelValid && document->editor->toPlainText()==builtScript
+         ? "Resources and Mission show this script's current build."
+         : "Build this script to update Resources and Mission.";
+      document->editor->setToolTip(document->path+"\n"+(active ? activeState : "Editing and saving this script does not change the active mission. Use Make selected script active or Save and build script."));
    }
 }
 bool MainWindow::openScriptDocument(const QString &path)

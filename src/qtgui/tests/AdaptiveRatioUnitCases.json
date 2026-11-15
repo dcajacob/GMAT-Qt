@@ -1,0 +1,16 @@
+{
+  "cases": [
+    {
+      "key": "AdaptiveStepRatios",
+      "group": "NormalizedModels",
+      "object": "Probe",
+      "fixture": "Create Propagator Probe;\nProbe.Type = BulirschStoer;\nProbe.MinimumReduction = 0.6;\nProbe.MaximumReduction = 0.0001;\n",
+      "route": "table",
+      "units": {
+        "MinimumReduction": "dimensionless",
+        "MaximumReduction": "dimensionless"
+      }
+    }
+  ],
+  "scope": "Only the two still-failing AdaptiveStepRatios fields, copied unchanged from the frozen normalized-model fixture"
+}

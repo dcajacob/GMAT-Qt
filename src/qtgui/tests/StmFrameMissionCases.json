@@ -1,0 +1,28 @@
+{
+  "status": "frozen-before-execution",
+  "mu": 398600.4418,
+  "radius": 7000.0,
+  "reference_radius": 8000.0,
+  "duration_seconds": 60.0,
+  "epoch_mjd": 21545.125,
+  "frame": "ReferenceVNB",
+  "axes": {
+    "XAxis": "V",
+    "ZAxis": "N",
+    "Primary": "Earth",
+    "Secondary": "Ref"
+  },
+  "matrix_block_tolerances": [
+    2e-08,
+    2e-06,
+    2e-11,
+    2e-08
+  ],
+  "position_tolerance_km": 2e-05,
+  "velocity_tolerance_km_s": 2e-08,
+  "required_rejections": [
+    "self_origin_rejection",
+    "noncoeval_rejection"
+  ],
+  "scope": "One actual simultaneous Sat+Ref point-mass mission;full STM and four partitions in a reference-spacecraft velocity/normal frame, independent circular variational and frame Jacobian oracles;not any-frame qualification."
+}

@@ -92,6 +92,7 @@ OdeData::OdeData(const OdeData &copy) :
    mSpacecraft    (copy.mSpacecraft),
    mSolarSystem   (copy.mSolarSystem),
    mModel         (copy.mModel),
+   retainedTransientValues(copy.retainedTransientValues),
    transients     (copy.transients)
 {
 }
@@ -117,11 +118,37 @@ OdeData& OdeData::operator= (const OdeData &right)
       mSpacecraft = right.mSpacecraft;
       mSolarSystem = right.mSolarSystem;
       mModel = right.mModel;
+      retainedTransientValues = right.retainedTransientValues;
       transients = right.transients;
    }
    
    return *this;
 }
+
+
+// Map cached identities without evaluating or initializing a Parameter.
+void OdeData::RebindClonedParameterCaches(const RefData &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &data = ClonedParameterData<OdeData>(source);
+   auto *bound_mSpacecraft = BindClonedParameterReference(data.mSpacecraft, resolve);
+   auto *bound_mSolarSystem = BindClonedParameterReference(data.mSolarSystem, resolve);
+   auto *bound_mModel = BindClonedParameterReference(data.mModel, resolve);
+   std::shared_ptr<std::vector<PhysicalModel*>> forces;
+   if (data.transients && !IsRetiringPrototypeReferences())
+   {
+      forces = std::make_shared<std::vector<PhysicalModel*>>();
+      forces->reserve(data.transients->size());
+      for (PhysicalModel *force : *data.transients)
+         forces->push_back(BindClonedParameterReference(force, resolve));
+   }
+   mSpacecraft = bound_mSpacecraft;
+   mSolarSystem = bound_mSolarSystem;
+   mModel = bound_mModel;
+   retainedTransientValues = std::move(forces);
+   transients = retainedTransientValues.get();
+}
+
 
 
 //------------------------------------------------------------------------------

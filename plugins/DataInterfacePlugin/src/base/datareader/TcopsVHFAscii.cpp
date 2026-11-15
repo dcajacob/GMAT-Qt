@@ -101,7 +101,7 @@ TcopsVHFAscii::TcopsVHFAscii(const TcopsVHFAscii& vhf) :
 //------------------------------------------------------------------------------
 TcopsVHFAscii& TcopsVHFAscii::operator=(const TcopsVHFAscii& vhf)
 {
-   if (this == &vhf)
+   if (this != &vhf)
    {
       TcopsVHFData::operator=(vhf);
 

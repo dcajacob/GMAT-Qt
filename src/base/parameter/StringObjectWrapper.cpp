@@ -62,8 +62,9 @@
 //---------------------------------------------------------------------------
 StringObjectWrapper::StringObjectWrapper() :
    ElementWrapper(),
-   stringVar     (NULL),
-   stringName    ("")
+   stringVar(NULL),
+   ownsString(false),
+   stringName("")
 {
    wrapperType = Gmat::STRING_OBJECT_WT;
 }
@@ -81,11 +82,13 @@ StringObjectWrapper::StringObjectWrapper() :
 //---------------------------------------------------------------------------
 StringObjectWrapper::StringObjectWrapper(const StringObjectWrapper &sow) :
    ElementWrapper(sow),
-   stringVar     (NULL),
-   stringName    (sow.stringName)
+   stringVar(NULL),
+   ownsString(false),
+   stringName(sow.stringName)
 {
-   if (sow.stringVar)
-      stringVar = (StringVar*)((sow.stringVar)->Clone());
+   auto value = CloneOwnedReference(sow.stringVar);
+   stringVar = value.release();
+   ownsString = stringVar != NULL;
 }
 
 //---------------------------------------------------------------------------
@@ -99,19 +102,15 @@ StringObjectWrapper::StringObjectWrapper(const StringObjectWrapper &sow) :
  * @return Reference to this object
  */
 //---------------------------------------------------------------------------
-const StringObjectWrapper& StringObjectWrapper::operator=(
-                             const StringObjectWrapper &sow)
+const StringObjectWrapper& StringObjectWrapper::operator=(const StringObjectWrapper &sow)
 {
-   if (&sow == this)
-      return *this;
-
+   if (&sow == this) return *this;
+   auto value = CloneOwnedReference(sow.stringVar, stringVar);
    ElementWrapper::operator=(sow);
-   stringVar     = NULL;  
-   stringName    = sow.stringName;
-
-   if (sow.stringVar)
-      stringVar = (StringVar*)((sow.stringVar)->Clone());
-   
+   stringName = sow.stringName;
+   if (ownsString) delete stringVar;
+   stringVar = value.release();
+   ownsString = stringVar != NULL;
    return *this;
 }
 
@@ -124,8 +123,7 @@ const StringObjectWrapper& StringObjectWrapper::operator=(
 //---------------------------------------------------------------------------
 StringObjectWrapper::~StringObjectWrapper()
 {
-//    if (stringVar)
-//       delete stringVar;
+   if (ownsString) delete stringVar;
 }
 
 
@@ -142,6 +140,23 @@ ElementWrapper* StringObjectWrapper::Clone() const
 {
    return new StringObjectWrapper(*this);
 }
+
+void StringObjectWrapper::RebindClonedReferences(const ElementWrapper &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   CheckCloneType(source);
+   const auto &original = static_cast<const StringObjectWrapper&>(source);
+   auto *value = BindClonedReference(original.stringVar, resolve);
+   if (value != stringVar)
+   {
+      if (ownsString) delete stringVar;
+      stringVar = value;
+      ownsString = false;
+   }
+}
+
+bool StringObjectWrapper::OwnsRefObject() const { return ownsString; }
+
 
 
 //------------------------------------------------------------------------------
@@ -228,36 +243,14 @@ const StringArray& StringObjectWrapper::GetRefObjectNames()
 //---------------------------------------------------------------------------
 bool StringObjectWrapper::SetRefObject(GmatBase *obj)
 {
-   #ifdef DEBUG_STRING_WRAPPER
-   if (!obj)
-      MessageInterface::ShowMessage(
-               " StringObjectWrapper::SetRefObject with object = NULL\n");
-   else
-      MessageInterface::ShowMessage(
-            " StringObjectWrapper::SetRefObject with object %s\n",
-            (obj->GetName()).c_str());
-   #endif
-   bool isOk   = false;
-   if ( (obj->IsOfType("String")) && (obj->GetName() == stringName) )
+   auto *value = dynamic_cast<StringVar*>(obj);
+   if (!value || value->GetName() != stringName) return false;
+   if (value != stringVar)
    {
-      ///@todo
-//       if (stringVar)
-//          delete stringVar;
-//       stringVar = (StringVar*)((obj)->Clone());
-      stringVar = (StringVar*) obj;
-      #ifdef DEBUG_STRING_WRAPPER
-         MessageInterface::ShowMessage("StringObjectWrapper:: Setting stringVar object %s\n",
-            stringName.c_str());
-      #endif
-      isOk = true;
+      if (ownsString) delete stringVar;
+      stringVar = value;
+      ownsString = false;
    }
-   
-   if (!isOk) return false;
-   #ifdef DEBUG_STRING_WRAPPER
-      MessageInterface::ShowMessage(
-         "StringObjectWrapper:: Returning true from SetRefObject\n");
-   #endif
-   
    return true;
 }
 

@@ -2,6 +2,7 @@
 #include "ListenerManager.hpp"
 #include <memory>
 #include <map>
+#include <QJsonArray>
 class QMdiArea;
 class QtSolverListener;
 
@@ -10,6 +11,7 @@ class QtSolverListenerManager final : public ListenerManager
 public:
    explicit QtSolverListenerManager(QMdiArea *workspace);
    ~QtSolverListenerManager() override;
+   QJsonArray snapshot() const;
    void missionStarted();
    void missionFinished(bool stopped,bool failed);
    ISolverListener *CreateSolverListener(const std::string &name,const std::string &oldName,

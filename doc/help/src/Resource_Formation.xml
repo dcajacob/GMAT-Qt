@@ -32,8 +32,15 @@
     spacecraft in a “container” object and then GMAT’s propagation subsystem
     will model the collection of spacecraft as a coupled dynamic system. You
     can only propagate <guilabel>Formation</guilabel> resources using
-    numerical-integrator type propagators. This resource cannot be modified in
-    the Mission Sequence.</para>
+    numerical-integrator type propagators. Configure individual formation fields
+    before the Mission Sequence. A complete formation value can also be received
+    through a GMAT function output; native field-edit restrictions remain in
+    effect.</para>
+    <para>Target and Optimize iteration rollback can restore the captured member
+    selection after a complete value changes it. Rollback uses the original live
+    spacecraft and restores their captured values; an unrelated replacement
+    object with the same name does not become a captured target. Propagation
+    prepares its bindings again when member or state layouts change.</para>
 
     <para><phrase role="ref_seealso">See Also</phrase>: <xref
     linkend="Propagate"/>, <xref linkend="Color"/></para>
@@ -57,6 +64,16 @@
         </thead>
 
         <tbody>
+          <row>
+            <entry><guilabel>AllowSharedMembers</guilabel></entry>
+            <entry><para>Boolean; default false. Set true on every formation
+            that will reference the same spacecraft. This permits shared
+            definitions and copies that keep their spacecraft references.
+            False retains exclusive membership. Configure this option before
+            the mission sequence; it cannot be changed by a mission command.
+            A single Propagate command still cannot include the same spacecraft
+            more than once, including through different formations.</para></entry>
+          </row>
           <row>
             <entry><guilabel>Add</guilabel></entry>
 
@@ -162,8 +179,10 @@
     </screenshot>
 
     <note>
-      <para>A <guilabel>Spacecraft</guilabel> can only be added to one
-      Formation.</para>
+      <para>With the default AllowSharedMembers=false, a
+      <guilabel>Spacecraft</guilabel> can only be added to one Formation.
+      Sharing requires AllowSharedMembers=true on every formation that uses
+      the overlapping spacecraft.</para>
     </note>
   </refsection>
 
@@ -178,12 +197,65 @@
     primary reasons to use a <guilabel>Formation</guilabel>
     <guilabel>Resource</guilabel> are (1) to simplify the propagation of
     multiple spacecraft and (2) for performance reasons. You can only add a
-    spacecraft to a one formation, and you cannot add a formation to a
-    formation. GMAT’s propagation subsystem models
+    spacecraft to only one formation by default. AllowSharedMembers=true
+    explicitly permits shared spacecraft references; formations cannot contain
+    other formations. GMAT’s propagation subsystem models
     <guilabel>Formations</guilabel> as a coupled dynamic system. Once
     spacecraft have been added to a <guilabel>Formation</guilabel>, you can
     easily propagate all of the spacecraft by simply including the formation
     in the <guilabel>Propagate</guilabel> command statement like this:</para>
+
+    <para>Native API membership edits invalidate the packed formation layout.
+    Resolve all spacecraft references and call BuildState before using the
+    edited layout. Members are packed in Add order; rebinding a same-name
+    spacecraft replaces the old reference. State dimensions are recomputed from
+    the resolved members, including after copying, removal, or clearing. A
+    state update rejects incomplete layouts before modifying any spacecraft.
+    Epoch consistency is checked again when building the state; members using
+    precision time are also compared at their native precision. Propagation
+    buffers without member bindings retain their copied state and epoch.
+    Configured precision-time mode is preserved during state rebuilds. Normal
+    propagation updates copy into the existing layout; rebuilding and resizing
+    are reserved for changed layouts. The geometric-center state uses the first
+    six Cartesian elements of each complete member-state packet.</para>
+
+    <para>A shared formation is another view of the same spacecraft, not a
+    separate set of spacecraft. Its geometric-center state, Cartesian parameter
+    values, and epoch queries read the current resolved members, including after
+    another formation or an individual spacecraft has propagated or maneuvered.
+    Native typed Cartesian and epoch setters update those same members. Changing
+    a spacecraft through one view therefore affects every shared view. Member
+    epochs must be synchronized before computing a coupled formation state.</para>
+
+    <para>To clone a populated formation while keeping its spacecraft references,
+    enable AllowSharedMembers on the source and any other formations using those
+    spacecraft, then use Clone in the Resource Tree. The copy inherits the option
+    and the same Add list. Existing formations using exclusive membership continue
+    to require disjoint members.</para>
+
+    <para>A native copy of a resolved shared formation captures current member
+    state and epoch values even if the source's packed integration snapshot is
+    older. A new clone has no member bindings until references are resolved;
+    copying the object does not transfer ownership of its spacecraft.</para>
+
+    <para>Target and Optimize iteration snapshots also capture the actual
+    spacecraft referenced by a formation. Rollback retains the current member
+    bindings and restores compatible packed state storage. A member removed,
+    replaced or rebound after capture requires native preparation before
+    rollback, even if a replacement has the same name.</para>
+
+    <programlisting>Create Formation Fleet FleetCopy;
+Fleet.AllowSharedMembers = true;
+FleetCopy.AllowSharedMembers = true;
+Fleet.Add = {aSat1, aSat2};
+FleetCopy.Add = {aSat1, aSat2};</programlisting>
+
+    <para>The native mutable GetState/GetPropItem accessors continue to expose
+    packed integration storage. Native clients editing that storage refresh it
+    with UpdateState before editing and commit Cartesian changes with
+    UpdateElements; epoch changes use the epoch setters. Read-only shared state
+    queries do not refresh or overwrite pending integration storage. Typed
+    precision-epoch assignments retain GmatTime when updating the members.</para>
 
     <programlisting>Propagate aPropagator(aFormation) {aSat1.ElapsedSecs = 12000.0}</programlisting>
 

@@ -56,6 +56,14 @@
     that if <guilabel>Append</guilabel> is true, the report may be appended to
     a file that existed prior to the current GMAT session.</para>
 
+    <para>Event location records temporary spacecraft orbit and attitude kernels
+    during propagation. These internal recordings also collect solver trial
+    data so that an explicit <guilabel>FindEvents</guilabel> command in a solver
+    sequence has trajectory data to search. They are separate from a configured
+    <guilabel>EphemerisFile</guilabel> output, whose solver-trial output remains
+    suppressed. The event report's <guilabel>Append</guilabel> behavior applies
+    to each invocation of <guilabel>FindEvents</guilabel>.</para>
+
     <para><phrase role="ref_seealso">See Also</phrase>:<xref
     linkend="ContactLocator"/>, <xref linkend="EclipseLocator"/></para>
   </refsection>

@@ -30,6 +30,7 @@
 //------------------------------------------------------------------------------
 
 
+#include <memory>
 #include "EstimationStateManager.hpp"
 #include "MessageInterface.hpp"
 #include "EstimatorException.hpp"
@@ -37,6 +38,8 @@
 #include "GroundstationInterface.hpp"
 #include "GmatBase.hpp"              // Thrust Scale Factor Solve For
 #include "StateConversionUtil.hpp"
+#include "NavigationMeasurementCopies.hpp"
+#include "FunctionValueContext.hpp"
 #include "Planet.hpp"
 #include "Plate.hpp"
 #include "ODEModel.hpp"
@@ -114,8 +117,11 @@ EstimationStateManager::EstimationStateManager(
    stmColCount             (esm.stmColCount),
    covMap                  (esm.covMap),
    covColCount             (esm.covColCount),
+   psm                     (NULL),
+   propagationState        (NULL),
    hasStateOffset          (esm.hasStateOffset),
-   stateOffset             (esm.stateOffset)
+   stateOffset             (esm.stateOffset),
+   measMan                 (NULL)
 {
    for (UnsignedInt i = 0; i < solveForNames.size(); ++i)
    {
@@ -128,12 +134,9 @@ EstimationStateManager::EstimationStateManager(
       considerIDs.push_back(-1);
    }
 
-   // thrust scale factor solve for
-   for (std::vector<PhysicalModel*>::const_iterator i = esm.pms.begin();
-	   i != esm.pms.end(); ++i)
-   {
-	   pms.push_back((PhysicalModel*)((*i)->Clone()));
-   }
+   auto models = NavigationMeasurementCopies::CloneValues(esm.pms, nullptr);
+   pms = NavigationMeasurementCopies::BorrowValues(models);
+   NavigationMeasurementCopies::ReleaseValues(models);
 }
 
 
@@ -177,7 +180,6 @@ void EstimationStateManager::CleanUp()
    covMap.clear();
    
    /// Pointers to the FileThrust              Thrust Scale Factor Solve For
-   std::vector<PhysicalModel*>    pms;
    for (Integer i = 0; i < pms.size(); ++i)
    {
       if (pms[i])
@@ -209,7 +211,12 @@ EstimationStateManager& EstimationStateManager::operator=(
 {
    if (&esm != this)
    {
+      const ObjectArray existing(pms.begin(), pms.end());
+      auto models = NavigationMeasurementCopies::CloneValues(esm.pms, nullptr, existing);
       StateManager::operator=(esm);
+      solveForObjects.clear(); solveForIDs.clear();
+      considerObjects.clear(); considerIDs.clear();
+      measMan = NULL; psm = NULL; propagationState = NULL;
       solveForNames       = esm.solveForNames;
       solveForObjectNames = esm.solveForObjectNames;
       solveForIDNames     = esm.solveForIDNames;
@@ -234,17 +241,8 @@ EstimationStateManager& EstimationStateManager::operator=(
          considerIDs.push_back(-1);
       }
 
-	  // thrust scale factor solve for
-	  for (std::vector<PhysicalModel*>::iterator i = pms.begin();
-		  i != pms.end(); ++i)
-		  delete (*i);
-	  pms.clear();
-	  // thrust scale factor solve for
-	  for (std::vector<PhysicalModel*>::const_iterator i = esm.pms.begin();
-		  i != esm.pms.end(); ++i)
-	  {
-		  pms.push_back((PhysicalModel*)((*i)->Clone()));
-	  }
+      NavigationMeasurementCopies::PublishValues(pms, models);
+      NavigationMeasurementCopies::DeleteOwned(estimationObjectClones);
    }
 
    return *this;
@@ -327,6 +325,46 @@ const StringArray& EstimationStateManager::GetObjectList(std::string ofType)
    #endif
 
    return chunks;
+}
+
+
+void EstimationStateManager::InvalidateObjectBindings()
+{
+   ObjectArray nextSolveFor(solveForNames.size(), nullptr);
+   ObjectArray nextConsider(considerNames.size(), nullptr);
+   IntegerArray nextSolveForIDs(solveForNames.size(), -1);
+   IntegerArray nextConsiderIDs(considerNames.size(), -1);
+   GmatState emptyState(0), emptyOffset(0);
+   emptyState.SetPrecisionTimeFlag(state.HasPrecisionTime());
+   emptyState.SetEpoch(state.GetEpoch());
+   emptyState.SetEpochGT(state.GetEpochGT());
+   emptyOffset.SetPrecisionTimeFlag(stateOffset.HasPrecisionTime());
+   emptyOffset.SetEpoch(stateOffset.GetEpoch());
+   emptyOffset.SetEpochGT(stateOffset.GetEpochGT());
+   Rmatrix emptyStm;
+   Covariance emptyCovariance;
+   // Assignment prepares the empty covariance and retires its old owner/view
+   // metadata. All definition borrowers are detached before owned retirement.
+   covariance = emptyCovariance;
+   stm.Swap(emptyStm);
+   state.Swap(emptyState);
+   stateOffset.Swap(emptyOffset);
+   ClearOwnedLists();
+   objects.clear(); objectNames.clear(); epochIDs.clear(); current = nullptr;
+   solveForObjects.swap(nextSolveFor); solveForIDs.swap(nextSolveForIDs);
+   considerObjects.swap(nextConsider); considerIDs.swap(nextConsiderIDs);
+   stmMap.clear(); covMap.clear(); chunks.clear();
+   stateSize = stmColCount = covColCount = 0;
+   psm = nullptr; propagationState = nullptr; hasStateOffset = false;
+   NavigationMeasurementCopies::DeleteOwned(estimationObjectClones);
+   NavigationMeasurementCopies::DeleteValues(pms);
+}
+
+void EstimationStateManager::ClearSolveForProperties()
+{
+   InvalidateObjectBindings();
+   solveForNames.clear(); solveForObjectNames.clear(); solveForIDNames.clear();
+   solveForObjects.clear(); solveForIDs.clear();
 }
 
 
@@ -479,32 +517,28 @@ void EstimationStateManager::BufferObjects(ObjectArray *buffer)
          "called\n", buffer);
 #endif
 
-   GmatBase *clone;
-
-   // Clean up internal buffer
-   for (UnsignedInt i = 0; i < estimationObjectClones.size(); ++i)
+   ObjectArray existing(estimationObjectClones);
+   if (buffer) existing.insert(existing.end(), buffer->begin(), buffer->end());
+   auto internal = NavigationMeasurementCopies::CloneValues(objects, nullptr, existing, true);
+   for (const auto &value : internal) existing.push_back(value.get());
+   std::vector<std::unique_ptr<GmatBase>> external;
+   if (buffer && buffer != &estimationObjectClones)
+      external = NavigationMeasurementCopies::CloneValues(objects, nullptr, existing, true);
+   // Prepare both pointer arrays before replacing either set of owned snapshots.
+   auto nextInternal = NavigationMeasurementCopies::BorrowValues(internal);
+   auto nextExternal = NavigationMeasurementCopies::BorrowValues(external);
+   estimationObjectClones.swap(nextInternal);
+   NavigationMeasurementCopies::ReleaseValues(internal);
+   if (buffer && buffer != &estimationObjectClones)
    {
-      if (estimationObjectClones[i])
-         delete estimationObjectClones[i];
+      buffer->swap(nextExternal);
+      NavigationMeasurementCopies::ReleaseValues(external);
    }
-   estimationObjectClones.clear();
-
-   // Clean up external buffer if it is existed
-   if (buffer != NULL)
-   {
-      for (UnsignedInt i = 0; i < buffer->size(); ++i)
-         delete (*buffer)[i];
-      buffer->clear();
-   }
-
-   // Create clones for all objects and put them in internal buffer and external buffer 
-   for (UnsignedInt i = 0; i < objects.size(); ++i)
-   {
-      clone = objects[i]->Clone();
-      estimationObjectClones.push_back(clone);
-      if (buffer != NULL)
-         buffer->push_back(clone->Clone());
-   }
+   for (auto *value : nextInternal)
+      for (auto &other : nextExternal)
+         if (other == value) other = nullptr;
+   NavigationMeasurementCopies::DeleteOwned(nextInternal);
+   NavigationMeasurementCopies::DeleteOwned(nextExternal);
 }
 
 
@@ -550,27 +584,74 @@ void EstimationStateManager::RestoreObjects(ObjectArray *fromBuffer)
       throw EstimatorException(errmsg.str());
    }
    
-   for (UnsignedInt i = 0; i < restoreBuffer->size(); ++i)
+   // Preflight the complete destination correspondence before copying values.
+   // Sibling tracking/model copies can represent the same actual declaration;
+   // only unique native source ancestry is accepted for that correspondence.
+   auto sameDefinition = [](const GmatBase *left, const GmatBase *right)
    {
-      #ifdef DEBUG_CLONING
-         MessageInterface::ShowMessage("Setting object %s from clone named "
-               "%s\n", objects[i]->GetName().c_str(),
-               (*restoreBuffer)[i]->GetName().c_str());
-      #endif
-      if (objects[i] != (*restoreBuffer)[i])
-      {
-         if (objects[i]->IsOfType(Gmat::SPACECRAFT))
-            ((Spacecraft*)(objects[i]))->operator=(*((Spacecraft*)((*restoreBuffer)[i])));
-         else
-            (objects[i])->operator= (*((*restoreBuffer)[i]));
-      }
-      
-      #ifdef DEBUG_CLONING
-         MessageInterface::ShowMessage("Object <%p,%s> data:\n%s", objects[i], objects[i]->GetName().c_str(),
-               objects[i]->GetGeneratingString(Gmat::SHOW_SCRIPT, "   ").c_str());
-      #endif
+      if (left == right) return true;
+      if (!left || !right || typeid(*left) != typeid(*right) ||
+          left->GetTypeName() != right->GetTypeName()) return false;
+      std::set<const GmatBase*> ancestry;
+      for (const GmatBase *value = left; value && ancestry.insert(value).second; value = value->GetCloneSource()) {}
+      std::set<const GmatBase*> visited;
+      for (const GmatBase *value = right; value && visited.insert(value).second; value = value->GetCloneSource())
+         if (ancestry.count(value)) return true;
+      return false;
+   };
+   ObjectArray ordered(objects.size(), nullptr);
+   std::set<GmatBase*> destinations;
+   for (auto *object : objects)
+      if (!object || !destinations.insert(object).second)
+         throw EstimatorException("Invalid or duplicate estimation restoration destination.\n");
+   for (auto *snapshot : *restoreBuffer)
+   {
+      if (!snapshot || !snapshot->HasRestorationTarget())
+         throw EstimatorException("An estimation restoration buffer must be captured by BufferObjects.\n");
+      auto *destination = snapshot->GetRestorationTarget();
+      if (!destination) throw EstimatorException("An estimation restoration destination has expired.\n");
+      auto match = std::find(objects.begin(), objects.end(), destination);
+      if (match == objects.end())
+         for (auto candidate = objects.begin(); candidate != objects.end(); ++candidate)
+            if (sameDefinition(*candidate, destination))
+            {
+               if (match != objects.end())
+                  throw EstimatorException("Ambiguous actual estimation restoration definition.\n");
+               match = candidate;
+            }
+      if (match == objects.end()) throw EstimatorException("The captured restoration destination is not registered.\n");
+      const auto index = static_cast<size_t>(match - objects.begin());
+      if (ordered[index]) throw EstimatorException("Repeated estimation restoration destination.\n");
+      if (typeid(**match) != typeid(*snapshot) || (*match)->GetTypeName() != snapshot->GetTypeName())
+         throw EstimatorException("Incompatible native estimation restoration type.\n");
+      ordered[index] = snapshot;
    }
-   
+   ObjectArray forbidden(objects);
+   forbidden.insert(forbidden.end(), restoreBuffer->begin(), restoreBuffer->end());
+   auto prepared = NavigationMeasurementCopies::CloneValues(ordered, nullptr, forbidden);
+   for (const auto &value : prepared) forbidden.push_back(value.get());
+   GmatBase::FunctionValueCopyGuard nativeCopy;
+   for (size_t i = 0; i < prepared.size(); ++i)
+   {
+      if (!prepared[i]->SetName(objects[i]->GetName()))
+         throw EstimatorException("Cannot retain an estimation restoration resource name.\n");
+      prepared[i]->SetFullName(objects[i]->GetFullName());
+      // Exercise the concrete Copy contract on a detached probe. Unsupported
+      // providers and deterministic Copy errors fail before live mutation.
+      auto probe = NavigationMeasurementCopies::Clone(*objects[i], nullptr, false, forbidden);
+      GmatBase::NativeRestorationGuard restore;
+      probe->Copy(prepared[i].get());
+   }
+   for (size_t i = 0; i < prepared.size(); ++i)
+   {
+      auto *destination = objects[i];
+      const auto previous = destination->GetFunctionValueContext();
+      GmatBase::NativeRestorationGuard restore;
+      destination->Copy(prepared[i].get());
+      if (previous)
+         destination->RetainFunctionValueReferences(previous, previous->GetPrivateObjects());
+   }
+
    #ifdef DEBUG_CLONING
       MessageInterface::ShowMessage("EstimationStateManager::RestoreObjects() "
             "finished\n");
@@ -601,19 +682,21 @@ bool EstimationStateManager::SetProperty(std::string prop)
    if (find(solveForNames.begin(), solveForNames.end(), prop) ==
          solveForNames.end())
    {
-      // Decompose the property name into object name and property ID
-      DecomposeParameter(prop, 2);
-      if (chunks.size() < 2)
-         throw EstimatorException("SolveFor parameter is not properly "
-               "formatted; the format entered, \"" + prop +
-               "\", should be in the form object.parameter.");
-
-      // Save the property elements and fill out the vectors
-      solveForNames.push_back(prop);
-      solveForObjectNames.push_back(chunks[0]);
-      solveForObjects.push_back(NULL);
-      solveForIDNames.push_back(chunks[1]);
-      solveForIDs.push_back(-1);
+      StringArray previousChunks(chunks);
+      try
+      {
+         DecomposeParameter(prop, 2);
+         if (chunks.size() < 2)
+            throw EstimatorException("SolveFor parameter is not properly "
+                  "formatted; the format entered, \"" + prop +
+                  "\", should be in the form object.parameter.");
+         StoreSolveForRole(prop, chunks[0], chunks[1], nullptr);
+      }
+      catch (...)
+      {
+         chunks.swap(previousChunks);
+         throw;
+      }
 
       retval = true;
    }
@@ -653,35 +736,24 @@ bool EstimationStateManager::SetProperty(std::string prop, Integer loc)
    if (find(solveForNames.begin(), solveForNames.end(), prop) ==
          solveForNames.end())
    {
-      // Decompose the property name into object name and property ID
-      DecomposeParameter(prop, 2);
-      if (chunks.size() < 2)
-         throw EstimatorException("SolveFor parameter is not properly "
-               "formatted; the format entered, \"" + prop +
-               "\", should be in the form object.parameter.");
-
-      // Save the property elements
-      if (loc == (Integer)solveForNames.size())
+      StringArray previousChunks(chunks);
+      try
       {
-         // Save the property elements and fill out the vectors
-         solveForNames.push_back(prop);
-         solveForObjectNames.push_back(chunks[0]);
-         solveForObjects.push_back(NULL);
-         solveForIDNames.push_back(chunks[1]);
-         solveForIDs.push_back(-1);
+         DecomposeParameter(prop, 2);
+         if (chunks.size() < 2)
+            throw EstimatorException("SolveFor parameter is not properly "
+                  "formatted; the format entered, \"" + prop +
+                  "\", should be in the form object.parameter.");
+         if (loc < 0 || static_cast<size_t>(loc) > solveForNames.size())
+            throw EstimatorException("Cannot set the SolveFor parameter " + prop);
+         StoreSolveForRole(prop, chunks[0], chunks[1], nullptr, loc);
          retval = true;
       }
-      else if ((loc < (Integer)solveForNames.size()) && (loc >= 0))
+      catch (...)
       {
-         solveForNames[loc]       = prop;
-         solveForObjectNames[loc] = chunks[0];
-         solveForObjects[loc]     = NULL;
-         solveForIDNames[loc]     = chunks[1];
-         solveForIDs[loc]         = -1;
-         retval = true;
+         chunks.swap(previousChunks);
+         throw;
       }
-      else
-         throw EstimatorException("Cannot set the SolveFor parameter " + prop);
    }
    else
    {
@@ -771,12 +843,7 @@ bool EstimationStateManager::SetProperty(std::string sf, GmatBase *obj)
    if (find(solveForNames.begin(), solveForNames.end(), sf) ==
          solveForNames.end())
    {
-      // Save the property elements and fill out the vectors
-      solveForNames.push_back(sf);
-      solveForObjectNames.push_back(obj->GetName());
-      solveForObjects.push_back(obj);
-      solveForIDNames.push_back(sf);
-      solveForIDs.push_back(-1);
+      StoreSolveForRole(sf, obj->GetName(), sf, obj);
 
       retval = true;
    }
@@ -2276,7 +2343,7 @@ Integer EstimationStateManager::SortVector()
 
    ListItem *newItem;
    val = 0;
-   stateMap.clear();
+   ClearStateMap();
    for (Integer i = 0; i < stateSize; ++i)
    {
       #ifdef DEBUG_STATE_CONSTRUCTION
@@ -2285,7 +2352,8 @@ Integer EstimationStateManager::SortVector()
                property[order[i]].c_str());
       #endif
 
-      newItem = new ListItem;
+      std::unique_ptr<ListItem> pendingStateItem(new ListItem);
+      newItem = pendingStateItem.get();
       newItem->objectName  = owners[order[i]]->GetName();
       newItem->objectFullName = owners[order[i]]->GetFullName();
       newItem->elementName = property[order[i]];
@@ -2342,6 +2410,7 @@ Integer EstimationStateManager::SortVector()
          val = 0;
 
       stateMap.push_back(newItem);
+      pendingStateItem.release();
    }
 
    #ifdef DEBUG_STATE_CONSTRUCTION
@@ -4630,3 +4699,120 @@ StringArray EstimationStateManager::GetObjectSolveFors(std::string objName)
 //}
 
 
+
+void EstimationStateManager::RebindMeasurementReferences(const EstimationStateManager &source,
+      MeasurementManager &manager)
+{
+   if (&source == this)
+   {
+      EstimationStateManager snapshot(source);
+      RebindMeasurementReferences(snapshot, manager);
+      return;
+   }
+   RebindClonedObjectReferences(source, [&](GmatBase *object)
+   {
+      auto *copy = manager.GetClone(object);
+      if (copy) return copy;
+      for (size_t i = 0; i < source.pms.size(); ++i)
+         if (source.pms[i] == object)
+         {
+            if (i >= pms.size()) throw EstimatorException("Missing copied estimation physical model.\n");
+            return static_cast<GmatBase*>(pms[i]);
+         }
+      return object;
+   });
+   measMan = &manager;
+   solveForObjects.assign(solveForNames.size(), nullptr);
+   solveForIDs.assign(solveForNames.size(), -1);
+   considerObjects.assign(considerNames.size(), nullptr);
+   considerIDs.assign(considerNames.size(), -1);
+   stmMap.clear(); covMap.clear();
+   stmColCount = covColCount = 0;
+   psm = nullptr;
+   propagationState = nullptr;
+}
+
+ObjectArray EstimationStateManager::GetFunctionValueOwnedObjects() const
+{
+   return ObjectArray(pms.begin(), pms.end());
+}
+
+void EstimationStateManager::RebindFunctionValueReferences(const EstimationStateManager &source,
+      MeasurementManager &manager, const std::function<GmatBase*(GmatBase*)> &resolve,
+      const std::function<std::string(const std::string&)> &mapName)
+{
+   if (&source == this) throw EstimatorException("Estimation value binding requires a separate source.\n");
+   NavigationMeasurementCopies::Aliases names;
+   for (auto *from : source.objects)
+   {
+      auto *to = from ? resolve(from) : nullptr;
+      if (!to) throw EstimatorException("Unresolved retained estimation-state object.\n");
+      names.AddFull(*from, *to);
+   }
+   auto bindNames = [&](const StringArray &from)
+   {
+      StringArray result(from);
+      for (auto &name : result) name = mapName(names.MapProperty(name));
+      return result;
+   };
+   auto nextSolveFors = bindNames(source.solveForNames);
+   auto nextSolveObjects = bindNames(source.solveForObjectNames);
+   auto nextConsider = bindNames(source.considerNames);
+   auto nextConsiderObjects = bindNames(source.considerObjectNames);
+   auto nextParticipants = bindNames(source.participantNames);
+   auto nextObjects = bindNames(source.objectNames);
+   RebindClonedObjectReferences(source, resolve);
+   solveForNames.swap(nextSolveFors);
+   solveForObjectNames.swap(nextSolveObjects);
+   considerNames.swap(nextConsider);
+   considerObjectNames.swap(nextConsiderObjects);
+   participantNames.swap(nextParticipants);
+   objectNames.swap(nextObjects);
+   solveForObjects.assign(solveForNames.size(), nullptr);
+   solveForIDs.assign(solveForNames.size(), -1);
+   considerObjects.assign(considerNames.size(), nullptr);
+   considerIDs.assign(considerNames.size(), -1);
+   stmMap.clear(); covMap.clear();
+   stmColCount = covColCount = 0;
+   psm = nullptr; propagationState = nullptr;
+   measMan = &manager;
+   NavigationMeasurementCopies::DeleteOwned(estimationObjectClones);
+}
+
+
+void EstimationStateManager::StoreSolveForRole(const std::string &property,
+      const std::string &objectName, const std::string &idName,
+      GmatBase *object, Integer position)
+{
+   const size_t count = solveForNames.size();
+   if (solveForObjectNames.size() != count || solveForObjects.size() != count ||
+         solveForIDNames.size() != count || solveForIDs.size() != count)
+      throw EstimatorException("Inconsistent solve-for declaration metadata.");
+   const size_t at = position == -1 ? count : static_cast<size_t>(position);
+   if (position < -1 || at > count)
+      throw EstimatorException("Cannot set the SolveFor parameter " + property);
+   auto nextNames = solveForNames;
+   auto nextObjectNames = solveForObjectNames;
+   auto nextObjects = solveForObjects;
+   auto nextIdNames = solveForIDNames;
+   auto nextIds = solveForIDs;
+   if (at == count)
+   {
+      nextNames.push_back(property);
+      nextObjectNames.push_back(objectName);
+      nextObjects.push_back(object);
+      nextIdNames.push_back(idName);
+      nextIds.push_back(-1);
+   }
+   else
+   {
+      nextNames[at] = property;
+      nextObjectNames[at] = objectName;
+      nextObjects[at] = object;
+      nextIdNames[at] = idName;
+      nextIds[at] = -1;
+   }
+   // All string/vector allocations precede publication of the parallel roles.
+   solveForNames.swap(nextNames); solveForObjectNames.swap(nextObjectNames);
+   solveForObjects.swap(nextObjects); solveForIDNames.swap(nextIdNames); solveForIDs.swap(nextIds);
+}

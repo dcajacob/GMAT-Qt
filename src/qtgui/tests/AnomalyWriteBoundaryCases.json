@@ -1,0 +1,151 @@
+{
+  "cases": [
+    {
+      "key": "EAEarth",
+      "body_case": "Earth",
+      "origin": "Earth",
+      "parameter": "EA",
+      "assigned_value": 725.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "orbital_case": true,
+      "read_only": false,
+      "setup": "SolarSystem.EphemerisSource = DE405;\nSolarSystem.EphemerisUpdateInterval = 0;\nEarth.Mu = 398600.4415;\nEarth.Mu = 398600.44150000002;\nCreate CoordinateSystem ReferenceFrame;\nReferenceFrame.Origin = Earth;\nReferenceFrame.Axes = MJ2000Eq;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = ReferenceFrame;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\n",
+      "destination": "Sat.Earth.EA",
+      "before": "50.478803641357821",
+      "expression": "725",
+      "report": "Sat.Earth.EA Sat.ReferenceFrame.X Sat.ReferenceFrame.Y Sat.ReferenceFrame.Z Sat.ReferenceFrame.VX Sat.ReferenceFrame.VY Sat.ReferenceFrame.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        5.0,
+        -281.4314721513472,
+        7279.6478854148845,
+        3324.0563432667473,
+        -7.314996791181092,
+        -1.1408213473950306,
+        2.2101369265706725
+      ],
+      "native_guard_checks": false,
+      "scope": "Body-relative EA/MA writes; supplementary source fork preserves original transaction/numeric assertions. Physical ephemeris and parent/frame qualification separate."
+    },
+    {
+      "key": "MAEarth",
+      "body_case": "Earth",
+      "origin": "Earth",
+      "parameter": "MA",
+      "assigned_value": 725.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        10000.0,
+        0.2,
+        30.0,
+        40.0,
+        50.0,
+        60.0
+      ],
+      "orbital_case": true,
+      "read_only": false,
+      "setup": "SolarSystem.EphemerisSource = DE405;\nSolarSystem.EphemerisUpdateInterval = 0;\nEarth.Mu = 398600.4415;\nEarth.Mu = 398600.44150000002;\nCreate CoordinateSystem ReferenceFrame;\nReferenceFrame.Origin = Earth;\nReferenceFrame.Axes = MJ2000Eq;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = ReferenceFrame;\nSat.DisplayStateType = Cartesian;\nSat.X = -6851.7966248063703;\nSat.Y = 3521.9684179884439;\nSat.Z = 4100.4768907021453;\nSat.VX = -4.6290215234477632;\nSat.VY = -5.4392151990177595;\nSat.VZ = -0.68774131375701097;\n",
+      "destination": "Sat.Earth.MA",
+      "before": "41.639334355451687",
+      "expression": "725",
+      "report": "Sat.Earth.MA Sat.ReferenceFrame.X Sat.ReferenceFrame.Y Sat.ReferenceFrame.Z Sat.ReferenceFrame.VX Sat.ReferenceFrame.VY Sat.ReferenceFrame.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        5.0,
+        -483.2910866596422,
+        7246.000885147987,
+        3384.087931870027,
+        -7.306808057890909,
+        -1.2963746201974482,
+        2.138300502377168
+      ],
+      "native_guard_checks": false,
+      "scope": "Body-relative EA/MA writes; supplementary source fork preserves original transaction/numeric assertions. Physical ephemeris and parent/frame qualification separate."
+    },
+    {
+      "key": "HyperMAEarth",
+      "body_case": "Earth",
+      "origin": "Earth",
+      "parameter": "MA",
+      "assigned_value": -40.0,
+      "mu": 398600.4415,
+      "initial_elements": [
+        -30000.0,
+        1.4,
+        47.0,
+        112.0,
+        38.0,
+        40.0
+      ],
+      "orbital_case": true,
+      "read_only": false,
+      "setup": "SolarSystem.EphemerisSource = DE405;\nSolarSystem.EphemerisUpdateInterval = 0;\nEarth.Mu = 398600.4415;\nEarth.Mu = 398600.44150000002;\nCreate CoordinateSystem ReferenceFrame;\nReferenceFrame.Origin = Earth;\nReferenceFrame.Axes = MJ2000Eq;\nSat.DateFormat = TAIModJulian;\nSat.Epoch = 21545;\nSat.CoordinateSystem = ReferenceFrame;\nSat.DisplayStateType = Cartesian;\nSat.X = -9677.5997847756844;\nSat.Y = -793.85009568739531;\nSat.Z = 9941.1750965097654;\nSat.VX = -0.51998503699329091;\nSat.VY = -7.5932427182890647;\nSat.VZ = 3.5673423068930949;\n",
+      "destination": "Sat.Earth.MA",
+      "before": "7.2220776932048469",
+      "expression": "-40",
+      "report": "Sat.Earth.MA Sat.ReferenceFrame.X Sat.ReferenceFrame.Y Sat.ReferenceFrame.Z Sat.ReferenceFrame.VX Sat.ReferenceFrame.VY Sat.ReferenceFrame.VZ",
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 2e-08,
+      "relative_tolerance": 2e-12,
+      "column_absolute_tolerances": [
+        1e-09,
+        2e-08,
+        2e-08,
+        2e-08,
+        2e-11,
+        2e-11,
+        2e-11
+      ],
+      "expected": [
+        -40.0,
+        13825.555590575499,
+        24866.028177652915,
+        -23735.605311316478,
+        -3.749740444990648,
+        -1.4588619970455734,
+        4.314351780679572
+      ],
+      "native_guard_checks": false,
+      "scope": "Body-relative EA/MA writes; supplementary source fork preserves original transaction/numeric assertions. Physical ephemeris and parent/frame qualification separate."
+    }
+  ]
+}

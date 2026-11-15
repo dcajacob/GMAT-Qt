@@ -80,6 +80,17 @@ ThrustSegmentData& ThrustSegmentData::operator= (const ThrustSegmentData& right)
 }
 
 
+// Map cached identities without evaluating or initializing a Parameter.
+void ThrustSegmentData::RebindClonedParameterCaches(const RefData &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &data = ClonedParameterData<ThrustSegmentData>(source);
+   auto *bound_mThrustSegment = BindClonedParameterReference(data.mThrustSegment, resolve);
+   mThrustSegment = bound_mThrustSegment;
+}
+
+
+
 //------------------------------------------------------------------------------
 // ~ThrustSegmentData()
 //------------------------------------------------------------------------------

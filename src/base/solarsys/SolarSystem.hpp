@@ -57,6 +57,7 @@ class CoordinateSystem;  // forward reference
 
 class GMAT_API SolarSystem : public GmatBase
 {
+   friend class SolarSystemEphemerisTransaction;
 public:
    // class default constructor - creates default solar system
    SolarSystem(std::string withName = "");
@@ -95,7 +96,8 @@ public:
    
    void                 ResetToDefaults();
    
-   // method to add a body to the solar system
+   // Takes ownership on success. Re-adding the same pointer is a no-op;
+   // a conflicting name is rejected and failure retains caller ownership.
    bool                 AddBody(CelestialBody* cb);
    // method to return a body of the solar system, given its name
    static std::string   GetBodyName(const std::string &body);
@@ -131,6 +133,8 @@ public:
    bool                 SetSource(Gmat::PosVelSource pvSrc);
    bool                 SetSource(const std::string &pvSrc);
    bool                 SetSourceFile(PlanetaryEphem *src);
+   void InvalidateEphemerisCaches(const CelestialBody *changed = nullptr,
+                                 bool resetSpice = false) noexcept;
    bool                 SetSPKFile(const std::string &spkFile);
    bool                 SetLSKFile(const std::string &lskFile);
    bool                 SetPCKFile(const std::string &pckFile);
@@ -303,8 +307,8 @@ protected:
 private:
    
    std::string  theCurrentPlanetarySource;
-   Integer      thePlanetarySourcePriority[Gmat::PosVelSourceCount];
-   bool         isPlanetarySourceInUse[Gmat::PosVelSourceCount];
+   Integer      thePlanetarySourcePriority[Gmat::GlobalPosVelSourceCount];
+   bool         isPlanetarySourceInUse[Gmat::GlobalPosVelSourceCount];
    static const Integer HIGHEST_PRIORITY = 10;
    
    // list for planetary source

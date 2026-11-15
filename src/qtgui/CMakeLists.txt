@@ -1,6 +1,19 @@
 find_package(Qt6 6.4 REQUIRED COMPONENTS Widgets OpenGLWidgets Network)
 find_package(OpenSceneGraph 3.6 REQUIRED COMPONENTS osg osgDB osgViewer osgGA osgUtil osgText)
-add_library(GmatQtFrontend STATIC MainWindow.cpp MainWindow.hpp MainWindowDocuments.cpp
+qt6_wrap_cpp(vector_line_edit_moc VectorLineEdit.hpp)
+qt6_add_resources(ground_map_data GroundMapData.qrc)
+add_library(GmatQtFrontend STATIC McpBridge.cpp McpBridge.hpp MainWindow.cpp MainWindow.hpp MainWindowDocuments.cpp
+   ${ground_map_data}
+   GroundMapData.cpp GroundMapData.hpp GroundMapOverlays.cpp GroundMapOverlays.hpp
+   PlacePicker.cpp PlacePicker.hpp
+   SatelliteImportData.cpp SatelliteImportData.hpp SatelliteImportDialog.cpp SatelliteImportDialog.hpp
+   SatelliteElementsPanel.cpp SatelliteElementsPanel.hpp
+   SpaceTrackAccount.cpp SpaceTrackAccount.hpp
+   SpaceTrackAccountDialog.cpp SpaceTrackAccountDialog.hpp
+   VectorLineEdit.cpp VectorLineEdit.hpp ${vector_line_edit_moc}
+   MatrixTableWidget.cpp MatrixTableWidget.hpp
+   WorkspaceTabs.cpp WorkspaceTabs.hpp WorkspaceLayout.hpp GroundTrackLayout.hpp
+   NavigationTree.cpp NavigationTree.hpp
    QtMessageReceiver.cpp QtMessageReceiver.hpp QtInterpreter.cpp QtInterpreter.hpp
    QtMatlabCallbackServer.cpp QtMatlabCallbackServer.hpp
    UserParameter.cpp UserParameter.hpp ScriptStatements.hpp
@@ -65,12 +78,13 @@ add_library(GmatQtFrontend STATIC MainWindow.cpp MainWindow.hpp MainWindowDocume
    PropagationGroupsDialog.cpp PropagationGroupsDialog.hpp
    PropagationColorDialog.cpp PropagationColorDialog.hpp
    OrbitRenderer.cpp OrbitRenderer.hpp OrbitVectors.hpp OrbitSensorMasks.hpp
+   PovModel.cpp PovModel.hpp PovModelLoad.hpp
    OrbitCamera.hpp SegmentArc.hpp
    StarCatalog.cpp StarCatalog.hpp OrbitStars.hpp
    PlotPlaybackControls.cpp PlotPlaybackControls.hpp
-   PlotModel.cpp PlotModel.hpp PlotWidget.cpp PlotWidget.hpp QtPlotReceiver.cpp QtPlotReceiver.hpp)
+   PlotModel.cpp PlotModel.hpp PlotWidget.cpp PlotWidget.hpp PlotIcons.hpp QtPlotReceiver.cpp QtPlotReceiver.hpp)
 target_link_libraries(GmatQtFrontend PUBLIC Qt6::Widgets Qt6::OpenGLWidgets GmatBase GmatUtil ${OPENSCENEGRAPH_LIBRARIES})
-target_link_libraries(GmatQtFrontend PRIVATE Qt6::Network)
+target_link_libraries(GmatQtFrontend PUBLIC Qt6::Network)
 target_include_directories(GmatQtFrontend PUBLIC ${OPENSCENEGRAPH_INCLUDE_DIRS})
 get_filename_component(qt_osg_library_dir "${OSG_LIBRARY_RELEASE}" DIRECTORY)
 target_compile_definitions(GmatQtFrontend PRIVATE
@@ -81,6 +95,21 @@ if(WIN32)
    # Import GMAT DLL data as well as functions through the existing API macros.
    target_compile_definitions(GmatQtFrontend PUBLIC NOMINMAX _DYNAMICLINK)
 endif()
+
+function(add_gmat_tutorial_probe)
+   find_package(Qt6 6.4 REQUIRED COMPONENTS Test)
+   add_executable(GmatQtTutorialProbe tests/TutorialGuiProbe.cpp tests/TutorialQtTestDriver.cpp)
+   target_link_libraries(GmatQtTutorialProbe PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtTutorialDriverTests tests/TutorialQtTestDriverTests.cpp tests/TutorialQtTestDriver.cpp)
+   target_link_libraries(GmatQtTutorialDriverTests PRIVATE Qt6::Widgets Qt6::Test)
+   add_dependencies(GmatQtTutorialProbe GmatQtTutorialDriverTests)
+endfunction()
+
+if(GMAT_QT_TUTORIAL_ONLY)
+   add_gmat_tutorial_probe()
+   return()
+endif()
+
 add_executable(GmatQt main.cpp)
 find_package(Python3 QUIET COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)
@@ -114,6 +143,53 @@ else()
 endif()
 
 if(GMAT_QT_BUILD_TESTS)
+   add_executable(GmatQtFunctionGlobalStoreLifetimeTests tests/FunctionGlobalStoreLifetimeTests.cpp)
+   target_link_libraries(GmatQtFunctionGlobalStoreLifetimeTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtFunctionGlobalStoreLifetimeTests GmatQt)
+   add_executable(GmatQtFunctionCommandPolicyTests tests/FunctionCommandPolicyTests.cpp)
+   target_link_libraries(GmatQtFunctionCommandPolicyTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtFunctionCommandPolicyTests GmatQt)
+   add_executable(GmatQtImplementationVerificationTests tests/ImplementationVerificationTests.cpp)
+   target_link_libraries(GmatQtImplementationVerificationTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtImplementationVerificationTests GmatQt)
+   add_executable(GmatQtRemainingImplementationVerificationTests tests/RemainingImplementationVerificationTests.cpp)
+   target_link_libraries(GmatQtRemainingImplementationVerificationTests PRIVATE GmatQtFrontend)
+   target_compile_definitions(GmatQtRemainingImplementationVerificationTests PRIVATE
+      GMAT_REMAINING_VERIFICATION_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/tests")
+   add_dependencies(GmatQtRemainingImplementationVerificationTests GmatQt)
+   add_executable(GmatQtInterpolationSufficiencyTests tests/InterpolationSufficiencyTests.cpp)
+   target_link_libraries(GmatQtInterpolationSufficiencyTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtInterpolationSufficiencyTests GmatQt)
+   add_executable(GmatQtInterpolationPolicyGuiTests tests/InterpolationPolicyGuiTests.cpp)
+   target_link_libraries(GmatQtInterpolationPolicyGuiTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtInterpolationPolicyGuiTests GmatQt)
+   add_executable(GmatQtUserBodyOrbitTests tests/UserBodyOrbitTests.cpp)
+   target_link_libraries(GmatQtUserBodyOrbitTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtUserBodyOrbitTests GmatQt)
+   add_executable(GmatQtPlotPlaybackRedrawTests tests/PlotPlaybackRedrawTests.cpp)
+   target_link_libraries(GmatQtPlotPlaybackRedrawTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtPlotPlaybackRedrawTests GmatQt)
+   add_executable(GmatQtBulirschFloorAcceptanceTests tests/BulirschFloorAcceptanceTests.cpp)
+   target_link_libraries(GmatQtBulirschFloorAcceptanceTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtBulirschFloorAcceptanceTests GmatQt)
+   add_executable(GmatQtEventBrentEclipseTests tests/EventBrentEclipseTests.cpp)
+   target_link_libraries(GmatQtEventBrentEclipseTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtEventBrentEclipseTests GmatQt)
+   add_executable(GmatQtEventBrentContactTests tests/EventBrentContactTests.cpp)
+   target_link_libraries(GmatQtEventBrentContactTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtEventBrentContactTests GmatQt)
+   add_executable(GmatQtEventRootScalarPolicyTests tests/EventRootScalarPolicyTests.cpp)
+   target_link_libraries(GmatQtEventRootScalarPolicyTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtEventRootScalarPolicyTests GmatQt)
+   add_executable(GmatQtEventBrentAuxiliaryTests tests/EventBrentAuxiliaryTests.cpp)
+   target_link_libraries(GmatQtEventBrentAuxiliaryTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtEventBrentAuxiliaryTests GmatQt)
+   add_executable(GmatQtSpkOriginAcceptanceTests tests/SpkOriginAcceptanceTests.cpp)
+   target_link_libraries(GmatQtSpkOriginAcceptanceTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtSpkOriginAcceptanceTests GmatQt)
+   add_executable(GmatQtSaveFilenameAcceptanceTests tests/SaveFilenameAcceptanceTests.cpp)
+   target_link_libraries(GmatQtSaveFilenameAcceptanceTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtSaveFilenameAcceptanceTests GmatQt)
    add_executable(GmatQtNasaAttitudeDeclaredFrameTests tests/NasaAttitudeDeclaredFrameTests.cpp)
    target_link_libraries(GmatQtNasaAttitudeDeclaredFrameTests PRIVATE GmatQtFrontend Qt6::Test)
    add_dependencies(GmatQtNasaAttitudeDeclaredFrameTests GmatQt)
@@ -144,6 +220,15 @@ if(GMAT_QT_BUILD_TESTS)
    add_executable(GmatQtNasaCommandSolverParentOperationTests tests/NasaCommandSolverParentOperationTests.cpp)
    target_link_libraries(GmatQtNasaCommandSolverParentOperationTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtNasaCommandSolverParentOperationTests GmatQt)
+   add_executable(GmatQtMatlabCommandOperationTests tests/MatlabCommandOperationTests.cpp)
+   target_link_libraries(GmatQtMatlabCommandOperationTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtMatlabCommandOperationTests GmatQt)
+   add_executable(GmatQtMissionCreationPositionTests tests/MissionCreationPositionTests.cpp)
+   target_link_libraries(GmatQtMissionCreationPositionTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtMissionCreationPositionTests GmatQt)
+   add_executable(GmatQtFormationCloneScopeTests tests/FormationCloneScopeTests.cpp)
+   target_link_libraries(GmatQtFormationCloneScopeTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtFormationCloneScopeTests GmatQt)
    add_executable(GmatQtNasaCommandPrepareRestrictionTests tests/NasaCommandPrepareRestrictionTests.cpp)
    target_link_libraries(GmatQtNasaCommandPrepareRestrictionTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtNasaCommandPrepareRestrictionTests GmatQt)
@@ -254,6 +339,47 @@ if(GMAT_QT_BUILD_TESTS)
    add_executable(GmatQtNasaOrbitDefinitionTests tests/NasaOrbitDefinitionTests.cpp)
    target_link_libraries(GmatQtNasaOrbitDefinitionTests PRIVATE GmatQtFrontend Qt6::Test)
    add_dependencies(GmatQtNasaOrbitDefinitionTests GmatQt)
+   add_executable(GmatQtBrouwerFrameDefinitionTests tests/BrouwerFrameDefinitionTests.cpp)
+   target_link_libraries(GmatQtBrouwerFrameDefinitionTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtBrouwerFrameDefinitionTests GmatQt)
+   add_executable(GmatQtBrouwerTransportObservationTests tests/BrouwerTransportObservationTests.cpp)
+   target_link_libraries(GmatQtBrouwerTransportObservationTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtBrouwerTransportObservationTests GmatQt)
+   add_executable(GmatQtBrouwerTransportTests tests/BrouwerTransportTests.cpp)
+   target_link_libraries(GmatQtBrouwerTransportTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtBrouwerTransportTests GmatQt)
+   add_executable(GmatQtBrouwerFrameContractTests tests/BrouwerFrameContractTests.cpp)
+   target_link_libraries(GmatQtBrouwerFrameContractTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtBrouwerFrameContractTests GmatQt)
+   add_executable(GmatQtSolverBackendCommandTests tests/SolverBackendCommandTests.cpp)
+   target_link_libraries(GmatQtSolverBackendCommandTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtSolverBackendCommandTests GmatQt)
+   add_executable(GmatQtSolverCkOutputTests tests/SolverCkOutputTests.cpp)
+   target_include_directories(GmatQtSolverCkOutputTests PRIVATE "${CSPICE_DIR}/include")
+   target_link_libraries(GmatQtSolverCkOutputTests PRIVATE GmatQtFrontend optimized ${CSPICE_LIB} debug ${CSPICE_LIB_DEBUG})
+   add_dependencies(GmatQtSolverCkOutputTests GmatQt)
+   add_executable(GmatQtEstimatorCkObservationTests tests/EstimatorCkObservationTests.cpp)
+   target_include_directories(GmatQtEstimatorCkObservationTests PRIVATE "${CSPICE_DIR}/include" $<TARGET_PROPERTY:GmatEstimation,INCLUDE_DIRECTORIES>)
+   target_link_libraries(GmatQtEstimatorCkObservationTests PRIVATE GmatQtFrontend GmatEstimation optimized ${CSPICE_LIB} debug ${CSPICE_LIB_DEBUG})
+   add_dependencies(GmatQtEstimatorCkObservationTests GmatQt)
+   add_executable(GmatQtDimensionlessInputUnitTests tests/DimensionlessInputUnitTests.cpp)
+   target_link_libraries(GmatQtDimensionlessInputUnitTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtDimensionlessInputUnitTests GmatQt)
+   add_executable(GmatQtElectricCoefficientUnitTests tests/ElectricCoefficientUnitTests.cpp)
+   target_link_libraries(GmatQtElectricCoefficientUnitTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtElectricCoefficientUnitTests GmatQt)
+   add_executable(GmatQtSharedSubscriberScalarBindingTests tests/SharedSubscriberScalarBindingTests.cpp)
+   target_link_libraries(GmatQtSharedSubscriberScalarBindingTests PRIVATE GmatBase GmatUtil Qt6::Widgets)
+   add_dependencies(GmatQtSharedSubscriberScalarBindingTests GmatQt)
+   add_executable(GmatQtFunctionCommandMatrixTests tests/FunctionCommandMatrixTests.cpp)
+   target_link_libraries(GmatQtFunctionCommandMatrixTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtFunctionCommandMatrixTests GmatQt)
+   add_executable(GmatQtEnclosingSolverCommandTests tests/EnclosingSolverCommandTests.cpp)
+   target_link_libraries(GmatQtEnclosingSolverCommandTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtEnclosingSolverCommandTests GmatQt)
+   add_executable(GmatQtInitialGuessPlotTests tests/InitialGuessPlotTests.cpp)
+   target_link_libraries(GmatQtInitialGuessPlotTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtInitialGuessPlotTests GmatQt)
    add_executable(GmatQtNasaBrouwerOriginTests tests/NasaBrouwerOriginTests.cpp)
    target_link_libraries(GmatQtNasaBrouwerOriginTests PRIVATE GmatQtFrontend Qt6::Test)
    add_dependencies(GmatQtNasaBrouwerOriginTests GmatQt)
@@ -293,6 +419,32 @@ if(GMAT_QT_BUILD_TESTS)
    target_link_libraries(GmatQtNasaOrbitConversionTests PRIVATE GmatQtFrontend Qt6::Test)
    add_dependencies(GmatQtNasaOrbitConversionTests GmatQt)
    add_executable(GmatQtNasaOrbitExtendedConversionTests tests/NasaOrbitExtendedConversionTests.cpp)
+   add_executable(GmatQtPolynomialArrayUnitTests tests/PolynomialArrayUnitTests.cpp)
+   target_link_libraries(GmatQtPolynomialArrayUnitTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtErrorModelUnitTests tests/ErrorModelUnitTests.cpp)
+   target_link_libraries(GmatQtErrorModelUnitTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtGeometryArrayUnitTests tests/GeometryArrayUnitTests.cpp)
+   target_link_libraries(GmatQtGeometryArrayUnitTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtCovarianceUnitDisplayTests tests/CovarianceUnitDisplayTests.cpp)
+   target_link_libraries(GmatQtCovarianceUnitDisplayTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtCommandUnitDisplayTests tests/CommandUnitDisplayTests.cpp)
+   target_link_libraries(GmatQtCommandUnitDisplayTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtAncillaryUnitDisplayTests tests/AncillaryUnitDisplayTests.cpp)
+   target_link_libraries(GmatQtAncillaryUnitDisplayTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtPickerUnitDisplayTests tests/PickerUnitDisplayTests.cpp)
+   target_link_libraries(GmatQtPickerUnitDisplayTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtDataDisplayUnitTests tests/DataDisplayUnitTests.cpp)
+   target_link_libraries(GmatQtDataDisplayUnitTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtDisplayOptionsUnitTests tests/DisplayOptionsUnitTests.cpp)
+   target_link_libraries(GmatQtDisplayOptionsUnitTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtEpochUnitTransitionTests tests/EpochUnitTransitionTests.cpp)
+   target_link_libraries(GmatQtEpochUnitTransitionTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtFunctionArgumentUnitTests tests/FunctionArgumentUnitTests.cpp)
+   target_link_libraries(GmatQtFunctionArgumentUnitTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtOrbitCameraUnitTests tests/OrbitCameraUnitTests.cpp)
+   target_link_libraries(GmatQtOrbitCameraUnitTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtNestedPhysicalUnitTests tests/NestedPhysicalUnitTests.cpp)
+   target_link_libraries(GmatQtNestedPhysicalUnitTests PRIVATE GmatQtFrontend Qt6::Test)
    target_link_libraries(GmatQtNasaOrbitExtendedConversionTests PRIVATE GmatQtFrontend Qt6::Test)
    add_dependencies(GmatQtNasaOrbitExtendedConversionTests GmatQt)
    add_executable(GmatQtNasaPlanetodeticConversionTests tests/NasaPlanetodeticConversionTests.cpp)
@@ -325,6 +477,17 @@ if(GMAT_QT_BUILD_TESTS)
    add_executable(GmatQtNasaVisualTransformTests tests/NasaVisualTransformTests.cpp)
    target_link_libraries(GmatQtNasaVisualTransformTests PRIVATE GmatQtFrontend Qt6::Test)
    add_dependencies(GmatQtNasaVisualTransformTests GmatQt)
+   set(pov_visual_driver "${CMAKE_CURRENT_BINARY_DIR}/pov-visual/Render.cpp")
+   add_custom_command(OUTPUT "${pov_visual_driver}"
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/GeneratePovVisualWitness.py"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaVisualTransformTests.cpp" "${pov_visual_driver}"
+      DEPENDS tests/GeneratePovVisualWitness.py tests/NasaVisualTransformTests.cpp
+      VERBATIM)
+   set_source_files_properties("${pov_visual_driver}" PROPERTIES HEADER_FILE_ONLY TRUE)
+   add_executable(GmatQtPovVisualTests tests/PovVisualTests.cpp "${pov_visual_driver}")
+   target_include_directories(GmatQtPovVisualTests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/tests")
+   target_link_libraries(GmatQtPovVisualTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtPovVisualTests GmatQt)
    add_executable(GmatQtNasaReportOutputTests tests/NasaReportOutputTests.cpp)
    target_link_libraries(GmatQtNasaReportOutputTests PRIVATE GmatQtFrontend Qt6::Test)
    add_dependencies(GmatQtNasaReportOutputTests GmatQt)
@@ -384,6 +547,9 @@ if(GMAT_QT_BUILD_TESTS)
    add_executable(GmatQtNasaStmParameterTests tests/NasaStmParameterTests.cpp)
    target_link_libraries(GmatQtNasaStmParameterTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtNasaStmParameterTests GmatQt)
+   add_executable(GmatQtStmSelectedFrameTests tests/StmSelectedFrameTests.cpp)
+   target_link_libraries(GmatQtStmSelectedFrameTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtStmSelectedFrameTests GmatQt)
    add_executable(GmatQtNasaFunctionDefinitionTests tests/NasaFunctionDefinitionTests.cpp)
    target_link_libraries(GmatQtNasaFunctionDefinitionTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtNasaFunctionDefinitionTests GmatQt)
@@ -490,12 +656,7 @@ if(GMAT_QT_BUILD_TESTS)
    target_include_directories(GmatQtUnicodeFileNameTests PRIVATE ../gmatutil/util ../gmatutil/include)
    target_link_libraries(GmatQtUnicodeFileNameTests PRIVATE GmatUtil Qt6::Widgets)
    find_package(Python3 REQUIRED COMPONENTS Interpreter)
-   find_package(Qt6 6.4 REQUIRED COMPONENTS Test)
-   add_executable(GmatQtTutorialProbe tests/TutorialGuiProbe.cpp tests/TutorialQtTestDriver.cpp)
-   target_link_libraries(GmatQtTutorialProbe PRIVATE GmatQtFrontend Qt6::Test)
-   add_executable(GmatQtTutorialDriverTests tests/TutorialQtTestDriverTests.cpp tests/TutorialQtTestDriver.cpp)
-   target_link_libraries(GmatQtTutorialDriverTests PRIVATE Qt6::Widgets Qt6::Test)
-   add_dependencies(GmatQtTutorialProbe GmatQtTutorialDriverTests)
+   add_gmat_tutorial_probe()
    add_test(NAME QtTutorials.SemanticDriver COMMAND GmatQtTutorialDriverTests)
    set_tests_properties(QtTutorials.SemanticDriver PROPERTIES LABELS qt-tutorial-support TIMEOUT 30 ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
    add_dependencies(GmatQtTutorialProbe GmatQt)
@@ -567,6 +728,13 @@ if(GMAT_QT_BUILD_TESTS)
    add_executable(GmatQtNasaVaryParameterTests tests/NasaVaryParameterTests.cpp)
    target_link_libraries(GmatQtNasaVaryParameterTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtNasaVaryParameterTests GmatQt)
+   add_executable(GmatQtVaryNumericPickerTests tests/VaryNumericPickerTests.cpp)
+   target_link_libraries(GmatQtVaryNumericPickerTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtVaryNumericPickerTests GmatQt)
+   add_executable(GmatQtExactEphemerisPolicyTests tests/ExactEphemerisPolicyGuiTests.cpp)
+   target_include_directories(GmatQtExactEphemerisPolicyTests PRIVATE "${CSPICE_DIR}/include")
+   target_link_libraries(GmatQtExactEphemerisPolicyTests PRIVATE GmatQtFrontend optimized ${CSPICE_LIB} debug ${CSPICE_LIB_DEBUG})
+   add_dependencies(GmatQtExactEphemerisPolicyTests GmatQt)
    add_executable(GmatQtNasaFiniteEndContextTests tests/NasaFiniteEndContextTests.cpp)
    target_link_libraries(GmatQtNasaFiniteEndContextTests PRIVATE GmatQtFrontend Qt6::Test)
    add_dependencies(GmatQtNasaFiniteEndContextTests GmatQt)
@@ -627,6 +795,52 @@ if(GMAT_QT_BUILD_TESTS)
    add_executable(GmatQtNasaSaveResourceTests tests/NasaSaveResourceTests.cpp)
    target_link_libraries(GmatQtNasaSaveResourceTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtNasaSaveResourceTests GmatQt)
+   add_executable(GmatQtNasaSaveForceConsumerTests tests/NasaSaveForceConsumerTests.cpp)
+   target_link_libraries(GmatQtNasaSaveForceConsumerTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtNasaSaveForceConsumerTests GmatQt)
+   add_executable(GmatQtNasaSaveReadonlyInitializationTests tests/NasaSaveReadonlyInitializationTests.cpp)
+   target_link_libraries(GmatQtNasaSaveReadonlyInitializationTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtNasaSaveReadonlyInitializationTests GmatQt)
+   add_executable(GmatSaveSubscriberNativeTests tests/SaveSubscriberNativeTests.cpp)
+   target_link_libraries(GmatSaveSubscriberNativeTests PRIVATE GmatBase GmatUtil)
+   # Supplementary fixtures select LegacyData explicitly. Protected original
+   # drivers, case files, assertions and default-style outcomes stay intact.
+   add_executable(GmatQtSaveLegacyResourceTests tests/SaveLegacyResourceTests.cpp)
+   add_executable(GmatQtSaveLegacyReadonlyTests tests/SaveLegacyReadonlyTests.cpp)
+   add_executable(GmatQtSaveAttachedPowerConsumerTests tests/SaveAttachedPowerConsumerTests.cpp)
+   target_link_libraries(GmatQtSaveAttachedPowerConsumerTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtSaveAttachedPowerConsumerTests GmatQt)
+   add_executable(GmatQtSaveLegacyAttachmentTests tests/SaveLegacyAttachmentTests.cpp)
+   add_executable(GmatQtSaveLegacyForceConsumerTests tests/SaveLegacyForceConsumerTests.cpp)
+   add_executable(GmatQtSaveLegacyNamedForceTests tests/SaveNamedForceConfigurationTests.cpp)
+   add_executable(GmatSaveNamedResourceEligibilityTests tests/SaveNamedResourceEligibilityTests.cpp)
+   target_link_libraries(GmatSaveNamedResourceEligibilityTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   foreach(save_legacy_kind Resource Readonly Attachment ForceConsumer NamedForce)
+      if(save_legacy_kind STREQUAL "Readonly")
+         set(save_legacy_original NasaSaveReadonlyInitializationTests.cpp)
+      elseif(save_legacy_kind STREQUAL "NamedForce")
+         set(save_legacy_original NasaSaveResourceTests.cpp)
+      else()
+         set(save_legacy_original "NasaSave${save_legacy_kind}Tests.cpp")
+      endif()
+      set(save_legacy_source "${CMAKE_CURRENT_BINARY_DIR}/save-legacy-policy/${save_legacy_kind}.cpp")
+      set(save_legacy_receipt "${CMAKE_CURRENT_BINARY_DIR}/save-legacy-policy/${save_legacy_kind}.json")
+      add_custom_command(OUTPUT "${save_legacy_source}" "${save_legacy_receipt}"
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/GenerateSaveLegacyPolicyWitness.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/${save_legacy_original}"
+            "${save_legacy_source}" "${save_legacy_receipt}" "${save_legacy_kind}"
+         DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/${save_legacy_original}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/GenerateSaveLegacyPolicyWitness.py"
+         VERBATIM)
+      # The small source wrapper exposes the QApplication test entry point to
+      # acceptance discovery; its included driver is generated before compile.
+      set_source_files_properties("${save_legacy_source}" PROPERTIES HEADER_FILE_ONLY TRUE)
+      target_sources(GmatQtSaveLegacy${save_legacy_kind}Tests PRIVATE "${save_legacy_source}")
+      target_include_directories(GmatQtSaveLegacy${save_legacy_kind}Tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/tests" "${CMAKE_CURRENT_BINARY_DIR}")
+      target_link_libraries(GmatQtSaveLegacy${save_legacy_kind}Tests PRIVATE GmatQtFrontend)
+      add_dependencies(GmatQtSaveLegacy${save_legacy_kind}Tests GmatQt)
+   endforeach()
+
    add_executable(GmatQtNasaSaveAttachmentTests tests/NasaSaveAttachmentTests.cpp)
    target_link_libraries(GmatQtNasaSaveAttachmentTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtNasaSaveAttachmentTests GmatQt)
@@ -795,6 +1009,20 @@ if(GMAT_QT_BUILD_TESTS)
    add_executable(GmatQtNasaCommandTreeTests tests/NasaCommandTreeTests.cpp)
    target_link_libraries(GmatQtNasaCommandTreeTests PRIVATE GmatQtFrontend Qt6::Test)
    add_dependencies(GmatQtNasaCommandTreeTests GmatQt)
+   foreach(save_tree_policy Worksheet LegacyData)
+      set(save_tree_source "${CMAKE_CURRENT_BINARY_DIR}/save-tree-policy/${save_tree_policy}.cpp")
+      set(save_tree_receipt "${CMAKE_CURRENT_BINARY_DIR}/save-tree-policy/${save_tree_policy}.json")
+      add_custom_command(OUTPUT "${save_tree_source}" "${save_tree_receipt}"
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/GenerateSaveTreePolicyWitness.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaCommandTreeTests.cpp" "${save_tree_source}" "${save_tree_receipt}" ${save_tree_policy}
+         DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaCommandTreeTests.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/GenerateSaveTreePolicyWitness.py" VERBATIM)
+      set_source_files_properties("${save_tree_source}" PROPERTIES HEADER_FILE_ONLY TRUE)
+      add_executable(GmatQtSaveTree${save_tree_policy}Tests "tests/SaveTree${save_tree_policy}Tests.cpp" "${save_tree_source}")
+      target_link_libraries(GmatQtSaveTree${save_tree_policy}Tests PRIVATE GmatQtFrontend Qt6::Test)
+      target_include_directories(GmatQtSaveTree${save_tree_policy}Tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/tests" "${CMAKE_CURRENT_BINARY_DIR}")
+      add_dependencies(GmatQtSaveTree${save_tree_policy}Tests GmatQt)
+   endforeach()
    add_executable(GmatQtNasaObjectSelectionTests tests/NasaObjectSelectionTests.cpp)
    target_link_libraries(GmatQtNasaObjectSelectionTests PRIVATE GmatQtFrontend Qt6::Test)
    add_dependencies(GmatQtNasaObjectSelectionTests GmatQt)
@@ -829,6 +1057,18 @@ if(GMAT_QT_BUILD_TESTS)
    target_link_libraries(GmatQtNasaSpkCanonicalEpochTests PRIVATE GmatBase GmatUtil Qt6::Widgets)
    add_executable(GmatQtNasaObjectAccelerationDerivativeTests tests/NasaObjectAccelerationDerivativeTests.cpp)
    target_link_libraries(GmatQtNasaObjectAccelerationDerivativeTests PRIVATE GmatBase GmatUtil Qt6::Widgets)
+   add_executable(GmatQtIcrfLoaderLifecycleTests tests/IcrfLoaderLifecycleTests.cpp)
+   target_link_libraries(GmatQtIcrfLoaderLifecycleTests PRIVATE GmatBase GmatUtil Qt6::Widgets)
+   add_dependencies(GmatQtIcrfLoaderLifecycleTests GmatQt)
+   add_executable(GmatQtGroundTrackGeodeticTests tests/GroundTrackGeodeticTests.cpp)
+   target_link_libraries(GmatQtGroundTrackGeodeticTests PRIVATE GmatBase GmatUtil Qt6::Widgets)
+   add_dependencies(GmatQtGroundTrackGeodeticTests GmatQt)
+   add_executable(GmatQtDeFileDomainTests tests/DeFileDomainTests.cpp)
+   target_link_libraries(GmatQtDeFileDomainTests PRIVATE GmatBase GmatUtil Qt6::Widgets)
+   add_dependencies(GmatQtDeFileDomainTests GmatQt)
+   add_executable(GmatQtDeFileDeltaBoundaryTests tests/DeFileDeltaBoundaryTests.cpp)
+   target_link_libraries(GmatQtDeFileDeltaBoundaryTests PRIVATE GmatBase GmatUtil Qt6::Widgets)
+   add_dependencies(GmatQtDeFileDeltaBoundaryTests GmatQt)
    add_executable(GmatQtNasaOriginRelativeStateTests tests/NasaOriginRelativeStateTests.cpp)
    target_link_libraries(GmatQtNasaOriginRelativeStateTests PRIVATE GmatBase GmatUtil Qt6::Widgets)
    add_executable(GmatQtNasaSharedSampleTests tests/NasaSharedSampleTests.cpp)
@@ -1179,9 +1419,58 @@ if(GMAT_QT_BUILD_TESTS)
    target_link_libraries(GmatQtWorkflowTests PRIVATE GmatQtFrontend)
    add_executable(GmatQtPlotTests tests/PlotTests.cpp)
    target_link_libraries(GmatQtPlotTests PRIVATE GmatQtFrontend)
+   add_executable(GmatQtGroundTrackLayoutTests tests/GroundTrackLayoutTests.cpp)
+   target_link_libraries(GmatQtGroundTrackLayoutTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtGroundTrackAxisLabelTests tests/GroundTrackAxisLabelTests.cpp)
+   target_include_directories(GmatQtGroundTrackAxisLabelTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+   target_link_libraries(GmatQtGroundTrackAxisLabelTests PRIVATE Qt6::Widgets)
+   add_executable(GmatQtGroundTrackRegionZoomTests tests/GroundTrackRegionZoomTests.cpp)
+   target_link_libraries(GmatQtGroundTrackRegionZoomTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtGroundMapOverlayTests tests/GroundMapOverlayTests.cpp)
+   target_link_libraries(GmatQtGroundMapOverlayTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtPlacePickerTests tests/PlacePickerTests.cpp)
+   target_link_libraries(GmatQtPlacePickerTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtSatelliteImportTests tests/SatelliteImportTests.cpp
+      ../../plugins/TLEPropagatorPlugin/src/propagator/TLEReader.cpp
+      ../../plugins/TLEPropagatorPlugin/src/propagator/TLEData.cpp)
+   target_include_directories(GmatQtSatelliteImportTests PRIVATE "${CSPICE_DIR}/include" "${PROJECT_SOURCE_DIR}/plugins/TLEPropagatorPlugin/src/propagator")
+   target_link_libraries(GmatQtSatelliteImportTests PRIVATE GmatQtFrontend Qt6::Test optimized ${CSPICE_LIB} debug ${CSPICE_LIB_DEBUG})
+   add_dependencies(GmatQtSatelliteImportTests GmatQt)
+   add_executable(GmatQtSatelliteCatalogTests tests/SatelliteCatalogTests.cpp)
+   target_link_libraries(GmatQtSatelliteCatalogTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtSpaceTrackAccountTests tests/SpaceTrackAccountTests.cpp)
+   target_link_libraries(GmatQtSpaceTrackAccountTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtNavigationTreeTests tests/NavigationTreeTests.cpp NavigationTree.cpp)
+   target_include_directories(GmatQtNavigationTreeTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+   target_link_libraries(GmatQtNavigationTreeTests PRIVATE Qt6::Widgets Qt6::Test)
+   add_executable(GmatQtSatelliteWorkflowTests tests/SatelliteWorkflowTests.cpp)
+   target_link_libraries(GmatQtSatelliteWorkflowTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtSatelliteWorkflowTests GmatQt)
+   add_executable(GmatQtSummaryDragTests tests/SummaryDragTests.cpp)
+   target_link_libraries(GmatQtSummaryDragTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtWorkspaceNavigationTests tests/WorkspaceNavigationTests.cpp)
+   target_link_libraries(GmatQtWorkspaceNavigationTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtUxReviewFixesTests tests/UxReviewFixesTests.cpp)
+   target_link_libraries(GmatQtUxReviewFixesTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtUxReviewFixesTests GmatQt)
+   add_executable(GmatQtWindowControlContrastTests tests/WindowControlContrastTests.cpp WorkspaceTabs.cpp)
+   target_include_directories(GmatQtWindowControlContrastTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+   target_link_libraries(GmatQtWindowControlContrastTests PRIVATE Qt6::Widgets Qt6::Test)
+   add_executable(GmatQtContextCopyTests tests/ContextCopyTests.cpp)
+   target_link_libraries(GmatQtContextCopyTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtClipboardPasteTests tests/ClipboardPasteTests.cpp)
+   target_link_libraries(GmatQtClipboardPasteTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_executable(GmatQtPlotToolbarTests tests/PlotToolbarTests.cpp)
+   target_link_libraries(GmatQtPlotToolbarTests PRIVATE GmatQtFrontend Qt6::Test)
    add_executable(GmatQtSharedPlaybackTests tests/SharedPlaybackTests.cpp)
    target_link_libraries(GmatQtSharedPlaybackTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtSharedPlaybackTests GmatQt)
+   add_executable(GmatQtSharedPlaybackAccessibilityTests tests/SharedPlaybackAccessibilityTests.cpp)
+   target_link_libraries(GmatQtSharedPlaybackAccessibilityTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtSharedPlaybackAccessibilityTests GmatQt)
+   add_executable(GmatQtAttitudeUnitTests tests/AttitudeUnitTests.cpp)
+   target_link_libraries(GmatQtAttitudeUnitTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtAttitudeUnitTests GmatQt)
    add_executable(GmatQtInterpolatedPlaybackTests tests/InterpolatedPlaybackTests.cpp)
    target_link_libraries(GmatQtInterpolatedPlaybackTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtInterpolatedPlaybackTests GmatQt)
@@ -1191,6 +1480,8 @@ if(GMAT_QT_BUILD_TESTS)
    add_executable(GmatQtResourceCreationDefaultsTests tests/ResourceCreationDefaultsTests.cpp)
    target_link_libraries(GmatQtResourceCreationDefaultsTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtResourceCreationDefaultsTests GmatQt)
+   add_executable(GmatQtOrbitViewCreationDefaultsTests tests/OrbitViewCreationDefaultsTests.cpp)
+   target_link_libraries(GmatQtOrbitViewCreationDefaultsTests PRIVATE GmatQtFrontend)
    add_executable(GmatQtCoordinateCreationTests tests/CoordinateCreationTests.cpp)
    target_link_libraries(GmatQtCoordinateCreationTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtCoordinateCreationTests GmatQt)
@@ -1212,6 +1503,45 @@ if(GMAT_QT_BUILD_TESTS)
    add_executable(GmatQtResourceCloneTests tests/ResourceCloneTests.cpp)
    target_link_libraries(GmatQtResourceCloneTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtResourceCloneTests GmatQt)
+   add_executable(GmatQtCloneIncludeTests tests/CloneIncludeTests.cpp)
+   target_link_libraries(GmatQtCloneIncludeTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtCloneIncludeTests GmatQt)
+   add_executable(GmatQtCloneSelfReferenceTests tests/CloneSelfReferenceTests.cpp)
+   target_link_libraries(GmatQtCloneSelfReferenceTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtCloneSelfReferenceTests GmatQt)
+   set(clone_current_source "${CMAKE_CURRENT_BINARY_DIR}/clone-current-reference/CloneAll.cpp")
+   set(clone_current_receipt "${CMAKE_CURRENT_BINARY_DIR}/clone-current-reference/CloneAll.json")
+   add_custom_command(OUTPUT "${clone_current_source}" "${clone_current_receipt}"
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/GenerateCloneCurrentReferenceWitness.py"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaCloneAllTests.cpp" "${clone_current_source}" "${clone_current_receipt}"
+      DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaCloneAllTests.cpp"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/GenerateCloneCurrentReferenceWitness.py" VERBATIM)
+   set_source_files_properties("${clone_current_source}" PROPERTIES HEADER_FILE_ONLY TRUE)
+   add_executable(GmatQtCloneCurrentReferenceTests tests/CloneCurrentReferenceTests.cpp
+      "${clone_current_source}")
+   target_link_libraries(GmatQtCloneCurrentReferenceTests PRIVATE GmatQtFrontend Qt6::Test)
+   target_include_directories(GmatQtCloneCurrentReferenceTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/tests" "${CMAKE_CURRENT_BINARY_DIR}")
+   add_dependencies(GmatQtCloneCurrentReferenceTests GmatQt)
+   add_executable(GmatQtWorksheetOrbitAccessTests tests/WorksheetOrbitAccessTests.cpp)
+   target_link_libraries(GmatQtWorksheetOrbitAccessTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtWorksheetOrbitAccessTests GmatQt)
+   add_executable(GmatQtWorksheetOrbitBodyAccessTests tests/WorksheetOrbitBodyAccessTests.cpp)
+   target_link_libraries(GmatQtWorksheetOrbitBodyAccessTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtWorksheetOrbitBodyAccessTests GmatQt)
+   add_executable(GmatQtAnomalyBodyWriteTests tests/AnomalyBodyWriteTests.cpp)
+   target_link_libraries(GmatQtAnomalyBodyWriteTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtAnomalyBodyWriteTests GmatQt)
+   add_executable(GmatQtHyperbolicAnomalyWriteTests tests/HyperbolicAnomalyWriteTests.cpp)
+   target_link_libraries(GmatQtHyperbolicAnomalyWriteTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtHyperbolicAnomalyWriteTests GmatQt)
+   add_executable(GmatQtFunctionBackendCommandTests tests/FunctionBackendCommandTests.cpp)
+   target_link_libraries(GmatQtFunctionBackendCommandTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtFunctionBackendCommandTests GmatQt)
+   add_executable(GmatHyperbolicAnomalyFrameTests tests/HyperbolicAnomalyFrameTests.cpp)
+   target_link_libraries(GmatHyperbolicAnomalyFrameTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatQtAchieveScalarFamilyTests tests/AchieveScalarFamilyTests.cpp)
+   target_link_libraries(GmatQtAchieveScalarFamilyTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtAchieveScalarFamilyTests GmatQt)
    add_executable(GmatQtUnifiedResourceTests tests/UnifiedResourceTests.cpp)
    target_link_libraries(GmatQtUnifiedResourceTests PRIVATE GmatQtFrontend)
    add_dependencies(GmatQtUnifiedResourceTests GmatQt)
@@ -1223,6 +1553,9 @@ if(GMAT_QT_BUILD_TESTS)
    add_executable(GmatQtCompatibilityTests tests/CompatibilityTests.cpp)
    target_link_libraries(GmatQtCompatibilityTests PRIVATE GmatQtFrontend)
    add_executable(GmatQtAtmosphereTests tests/AtmosphereTests.cpp)
+   add_executable(GmatQtMarsGramControlsTests tests/MarsGramControlsTests.cpp)
+   target_link_libraries(GmatQtMarsGramControlsTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtMarsGramControlsTests GmatQt)
    target_link_libraries(GmatQtAtmosphereTests PRIVATE GmatQtFrontend)
    add_executable(GmatQtForceSourceTests tests/ForceSourceTests.cpp)
    target_link_libraries(GmatQtForceSourceTests PRIVATE GmatQtFrontend)
@@ -1413,6 +1746,87 @@ if(GMAT_QT_BUILD_TESTS)
    target_link_libraries(GmatOemCreationClockTests PRIVATE GmatUtil Qt6::Core)
    add_executable(GmatOemB1TextTests tests/OemB1TextTests.cpp)
    target_link_libraries(GmatOemB1TextTests PRIVATE GmatUtil Qt6::Core)
+   add_executable(GmatOemFileInvariantTests tests/OemFileInvariantTests.cpp)
+   target_link_libraries(GmatOemFileInvariantTests PRIVATE GmatUtil Qt6::Core)
+   add_executable(GmatStmReadOnlyContractTests tests/StmReadOnlyContractTests.cpp)
+   target_link_libraries(GmatStmReadOnlyContractTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatStmFrameReferenceTests tests/StmFrameReferenceTests.cpp)
+   target_link_libraries(GmatStmFrameReferenceTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatStmDomainAtomicityTests tests/StmDomainAtomicityTests.cpp)
+   target_link_libraries(GmatStmDomainAtomicityTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatStmFrameMissionTests tests/StmFrameMissionTests.cpp)
+   target_link_libraries(GmatStmFrameMissionTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatStmBaseAlignmentTests tests/StmBaseAlignmentTests.cpp)
+   target_link_libraries(GmatStmBaseAlignmentTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatStmFunctionFrameTests tests/StmFunctionFrameTests.cpp)
+   target_link_libraries(GmatStmFunctionFrameTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatStmSolverFrameTests tests/StmSolverFrameTests.cpp)
+   target_link_libraries(GmatStmSolverFrameTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatStmFunctionRecoveryTests tests/StmFunctionRecoveryTests.cpp)
+   target_link_libraries(GmatStmFunctionRecoveryTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatStmOwnerFrameTests tests/StmOwnerFrameTests.cpp)
+   target_link_libraries(GmatStmOwnerFrameTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatStmHarmonicFrameTests tests/StmHarmonicFrameTests.cpp)
+   target_link_libraries(GmatStmHarmonicFrameTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatStmHigherZonalFrameTests tests/StmHigherZonalFrameTests.cpp)
+   target_link_libraries(GmatStmHigherZonalFrameTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatStmTesseralFrameTests tests/StmTesseralFrameTests.cpp)
+   target_link_libraries(GmatStmTesseralFrameTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatStmRelativisticFrameTests tests/StmRelativisticFrameTests.cpp)
+   target_link_libraries(GmatStmRelativisticFrameTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatStmSrpFrameTests tests/StmSrpFrameTests.cpp)
+   target_link_libraries(GmatStmSrpFrameTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatQtDefaultBodyCopyTests tests/DefaultBodyCopyTests.cpp)
+   target_link_libraries(GmatQtDefaultBodyCopyTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtDefaultBodyCopyTests GmatQt)
+   add_executable(GmatQtUserBodyCloneRecoveryTests tests/UserBodyCloneRecoveryTests.cpp)
+   target_link_libraries(GmatQtUserBodyCloneRecoveryTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtUserBodyCloneRecoveryTests GmatQt)
+   add_executable(GmatQtCloneCatalogCompletionTests tests/CloneCatalogCompletionTests.cpp)
+   target_link_libraries(GmatQtCloneCatalogCompletionTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtCloneCatalogCompletionTests GmatQt)
+   add_executable(GmatQtFunctionBracketBoundaryTests tests/FunctionBracketBoundaryTests.cpp)
+   target_link_libraries(GmatQtFunctionBracketBoundaryTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtFunctionBracketBoundaryTests GmatQt)
+   add_executable(GmatEphemerisConvergenceTests tests/EphemerisConvergenceTests.cpp)
+   target_link_libraries(GmatEphemerisConvergenceTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatCommandContextGapTests tests/CommandContextGapTests.cpp)
+   target_link_libraries(GmatCommandContextGapTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatStmOwnerFunctionTests tests/StmOwnerFunctionTests.cpp)
+   target_link_libraries(GmatStmOwnerFunctionTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatOemNumericFieldsTests tests/OemNumericFieldsTests.cpp)
+   target_link_libraries(GmatOemNumericFieldsTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatNestedSolverValidationTests tests/NestedSolverValidationTests.cpp)
+   target_link_libraries(GmatNestedSolverValidationTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatCustomFovNativePathsTests tests/CustomFovNativePathsTests.cpp)
+   target_link_libraries(GmatCustomFovNativePathsTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatOptimizerEndTargetTests tests/OptimizerEndTargetTests.cpp)
+   target_link_libraries(GmatOptimizerEndTargetTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatAchieveConstantGoalTests tests/AchieveConstantGoalTests.cpp)
+   target_link_libraries(GmatAchieveConstantGoalTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatOrbitParameterEpochTests tests/OrbitParameterEpochTests.cpp)
+   target_link_libraries(GmatOrbitParameterEpochTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatPlanetBplaneSampleTests tests/PlanetBplaneSampleTests.cpp)
+   target_link_libraries(GmatPlanetBplaneSampleTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatVaryLiteralControlTests tests/VaryLiteralControlTests.cpp)
+   target_link_libraries(GmatVaryLiteralControlTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatAchieveOperandRoleTests tests/AchieveOperandRoleTests.cpp)
+   target_link_libraries(GmatAchieveOperandRoleTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatConstraintOperandRoleTests tests/ConstraintOperandRoleTests.cpp)
+   target_link_libraries(GmatConstraintOperandRoleTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatMatlabServiceResourceTests tests/MatlabServiceResourceTests.cpp)
+   target_link_libraries(GmatMatlabServiceResourceTests PRIVATE GmatQtFrontend Qt6::Core)
+   add_executable(GmatEphemerisCountPolicyTests tests/EphemerisCountPolicyTests.cpp)
+   target_include_directories(GmatEphemerisCountPolicyTests PRIVATE "${CSPICE_DIR}/include")
+   target_link_libraries(GmatEphemerisCountPolicyTests PRIVATE GmatBase GmatUtil Qt6::Core optimized ${CSPICE_LIB} debug ${CSPICE_LIB_DEBUG})
+   add_executable(GmatOrbitOriginEpochTests tests/OrbitOriginEpochTests.cpp)
+   target_link_libraries(GmatOrbitOriginEpochTests PRIVATE GmatBase GmatUtil Qt6::Core)
+   add_executable(GmatQtAchieveConstantGoalTests tests/AchieveConstantGoalGuiTests.cpp)
+   target_link_libraries(GmatQtAchieveConstantGoalTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtAchieveConstantGoalTests GmatQt)
+   add_executable(GmatQtNasaSolverControlSummaryTests tests/NasaSolverControlSummaryTests.cpp)
+   target_link_libraries(GmatQtNasaSolverControlSummaryTests PRIVATE GmatQtFrontend)
+   add_dependencies(GmatQtNasaSolverControlSummaryTests GmatQt)
    add_executable(GmatOemOutputTimeWriterTests tests/OemOutputTimeWriterTests.cpp)
    target_link_libraries(GmatOemOutputTimeWriterTests PRIVATE GmatBase GmatUtil Qt6::Core)
    add_executable(GmatQtNasaFunctionParameterBindingTests tests/NasaFunctionParameterBindingTests.cpp)
@@ -1496,6 +1910,9 @@ if(GMAT_QT_BUILD_TESTS)
       add_executable(GmatFirstOrderGaussMarkovCopyTests tests/FirstOrderGaussMarkovCopyTests.cpp)
       target_include_directories(GmatFirstOrderGaussMarkovCopyTests PRIVATE $<TARGET_PROPERTY:EKF,INCLUDE_DIRECTORIES>)
       target_link_libraries(GmatFirstOrderGaussMarkovCopyTests PRIVATE GmatQtFrontend EKF)
+      add_executable(GmatSncProcessNoiseStateTests tests/SncProcessNoiseStateTests.cpp)
+      target_include_directories(GmatSncProcessNoiseStateTests PRIVATE $<TARGET_PROPERTY:EKF,INCLUDE_DIRECTORIES>)
+      target_link_libraries(GmatSncProcessNoiseStateTests PRIVATE GmatQtFrontend EKF)
    endif()
    add_executable(GmatQtNasaBatchOutputEdgeTests tests/NasaBatchOutputEdgeTests.cpp)
    target_include_directories(GmatQtNasaBatchOutputEdgeTests PRIVATE $<TARGET_PROPERTY:GmatEstimation,INCLUDE_DIRECTORIES>)
@@ -1662,6 +2079,91 @@ if(GMAT_QT_BUILD_TESTS)
          RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
    endfunction()
    set(qt_test_startup "$<TARGET_FILE_DIR:GmatQt>/gmat_startup_qt.txt")
+   if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND QT_XVFB_RUN)
+      foreach(copy_body Sun Mercury Venus Earth Luna Mars Jupiter Saturn Uranus Neptune Pluto)
+         add_test(NAME QtGui.DefaultBodyCopy${copy_body} COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
+            "$<TARGET_FILE:GmatQtDefaultBodyCopyTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/DefaultBodyCopyCases.json" ${copy_body})
+         set_tests_properties(QtGui.DefaultBodyCopy${copy_body} PROPERTIES
+            LABELS qt-gui TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
+      foreach(user_body Asteroid Comet Moon Planet)
+         add_test(NAME QtGui.UserBodyCloneRecovery${user_body} COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
+            "$<TARGET_FILE:GmatQtUserBodyCloneRecoveryTests>" "${qt_test_startup}" ${user_body})
+         set_tests_properties(QtGui.UserBodyCloneRecovery${user_body} PROPERTIES
+            LABELS qt-gui TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
+      set(clone_catalog_cases Propagator GmatFunction)
+      if(GMAT_QT_EXTERNAL_PLUGINS MATCHES "libVF13adOptimizer")
+         list(APPEND clone_catalog_cases VF13ad)
+      endif()
+      if(PLUGIN_MATLABINTERFACE AND Matlab_FOUND)
+         list(APPEND clone_catalog_cases MatlabFunction)
+      endif()
+      foreach(clone_kind IN LISTS clone_catalog_cases)
+         add_test(NAME QtGui.CloneCatalog${clone_kind} COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
+            "$<TARGET_FILE:GmatQtCloneCatalogCompletionTests>" "${qt_test_startup}" ${clone_kind})
+         set_tests_properties(QtGui.CloneCatalog${clone_kind} PROPERTIES
+            LABELS qt-gui TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
+      if(PLUGIN_MATLABINTERFACE AND Matlab_FOUND)
+         add_test(NAME QtGui.CloneCatalogMatlabNameCollision COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
+            "$<TARGET_FILE:GmatQtCloneCatalogCompletionTests>" "${qt_test_startup}" MatlabFunction collision)
+         set_tests_properties(QtGui.CloneCatalogMatlabNameCollision PROPERTIES
+            LABELS qt-gui TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      endif()
+   endif()
+   add_qt_test(QtAcceptance.EventRootPolicy GmatQtEventRootScalarPolicyTests)
+   if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND QT_XVFB_RUN)
+      add_test(NAME QtGui.FunctionBracketBoundaries COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
+         "$<TARGET_FILE:GmatQtFunctionBracketBoundaryTests>" "${qt_test_startup}")
+   else()
+      add_qt_test(QtGui.FunctionBracketBoundaries GmatQtFunctionBracketBoundaryTests "${qt_test_startup}")
+   endif()
+   set_tests_properties(QtGui.FunctionBracketBoundaries PROPERTIES
+      LABELS qt-gui TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+   set_tests_properties(QtAcceptance.EventRootPolicy PROPERTIES LABELS "qt-acceptance-support;native-math")
+   foreach(implementation_case PovGeometry OemNumeric CostForm FunctionSolverStop FunctionSolverPauseResume FunctionSyntax ToolbarContrast)
+      add_qt_test(QtGui.Implementation${implementation_case} GmatQtImplementationVerificationTests "${qt_test_startup}" ${implementation_case})
+   endforeach()
+   foreach(remaining_case TwoBody BulirschFloor AnomalyWrites WorksheetModes PropagatePolicy EventBrent SourcePolicy SpkOrigins EclipseBrent)
+      add_qt_test(QtGui.Implementation${remaining_case} GmatQtRemainingImplementationVerificationTests "${qt_test_startup}" ${remaining_case})
+   endforeach()
+   if(UNIX AND NOT APPLE AND QT_XVFB_RUN)
+      foreach(function_policy_case SaveMission MatlabGuard)
+         add_test(NAME QtGui.FunctionCommandPolicy${function_policy_case}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+               "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+               "$<TARGET_FILE:GmatQtFunctionCommandPolicyTests>" "${qt_test_startup}" ${function_policy_case})
+         set_tests_properties(QtGui.FunctionCommandPolicy${function_policy_case} PROPERTIES
+            LABELS qt-gui TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+      endforeach()
+      add_test(NAME QtGui.FunctionGlobalStoreLifetime
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtFunctionGlobalStoreLifetimeTests>" "${qt_test_startup}")
+      set_tests_properties(QtGui.FunctionGlobalStoreLifetime PROPERTIES
+         LABELS qt-gui TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+   endif()
+   foreach(interpolation_case Lagrange Spk SpkBackground Policy Boundaries)
+      add_qt_test(QtGui.InterpolationSufficiency${interpolation_case} GmatQtInterpolationSufficiencyTests "${qt_test_startup}" ${interpolation_case})
+   endforeach()
+   foreach(interpolation_format CCSDS-OEM STK-TimePosVel Code-500 SPK)
+      add_qt_test(QtGui.InterpolationPolicyGui${interpolation_format} GmatQtInterpolationPolicyGuiTests "${qt_test_startup}" ${interpolation_format})
+   endforeach()
+   foreach(user_body_orbit_case Moon Asteroid Comet Planet NestedMoon)
+      add_qt_test(QtGui.UserBodyOrbit${user_body_orbit_case} GmatQtUserBodyOrbitTests "${qt_test_startup}" ${user_body_orbit_case})
+   endforeach()
    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaConstraintScalarCases.json" constraint_scalar_json)
    string(JSON constraint_scalar_count LENGTH "${constraint_scalar_json}" cases)
    math(EXPR constraint_scalar_last "${constraint_scalar_count} - 1")
@@ -1799,12 +2301,37 @@ if(GMAT_QT_BUILD_TESTS)
    add_qt_test(QtGui.NasaLifecycleString GmatQtNasaResourceLifecycleTests "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaResourceCases.json" String)
    add_qt_test(QtGui.NasaLifecycleCoordinateSystem GmatQtNasaResourceLifecycleTests "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaResourceCases.json" CoordinateSystem)
    add_qt_test(QtGui.NasaLifecycleYukon GmatQtNasaResourceLifecycleTests "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaResourceCases.json" Yukon)
+   # Plugin targets are declared after this directory; use the same supported
+   # configuration inputs as the MATLAB/Fmincon acceptance block below.
+   if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND PLUGIN_FMINCONOPTIMIZER AND PLUGIN_MATLABINTERFACE AND Matlab_FOUND)
+      add_qt_test(QtGui.ResourceInventoryFminconLifecycle GmatQtNasaResourceLifecycleTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/ResourceInventorySupplementaryCases.json" Fmincon)
+      add_dependencies(GmatQtNasaResourceLifecycleTests FminconOptimizer)
+   endif()
    add_qt_test(QtGui.SharedPlayback GmatQtSharedPlaybackTests "${qt_test_startup}")
    set_property(TEST QtGui.SharedPlayback APPEND PROPERTY LABELS qt-acceptance-offscreen)
    add_qt_test(QtGui.SharedPlaybackButtons GmatQtSharedPlaybackTests "${qt_test_startup}" --buttons)
+   add_qt_test(QtGui.SharedPlaybackAccessibility GmatQtSharedPlaybackAccessibilityTests "${qt_test_startup}")
+   if(UNIX AND NOT APPLE AND QT_XVFB_RUN)
+      add_test(NAME QtAcceptance.AttitudeUnits COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+         "$<TARGET_FILE:GmatQtAttitudeUnitTests>" "${qt_test_startup}")
+      set_tests_properties(QtAcceptance.AttitudeUnits PROPERTIES
+         LABELS "qt-gui;qt-acceptance-support" TIMEOUT 60 RESOURCE_LOCK gmat_qt_engine
+         WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+      add_test(NAME QtAcceptance.SpacecraftDimensionlessUnits COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+         "$<TARGET_FILE:GmatQtAttitudeUnitTests>" "${qt_test_startup}" --ballistics)
+      set_tests_properties(QtAcceptance.SpacecraftDimensionlessUnits PROPERTIES
+         LABELS "qt-gui;qt-acceptance-support" TIMEOUT 60 RESOURCE_LOCK gmat_qt_engine
+         WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+   endif()
    add_qt_test(QtGui.InterpolatedPlayback GmatQtInterpolatedPlaybackTests)
    add_qt_test(QtGui.SkyControls GmatQtSkyControlsTests "${qt_test_startup}")
    add_qt_test(QtGui.ResourceCreationDefaults GmatQtResourceCreationDefaultsTests "${qt_test_startup}")
+   add_qt_test(QtGui.OrbitViewCreationDefaults GmatQtOrbitViewCreationDefaultsTests "${qt_test_startup}")
    add_qt_test(QtGui.UnifiedResources GmatQtUnifiedResourceTests "${qt_test_startup}")
    add_qt_test(QtGui.CoordinateCreation GmatQtCoordinateCreationTests "${qt_test_startup}")
    add_qt_test(QtGui.ChemicalTankApply GmatQtChemicalTankApplyTests "${qt_test_startup}")
@@ -1879,6 +2406,19 @@ if(GMAT_QT_BUILD_TESTS)
    endforeach()
    add_qt_test(QtGui.OriginRelativeStateContract GmatQtNasaOriginRelativeStateTests "${qt_test_startup}")
    add_qt_test(QtGui.ObjectAccelerationDerivativeContract GmatQtNasaObjectAccelerationDerivativeTests "${qt_test_startup}")
+   add_qt_test(QtAcceptance.ICRFLoaderLifecycle GmatQtIcrfLoaderLifecycleTests "${qt_test_startup}")
+   add_qt_test(QtAcceptance.GroundTrackGeodeticPrecision GmatQtGroundTrackGeodeticTests)
+   add_qt_test(QtAcceptance.DeFileDomain GmatQtDeFileDomainTests
+      "${CMAKE_SOURCE_DIR}/application/data/planetary_ephem/de/leDE1941.405")
+   set_tests_properties(QtAcceptance.DeFileDomain PROPERTIES
+      LABELS "qt-gui;qt-acceptance-support;gmat-core" TIMEOUT 60)
+   add_qt_test(QtAcceptance.DeFileDeltaBoundaries GmatQtDeFileDeltaBoundaryTests
+      "${CMAKE_SOURCE_DIR}/application/data/planetary_ephem/de/leDE1941.405")
+   set_tests_properties(QtAcceptance.DeFileDeltaBoundaries PROPERTIES
+      LABELS "qt-gui;qt-acceptance-support;gmat-core" TIMEOUT 60)
+   set_tests_properties(QtAcceptance.GroundTrackGeodeticPrecision PROPERTIES
+      LABELS "qt-gui;qt-acceptance-support;gmat-core" TIMEOUT 60)
+   set_tests_properties(QtAcceptance.ICRFLoaderLifecycle PROPERTIES LABELS "qt-gui;qt-acceptance-support;gmat-core" TIMEOUT 60)
    foreach(spk_boundary_case Storage Recovery)
       add_qt_test(QtGui.SpkWriterBoundary${spk_boundary_case} GmatQtNasaSpkWriterBoundaryTests "${qt_test_startup}" ${spk_boundary_case})
    endforeach()
@@ -1958,6 +2498,60 @@ if(GMAT_QT_BUILD_TESTS)
       set_tests_properties(QtGui.NasaBrouwerCritical${critical_case} PROPERTIES LABELS qt-gui TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
    endforeach()
    add_qt_test(QtGui.BrouwerSourceParity GmatQtNasaBrouwerSourceParityTests "${CMAKE_CURRENT_SOURCE_DIR}/tests/BrouwerSourceParityCases.json")
+   add_qt_test(QtAcceptance.BrouwerSourceParityCurrent GmatQtNasaBrouwerSourceParityTests
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/BrouwerCurrentSourceParityCases.json")
+   set_tests_properties(QtAcceptance.BrouwerSourceParityCurrent PROPERTIES
+      LABELS "native-math;qt-acceptance-support" TIMEOUT 120)
+   foreach(brouwer_frame_kind Short Long)
+      add_qt_test(QtAcceptance.Brouwer${brouwer_frame_kind}FrameDefinition GmatQtBrouwerFrameDefinitionTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/BrouwerFrameDefinitionCases.json" BrouwerMean${brouwer_frame_kind})
+      add_qt_test(QtAcceptance.Brouwer${brouwer_frame_kind}PlaneInvariant GmatQtHyperbolicAnomalyWriteTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/BrouwerPlaneInvariantCases.json" BrouwerMean${brouwer_frame_kind}PlaneInvariant)
+      foreach(brouwer_frame_case Read WriteSMA WriteECC WriteINC WriteRAAN WriteAOP WriteMA)
+         add_qt_test(QtAcceptance.Brouwer${brouwer_frame_kind}Ecliptic${brouwer_frame_case} GmatQtHyperbolicAnomalyWriteTests
+            "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/BrouwerFrameParameterCases.json" Brouwer${brouwer_frame_kind}Ecliptic${brouwer_frame_case})
+      endforeach()
+   endforeach()
+   # The original strict-field trial remains a diagnostic executable: the
+   # retained mean model has multiple roots near critical inclination.
+   # Acceptance checks every returned root by independent physical reconstruction.
+   add_qt_test(QtAcceptance.BrouwerTransportEquivalence Python3::Interpreter
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunBrouwerTransportAcceptance.py"
+      "$<TARGET_FILE:GmatQtBrouwerTransportObservationTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/BrouwerTransportCases.json" "${CMAKE_SOURCE_DIR}")
+   add_qt_test(QtAcceptance.BrouwerFrameContract GmatQtBrouwerFrameContractTests
+      "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/BrouwerFrameParameterCases.json")
+   foreach(solver_backend_case FileThrustTarget FileThrustOptimize FindEventsTarget FindEventsOptimize)
+      add_qt_test(QtAcceptance.SolverBackend${solver_backend_case} GmatQtSolverBackendCommandTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/SolverBackendCommandCases.json" ${solver_backend_case})
+   endforeach()
+   add_qt_test(QtAcceptance.SharedSubscriberScalarBinding GmatQtSharedSubscriberScalarBindingTests)
+   foreach(solver_ck_case Target Optimize)
+      add_qt_test(QtAcceptance.SolverCkOutput${solver_ck_case} GmatQtSolverCkOutputTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/SolverCkOutputCases.json" ${solver_ck_case})
+   endforeach()
+   foreach(estimator_ck_family Batch Filter Smoother)
+      add_qt_test(QtAcceptance.EstimatorCk${estimator_ck_family} Python3::Interpreter
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunEstimatorCkAcceptance.py"
+         "$<TARGET_FILE:GmatQtEstimatorCkObservationTests>" "${qt_test_startup}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/estimator-ck/${estimator_ck_family}.json" ${estimator_ck_family})
+   endforeach()
+   foreach(function_matrix_family ClearPlot PenUp PenDown MarkPoint CommandEcho NestedEvent UpdateDynamicData Set Save While Optimize Stop CallPythonFunction NoOp)
+      add_qt_test(QtAcceptance.FunctionMatrix${function_matrix_family} GmatQtFunctionCommandMatrixTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/function-command-matrix/${function_matrix_family}.json" ${function_matrix_family})
+   endforeach()
+   foreach(matrix_family BeginFiniteBurn Maneuver Toggle Save Global ClearPlot PenUp PenDown MarkPoint Write CommandEcho CallBuiltinGmatFunction CallGmatFunction CallPythonFunction UpdateDynamicData NestedEvent Set Navigation NoOp)
+      foreach(matrix_context Target Optimize)
+         add_qt_test(QtAcceptance.CommandMatrix${matrix_family}${matrix_context} GmatQtEnclosingSolverCommandTests
+            "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/enclosing-solver-commands/${matrix_family}${matrix_context}.json" ${matrix_family})
+      endforeach()
+   endforeach()
+   foreach(initial_guess_context Target Optimize)
+      add_qt_test(QtAcceptance.InitialGuessPlots${initial_guess_context} GmatQtInitialGuessPlotTests
+         "${qt_test_startup}" ${initial_guess_context})
+      add_qt_test(QtAcceptance.CommandMatrixSaveMissionImmediate${initial_guess_context} GmatQtEnclosingSolverCommandTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/enclosing-solver-commands/SaveMissionImmediate${initial_guess_context}.json" SaveMissionFollowedInside)
+   endforeach()
    add_qt_test(QtGui.ScalarInclinationBoundaries GmatQtScalarInclinationTests "${CMAKE_CURRENT_SOURCE_DIR}/tests/KeplerBoundaryCases.json")
    add_qt_test(QtGui.ScalarAngleBoundaries GmatQtScalarAnglesTests "${CMAKE_CURRENT_SOURCE_DIR}/tests/ScalarAngleBoundaryCases.json")
    add_qt_test(QtGui.ScalarAnomalyCallers GmatQtScalarAnomalyTests "${CMAKE_CURRENT_SOURCE_DIR}/tests/ScalarAnomalyBoundaryCases.json")
@@ -2048,6 +2642,76 @@ if(GMAT_QT_BUILD_TESTS)
       set_tests_properties(QtGui.NativeNasaUnitInputs PROPERTIES LABELS qt-gui TIMEOUT 150)
    endif()
    if(UNIX AND NOT APPLE AND QT_XVFB_RUN)
+      foreach(event_brent_family Eclipse Contact Station)
+         if(event_brent_family STREQUAL "Eclipse")
+            set(event_brent_target GmatQtEventBrentEclipseTests)
+         else()
+            set(event_brent_target GmatQtEventBrentContactTests)
+         endif()
+         if(event_brent_family STREQUAL "Station")
+            set(event_brent_fixture "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaStationEventCases.json")
+         else()
+            set(event_brent_fixture "${CMAKE_CURRENT_SOURCE_DIR}/tests/Nasa${event_brent_family}ResultCases.json")
+         endif()
+         file(READ "${event_brent_fixture}" event_brent_cases)
+         string(JSON event_brent_count LENGTH "${event_brent_cases}" cases)
+         math(EXPR event_brent_last "${event_brent_count} - 1")
+         foreach(event_brent_index RANGE 0 ${event_brent_last})
+            string(JSON event_brent_key GET "${event_brent_cases}" cases ${event_brent_index} key)
+            foreach(event_brent_tolerance Coarse Fine)
+               if(event_brent_tolerance STREQUAL "Coarse")
+                  set(event_brent_seconds 1e-4)
+               else()
+                  set(event_brent_seconds 1e-6)
+               endif()
+               add_test(NAME QtGui.EventBrent${event_brent_family}${event_brent_key}${event_brent_tolerance} COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+                  ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 "GMAT_EVENT_ROOT_TOLERANCE=${event_brent_seconds}"
+                  $<TARGET_FILE:${event_brent_target}> "${qt_test_startup}" "${event_brent_fixture}" ${event_brent_key})
+               set_tests_properties(QtGui.EventBrent${event_brent_family}${event_brent_key}${event_brent_tolerance} PROPERTIES LABELS "qt-gui;qt-nasa" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+            endforeach()
+         endforeach()
+      endforeach()
+      foreach(event_brent_auxiliary Intrusion Region)
+         foreach(event_brent_tolerance Coarse Fine)
+            if(event_brent_tolerance STREQUAL "Coarse")
+               set(event_brent_seconds 1e-4)
+            else()
+               set(event_brent_seconds 1e-6)
+            endif()
+            add_test(NAME QtGui.EventBrentAuxiliary${event_brent_auxiliary}${event_brent_tolerance} COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+               ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 "GMAT_EVENT_ROOT_TOLERANCE=${event_brent_seconds}"
+               $<TARGET_FILE:GmatQtEventBrentAuxiliaryTests> "${qt_test_startup}" ${event_brent_auxiliary})
+            set_tests_properties(QtGui.EventBrentAuxiliary${event_brent_auxiliary}${event_brent_tolerance} PROPERTIES LABELS "qt-gui;qt-nasa" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+         endforeach()
+      endforeach()
+      foreach(save_filename_style Worksheet LegacyData)
+         foreach(save_filename_size Single Multi)
+            add_test(NAME QtGui.SaveFilenameAcceptance${save_filename_style}${save_filename_size} COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+               ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
+               $<TARGET_FILE:GmatQtSaveFilenameAcceptanceTests> "${qt_test_startup}" ${save_filename_style} ${save_filename_size})
+            set_tests_properties(QtGui.SaveFilenameAcceptance${save_filename_style}${save_filename_size} PROPERTIES LABELS "qt-gui;qt-nasa" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+         endforeach()
+      endforeach()
+      foreach(spk_origin Earth Mars Probe)
+         foreach(spk_epoch Spacecraft Explicit KernelStart)
+            add_test(NAME QtGui.SpkOriginAcceptance${spk_origin}${spk_epoch} COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+               ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
+               $<TARGET_FILE:GmatQtSpkOriginAcceptanceTests> "${qt_test_startup}" ${spk_origin} ${spk_epoch})
+            set_tests_properties(QtGui.SpkOriginAcceptance${spk_origin}${spk_epoch} PROPERTIES LABELS "qt-gui;qt-nasa" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+         endforeach()
+      endforeach()
+      foreach(bulirsch_floor_direction Forward Backward)
+         add_test(NAME QtGui.BulirschFloorAcceptance${bulirsch_floor_direction} COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
+            $<TARGET_FILE:GmatQtBulirschFloorAcceptanceTests> "${qt_test_startup}" ${bulirsch_floor_direction})
+         set_tests_properties(QtGui.BulirschFloorAcceptance${bulirsch_floor_direction} PROPERTIES LABELS "qt-gui;qt-nasa" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
+      foreach(plot_playback_case OrbitView GroundTrack)
+         add_test(NAME QtGui.PlotPlaybackRedraw${plot_playback_case} COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
+            $<TARGET_FILE:GmatQtPlotPlaybackRedrawTests> "${qt_test_startup}" ${plot_playback_case})
+         set_tests_properties(QtGui.PlotPlaybackRedraw${plot_playback_case} PROPERTIES LABELS "qt-gui;qt-nasa" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
       add_test(NAME QtGui.NasaGroundIntegrationSkipBoundary COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
          ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
          $<TARGET_FILE:GmatQtNasaGroundIntegrationSkipTests> "${qt_test_startup}")
@@ -2128,6 +2792,11 @@ if(GMAT_QT_BUILD_TESTS)
             $<TARGET_FILE:GmatQtNasaCloneAllTests> "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaCloneReferenceCases.json" ${clone_reference_case})
          set_tests_properties(QtGui.NativeNasaCloneReference${clone_reference_case} PROPERTIES LABELS qt-gui TIMEOUT 240)
       endforeach()
+      add_test(NAME QtGui.CloneCurrentReferenceBarycenter
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            $<TARGET_FILE:GmatQtCloneCurrentReferenceTests> "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/CloneCurrentReferenceCases.json" Barycenter)
+      set_tests_properties(QtGui.CloneCurrentReferenceBarycenter PROPERTIES LABELS qt-gui TIMEOUT 240 RESOURCE_LOCK gmat_qt_engine)
    endif()
    if(UNIX AND NOT APPLE AND QT_XVFB_RUN)
       foreach(bary_membership_case FirstJupiter PairJupiterNeptune LastVenus MiddleNeptune Clear)
@@ -2221,6 +2890,14 @@ if(GMAT_QT_BUILD_TESTS)
    foreach(stm_parameter_direction forward backward)
       add_qt_test(QtGui.NasaStmParameter${stm_parameter_direction} GmatQtNasaStmParameterTests "${qt_test_startup}" ${stm_parameter_direction})
    endforeach()
+   if(UNIX AND NOT APPLE AND QT_XVFB_RUN)
+      add_test(NAME QtGui.StmSelectedFrame COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+         "$<TARGET_FILE:GmatQtStmSelectedFrameTests>" "${qt_test_startup}")
+      set_tests_properties(QtGui.StmSelectedFrame PROPERTIES LABELS qt-gui TIMEOUT 180
+         RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+   endif()
    foreach(function_definition_case Duplicate Distinct Three)
       add_qt_test(QtGui.NasaFunctionDefinition${function_definition_case} GmatQtNasaFunctionDefinitionTests "${qt_test_startup}" ${function_definition_case})
    endforeach()
@@ -2365,6 +3042,18 @@ if(GMAT_QT_BUILD_TESTS)
             set_tests_properties(QtGui.NativeNasaCommandTree${command_tree_family}${command_tree_group} PROPERTIES LABELS qt-gui TIMEOUT 150)
          endforeach()
       endforeach()
+      foreach(save_tree_policy Worksheet LegacyData)
+         foreach(save_tree_position Root Boundary Interior)
+            add_test(NAME QtGui.SaveTree${save_tree_policy}${save_tree_position}
+               COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+                  "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+                  $<TARGET_FILE:GmatQtSaveTree${save_tree_policy}Tests> "${qt_test_startup}"
+                  "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaCommandReferenceCases.json"
+                  "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaCommandTreeCases.json" Save${save_tree_position})
+            set_tests_properties(QtGui.SaveTree${save_tree_policy}${save_tree_position} PROPERTIES
+               LABELS "qt-gui;qt-save-policy" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+         endforeach()
+      endforeach()
       foreach(object_selection_case Save Global)
          add_test(NAME QtGui.NativeNasaObjectSelection${object_selection_case} COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
             ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
@@ -2438,6 +3127,254 @@ if(GMAT_QT_BUILD_TESTS)
          add_test(NAME QtGui.NativeNasaHardwareUnits${hardware_unit_case} COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
             "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1" "$<TARGET_FILE:GmatQtNasaHardwareUnitTests>" "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/HardwareUnitCases.json" ${hardware_unit_case})
          set_tests_properties(QtGui.NativeNasaHardwareUnits${hardware_unit_case} PROPERTIES LABELS qt-gui TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+      endforeach()
+      foreach(dimensionless_input_group Scalars Directions Orbit Attitude Bodies)
+         add_test(NAME QtGui.NativeDimensionlessUnits${dimensionless_input_group}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+               "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+               "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+               "${CMAKE_CURRENT_SOURCE_DIR}/tests/DimensionlessInputUnitCases.json" ${dimensionless_input_group})
+         set_tests_properties(QtGui.NativeDimensionlessUnits${dimensionless_input_group} PROPERTIES LABELS "qt-gui;qt-units"
+            TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+      endforeach()
+      add_test(NAME QtGui.NativeEstimatorDimensionlessUnits
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/EstimatorDimensionlessUnitCases.json" EstimatorRatios)
+      set_tests_properties(QtGui.NativeEstimatorDimensionlessUnits PROPERTIES LABELS "qt-gui;qt-units"
+         TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+      foreach(model_unit_group NormalizedModels SolarCoefficients)
+         add_test(NAME QtGui.NativeModelUnits${model_unit_group}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+               "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+               "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+               "${CMAKE_CURRENT_SOURCE_DIR}/tests/NormalizedModelUnitCases.json" ${model_unit_group})
+         set_tests_properties(QtGui.NativeModelUnits${model_unit_group} PROPERTIES LABELS "qt-gui;qt-units"
+            TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+      endforeach()
+      add_test(NAME QtGui.NativeModelUnitsAdaptiveRatios
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/AdaptiveRatioUnitCases.json" NormalizedModels)
+      set_tests_properties(QtGui.NativeModelUnitsAdaptiveRatios PROPERTIES LABELS "qt-gui;qt-units"
+         TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+      foreach(body_unit_group BodyOffsetPilot BodyOffsets BodyPhysical)
+         add_test(NAME QtGui.NativeBodyUnits${body_unit_group}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+               "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+               "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+               "${CMAKE_CURRENT_SOURCE_DIR}/tests/BodyPhysicalUnitCases.json" ${body_unit_group})
+         set_tests_properties(QtGui.NativeBodyUnits${body_unit_group} PROPERTIES LABELS "qt-gui;qt-units"
+            TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+      endforeach()
+      foreach(hardware_origin_group HardwareOriginPilot HardwareOrigins TankPhysical)
+         add_test(NAME QtGui.NativeHardwareUnits${hardware_origin_group}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+               "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+               "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+               "${CMAKE_CURRENT_SOURCE_DIR}/tests/HardwareOriginUnitCases.json" ${hardware_origin_group})
+         set_tests_properties(QtGui.NativeHardwareUnits${hardware_origin_group} PROPERTIES LABELS "qt-gui;qt-units"
+            TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+      endforeach()
+      add_test(NAME QtGui.NativeElectricCoefficientUnits
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+         "$<TARGET_FILE:GmatQtElectricCoefficientUnitTests>" "${qt_test_startup}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/ElectricPowerUnitCases.json")
+      add_test(NAME QtGui.NativePowerSystemUnits
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+         "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/PowerSystemUnitCases.json" PowerSystemUnits)
+      add_test(NAME QtGui.NativeElectricCoefficientUnitsSwitch
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+         "$<TARGET_FILE:GmatQtElectricCoefficientUnitTests>" "${qt_test_startup}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/ElectricPowerUnitCases.json" Switch)
+      set_tests_properties(QtGui.NativeElectricCoefficientUnits QtGui.NativeElectricCoefficientUnitsSwitch QtGui.NativePowerSystemUnits PROPERTIES
+         LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      foreach(spacecraft_unit_group IN ITEMS OrbitMissing OrbitVisible MassRotation LocalOffsets)
+         add_test(NAME QtGui.NativeSpacecraftUnits${spacecraft_unit_group}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/SpacecraftPhysicalUnitCases.json" Spacecraft${spacecraft_unit_group})
+         set_tests_properties(QtGui.NativeSpacecraftUnits${spacecraft_unit_group} PROPERTIES
+            LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
+      foreach(timing_unit_group IN ITEMS TimingHardware FovGeometry StationAmbient StationGeometry RadioFrequency)
+         add_test(NAME QtGui.NativeTimingGeometryUnits${timing_unit_group}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/TimingGeometryUnitCases.json" ${timing_unit_group})
+         set_tests_properties(QtGui.NativeTimingGeometryUnits${timing_unit_group} PROPERTIES
+            LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
+      add_test(NAME QtGui.NativeTimingGeometryUnitsTimingHardwareRepair
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+         "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/TimingRepairUnitCases.json" TimingHardwareRepair)
+      set_tests_properties(QtGui.NativeTimingGeometryUnitsTimingHardwareRepair PROPERTIES
+         LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtGui.NativePolynomialArrayUnits
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+         "$<TARGET_FILE:GmatQtPolynomialArrayUnitTests>" "${qt_test_startup}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/PolynomialArrayUnitCases.json")
+      set_tests_properties(QtGui.NativePolynomialArrayUnits PROPERTIES
+         LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      foreach(error_unit_mode IN ITEMS Static Switch Testing)
+         add_test(NAME QtGui.NativeErrorModelUnits${error_unit_mode}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtErrorModelUnitTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/ErrorModelUnitCases.json" ${error_unit_mode})
+         set_tests_properties(QtGui.NativeErrorModelUnits${error_unit_mode} PROPERTIES
+            LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
+      add_test(NAME QtGui.NativeGeometryArrayUnits
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+         "$<TARGET_FILE:GmatQtGeometryArrayUnitTests>" "${qt_test_startup}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/GeometryArrayUnitCases.json")
+      set_tests_properties(QtGui.NativeGeometryArrayUnits PROPERTIES
+         LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      foreach(count_unit_group IN ITEMS Limits Presentation)
+         add_test(NAME QtGui.NativeCountInputUnits${count_unit_group}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/CountInputUnitCases.json" Count${count_unit_group})
+         set_tests_properties(QtGui.NativeCountInputUnits${count_unit_group} PROPERTIES
+            LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
+      foreach(context_unit_group IN ITEMS ResidualUnits OptimizerUnits PropagatorUnits ThinningUnits)
+         add_test(NAME QtGui.NativeContextualUnits${context_unit_group}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/ContextualUnitCases.json" ${context_unit_group})
+         set_tests_properties(QtGui.NativeContextualUnits${context_unit_group} PROPERTIES
+            LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
+      foreach(terminal_unit_group IN ITEMS IdentifierUnits MessagePrecisionUnit CoordinateEpochUnits)
+         add_test(NAME QtGui.NativeTerminalUnits${terminal_unit_group}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/TerminalUnitCases.json" ${terminal_unit_group})
+         set_tests_properties(QtGui.NativeTerminalUnits${terminal_unit_group} PROPERTIES
+            LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
+      foreach(delta_unit_group IN ITEMS NewScalarUnits UserBodyOrbitUnits NewDimensionlessUnits OptionalSolverUnits MinimumToleranceUnits)
+         add_test(NAME QtGui.NativeCurrentInputDeltaUnits${delta_unit_group}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+               "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+               "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+               "${CMAKE_CURRENT_SOURCE_DIR}/tests/CurrentInputDeltaUnitCases.json" ${delta_unit_group})
+         set_tests_properties(QtGui.NativeCurrentInputDeltaUnits${delta_unit_group} PROPERTIES
+            LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
+      add_test(NAME QtGui.NativeCommandInputUnits
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtCommandUnitDisplayTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/CommandInputUnitCases.json")
+      set_tests_properties(QtGui.NativeCommandInputUnits PROPERTIES LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtGui.NativeAncillaryInputUnits
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtAncillaryUnitDisplayTests>" "${qt_test_startup}")
+      set_tests_properties(QtGui.NativeAncillaryInputUnits PROPERTIES LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtGui.NativePickerInputUnits
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtPickerUnitDisplayTests>" "${qt_test_startup}")
+      set_tests_properties(QtGui.NativePickerInputUnits PROPERTIES LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtGui.NativeDataDisplayUnits
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtDataDisplayUnitTests>" "${qt_test_startup}")
+      set_tests_properties(QtGui.NativeDataDisplayUnits PROPERTIES LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtGui.NativeDisplayOptionsUnits
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtDisplayOptionsUnitTests>" "${qt_test_startup}")
+      set_tests_properties(QtGui.NativeDisplayOptionsUnits PROPERTIES LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtGui.NativeNumericTextUnits
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/NumericTextUnitCases.json" NumericTextUnits)
+      set_tests_properties(QtGui.NativeNumericTextUnits PROPERTIES LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtGui.NativeNumericTextUnitsTail
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/NumericTextUnitTailCases.json" NumericTextUnitsTail)
+      set_tests_properties(QtGui.NativeNumericTextUnitsTail PROPERTIES LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtGui.NativeNumericTextUnitsEphemerisRepair
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/NumericTextEphemerisRepairCases.json" NumericTextEphemerisRepair)
+      set_tests_properties(QtGui.NativeNumericTextUnitsEphemerisRepair PROPERTIES LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtGui.NativeEpochUnitTransitions
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtEpochUnitTransitionTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/EpochUnitTransitionCases.json")
+      set_tests_properties(QtGui.NativeEpochUnitTransitions PROPERTIES LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtGui.NativeRecordIndexUnits
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/RecordIndexUnitCases.json" RecordIndexUnits)
+      set_tests_properties(QtGui.NativeRecordIndexUnits PROPERTIES LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtGui.NativeFunctionArgumentUnits
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtFunctionArgumentUnitTests>" "${qt_test_startup}")
+      set_tests_properties(QtGui.NativeFunctionArgumentUnits PROPERTIES LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtGui.NativeOrbitCameraUnits
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtOrbitCameraUnitTests>" "${qt_test_startup}")
+      set_tests_properties(QtGui.NativeOrbitCameraUnits PROPERTIES LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtGui.NativeNestedPhysicalUnits
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtNestedPhysicalUnitTests>" "${qt_test_startup}")
+      set_tests_properties(QtGui.NativeNestedPhysicalUnits PROPERTIES LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtGui.NativeCommandInputUnitsMassRepair
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtCommandUnitDisplayTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/CommandInputUnitCases.json" "Minimize,Assignment")
+      set_tests_properties(QtGui.NativeCommandInputUnitsMassRepair PROPERTIES LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtGui.NativeOwnedInputUnits
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtDimensionlessInputUnitTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/OwnedInputUnitCases.json" OwnedUnits)
+      set_tests_properties(QtGui.NativeOwnedInputUnits PROPERTIES LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtGui.NativeCovarianceUnitDisplay
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+         "$<TARGET_FILE:GmatQtCovarianceUnitDisplayTests>" "${qt_test_startup}")
+      set_tests_properties(QtGui.NativeCovarianceUnitDisplay PROPERTIES LABELS "qt-gui;qt-units" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      foreach(dimensionless_unit_case ChemicalPrimary ElectricPrimary)
+         add_test(NAME QtGui.HardwareDimensionlessUnits${dimensionless_unit_case}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+               "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+               "$<TARGET_FILE:GmatQtNasaHardwareUnitTests>" "${qt_test_startup}"
+               "${CMAKE_CURRENT_SOURCE_DIR}/tests/HardwareDimensionlessUnitCases.json" ${dimensionless_unit_case})
+         set_tests_properties(QtGui.HardwareDimensionlessUnits${dimensionless_unit_case} PROPERTIES
+            LABELS qt-gui TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
       endforeach()
       foreach(drag_model_case IN ITEMS Spherical SPADFile)
          add_test(NAME QtGui.NativeNasaDragModelChoice${drag_model_case} COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
@@ -2574,7 +3511,146 @@ if(GMAT_QT_BUILD_TESTS)
    add_qt_test(QtGui.PropSetupCreation GmatQtPropSetupCreationTests "${qt_test_startup}")
    add_qt_test(QtGui.BurnOrigin GmatQtBurnOriginTests "${qt_test_startup}")
    add_qt_test(QtGui.ResourceClone GmatQtResourceCloneTests "${qt_test_startup}")
+   if(UNIX AND NOT APPLE AND QT_XVFB_RUN)
+      foreach(clone_self_case Cells X XIncluded)
+         add_test(NAME QtGui.CloneSelfReference${clone_self_case}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+               "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+               $<TARGET_FILE:GmatQtCloneSelfReferenceTests> "${qt_test_startup}" ${clone_self_case})
+         set_tests_properties(QtGui.CloneSelfReference${clone_self_case} PROPERTIES
+            LABELS "qt-gui;qt-resource-clone" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
+      foreach(clone_include_case Config SplitMission Mixed BoundaryRecovery NestedMixed ArrayExpression CapturedRevision)
+         add_test(NAME QtGui.NativeCloneInclude${clone_include_case}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+               "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+               $<TARGET_FILE:GmatQtCloneIncludeTests> "${qt_test_startup}" ${clone_include_case})
+         set_tests_properties(QtGui.NativeCloneInclude${clone_include_case} PROPERTIES
+            LABELS "qt-gui;qt-resource-clone" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
+   endif()
    add_qt_test(QtGui.AxisRename GmatQtAxisRenameTests "${qt_test_startup}")
+   if(UNIX AND NOT APPLE AND QT_XVFB_RUN)
+      foreach(worksheet_property RMAG SemilatusRectum)
+         add_test(NAME QtGui.WorksheetOrbitAccess${worksheet_property}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+               "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+               $<TARGET_FILE:GmatQtWorksheetOrbitAccessTests> "${qt_test_startup}" ${worksheet_property})
+         set_tests_properties(QtGui.WorksheetOrbitAccess${worksheet_property} PROPERTIES
+            LABELS "qt-gui;qt-orbit-parameter-access" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+         foreach(worksheet_body Sun Mercury Venus Luna Mars Jupiter Saturn Uranus Neptune Pluto
+               UserMoon UserAsteroid UserComet UserPlanet)
+            add_test(NAME QtAcceptance.WorksheetBody${worksheet_property}${worksheet_body}
+               COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+                  "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+                  $<TARGET_FILE:GmatQtWorksheetOrbitBodyAccessTests> "${qt_test_startup}"
+                  ${worksheet_property} ${worksheet_body})
+            set_tests_properties(QtAcceptance.WorksheetBody${worksheet_property}${worksheet_body} PROPERTIES
+               LABELS "qt-gui;qt-acceptance-support;gmat-core" TIMEOUT 60 RESOURCE_LOCK gmat_qt_engine)
+         endforeach()
+      endforeach()
+   endif()
+   foreach(anomaly_body Sun Mercury Venus Earth Luna Mars Jupiter Saturn Uranus Neptune Pluto
+         UserMoon UserAsteroid UserComet UserPlanet)
+      foreach(anomaly_property EA MA)
+         add_qt_test(QtAcceptance.AnomalyBodyRouting${anomaly_property}${anomaly_body}
+            GmatQtAnomalyBodyWriteTests "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/AnomalyBodyRoutingCases.json"
+            ${anomaly_property}${anomaly_body}CircularRouting)
+         set_tests_properties(QtAcceptance.AnomalyBodyRouting${anomaly_property}${anomaly_body} PROPERTIES
+            LABELS "qt-gui;qt-acceptance-support;gmat-core" TIMEOUT 60 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
+   endforeach()
+   foreach(anomaly_boundary EAEarth MAEarth HyperMAEarth)
+      add_qt_test(QtAcceptance.AnomalyWriteBoundary${anomaly_boundary} GmatQtAnomalyBodyWriteTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/AnomalyWriteBoundaryCases.json" ${anomaly_boundary})
+      set_tests_properties(QtAcceptance.AnomalyWriteBoundary${anomaly_boundary} PROPERTIES
+         LABELS "qt-gui;qt-acceptance-support;gmat-core" TIMEOUT 60 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+   foreach(anomaly_property EA MA)
+      add_qt_test(QtAcceptance.AnomalyWriteGuards${anomaly_property} GmatQtAnomalyBodyWriteTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/AnomalyBodyWriteCases.json" ${anomaly_property}Earth)
+      set_tests_properties(QtAcceptance.AnomalyWriteGuards${anomaly_property} PROPERTIES
+         LABELS "qt-gui;qt-acceptance-support;gmat-core" TIMEOUT 60 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+   add_qt_test(QtDiagnostic.HyperbolicAnomalyFramePrecision GmatHyperbolicAnomalyFrameTests "${qt_test_startup}")
+   set_tests_properties(QtDiagnostic.HyperbolicAnomalyFramePrecision PROPERTIES LABELS "qt-acceptance-support;gmat-core")
+   add_qt_test(QtAcceptance.HyperbolicAnomalyFramesSigned GmatHyperbolicAnomalyFrameTests "${qt_test_startup}" --signed)
+   set_tests_properties(QtAcceptance.HyperbolicAnomalyFramesSigned PROPERTIES LABELS "qt-acceptance-support;gmat-core")
+   add_qt_test(QtAcceptance.HyperbolicAnomalyFramesRegular GmatHyperbolicAnomalyFrameTests "${qt_test_startup}" --ordinary)
+   set_tests_properties(QtAcceptance.HyperbolicAnomalyFramesRegular PROPERTIES LABELS "qt-acceptance-support;gmat-core")
+   foreach(ha_body Sun Mercury Venus Earth Luna Mars Jupiter Saturn Uranus Neptune Pluto
+         UserMoon UserAsteroid UserComet UserPlanet)
+      add_qt_test(QtAcceptance.HyperbolicAnomaly${ha_body} GmatQtHyperbolicAnomalyWriteTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/HyperbolicAnomalyWriteCases.json" HA${ha_body}Positive)
+      set_tests_properties(QtAcceptance.HyperbolicAnomaly${ha_body} PROPERTIES
+         LABELS "qt-gui;qt-acceptance-support;gmat-core" TIMEOUT 60 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+   foreach(function_backend FileThrust FindEvents)
+      add_qt_test(QtAcceptance.FunctionBackend${function_backend} GmatQtFunctionBackendCommandTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/FunctionBackendCommandCases.json" ${function_backend})
+      set_tests_properties(QtAcceptance.FunctionBackend${function_backend} PROPERTIES
+         LABELS "qt-gui;qt-acceptance-support;gmat-core" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+   foreach(ha_case Negative Zero Unwrapped Guards DisplayMJ2000Ec DisplayBodyFixed
+         QualifiedFrame QualifiedEcliptic CrossFrame)
+      add_qt_test(QtAcceptance.HyperbolicAnomalyEarth${ha_case} GmatQtHyperbolicAnomalyWriteTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/HyperbolicAnomalyWriteCases.json" HAEarth${ha_case})
+      set_tests_properties(QtAcceptance.HyperbolicAnomalyEarth${ha_case} PROPERTIES
+         LABELS "qt-gui;qt-acceptance-support;gmat-core" TIMEOUT 60 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+   foreach(ha_axes MJ2000Eq MJ2000Ec)
+      add_qt_test(QtAcceptance.HyperbolicAnomalyAchieve${ha_axes} GmatQtAchieveScalarFamilyTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/HyperbolicAnomalyAchieveCases.json"
+         HAFrame${ha_axes} "${CMAKE_SOURCE_DIR}")
+      set_tests_properties(QtAcceptance.HyperbolicAnomalyAchieve${ha_axes} PROPERTIES
+         LABELS "qt-gui;qt-acceptance-support;gmat-core" TIMEOUT 60 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+   foreach(ha_extra HAMarsQualifiedFrame HAUserPlanetQualifiedFrame HAFrameFunction)
+      add_qt_test(QtAcceptance.HyperbolicAnomaly${ha_extra} GmatQtHyperbolicAnomalyWriteTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/HyperbolicAnomalyWriteCases.json" ${ha_extra})
+      set_tests_properties(QtAcceptance.HyperbolicAnomaly${ha_extra} PROPERTIES
+         LABELS "qt-gui;qt-acceptance-support;gmat-core" TIMEOUT 60 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+   foreach(achieve_scalar_key
+      EllipseSMA EllipseECC EllipseINC EllipseRAAN EllipseAOP EllipseTA EllipseEA EllipseMA EllipseRadApo
+      EllipseRadPer EllipseEnergy EllipseC3Energy EllipseHMAG EllipseMM EllipseOrbitPeriod EllipseVelApoapsis
+      EllipseVelPeriapsis EllipseSemilatusRectum EllipseHX EllipseHY EllipseHZ EllipseRMAG EllipseRA EllipseDEC
+      EllipseVMAG EllipseRAV EllipseDECV EllipseAZI EllipseFPA EllipseY EllipseZ EllipseVX EllipseVY EllipseVZ
+      HyperHA HyperBdotT HyperBdotR HyperBVectorAngle HyperBVectorMag HyperOutgoingRHA HyperOutgoingDHA
+      GeodeticAltitude GeodeticLatitude GeodeticLongitude GeodeticMHA GeodeticLST Euler123EulerAngle1
+      Euler123EulerAngle2 Euler123EulerAngle3 Euler123EulerAngleRate1 Euler123EulerAngleRate2
+      Euler123EulerAngleRate3 AttitudeDCM11 AttitudeDCM12 AttitudeDCM13 AttitudeDCM21 AttitudeDCM22
+      AttitudeDCM23 AttitudeDCM31 AttitudeDCM32 AttitudeDCM33 AttitudeQ1 AttitudeQ2 AttitudeQ3 AttitudeQ4
+      AttitudeMRP1 AttitudeMRP2 AttitudeMRP3 AttitudeOmegaX AttitudeOmegaY AttitudeOmegaZ BallisticCd
+      BallisticCr BallisticDragArea BallisticDryMass BallisticSRPArea BallisticTotalMass TankPressure
+      TankVolume TankFuelDensity TankFuelMass TankTemperature TankRefTemperature BurnElement1 BurnElement2
+      BurnElement3 BurnV BurnN BurnB EpochTAI EpochTDB EpochTT EpochUTC ElapsedElapsedSecs ElapsedElapsedDays
+      SolarBetaAngle
+      )
+      add_qt_test(QtAcceptance.AchieveScalar${achieve_scalar_key} GmatQtAchieveScalarFamilyTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/AchieveScalarFamilyCases.json"
+         ${achieve_scalar_key} "${CMAKE_SOURCE_DIR}")
+      set_tests_properties(QtAcceptance.AchieveScalar${achieve_scalar_key} PROPERTIES
+         LABELS "qt-gui;qt-acceptance-support;gmat-core" TIMEOUT 60 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+   foreach(achieve_legacy_key LegacyRLA LegacyDLA)
+      add_qt_test(QtAcceptance.AchieveScalar${achieve_legacy_key} GmatQtAchieveScalarFamilyTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/AchieveScalarLegacyCases.json"
+         ${achieve_legacy_key} "${CMAKE_SOURCE_DIR}")
+      set_tests_properties(QtAcceptance.AchieveScalar${achieve_legacy_key} PROPERTIES
+         LABELS "qt-gui;qt-acceptance-support;gmat-core" TIMEOUT 60 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+   foreach(anomaly_body Sun Mercury Venus Earth Luna Mars Jupiter Saturn Uranus Neptune Pluto
+         UserMoon UserAsteroid UserComet UserPlanet)
+      foreach(anomaly_property EA MA)
+         add_qt_test(QtAcceptance.AnomalyBodyControlled${anomaly_property}${anomaly_body}
+            GmatQtAnomalyBodyWriteTests "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/AnomalyBodyControlledCases.json" ${anomaly_property}${anomaly_body})
+         set_tests_properties(QtAcceptance.AnomalyBodyControlled${anomaly_property}${anomaly_body} PROPERTIES
+            LABELS "qt-gui;qt-acceptance-support;gmat-core" TIMEOUT 60 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
+   endforeach()
    add_qt_test(QtGui.CommandGeometry GmatQtCommandGeometryTests "${qt_test_startup}")
    add_qt_test(QtGui.ResourceRename GmatQtResourceRenameTests "${qt_test_startup}")
    add_qt_test(QtGui.FocusUndo GmatQtFocusUndoTests "${qt_test_startup}")
@@ -2606,6 +3682,10 @@ if(GMAT_QT_BUILD_TESTS)
             $<TARGET_FILE:GmatQtNasaVisualTransformTests> "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaVisualTransformCases.json" ${visual_transform_case})
          set_tests_properties(QtGui.NativeNasaVisual${visual_transform_case} PROPERTIES LABELS qt-gui TIMEOUT 90)
       endforeach()
+      add_test(NAME QtGui.NativePovVisualLoad COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
+         $<TARGET_FILE:GmatQtPovVisualTests> "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/PovVisualCase.json" LoadPOV)
+      set_tests_properties(QtGui.NativePovVisualLoad PROPERTIES LABELS qt-gui TIMEOUT 90 RESOURCE_LOCK gmat_qt_engine)
       foreach(body_texture_case Sun Mercury Venus Earth Luna Mars Jupiter Saturn Uranus Neptune Pluto Moon Asteroid Comet Planet)
          add_test(NAME QtGui.NativeNasaBodyTexture${body_texture_case} COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
             ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
@@ -2820,6 +3900,11 @@ if(GMAT_QT_BUILD_TESTS)
          set_tests_properties(QtGui.NasaCommandStructuralOperations${structural_operation}${structural_position} PROPERTIES LABELS qt-gui TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
       endforeach()
    endforeach()
+   foreach(optimizer_end_position Original OuterIf)
+      add_test(NAME QtGui.OptimizeWorksheetEndTarget${optimizer_end_position} COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1" "$<TARGET_FILE:GmatQtNasaCommandStructuralOperationTests>" "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/command-operation-structural/OptimizeEndTarget.json" EndTarget ${optimizer_end_position})
+      set_tests_properties(QtGui.OptimizeWorksheetEndTarget${optimizer_end_position} PROPERTIES LABELS qt-gui TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+   endforeach()
    foreach(alias_operation AssignmentAliases ScriptEvent)
       foreach(alias_position Original OuterIf)
          add_test(NAME QtGui.NasaCommandAliasOperations${alias_operation}${alias_position} COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
@@ -2838,6 +3923,15 @@ if(GMAT_QT_BUILD_TESTS)
             "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1" "$<TARGET_FILE:GmatQtNasaCommandControlOperationTests>" "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/command-operation-control/${control_operation}.json" ${control_operation} ${control_position})
          set_tests_properties(QtGui.NasaCommandControlOperations${control_operation}${control_position} PROPERTIES LABELS qt-gui TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
       endforeach()
+   endforeach()
+   foreach(summary_family VaryTarget VaryOptimize)
+      add_test(NAME QtGui.SolverControlSummary${summary_family}
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+         "$<TARGET_FILE:GmatQtNasaSolverControlSummaryTests>" "${qt_test_startup}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/command-operation-control/${summary_family}.json" ${summary_family} OuterIf)
+      set_tests_properties(QtGui.SolverControlSummary${summary_family} PROPERTIES
+         LABELS qt-gui TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
    endforeach()
    foreach(output_operation ClearPlot PenUp PenDown MarkPoint Write Global Report Save Toggle SaveMission CommandEchoOn CommandEchoOff)
       foreach(output_position Root Branch)
@@ -2867,6 +3961,45 @@ if(GMAT_QT_BUILD_TESTS)
          set_tests_properties(QtGui.NasaCommandOperations${operation_family}${operation_position} PROPERTIES LABELS qt-gui TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
       endforeach()
    endforeach()
+   foreach(matlab_operation_position Root Branch)
+      add_test(NAME QtGui.NativeMatlabCommandOperations${matlab_operation_position}
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunMatlabCommandOperation.py"
+         "$<TARGET_FILE:GmatQtMatlabCommandOperationTests>" "${qt_test_startup}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/MatlabCommandOperationCase.json" ${matlab_operation_position})
+      set_tests_properties(QtGui.NativeMatlabCommandOperations${matlab_operation_position} PROPERTIES
+         LABELS "qt-acceptance-support;qt-gui" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      if(NOT TARGET MatlabInterface)
+         set_tests_properties(QtGui.NativeMatlabCommandOperations${matlab_operation_position} PROPERTIES DISABLED TRUE)
+      endif()
+   endforeach()
+   foreach(creation_family Optimize Target If While For BeginFiniteBurn EndFiniteBurn Maneuver
+      Assignment Toggle PenUp PenDown Propagate Report Save ScriptEvent RunSimulator RunEstimator
+      CallGmatFunction CallMatlabFunction Stop)
+      foreach(creation_context For While Target Optimize)
+         add_test(NAME QtGui.NativeCreationPosition${creation_family}${creation_context}
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtMissionCreationPositionTests>" "${qt_test_startup}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/MissionCreationPositionCases.json" ${creation_family}${creation_context})
+         set_tests_properties(QtGui.NativeCreationPosition${creation_family}${creation_context} PROPERTIES
+            LABELS "qt-acceptance-support;qt-gui" TIMEOUT 240 RESOURCE_LOCK gmat_qt_engine)
+      endforeach()
+      add_test(NAME QtGui.NativeCreationElseBoundary${creation_family}
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+         "$<TARGET_FILE:GmatQtMissionCreationPositionTests>" "${qt_test_startup}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/MissionCreationElseBoundaryCases.json" ${creation_family}IfElse)
+      set_tests_properties(QtGui.NativeCreationElseBoundary${creation_family} PROPERTIES
+         LABELS "qt-acceptance-support;qt-gui" TIMEOUT 240 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+   foreach(formation_clone_mode Exclusive Shared)
+      add_test(NAME QtGui.NativeFormationClone${formation_clone_mode}
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+         "$<TARGET_FILE:GmatQtFormationCloneScopeTests>" "${qt_test_startup}" ${formation_clone_mode})
+      set_tests_properties(QtGui.NativeFormationClone${formation_clone_mode} PROPERTIES
+         LABELS "qt-acceptance-support;qt-gui" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
    foreach(iau_body Sun Mercury Venus Mars Jupiter Saturn Uranus Neptune Pluto)
       add_test(NAME QtGui.NasaDefaultOrientation${iau_body} COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
          "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1" "$<TARGET_FILE:GmatQtNasaDefaultBodyOrientationTests>" "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaDefaultBodyOrientationCases.json" ${iau_body})
@@ -2888,6 +4021,7 @@ if(GMAT_QT_BUILD_TESTS)
       endforeach()
    endif()
    add_qt_test(QtGui.Atmosphere GmatQtAtmosphereTests "${qt_test_startup}")
+   add_qt_test(QtGui.MarsGramControls GmatQtMarsGramControlsTests "${qt_test_startup}")
    add_qt_test(QtGui.ForceSource GmatQtForceSourceTests "${qt_test_startup}")
    add_qt_test(QtGui.ForceSelectors GmatQtForceSelectorTests "${qt_test_startup}")
    add_qt_test(QtGui.GravityBodies GmatQtGravityBodyTests "${qt_test_startup}")
@@ -2984,6 +4118,18 @@ if(GMAT_QT_BUILD_TESTS)
    add_test(NAME QtAcceptance.FunctionResourceCopy COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
       "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1" "$<TARGET_FILE:GmatFunctionResourceCopyTests>" "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaFunctionRemainingResourceCases.json")
    set_tests_properties(QtAcceptance.FunctionResourceCopy PROPERTIES LABELS "qt-acceptance-support;gmat-core" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+   add_executable(GmatNativeValueProviderTests tests/NativeValueProviderTests.cpp)
+   target_link_libraries(GmatNativeValueProviderTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatNativeValueProviderTests GmatQt)
+   add_test(NAME QtAcceptance.NativeValueProviders COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+      "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1" "$<TARGET_FILE:GmatNativeValueProviderTests>" "${qt_test_startup}")
+   set_tests_properties(QtAcceptance.NativeValueProviders PROPERTIES LABELS "qt-acceptance-support;gmat-core" TIMEOUT 90 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+   add_executable(GmatOemWireOrderTests tests/OemWireOrderTests.cpp)
+   target_link_libraries(GmatOemWireOrderTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatOemWireOrderTests GmatQt)
+   add_test(NAME QtAcceptance.OemWireOrder COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+      "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1" "$<TARGET_FILE:GmatOemWireOrderTests>" "${qt_test_startup}")
+   set_tests_properties(QtAcceptance.OemWireOrder PROPERTIES LABELS "qt-acceptance-support;gmat-core" TIMEOUT 90 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
    add_test(NAME QtAcceptance.AttitudeResourceCopy COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
       "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1" "$<TARGET_FILE:GmatAttitudeResourceCopyTests>" "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaFunctionAttitudeResourceCases.json")
    set_tests_properties(QtAcceptance.AttitudeResourceCopy PROPERTIES LABELS "qt-acceptance-support;gmat-core" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
@@ -3081,6 +4227,247 @@ if(GMAT_QT_BUILD_TESTS)
    add_test(NAME QtAcceptance.OemB1Text COMMAND "${Python3_EXECUTABLE}"
       "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunOemB1TextSupport.py"
       "$<TARGET_FILE:GmatOemB1TextTests>" "${qt_test_startup}")
+   add_test(NAME QtAcceptance.OemFileInvariants COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunOemFileInvariants.py"
+      "$<TARGET_FILE:GmatOemFileInvariantTests>" "${qt_test_startup}")
+   set_tests_properties(QtAcceptance.OemFileInvariants PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 90 RESOURCE_LOCK gmat_qt_engine)
+   add_test(NAME QtAcceptance.StmReadOnlyContract COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmReadOnlyContract.py"
+      "$<TARGET_FILE:GmatStmReadOnlyContractTests>" "${qt_test_startup}")
+   set_tests_properties(QtAcceptance.StmReadOnlyContract PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 90 RESOURCE_LOCK gmat_qt_engine)
+   add_test(NAME QtAcceptance.StmFrameReference COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmFrameReference.py"
+      "$<TARGET_FILE:GmatStmFrameReferenceTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmFrameReferenceCases.json")
+   set_tests_properties(QtAcceptance.StmFrameReference PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 90 RESOURCE_LOCK gmat_qt_engine)
+   add_test(NAME QtAcceptance.StmDomainAtomicity COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmDomainAtomicity.py"
+      "$<TARGET_FILE:GmatStmDomainAtomicityTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmDomainAtomicityCases.json")
+   set_tests_properties(QtAcceptance.StmDomainAtomicity PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 90 RESOURCE_LOCK gmat_qt_engine)
+   add_test(NAME QtAcceptance.StmHigherZonal COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmHigherZonal.py"
+      "$<TARGET_FILE:GmatStmHigherZonalFrameTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmHigherZonalCases.json")
+   set_tests_properties(QtAcceptance.StmHigherZonal PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+   add_test(NAME QtAcceptance.StmTesseral COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmTesseral.py"
+      "$<TARGET_FILE:GmatStmTesseralFrameTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmTesseralCases.json")
+   set_tests_properties(QtAcceptance.StmTesseral PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+   add_test(NAME QtAcceptance.StmSolidTide COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmTesseral.py"
+      "$<TARGET_FILE:GmatStmTesseralFrameTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmSolidTideCases.json")
+   set_tests_properties(QtAcceptance.StmSolidTide PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+   add_test(NAME QtAcceptance.StmRelativistic COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmRelativistic.py"
+      "$<TARGET_FILE:GmatStmRelativisticFrameTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmRelativisticCases.json")
+   set_tests_properties(QtAcceptance.StmRelativistic PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+   add_test(NAME QtAcceptance.StmRelativisticAMatrix COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmRelativistic.py"
+      "$<TARGET_FILE:GmatStmRelativisticFrameTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmRelativisticAMatrixCases.json")
+   set_tests_properties(QtAcceptance.StmRelativisticAMatrix PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+   add_test(NAME QtAcceptance.StmGeodesic COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmRelativistic.py"
+      "$<TARGET_FILE:GmatStmRelativisticFrameTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmGeodesicCases.json")
+   set_tests_properties(QtAcceptance.StmGeodesic PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+   foreach(srp_domain Penumbra FullSun Umbra Annular)
+      add_test(NAME QtAcceptance.StmSrp${srp_domain} COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmSrp.py"
+         "$<TARGET_FILE:GmatStmSrpFrameTests>" "${qt_test_startup}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmSrp${srp_domain}Cases.json")
+      set_tests_properties(QtAcceptance.StmSrp${srp_domain} PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+   foreach(srp_shape Spad SpadAngular SpadBicubic SpadNadir SpadNadirAngular SpadNadirAMatrix
+      NPlate NPlateNadir NPlateNadirVelocity NPlatePenumbra NPlatePenumbraAMatrix NPlateAnnular NPlateUmbra
+      Drag DragUnequal DragZeroReference DragAMatrix DragExponential DragExponentialAMatrix
+      DragSpadNadir DragSpadNadirAMatrix DragSpadAngular DragSpadAngularVelocity
+      FiniteThrust FiniteThrustAMatrix FiniteThrustReports FiniteThrustReportsRestart FiniteThrustMass
+      FileThrust FileThrustFrame FileThrustFrameAMatrix FileThrustReports Polyhedron PolyhedronAMatrix External ExternalAMatrix SignedAxes)
+      add_test(NAME QtAcceptance.Stm${srp_shape} COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmSrp.py"
+         "$<TARGET_FILE:GmatStmSrpFrameTests>" "${qt_test_startup}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/Stm${srp_shape}Cases.json")
+      set_tests_properties(QtAcceptance.Stm${srp_shape} PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+   add_test(NAME QtAcceptance.EphemerisConvergence COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunEphemerisConvergence.py"
+      "$<TARGET_FILE:GmatEphemerisConvergenceTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/EphemerisConvergenceCases.json")
+   set_tests_properties(QtAcceptance.EphemerisConvergence PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+   add_test(NAME QtAcceptance.StmFrameMission COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmFrameMission.py"
+      "$<TARGET_FILE:GmatStmFrameMissionTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmFrameMissionCases.json")
+   set_tests_properties(QtAcceptance.StmFrameMission PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+   add_test(NAME QtAcceptance.StmFrameMissionSplit COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmFrameMission.py"
+      "$<TARGET_FILE:GmatStmFrameMissionTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmFrameMissionSplitCases.json")
+   set_tests_properties(QtAcceptance.StmFrameMissionSplit PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+   add_test(NAME QtAcceptance.StmBaseAlignment COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmBaseAlignment.py"
+      "$<TARGET_FILE:GmatStmBaseAlignmentTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmBaseAlignmentCases.json")
+   set_tests_properties(QtAcceptance.StmBaseAlignment PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 90 RESOURCE_LOCK gmat_qt_engine)
+   foreach(stm_function_frame InputFrame LocalFrame)
+      add_test(NAME QtAcceptance.StmFunction${stm_function_frame} COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmFunctionFrame.py"
+         "$<TARGET_FILE:GmatStmFunctionFrameTests>" "${qt_test_startup}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmFunction${stm_function_frame}Case.json")
+      set_tests_properties(QtAcceptance.StmFunction${stm_function_frame} PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+   foreach(stm_solver_frame Target Optimize)
+      add_test(NAME QtAcceptance.StmSolver${stm_solver_frame} COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmSolverFrame.py"
+         "$<TARGET_FILE:GmatStmSolverFrameTests>" "${qt_test_startup}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmSolver${stm_solver_frame}Case.json")
+      set_tests_properties(QtAcceptance.StmSolver${stm_solver_frame} PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+   add_test(NAME QtAcceptance.StmFunctionRecovery COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmFunctionRecovery.py"
+      "$<TARGET_FILE:GmatStmFunctionRecoveryTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmFunctionRecoveryCase.json")
+   set_tests_properties(QtAcceptance.StmFunctionRecovery PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+   add_test(NAME QtAcceptance.StmOwnerFrame COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmOwnerFrame.py"
+      "$<TARGET_FILE:GmatStmOwnerFrameTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmOwnerFrameCases.json")
+   set_tests_properties(QtAcceptance.StmOwnerFrame PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+   add_test(NAME QtAcceptance.StmHarmonicFrame COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmHarmonicFrame.py"
+      "$<TARGET_FILE:GmatStmHarmonicFrameTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmHarmonicFrameCases.json")
+   set_tests_properties(QtAcceptance.StmHarmonicFrame PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+   foreach(context_gap TargetNestedConstraint FunctionToggleWrite LateCreateTarget
+      LateCreateOptimize LateCreateFunction FunctionMisplacedAchieve
+      FunctionMisplacedMinimize FunctionDuplicateBegin FunctionDuplicatePrepare)
+      add_test(NAME QtAcceptance.CommandContextGap${context_gap} COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunCommandContextGap.py"
+         "$<TARGET_FILE:GmatCommandContextGapTests>" "${qt_test_startup}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/CommandContextGapCases.json" ${context_gap})
+      set_tests_properties(QtAcceptance.CommandContextGap${context_gap} PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 120 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+   add_test(NAME QtAcceptance.StmHarmonicJ2 COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmHarmonicJ2.py"
+      "$<TARGET_FILE:GmatStmHarmonicFrameTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmHarmonicJ2Cases.json")
+   set_tests_properties(QtAcceptance.StmHarmonicJ2 PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+   add_test(NAME QtAcceptance.StmHarmonicJ2Limited COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmHarmonicJ2.py"
+      "$<TARGET_FILE:GmatStmHarmonicFrameTests>" "${qt_test_startup}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmHarmonicJ2LimitedNativeCases.json")
+   set_tests_properties(QtAcceptance.StmHarmonicJ2Limited PROPERTIES
+      LABELS "qt-acceptance-support;gmat-core" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+   foreach(stm_owner_function InputFrame LocalFrame)
+      add_test(NAME QtAcceptance.StmOwnerFunction${stm_owner_function} COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunStmOwnerFunction.py"
+         "$<TARGET_FILE:GmatStmOwnerFunctionTests>" "${qt_test_startup}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/StmOwnerFunction${stm_owner_function}Case.json")
+      set_tests_properties(QtAcceptance.StmOwnerFunction${stm_owner_function} PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+   if(UNIX AND NOT APPLE)
+      add_test(NAME QtAcceptance.OemNumericFields COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunOemNumericFields.py"
+         "$<TARGET_FILE:GmatOemNumericFieldsTests>" "${qt_test_startup}")
+      set_tests_properties(QtAcceptance.OemNumericFields PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 90 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtAcceptance.NestedSolverValidation COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNestedSolverValidation.py"
+         "$<TARGET_FILE:GmatNestedSolverValidationTests>" "${qt_test_startup}")
+      set_tests_properties(QtAcceptance.NestedSolverValidation PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 600 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtAcceptance.OptimizerEndTarget COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunOptimizerEndTarget.py"
+         "$<TARGET_FILE:GmatOptimizerEndTargetTests>" "${qt_test_startup}")
+      set_tests_properties(QtAcceptance.OptimizerEndTarget PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 600 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtAcceptance.AchieveConstantGoal COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunAchieveConstantGoal.py"
+         "$<TARGET_FILE:GmatAchieveConstantGoalTests>" "${qt_test_startup}")
+      set_tests_properties(QtAcceptance.AchieveConstantGoal PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 600 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtAcceptance.OrbitParameterEpoch COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunOrbitParameterEpoch.py"
+         "$<TARGET_FILE:GmatOrbitParameterEpochTests>" "${qt_test_startup}")
+      set_tests_properties(QtAcceptance.OrbitParameterEpoch PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 600 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtAcceptance.PlanetBplaneSamples COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunPlanetBplaneSamples.py"
+         "$<TARGET_FILE:GmatPlanetBplaneSampleTests>" "${qt_test_startup}")
+      set_tests_properties(QtAcceptance.PlanetBplaneSamples PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 600 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtAcceptance.VaryLiteralControls COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunVaryLiteralControls.py"
+         "$<TARGET_FILE:GmatVaryLiteralControlTests>" "${qt_test_startup}")
+      set_tests_properties(QtAcceptance.VaryLiteralControls PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 600 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtAcceptance.AchieveOperandRoles COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunAchieveOperandRoles.py"
+         "$<TARGET_FILE:GmatAchieveOperandRoleTests>" "${qt_test_startup}")
+      set_tests_properties(QtAcceptance.AchieveOperandRoles PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 600 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtAcceptance.ConstraintOperandRoles COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunConstraintOperandRoles.py"
+         "$<TARGET_FILE:GmatConstraintOperandRoleTests>" "${qt_test_startup}")
+      set_tests_properties(QtAcceptance.ConstraintOperandRoles PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 600 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtAcceptance.EphemerisCountPolicies COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunEphemerisCountPolicies.py"
+         "$<TARGET_FILE:GmatEphemerisCountPolicyTests>" "${qt_test_startup}")
+      set_tests_properties(QtAcceptance.EphemerisCountPolicies PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 600 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtAcceptance.MatlabServiceResources COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunMatlabServiceResources.py"
+         "$<TARGET_FILE:GmatMatlabServiceResourceTests>" "${qt_test_startup}")
+      set_tests_properties(QtAcceptance.MatlabServiceResources PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 600 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtAcceptance.SpkStartBoundary COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunSpkStartBoundaries.py"
+         "$<TARGET_FILE:GmatEphemerisCountPolicyTests>" "${qt_test_startup}")
+      set_tests_properties(QtAcceptance.SpkStartBoundary PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 600 RESOURCE_LOCK gmat_qt_engine)
+      add_test(NAME QtAcceptance.OrbitOriginEpoch COMMAND "${Python3_EXECUTABLE}"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunOrbitOriginEpoch.py"
+         "$<TARGET_FILE:GmatOrbitOriginEpochTests>" "${qt_test_startup}")
+      set_tests_properties(QtAcceptance.OrbitOriginEpoch PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 600 RESOURCE_LOCK gmat_qt_engine)
+      if(TARGET GmatConsole)
+         add_test(NAME QtAcceptance.CustomFovNativePaths COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunCustomFovNativePaths.py"
+            "$<TARGET_FILE:GmatCustomFovNativePathsTests>" "$<TARGET_FILE:GmatConsole>" "${qt_test_startup}")
+         set_tests_properties(QtAcceptance.CustomFovNativePaths PROPERTIES
+            LABELS "qt-acceptance-support;gmat-core;native-console" TIMEOUT 180 RESOURCE_LOCK gmat_qt_engine)
+      endif()
+   endif()
    set_tests_properties(QtAcceptance.OemB1Text PROPERTIES LABELS "qt-acceptance-support;gmat-core"
       TIMEOUT 90 RESOURCE_LOCK gmat_qt_engine WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
    add_test(NAME QtAcceptance.OemOutputTimeWriter COMMAND "${Python3_EXECUTABLE}"
@@ -3245,6 +4632,11 @@ if(GMAT_QT_BUILD_TESTS)
    if(TARGET GmatFirstOrderGaussMarkovCopyTests)
       add_test(NAME QtAcceptance.FirstOrderGaussMarkovCopy COMMAND GmatFirstOrderGaussMarkovCopyTests)
       set_tests_properties(QtAcceptance.FirstOrderGaussMarkovCopy PROPERTIES LABELS "qt-support;gmat-core" TIMEOUT 30)
+   endif()
+   if(TARGET GmatSncProcessNoiseStateTests)
+      add_qt_test(QtAcceptance.SncProcessNoiseState GmatSncProcessNoiseStateTests "${qt_test_startup}")
+      set_tests_properties(QtAcceptance.SncProcessNoiseState PROPERTIES
+         LABELS "qt-acceptance-support;gmat-core" TIMEOUT 60 RESOURCE_LOCK gmat_qt_engine)
    endif()
    foreach(function_factory_resource Plate FirstOrderGaussMarkov)
       if(function_factory_resource STREQUAL "FirstOrderGaussMarkov" AND DEFINED PLUGIN_EKF AND NOT PLUGIN_EKF)
@@ -3451,6 +4843,7 @@ if(GMAT_QT_BUILD_TESTS)
    endforeach()
    add_qt_test(QtGui.NasaMinimizeProperty GmatQtNasaMinimizeParameterTests "${qt_test_startup}")
    add_qt_test(QtGui.NasaAchieveParameter GmatQtNasaAchieveParameterTests "${qt_test_startup}")
+   add_qt_test(QtGui.AchieveConstantGoal GmatQtAchieveConstantGoalTests "${qt_test_startup}")
    if(UNIX AND NOT APPLE AND QT_XVFB_RUN AND GMAT_QT_EXTERNAL_PLUGINS MATCHES "libVF13adOptimizer")
       add_test(NAME QtGui.NativeNasaVaryOptimizeProperty COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
          ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
@@ -3458,6 +4851,8 @@ if(GMAT_QT_BUILD_TESTS)
       set_tests_properties(QtGui.NativeNasaVaryOptimizeProperty PROPERTIES LABELS qt-gui TIMEOUT 180)
    endif()
    add_qt_test(QtGui.NasaVaryParameter GmatQtNasaVaryParameterTests "${qt_test_startup}")
+   add_qt_test(QtGui.VaryNumericPicker GmatQtVaryNumericPickerTests "${qt_test_startup}")
+   add_qt_test(QtGui.ExactEphemerisPolicy GmatQtExactEphemerisPolicyTests "${qt_test_startup}")
    if(UNIX AND NOT APPLE AND QT_XVFB_RUN)
       foreach(full_grid_case And Or)
          add_test(NAME QtGui.NativeNasaIfElseFullGrid${full_grid_case} COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
@@ -3734,10 +5129,111 @@ if(GMAT_QT_BUILD_TESTS)
       add_qt_test(QtGui.NasaSaveOrbitMode${save_orbit_mode_key} GmatQtNasaSaveResourceTests
          "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaSaveOrbitModeCases.json" ${save_orbit_mode_key})
    endforeach()
+   set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaSaveFixedOffsetCases.json")
+   file(READ "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaSaveFixedOffsetCases.json" save_fixed_offset_json)
+   string(JSON save_fixed_offset_count LENGTH "${save_fixed_offset_json}" cases)
+   math(EXPR save_fixed_offset_last "${save_fixed_offset_count}-1")
+   foreach(save_fixed_offset_index RANGE 0 ${save_fixed_offset_last})
+      string(JSON save_fixed_offset_key GET "${save_fixed_offset_json}" cases ${save_fixed_offset_index} key)
+      add_qt_test(QtGui.NasaSaveFixedOffset${save_fixed_offset_key} GmatQtNasaSaveResourceTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaSaveFixedOffsetCases.json" ${save_fixed_offset_key})
+   endforeach()
+   add_qt_test(QtGui.NasaSaveForceConsumerCombinedNRL GmatQtNasaSaveForceConsumerTests
+      "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaSaveForceConsumerCases.json" CombinedNRL)
+   add_test(NAME QtGui.SaveSubscriberNativeCopyPath COMMAND $<TARGET_FILE:GmatSaveSubscriberNativeTests>
+      "${qt_test_startup}" "${CMAKE_CURRENT_BINARY_DIR}/save-subscriber-native-output")
+   set_tests_properties(QtGui.SaveSubscriberNativeCopyPath PROPERTIES
+      LABELS "qt-acceptance-support" TIMEOUT 30 RESOURCE_LOCK gmat_qt_engine)
+   set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaSaveReadonlyInitializationCases.json")
+   file(READ "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaSaveReadonlyInitializationCases.json" save_readonly_json)
+   string(JSON save_readonly_count LENGTH "${save_readonly_json}" cases)
+   math(EXPR save_readonly_last "${save_readonly_count}-1")
+   foreach(save_readonly_index RANGE 0 ${save_readonly_last})
+      string(JSON save_readonly_key GET "${save_readonly_json}" cases ${save_readonly_index} key)
+      add_qt_test(QtGui.NasaSaveReadonlyInit${save_readonly_key} GmatQtNasaSaveReadonlyInitializationTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaSaveReadonlyInitializationCases.json" ${save_readonly_key})
+   endforeach()
    foreach(save_attachment_case Properties Parameters ChemicalAttached ExplicitAttached SharedAttached SharedDivergent)
       add_qt_test(QtGui.NasaSaveAttachment${save_attachment_case} GmatQtNasaSaveAttachmentTests
          "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaSaveAttachmentCases.json" ${save_attachment_case})
    endforeach()
+   foreach(save_legacy_family Resource Support Ancillary Body Catalogue Mode Force Attitude FileAttitude Orbit OrbitMode FixedOffset)
+      set(save_legacy_cases "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaSave${save_legacy_family}Cases.json")
+      file(READ "${save_legacy_cases}" save_legacy_json)
+      string(JSON save_legacy_count LENGTH "${save_legacy_json}" cases)
+      math(EXPR save_legacy_last "${save_legacy_count}-1")
+      foreach(save_legacy_index RANGE 0 ${save_legacy_last})
+         string(JSON save_legacy_key GET "${save_legacy_json}" cases ${save_legacy_index} key)
+         add_qt_test(QtGui.SaveLegacy${save_legacy_family}${save_legacy_key} GmatQtSaveLegacyResourceTests
+            "${qt_test_startup}" "${save_legacy_cases}" ${save_legacy_key})
+      endforeach()
+   endforeach()
+   file(READ "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaSaveReadonlyInitializationCases.json" save_legacy_readonly_json)
+   string(JSON save_legacy_readonly_count LENGTH "${save_legacy_readonly_json}" cases)
+   math(EXPR save_legacy_readonly_last "${save_legacy_readonly_count}-1")
+   foreach(save_legacy_index RANGE 0 ${save_legacy_readonly_last})
+      string(JSON save_legacy_key GET "${save_legacy_readonly_json}" cases ${save_legacy_index} key)
+      add_qt_test(QtGui.SaveLegacyReadonly${save_legacy_key} GmatQtSaveLegacyReadonlyTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaSaveReadonlyInitializationCases.json" ${save_legacy_key})
+   endforeach()
+   foreach(save_missing_key MissingCoordinateSystemFixed MissingGmatFunction)
+      add_qt_test(QtGui.SaveMissingConsumer${save_missing_key} GmatQtSaveLegacyReadonlyTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/SaveMissingReadonlyConsumerCases.json" ${save_missing_key})
+   endforeach()
+   foreach(save_missing_key MissingThrustSegment MissingRegionFile)
+      add_qt_test(QtGui.SaveMissingConsumer${save_missing_key} GmatQtSaveLegacyReadonlyTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/SaveMissingReadonlyConsumerFollowupCases.json" ${save_missing_key})
+   endforeach()
+   foreach(save_power_key AttachedNuclearPowerSystem AttachedSolarPowerSystem)
+      add_qt_test(QtGui.SaveMissingConsumer${save_power_key} GmatQtSaveAttachedPowerConsumerTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/SaveAttachedPowerConsumerCases.json" ${save_power_key})
+   endforeach()
+   add_qt_test(QtGui.SaveMissingConsumerFileInterfaceReader GmatQtSaveLegacyReadonlyTests
+      "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/SaveFileInterfaceConsumerCases.json" MissingFileInterfaceReader)
+   add_qt_test(QtGui.SaveMissingConsumerPolyhedralForce GmatQtSaveLegacyReadonlyTests
+      "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/SavePolyhedralConsumerCases.json" MissingPolyhedralForce)
+   add_qt_test(QtGui.SaveLegacyOrbitViewColorOwner GmatQtSaveLegacyResourceTests
+      "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/SaveOrbitViewColorOwnerCase.json" OrbitViewColorOwner)
+   foreach(save_plate_key StandalonePlate AttachedPlate)
+      add_qt_test(QtGui.SaveLegacy${save_plate_key} GmatQtSaveLegacyResourceTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/SavePlateConsumerTypedCases.json" ${save_plate_key})
+   endforeach()
+   foreach(save_named_family NamedResourceFinal NamedForceConfiguration)
+      if(save_named_family STREQUAL "NamedForceConfiguration")
+         set(save_named_target GmatQtSaveLegacyNamedForceTests)
+      else()
+         set(save_named_target GmatQtSaveLegacyResourceTests)
+      endif()
+      set(save_named_cases "${CMAKE_CURRENT_SOURCE_DIR}/tests/Save${save_named_family}Cases.json")
+      set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${save_named_cases}")
+      file(READ "${save_named_cases}" save_named_json)
+      string(JSON save_named_count LENGTH "${save_named_json}" cases)
+      math(EXPR save_named_last "${save_named_count}-1")
+      foreach(save_named_index RANGE 0 ${save_named_last})
+         string(JSON save_named_key GET "${save_named_json}" cases ${save_named_index} key)
+         add_qt_test(QtGui.SaveLegacyNamed${save_named_key} ${save_named_target}
+            "${qt_test_startup}" "${save_named_cases}" ${save_named_key})
+      endforeach()
+   endforeach()
+   add_qt_test(QtGui.SaveNamedResourceEligibility GmatSaveNamedResourceEligibilityTests
+      "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/SaveNamedResourceEligibilityCase.json" NamedCandidates)
+   set_tests_properties(QtGui.SaveNamedResourceEligibility PROPERTIES
+      LABELS "qt-acceptance-support" TIMEOUT 30 RESOURCE_LOCK gmat_qt_engine)
+   foreach(save_legacy_attachment Properties Parameters ChemicalAttached ExplicitAttached SharedAttached SharedDivergent)
+      add_qt_test(QtGui.SaveLegacyAttachment${save_legacy_attachment} GmatQtSaveLegacyAttachmentTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaSaveAttachmentCases.json" ${save_legacy_attachment})
+   endforeach()
+   foreach(save_matlab_resource Fmincon MatlabFunction)
+      add_qt_test(QtGui.SaveMatlabResource${save_matlab_resource} GmatQtSaveLegacyResourceTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/SaveMatlabResourceCases.json" ${save_matlab_resource})
+   endforeach()
+   foreach(save_snapshot_case TableAppearance StringBytes)
+      add_qt_test(QtGui.SaveSnapshotSupplementary${save_snapshot_case} GmatQtSaveLegacyResourceTests
+         "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/SaveSnapshotSupplementaryCases.json" ${save_snapshot_case})
+   endforeach()
+   add_qt_test(QtGui.SaveLegacyForceConsumerCombinedNRL GmatQtSaveLegacyForceConsumerTests
+      "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaSaveForceConsumerCases.json" CombinedNRL)
+
    foreach(propagation_stop_case GoalVariable GoalArray GoalProperty FirstStepRepeat FirstStepBeforeRoot StopTop StopLoop StopTarget)
       add_qt_test(QtGui.NasaPropagationStop${propagation_stop_case} GmatQtNasaPropagationStopTests
          "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaPropagationStopCases.json" ${propagation_stop_case})
@@ -3790,6 +5286,27 @@ if(GMAT_QT_BUILD_TESTS)
    add_qt_test(QtGui.SpiceDiagnostics GmatQtSpiceDiagnosticTests "${qt_test_startup}")
    add_qt_test(QtGui.PlotSetup GmatQtPlotSetupTests "${qt_test_startup}")
    add_qt_test(QtGui.Plots GmatQtPlotTests "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/plots.script")
+   add_qt_test(QtGui.GroundTrackLayout GmatQtGroundTrackLayoutTests)
+   add_qt_test(QtGui.GroundTrackAxisLabels GmatQtGroundTrackAxisLabelTests)
+   add_qt_test(QtGui.GroundTrackRegionZoom GmatQtGroundTrackRegionZoomTests)
+   add_qt_test(QtGui.GroundMapOverlays GmatQtGroundMapOverlayTests)
+   add_qt_test(QtGui.PlacePicker GmatQtPlacePickerTests "${qt_test_startup}")
+   add_qt_test(QtGui.SatelliteImport GmatQtSatelliteImportTests "${qt_test_startup}")
+   add_qt_test(QtGui.SummaryScroll GmatQtSummaryDragTests summary)
+   add_qt_test(QtGui.OrbitDragDirection GmatQtSummaryDragTests drag)
+   foreach(satellite_workflow assignments accessible nested stopped new none raw epoch-guard elements)
+      add_qt_test(QtGui.SatelliteWorkflow.${satellite_workflow} GmatQtSatelliteWorkflowTests "${qt_test_startup}" "${satellite_workflow}")
+      set_tests_properties(QtGui.SatelliteWorkflow.${satellite_workflow} PROPERTIES TIMEOUT 60)
+   endforeach()
+   add_qt_test(QtGui.SatelliteCatalog GmatQtSatelliteCatalogTests)
+   add_qt_test(QtGui.SpaceTrackAccount GmatQtSpaceTrackAccountTests session)
+   add_qt_test(QtGui.NavigationTree GmatQtNavigationTreeTests)
+   add_qt_test(QtGui.WorkspaceNavigation GmatQtWorkspaceNavigationTests "${qt_test_startup}")
+   add_qt_test(QtGui.UxReviewFixes GmatQtUxReviewFixesTests "${qt_test_startup}")
+   add_qt_test(QtGui.WindowControlContrast GmatQtWindowControlContrastTests)
+   add_qt_test(QtGui.ContextCopy GmatQtContextCopyTests "${qt_test_startup}")
+   add_qt_test(QtGui.ClipboardPaste GmatQtClipboardPasteTests "${qt_test_startup}")
+   add_qt_test(QtGui.PlotToolbar GmatQtPlotToolbarTests "${qt_test_startup}")
    add_qt_test(QtGui.PlotsHiDPI GmatQtPlotTests "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/plots.script")
    set_tests_properties(QtGui.PlotsHiDPI PROPERTIES ENVIRONMENT "QT_SCALE_FACTOR=2")
    add_test(NAME QtGui.Launch COMMAND "${Python3_EXECUTABLE}" "${qt_test_runner}"
@@ -3802,6 +5319,11 @@ if(GMAT_QT_BUILD_TESTS)
       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
       DEPENDS GmatQt GmatQtWindowTests GmatQtFileTests GmatQtWorkflowTests GmatQtMissionTests GmatQtPlotTests GmatQtOrbitRendererTests GmatQtCompatibilityTests GmatQtAtmosphereTests GmatQtStationTests GmatQtEventLocatorTests GmatQtPlotSetupTests GmatQtOrbitSetupTests GmatQtThrusterTests GmatQtBurnTests GmatQtEphemerisTests GmatQtDynamicDataTests GmatQtCalculatedPointTests GmatQtDataInterfaceTests GmatQtEstimationTests GmatQtComparisonTests GmatQtThrustFileTests GmatQtScriptEditingTests GmatQtExternalForceTests GmatQtPolyhedronTests
       USES_TERMINAL VERBATIM)
+   add_dependencies(check-qt GmatQtImplementationVerificationTests)
+   add_dependencies(check-qt GmatQtRemainingImplementationVerificationTests)
+   add_dependencies(check-qt GmatQtFunctionCommandPolicyTests)
+   add_dependencies(check-qt GmatQtFunctionBackendCommandTests)
+   add_dependencies(check-qt GmatQtFunctionGlobalStoreLifetimeTests)
    add_dependencies(check-qt GmatQtModelDrawingBackendTests GmatQtModelDrawingEditorTests GmatQtModelDrawingRuntimeTests GmatQtModelDrawingRenderingTests)
    add_dependencies(check-qt GmatQtPlaybackOptionsBackendTests GmatQtPlaybackOptionsEditorTests GmatQtPlaybackOptionsRuntimeTests GmatQtSimulationClockTests GmatQtEpochPlaybackTests GmatQtEpochPlaybackRenderingTests GmatQtClockArcCaptureTests)
    add_dependencies(check-qt GmatQtStarOptionsBackendTests GmatQtStarOptionsEditorTests GmatQtStarStyleRenderingTests)
@@ -3820,6 +5342,8 @@ if(GMAT_QT_BUILD_TESTS)
    add_dependencies(check-qt GmatQtPropagationCovarianceTests)
    add_dependencies(check-qt GmatQtResourceRoundTripTests GmatQtScriptDocumentTests)
    add_dependencies(check-qt GmatQtSolverPlotTests GmatQtMixedSolverScopeTests GmatQtTreeActivationTests)
+   add_dependencies(check-qt GmatQtSatelliteWorkflowTests)
+   add_dependencies(check-qt GmatQtSummaryDragTests)
    add_dependencies(check-qt GmatQtSolverCorrectionTests)
    add_dependencies(check-qt GmatQtSolverModeTests GmatQtConstraintTests GmatQtSolverOperandTests GmatQtGlobalScopeTests)
    add_dependencies(check-qt GmatQtEphemerisToggleTests GmatQtInvalidPlotDataTests)
@@ -3837,7 +5361,7 @@ if(GMAT_QT_BUILD_TESTS)
    add_dependencies(check-qt GmatQtDebuggerTests)
    add_dependencies(check-qt GmatQtSharedPlaybackTests GmatQtInterpolatedPlaybackTests GmatQtObjectAxesTests GmatQtObjectGuidesTests)
    add_dependencies(check-qt GmatQtSkyControlsTests)
-   add_dependencies(check-qt GmatQtResourceCreationDefaultsTests)
+   add_dependencies(check-qt GmatQtResourceCreationDefaultsTests GmatQtOrbitViewCreationDefaultsTests)
    add_dependencies(check-qt GmatQtUnifiedResourceTests GmatQtResourceVisibilityTests)
    add_dependencies(check-qt GmatQtCoordinateCreationTests)
    add_dependencies(check-qt GmatQtChemicalTankApplyTests GmatQtPropSetupApplyTests GmatQtPropSetupCreationTests GmatQtBurnOriginTests)
@@ -3865,12 +5389,33 @@ if(GMAT_QT_BUILD_TESTS)
    add_dependencies(check-qt GmatQtNasaBodyKernelTests)
    add_dependencies(check-qt GmatQtNasaBodyOrientationTests)
    add_dependencies(check-qt GmatQtNasaBodySpiceRotationTests GmatQtNasaLunarOrientationTests GmatQtNasaEarthFk5Tests GmatEopDailyKnotTests GmatQtNasaDefaultBodyOrientationTests)
-   add_dependencies(check-qt GmatQtNasaOrbitDefinitionTests)
+   add_dependencies(check-qt GmatQtNasaOrbitDefinitionTests GmatQtBrouwerFrameDefinitionTests GmatQtBrouwerFrameContractTests GmatQtSolverBackendCommandTests GmatQtBrouwerTransportTests GmatQtBrouwerTransportObservationTests)
+   add_dependencies(check-qt GmatQtSolverCkOutputTests)
+   add_dependencies(check-qt GmatQtEstimatorCkObservationTests)
+   add_dependencies(check-qt GmatQtDimensionlessInputUnitTests)
+   add_dependencies(check-qt GmatQtElectricCoefficientUnitTests)
+   add_dependencies(check-qt GmatQtSharedSubscriberScalarBindingTests)
+   add_dependencies(check-qt GmatQtFunctionCommandMatrixTests)
+   add_dependencies(check-qt GmatQtEnclosingSolverCommandTests)
+   add_dependencies(check-qt GmatQtInitialGuessPlotTests)
    add_dependencies(check-qt GmatQtNasaBrouwerCriticalRotationTests GmatQtNasaBrouwerOriginTests)
    add_dependencies(check-qt GmatQtNasaAsymptoteEllipticTests)
    add_dependencies(check-qt GmatQtNasaPlanetodeticTests)
    add_dependencies(check-qt GmatQtNasaOrbitConversionTests)
    add_dependencies(check-qt GmatQtNasaOrbitExtendedConversionTests)
+   add_dependencies(check-qt GmatQtPolynomialArrayUnitTests)
+   add_dependencies(check-qt GmatQtErrorModelUnitTests)
+   add_dependencies(check-qt GmatQtGeometryArrayUnitTests)
+   add_dependencies(check-qt GmatQtCovarianceUnitDisplayTests)
+   add_dependencies(check-qt GmatQtCommandUnitDisplayTests)
+   add_dependencies(check-qt GmatQtAncillaryUnitDisplayTests)
+   add_dependencies(check-qt GmatQtPickerUnitDisplayTests)
+   add_dependencies(check-qt GmatQtDataDisplayUnitTests)
+   add_dependencies(check-qt GmatQtDisplayOptionsUnitTests)
+   add_dependencies(check-qt GmatQtEpochUnitTransitionTests)
+   add_dependencies(check-qt GmatQtFunctionArgumentUnitTests)
+   add_dependencies(check-qt GmatQtOrbitCameraUnitTests)
+   add_dependencies(check-qt GmatQtNestedPhysicalUnitTests)
    add_dependencies(check-qt GmatQtNasaOrbitHyperbolicConversionTests)
    add_dependencies(check-qt GmatQtNasaEpochDefinitionTests)
    add_dependencies(check-qt GmatQtNasaEpochLifecycleTests)
@@ -3898,6 +5443,7 @@ if(GMAT_QT_BUILD_TESTS)
    add_dependencies(check-qt GmatQtNasaAttitudeDefinitionTests)
    add_dependencies(check-qt GmatQtNasaAttitudeFixedFrameTests)
    add_dependencies(check-qt GmatQtNasaVisualTransformTests)
+   add_dependencies(check-qt GmatQtPovVisualTests)
    add_dependencies(check-qt GmatQtNasaEphemerisDirectionTests)
    add_dependencies(check-qt GmatQtNasaReportLoopTests)
    add_dependencies(check-qt GmatQtNasaYukonParallelTests)
@@ -3933,6 +5479,7 @@ if(GMAT_QT_BUILD_TESTS)
    add_dependencies(check-qt GmatQtNasaReadonlyGeodeticTests)
    add_dependencies(check-qt GmatQtNasaBetaAngleTests)
    add_dependencies(check-qt GmatQtNasaStmParameterTests)
+   add_dependencies(check-qt GmatQtStmSelectedFrameTests)
    add_dependencies(check-qt GmatQtNasaFunctionDefinitionTests)
    add_dependencies(check-qt GmatQtNasaBodyCloseTests)
    add_dependencies(check-qt GmatQtNasaBodyAppearanceTests)
@@ -3947,6 +5494,10 @@ if(GMAT_QT_BUILD_TESTS)
    add_dependencies(check-qt GmatQtNasaSharedSampleTests)
    add_dependencies(check-qt GmatQtNasaOriginRelativeStateTests)
    add_dependencies(check-qt GmatQtNasaObjectAccelerationDerivativeTests)
+   add_dependencies(check-qt GmatQtIcrfLoaderLifecycleTests)
+   add_dependencies(check-qt GmatQtGroundTrackGeodeticTests)
+   add_dependencies(check-qt GmatQtDeFileDomainTests)
+   add_dependencies(check-qt GmatQtDeFileDeltaBoundaryTests)
    add_dependencies(check-qt GmatQtNasaSpkWriterBoundaryTests)
    add_dependencies(check-qt GmatQtNasaSrpModelChoiceTests)
    add_dependencies(check-qt GmatQtNasaDragModelChoiceTests)
@@ -3980,11 +5531,91 @@ if(GMAT_QT_BUILD_TESTS)
    add_dependencies(check-qt GmatQtNasaNamedFrameConsumerTests)
    add_dependencies(check-qt GmatQtNasaInertialDefinitionTests)
    add_dependencies(check-qt GmatQtNasaSaveResourceTests)
+   add_dependencies(check-qt GmatQtNasaSaveForceConsumerTests)
+   add_dependencies(check-qt GmatQtNasaSaveReadonlyInitializationTests)
+   add_dependencies(check-qt GmatSaveSubscriberNativeTests)
    add_dependencies(check-qt GmatQtNasaAttitudeDeclaredFrameTests)
    add_dependencies(check-qt GmatQtNasaFrameStateDefinitionTests)
    add_dependencies(check-qt GmatQtNasaConstraintScalarTests)
    add_dependencies(check-qt GmatQtNasaAchieveParameterTests)
+   add_dependencies(check-qt GmatQtAchieveConstantGoalTests)
+   add_dependencies(check-qt GmatQtMarsGramControlsTests)
+   if(TARGET GmatNativeValueProviderTests)
+      add_dependencies(check-qt GmatNativeValueProviderTests)
+   endif()
+   if(TARGET GmatOemWireOrderTests)
+      add_dependencies(check-qt GmatOemWireOrderTests)
+   endif()
+   if(TARGET GmatOemFileInvariantTests)
+      add_dependencies(check-qt GmatOemFileInvariantTests)
+   endif()
+   if(TARGET GmatStmReadOnlyContractTests)
+      add_dependencies(check-qt GmatStmReadOnlyContractTests)
+   endif()
+   if(TARGET GmatStmFrameReferenceTests)
+      add_dependencies(check-qt GmatStmFrameReferenceTests)
+   endif()
+   if(TARGET GmatStmDomainAtomicityTests)
+      add_dependencies(check-qt GmatStmDomainAtomicityTests)
+   endif()
+   if(TARGET GmatStmFrameMissionTests)
+      add_dependencies(check-qt GmatStmFrameMissionTests)
+   endif()
+   if(TARGET GmatStmBaseAlignmentTests)
+      add_dependencies(check-qt GmatStmBaseAlignmentTests)
+   endif()
+   if(TARGET GmatStmFunctionFrameTests)
+      add_dependencies(check-qt GmatStmFunctionFrameTests)
+   endif()
+   if(TARGET GmatStmSolverFrameTests)
+      add_dependencies(check-qt GmatStmSolverFrameTests)
+   endif()
+   if(TARGET GmatStmFunctionRecoveryTests)
+      add_dependencies(check-qt GmatStmFunctionRecoveryTests)
+   endif()
+   if(TARGET GmatStmOwnerFrameTests)
+      add_dependencies(check-qt GmatStmOwnerFrameTests)
+   endif()
+   if(TARGET GmatStmHarmonicFrameTests)
+      add_dependencies(check-qt GmatStmHarmonicFrameTests)
+   endif()
+   if(TARGET GmatStmHigherZonalFrameTests)
+      add_dependencies(check-qt GmatStmHigherZonalFrameTests)
+   endif()
+   if(TARGET GmatStmTesseralFrameTests)
+      add_dependencies(check-qt GmatStmTesseralFrameTests)
+   endif()
+   if(TARGET GmatStmRelativisticFrameTests)
+      add_dependencies(check-qt GmatStmRelativisticFrameTests)
+   endif()
+   if(TARGET GmatStmSrpFrameTests)
+      add_dependencies(check-qt GmatStmSrpFrameTests)
+   endif()
+   if(TARGET GmatQtUserBodyCloneRecoveryTests)
+      add_dependencies(check-qt GmatQtUserBodyCloneRecoveryTests GmatQtDefaultBodyCopyTests GmatQtCloneCatalogCompletionTests)
+      add_dependencies(check-qt GmatQtFunctionBracketBoundaryTests)
+   endif()
+   if(TARGET GmatEphemerisConvergenceTests)
+      add_dependencies(check-qt GmatEphemerisConvergenceTests)
+   endif()
+   if(TARGET GmatCommandContextGapTests)
+      add_dependencies(check-qt GmatCommandContextGapTests)
+   endif()
+   if(TARGET GmatQtMatlabCommandOperationTests)
+      add_dependencies(check-qt GmatQtMatlabCommandOperationTests)
+   endif()
+   if(TARGET GmatQtMissionCreationPositionTests)
+      add_dependencies(check-qt GmatQtMissionCreationPositionTests)
+   endif()
+   if(TARGET GmatQtFormationCloneScopeTests)
+      add_dependencies(check-qt GmatQtFormationCloneScopeTests)
+   endif()
+   if(TARGET GmatStmOwnerFunctionTests)
+      add_dependencies(check-qt GmatStmOwnerFunctionTests)
+   endif()
    add_dependencies(check-qt GmatQtNasaVaryParameterTests)
+   add_dependencies(check-qt GmatQtVaryNumericPickerTests)
+   add_dependencies(check-qt GmatQtExactEphemerisPolicyTests)
    add_dependencies(check-qt GmatQtNasaFiniteEndContextTests)
    add_dependencies(check-qt GmatQtNasaFiniteDefaultWorkflowTests)
    add_dependencies(check-qt GmatQtNasaFiniteCommandDefaultTests)
@@ -4023,7 +5654,41 @@ if(GMAT_QT_BUILD_TESTS)
    add_dependencies(check-qt GmatQtNasaDynamicAxesTests)
    add_dependencies(check-qt GmatQtNasaInertialAxesTests)
    add_dependencies(check-qt GmatQtUnicodeFileNameTests)
-   add_dependencies(check-qt GmatQtResourceCloneTests GmatQtResourceRenameTests GmatQtAxisRenameTests GmatQtCommandGeometryTests)
+   add_dependencies(check-qt GmatQtResourceCloneTests GmatQtCloneIncludeTests GmatQtWorksheetOrbitAccessTests GmatQtResourceRenameTests GmatQtAxisRenameTests GmatQtCommandGeometryTests)
+   add_dependencies(check-qt GmatQtWorksheetOrbitBodyAccessTests)
+   add_dependencies(check-qt GmatQtAnomalyBodyWriteTests GmatQtAchieveScalarFamilyTests GmatQtSaveAttachedPowerConsumerTests)
+   add_dependencies(check-qt GmatQtHyperbolicAnomalyWriteTests GmatHyperbolicAnomalyFrameTests GmatQtAttitudeUnitTests)
+   if(TARGET build-qt-acceptance)
+      add_dependencies(build-qt-acceptance GmatQtHyperbolicAnomalyWriteTests GmatHyperbolicAnomalyFrameTests GmatQtAttitudeUnitTests)
+      add_dependencies(build-qt-acceptance GmatQtBrouwerFrameDefinitionTests GmatQtBrouwerFrameContractTests GmatQtBrouwerTransportTests GmatQtBrouwerTransportObservationTests)
+      add_dependencies(build-qt-acceptance GmatQtSolverBackendCommandTests)
+      add_dependencies(build-qt-acceptance GmatQtSolverCkOutputTests)
+      add_dependencies(build-qt-acceptance GmatQtEstimatorCkObservationTests)
+      add_dependencies(build-qt-acceptance GmatQtDimensionlessInputUnitTests)
+      add_dependencies(build-qt-acceptance GmatQtElectricCoefficientUnitTests)
+      add_dependencies(build-qt-acceptance GmatQtPolynomialArrayUnitTests)
+      add_dependencies(build-qt-acceptance GmatQtErrorModelUnitTests)
+      add_dependencies(build-qt-acceptance GmatQtGeometryArrayUnitTests)
+      add_dependencies(build-qt-acceptance GmatQtCovarianceUnitDisplayTests)
+      add_dependencies(build-qt-acceptance GmatQtCommandUnitDisplayTests)
+      add_dependencies(build-qt-acceptance GmatQtAncillaryUnitDisplayTests)
+      add_dependencies(build-qt-acceptance GmatQtPickerUnitDisplayTests)
+      add_dependencies(build-qt-acceptance GmatQtDataDisplayUnitTests)
+      add_dependencies(build-qt-acceptance GmatQtDisplayOptionsUnitTests)
+      add_dependencies(build-qt-acceptance GmatQtEpochUnitTransitionTests)
+      add_dependencies(build-qt-acceptance GmatQtFunctionArgumentUnitTests)
+      add_dependencies(build-qt-acceptance GmatQtOrbitCameraUnitTests)
+      add_dependencies(build-qt-acceptance GmatQtNestedPhysicalUnitTests)
+      add_dependencies(build-qt-acceptance GmatQtStmSelectedFrameTests)
+      add_dependencies(build-qt-acceptance GmatQtSharedSubscriberScalarBindingTests)
+      add_dependencies(build-qt-acceptance GmatQtFunctionCommandMatrixTests)
+      add_dependencies(build-qt-acceptance GmatQtEnclosingSolverCommandTests)
+      add_dependencies(build-qt-acceptance GmatQtInitialGuessPlotTests)
+   endif()
+   add_dependencies(check-qt GmatQtSaveLegacyNamedForceTests GmatSaveNamedResourceEligibilityTests)
+   if(TARGET GmatSncProcessNoiseStateTests)
+      add_dependencies(check-qt GmatSncProcessNoiseStateTests)
+   endif()
    add_dependencies(check-qt GmatQtFocusUndoTests GmatQtWorkspaceReachabilityTests GmatQtPreviewLifetimeTests GmatQtObjectVelocityTests GmatQtMissionLabelWriteTests)
    add_dependencies(check-qt GmatQtSpiceDiagnosticTests)
 
@@ -4046,6 +5711,118 @@ if(GMAT_QT_BUILD_TESTS)
    target_link_libraries(GmatQtAcceptanceProbe PRIVATE Qt6::Widgets)
    add_dependencies(check-qt GmatQtNasaCommandLifecycleTests)
    add_custom_target(build-qt-acceptance DEPENDS GmatQt GmatQtAcceptanceProbe ${qt_acceptance_executables})
+   if(TARGET GmatQtSpkEpochOracle)
+      add_dependencies(build-qt-acceptance GmatQtSpkEpochOracle)
+   endif()
+   add_dependencies(build-qt-acceptance GmatQtAchieveConstantGoalTests)
+   add_dependencies(build-qt-acceptance GmatQtMarsGramControlsTests)
+   if(TARGET GmatNativeValueProviderTests)
+      add_dependencies(build-qt-acceptance GmatNativeValueProviderTests)
+   endif()
+   if(TARGET GmatOemWireOrderTests)
+      add_dependencies(build-qt-acceptance GmatOemWireOrderTests)
+   endif()
+   if(TARGET GmatOemFileInvariantTests)
+      add_dependencies(build-qt-acceptance GmatOemFileInvariantTests)
+   endif()
+   if(TARGET GmatStmReadOnlyContractTests)
+      add_dependencies(build-qt-acceptance GmatStmReadOnlyContractTests)
+   endif()
+   if(TARGET GmatStmFrameReferenceTests)
+      add_dependencies(build-qt-acceptance GmatStmFrameReferenceTests)
+   endif()
+   if(TARGET GmatStmDomainAtomicityTests)
+      add_dependencies(build-qt-acceptance GmatStmDomainAtomicityTests)
+   endif()
+   if(TARGET GmatStmFrameMissionTests)
+      add_dependencies(build-qt-acceptance GmatStmFrameMissionTests)
+   endif()
+   if(TARGET GmatStmBaseAlignmentTests)
+      add_dependencies(build-qt-acceptance GmatStmBaseAlignmentTests)
+   endif()
+   if(TARGET GmatStmFunctionFrameTests)
+      add_dependencies(build-qt-acceptance GmatStmFunctionFrameTests)
+   endif()
+   if(TARGET GmatStmSolverFrameTests)
+      add_dependencies(build-qt-acceptance GmatStmSolverFrameTests)
+   endif()
+   if(TARGET GmatStmFunctionRecoveryTests)
+      add_dependencies(build-qt-acceptance GmatStmFunctionRecoveryTests)
+   endif()
+   if(TARGET GmatStmOwnerFrameTests)
+      add_dependencies(build-qt-acceptance GmatStmOwnerFrameTests)
+   endif()
+   if(TARGET GmatStmHarmonicFrameTests)
+      add_dependencies(build-qt-acceptance GmatStmHarmonicFrameTests)
+   endif()
+   if(TARGET GmatStmHigherZonalFrameTests)
+      add_dependencies(build-qt-acceptance GmatStmHigherZonalFrameTests)
+   endif()
+   if(TARGET GmatStmTesseralFrameTests)
+      add_dependencies(build-qt-acceptance GmatStmTesseralFrameTests)
+   endif()
+   if(TARGET GmatStmRelativisticFrameTests)
+      add_dependencies(build-qt-acceptance GmatStmRelativisticFrameTests)
+   endif()
+   if(TARGET GmatStmSrpFrameTests)
+      add_dependencies(build-qt-acceptance GmatStmSrpFrameTests)
+   endif()
+   if(TARGET GmatQtUserBodyCloneRecoveryTests)
+      add_dependencies(build-qt-acceptance GmatQtUserBodyCloneRecoveryTests GmatQtDefaultBodyCopyTests GmatQtCloneCatalogCompletionTests)
+      add_dependencies(build-qt-acceptance GmatQtFunctionBracketBoundaryTests)
+   endif()
+   if(TARGET GmatEphemerisConvergenceTests)
+      add_dependencies(build-qt-acceptance GmatEphemerisConvergenceTests)
+   endif()
+   if(TARGET GmatCommandContextGapTests)
+      add_dependencies(build-qt-acceptance GmatCommandContextGapTests)
+   endif()
+   if(TARGET GmatQtMatlabCommandOperationTests)
+      add_dependencies(build-qt-acceptance GmatQtMatlabCommandOperationTests)
+   endif()
+   if(TARGET GmatQtMissionCreationPositionTests)
+      add_dependencies(build-qt-acceptance GmatQtMissionCreationPositionTests)
+   endif()
+   if(TARGET GmatQtFormationCloneScopeTests)
+      add_dependencies(build-qt-acceptance GmatQtFormationCloneScopeTests)
+   endif()
+   if(TARGET GmatStmOwnerFunctionTests)
+      add_dependencies(build-qt-acceptance GmatStmOwnerFunctionTests)
+   endif()
+   add_dependencies(build-qt-acceptance GmatSaveSubscriberNativeTests)
+   if(UNIX AND NOT APPLE)
+      add_dependencies(check-qt GmatOemNumericFieldsTests)
+      add_dependencies(build-qt-acceptance GmatOemNumericFieldsTests)
+      add_dependencies(check-qt GmatNestedSolverValidationTests)
+      add_dependencies(build-qt-acceptance GmatNestedSolverValidationTests)
+      add_dependencies(check-qt GmatCustomFovNativePathsTests)
+      add_dependencies(build-qt-acceptance GmatCustomFovNativePathsTests)
+      add_dependencies(check-qt GmatOptimizerEndTargetTests)
+      add_dependencies(build-qt-acceptance GmatOptimizerEndTargetTests)
+      add_dependencies(check-qt GmatAchieveConstantGoalTests)
+      add_dependencies(build-qt-acceptance GmatAchieveConstantGoalTests)
+      add_dependencies(check-qt GmatOrbitParameterEpochTests)
+      add_dependencies(build-qt-acceptance GmatOrbitParameterEpochTests)
+      add_dependencies(check-qt GmatPlanetBplaneSampleTests)
+      add_dependencies(build-qt-acceptance GmatPlanetBplaneSampleTests)
+      add_dependencies(check-qt GmatVaryLiteralControlTests)
+      add_dependencies(build-qt-acceptance GmatVaryLiteralControlTests)
+      add_dependencies(check-qt GmatAchieveOperandRoleTests)
+      add_dependencies(build-qt-acceptance GmatAchieveOperandRoleTests)
+      add_dependencies(check-qt GmatConstraintOperandRoleTests)
+      add_dependencies(build-qt-acceptance GmatConstraintOperandRoleTests)
+      foreach(save_legacy_kind Resource Readonly Attachment ForceConsumer)
+         add_dependencies(check-qt GmatQtSaveLegacy${save_legacy_kind}Tests)
+         add_dependencies(build-qt-acceptance GmatQtSaveLegacy${save_legacy_kind}Tests)
+      endforeach()
+      add_dependencies(check-qt GmatMatlabServiceResourceTests)
+      add_dependencies(build-qt-acceptance GmatMatlabServiceResourceTests)
+      add_dependencies(check-qt GmatEphemerisCountPolicyTests)
+      add_dependencies(build-qt-acceptance GmatEphemerisCountPolicyTests)
+      add_dependencies(check-qt GmatOrbitOriginEpochTests)
+      add_dependencies(build-qt-acceptance GmatOrbitOriginEpochTests)
+      add_dependencies(check-qt GmatQtNasaSolverControlSummaryTests)
+   endif()
    set(qt_acceptance_snapshot)
    set(qt_acceptance_watch_options --visible --max-screenshots 0)
    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -4188,6 +5965,68 @@ endif()
 
 # Real external C client: opt in with -DPLUGIN_CINTERFACE=ON. No GUI wrapper.
 if(PLUGIN_CINTERFACE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+   add_executable(GmatScalarStopBoundaryTests tests/ScalarStopBoundaryTests.cpp)
+   target_include_directories(GmatScalarStopBoundaryTests PRIVATE
+      "${PROJECT_SOURCE_DIR}/plugins/CInterfacePlugin/src/plugin"
+      "${PROJECT_SOURCE_DIR}/plugins/CInterfacePlugin/src/include")
+   # Native public headers retain these warnings; keep other witness warnings fatal.
+   target_compile_options(GmatScalarStopBoundaryTests PRIVATE -Wall -Wextra -Werror
+      -Wno-error=overloaded-virtual -Wno-error=unused-parameter)
+   target_link_libraries(GmatScalarStopBoundaryTests PRIVATE CInterface GmatBase GmatUtil Qt6::Core)
+   add_test(NAME QtAcceptance.ScalarStopBoundaries
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunScalarStopBoundaries.py"
+      --repo "${PROJECT_SOURCE_DIR}" --executable "$<TARGET_FILE:GmatScalarStopBoundaryTests>"
+      --startup "$<TARGET_FILE_DIR:GmatQt>/gmat_startup_qt.txt"
+      --output-root "${CMAKE_BINARY_DIR}/scalar-stop-acceptance")
+   set_tests_properties(QtAcceptance.ScalarStopBoundaries PROPERTIES
+      LABELS "qt-acceptance-support;native-scalar-stop" TIMEOUT 420 RESOURCE_LOCK gmat_qt_engine)
+   if(TARGET check-qt)
+      add_dependencies(check-qt GmatScalarStopBoundaryTests)
+   endif()
+   if(TARGET build-qt-acceptance)
+      add_dependencies(build-qt-acceptance GmatScalarStopBoundaryTests)
+   endif()
+   add_executable(GmatCapiEphemerisDiscoveryTests tests/CapiEphemerisDiscoveryTests.c)
+   set_target_properties(GmatCapiEphemerisDiscoveryTests PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
+   target_include_directories(GmatCapiEphemerisDiscoveryTests PRIVATE
+      "${PROJECT_SOURCE_DIR}/plugins/CInterfacePlugin/src/plugin"
+      "${PROJECT_SOURCE_DIR}/plugins/CInterfacePlugin/src/include")
+   target_compile_options(GmatCapiEphemerisDiscoveryTests PRIVATE -Wall -Wextra -Werror)
+   target_link_libraries(GmatCapiEphemerisDiscoveryTests PRIVATE CInterface m)
+   add_test(NAME QtAcceptance.CapiEphemerisDiscovery
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunCapiEphemerisDiscovery.py"
+      --repo "${PROJECT_SOURCE_DIR}" --executable "$<TARGET_FILE:GmatCapiEphemerisDiscoveryTests>"
+      --startup "$<TARGET_FILE_DIR:GmatQt>/gmat_startup_qt.txt"
+      --kernel "${CMAKE_CURRENT_SOURCE_DIR}/tests/CapiEphemerisDiscovery.bsp"
+      --output-root "${CMAKE_BINARY_DIR}/capi-acceptance")
+   set_tests_properties(QtAcceptance.CapiEphemerisDiscovery PROPERTIES
+      LABELS "qt-acceptance-support;native-c-api" TIMEOUT 840 RESOURCE_LOCK gmat_qt_engine)
+   if(TARGET check-qt)
+      add_dependencies(check-qt GmatCapiEphemerisDiscoveryTests)
+   endif()
+   if(TARGET build-qt-acceptance)
+      add_dependencies(build-qt-acceptance GmatCapiEphemerisDiscoveryTests)
+   endif()
+   add_executable(GmatCapiPropagateAcceptanceTests tests/CapiPropagateAcceptanceTests.c)
+   set_target_properties(GmatCapiPropagateAcceptanceTests PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
+   target_include_directories(GmatCapiPropagateAcceptanceTests PRIVATE
+      "${PROJECT_SOURCE_DIR}/plugins/CInterfacePlugin/src/plugin"
+      "${PROJECT_SOURCE_DIR}/plugins/CInterfacePlugin/src/include")
+   target_compile_options(GmatCapiPropagateAcceptanceTests PRIVATE -Wall -Wextra -Werror)
+   target_link_libraries(GmatCapiPropagateAcceptanceTests PRIVATE CInterface m)
+   add_test(NAME QtAcceptance.CapiPropagate
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunCapiPropagateAcceptance.py"
+      --repo "${PROJECT_SOURCE_DIR}" --executable "$<TARGET_FILE:GmatCapiPropagateAcceptanceTests>"
+      --startup "$<TARGET_FILE_DIR:GmatQt>/gmat_startup_qt.txt"
+      --output-root "${CMAKE_BINARY_DIR}/capi-acceptance")
+   set_tests_properties(QtAcceptance.CapiPropagate PROPERTIES
+      LABELS "qt-acceptance-support;native-c-api" TIMEOUT 720 RESOURCE_LOCK gmat_qt_engine)
+   if(TARGET check-qt)
+      add_dependencies(check-qt GmatCapiPropagateAcceptanceTests)
+   endif()
+   if(TARGET build-qt-acceptance)
+      add_dependencies(build-qt-acceptance GmatCapiPropagateAcceptanceTests)
+   endif()
    add_executable(GmatNasaCapiSpacecraftConfigurationTests tests/NasaCapiSpacecraftConfigurationTests.c)
    set_target_properties(GmatNasaCapiSpacecraftConfigurationTests PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
    target_include_directories(GmatNasaCapiSpacecraftConfigurationTests PRIVATE
@@ -4600,6 +6439,23 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND PLUGIN_MATLABINTERFACE AND Matlab_FOUN
          "${PROJECT_SOURCE_DIR}/plugins/MatlabInterfacePlugin/src/base/include"
          ${Matlab_INCLUDE_DIRS})
       add_dependencies(GmatQtNasaFminconSolveTests GmatQt MatlabInterface FminconOptimizer)
+      add_executable(GmatQtFminconEphemerisTests tests/FminconEphemerisTests.cpp
+         $<TARGET_OBJECTS:GmatQtAcceptanceSupport>)
+      target_link_libraries(GmatQtFminconEphemerisTests PRIVATE GmatQtFrontend Qt6::Test MatlabInterface)
+      target_include_directories(GmatQtFminconEphemerisTests PRIVATE
+         "${PROJECT_SOURCE_DIR}/plugins/MatlabInterfacePlugin/src/base/interface"
+         "${PROJECT_SOURCE_DIR}/plugins/MatlabInterfacePlugin/src/base/include"
+         ${Matlab_INCLUDE_DIRS})
+      add_dependencies(GmatQtFminconEphemerisTests GmatQt MatlabInterface FminconOptimizer)
+      add_test(NAME QtGui.FminconEphemeris
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtFminconEphemerisTests>" "${qt_test_startup}" "$<TARGET_LINKER_FILE:MatlabInterface>"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/FminconEphemerisCases.json")
+      set_tests_properties(QtGui.FminconEphemeris PROPERTIES
+         LABELS "qt-gui;qt-matlab" TIMEOUT 240 RESOURCE_LOCK gmat_qt_engine
+         ENVIRONMENT "GMAT_QT_CAPTURE_CHILD_OUTPUT=1"
+         WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
       add_executable(GmatQtNasaFminconResourceTests tests/NasaFminconResourceTests.cpp
          $<TARGET_OBJECTS:GmatQtAcceptanceSupport>)
       target_link_libraries(GmatQtNasaFminconResourceTests PRIVATE GmatQtFrontend Qt6::Test MatlabInterface)
@@ -4683,6 +6539,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND PLUGIN_MATLABINTERFACE AND Matlab_FOUN
       foreach(fmincon_acceptance_target check-qt build-qt-acceptance)
          if(TARGET ${fmincon_acceptance_target})
             add_dependencies(${fmincon_acceptance_target} GmatQtNasaFminconSolveTests GmatQtNasaFminconResourceTests GmatQtNasaFminconVaryTests GmatQtNasaFminconIterationTests GmatQtNasaFminconOptionTests)
+            add_dependencies(${fmincon_acceptance_target} GmatQtFminconEphemerisTests)
          endif()
       endforeach()
    endif()
@@ -4702,6 +6559,37 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND PLUGIN_MATLABINTERFACE AND Matlab_FOUN
       "${PROJECT_SOURCE_DIR}/plugins/MatlabInterfacePlugin/src/base/include"
       ${Matlab_INCLUDE_DIRS})
    add_dependencies(GmatQtNasaMatlabFunctionIoTests GmatQt MatlabInterface)
+   set(matlab_call_source "${CMAKE_CURRENT_BINARY_DIR}/matlab-call-witness/FunctionIo.cpp")
+   set(matlab_call_receipt "${CMAKE_CURRENT_BINARY_DIR}/matlab-call-witness/FunctionIo.json")
+   add_custom_command(OUTPUT "${matlab_call_source}" "${matlab_call_receipt}"
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/GenerateMatlabCallWitness.py"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaMatlabFunctionIoTests.cpp"
+         "${matlab_call_source}" "${matlab_call_receipt}"
+      DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaMatlabFunctionIoTests.cpp"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/GenerateMatlabCallWitness.py" VERBATIM)
+   set_source_files_properties("${matlab_call_source}" PROPERTIES HEADER_FILE_ONLY TRUE)
+   add_executable(GmatQtMatlabCallTests tests/MatlabCallTests.cpp "${matlab_call_source}"
+      $<TARGET_OBJECTS:GmatQtAcceptanceSupport>)
+   target_link_libraries(GmatQtMatlabCallTests PRIVATE GmatQtFrontend Qt6::Test MatlabInterface)
+   target_include_directories(GmatQtMatlabCallTests PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests" "${CMAKE_CURRENT_BINARY_DIR}"
+      "${PROJECT_SOURCE_DIR}/plugins/MatlabInterfacePlugin/src/base/interface"
+      "${PROJECT_SOURCE_DIR}/plugins/MatlabInterfacePlugin/src/base/include" ${Matlab_INCLUDE_DIRS})
+   add_dependencies(GmatQtMatlabCallTests GmatQt MatlabInterface)
+   foreach(matlab_call_case Object StringLiteral LiteralRecovery LiteralClose ObjectInOut WrongAliasPayload)
+      add_test(NAME QtGui.MatlabCall${matlab_call_case}
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+            "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+            "$<TARGET_FILE:GmatQtMatlabCallTests>" "${qt_test_startup}" "$<TARGET_LINKER_FILE:MatlabInterface>" ${matlab_call_case})
+      set_tests_properties(QtGui.MatlabCall${matlab_call_case} PROPERTIES
+         LABELS "qt-gui;qt-matlab" TIMEOUT 360 RESOURCE_LOCK gmat_qt_engine
+         ENVIRONMENT "GMAT_QT_CAPTURE_CHILD_OUTPUT=1" WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+   endforeach()
+   foreach(acceptance_target check-qt build-qt-acceptance)
+      if(TARGET ${acceptance_target})
+         add_dependencies(${acceptance_target} GmatQtMatlabCallTests)
+      endif()
+   endforeach()
    add_executable(GmatQtNasaMatlabAssignmentDestinationTests tests/NasaMatlabAssignmentDestinationTests.cpp
       $<TARGET_OBJECTS:GmatQtAcceptanceSupport>)
    target_link_libraries(GmatQtNasaMatlabAssignmentDestinationTests PRIVATE GmatQtFrontend Qt6::Test MatlabInterface)
@@ -4717,6 +6605,36 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND PLUGIN_MATLABINTERFACE AND Matlab_FOUN
       "${PROJECT_SOURCE_DIR}/plugins/MatlabInterfacePlugin/src/base/interface"
       "${PROJECT_SOURCE_DIR}/plugins/MatlabInterfacePlugin/src/base/include" ${Matlab_INCLUDE_DIRS})
    add_dependencies(GmatQtNasaMatlabInterfaceTreeTests GmatQt MatlabInterface)
+   set(matlab_service_tree_source "${CMAKE_CURRENT_BINARY_DIR}/matlab-service-witness/InterfaceTree.cpp")
+   set(matlab_service_tree_receipt "${CMAKE_CURRENT_BINARY_DIR}/matlab-service-witness/InterfaceTree.json")
+   add_custom_command(OUTPUT "${matlab_service_tree_source}" "${matlab_service_tree_receipt}"
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/GenerateMatlabServiceTreeWitness.py"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaMatlabInterfaceTreeTests.cpp"
+         "${matlab_service_tree_source}" "${matlab_service_tree_receipt}"
+      DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/NasaMatlabInterfaceTreeTests.cpp"
+         "${CMAKE_CURRENT_SOURCE_DIR}/tests/GenerateMatlabServiceTreeWitness.py"
+      VERBATIM)
+   set_source_files_properties("${matlab_service_tree_source}" PROPERTIES HEADER_FILE_ONLY TRUE)
+   add_executable(GmatQtMatlabServiceTreeTests tests/MatlabServiceTreeTests.cpp
+      "${matlab_service_tree_source}" $<TARGET_OBJECTS:GmatQtAcceptanceSupport>)
+   target_link_libraries(GmatQtMatlabServiceTreeTests PRIVATE GmatQtFrontend Qt6::Test MatlabInterface)
+   target_include_directories(GmatQtMatlabServiceTreeTests PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests" "${CMAKE_CURRENT_BINARY_DIR}"
+      "${PROJECT_SOURCE_DIR}/plugins/MatlabInterfacePlugin/src/base/interface"
+      "${PROJECT_SOURCE_DIR}/plugins/MatlabInterfacePlugin/src/base/include" ${Matlab_INCLUDE_DIRS})
+   add_dependencies(GmatQtMatlabServiceTreeTests GmatQt MatlabInterface)
+   add_test(NAME QtGui.MatlabServiceTreeAvailable
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env "QT_QPA_PLATFORM=xcb" "LIBGL_ALWAYS_SOFTWARE=1"
+         "$<TARGET_FILE:GmatQtMatlabServiceTreeTests>" "${qt_test_startup}" "$<TARGET_LINKER_FILE:MatlabInterface>" Available)
+   set_tests_properties(QtGui.MatlabServiceTreeAvailable PROPERTIES
+      LABELS "qt-gui;qt-matlab" TIMEOUT 360 RESOURCE_LOCK gmat_qt_engine
+      ENVIRONMENT "GMAT_QT_CAPTURE_CHILD_OUTPUT=1" WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
+   foreach(acceptance_target check-qt build-qt-acceptance)
+      if(TARGET ${acceptance_target})
+         add_dependencies(${acceptance_target} GmatQtMatlabServiceTreeTests)
+      endif()
+   endforeach()
    foreach(matlab_interface_case Available Unavailable)
       add_test(NAME QtGui.NasaMatlabInterfaceTree${matlab_interface_case}
          COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
@@ -4750,7 +6668,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND PLUGIN_MATLABINTERFACE AND Matlab_FOUN
       set_tests_properties(QtGui.NasaMatlabCInterface PROPERTIES
          LABELS "qt-gui;qt-matlab;native-c-api" TIMEOUT 360 RESOURCE_LOCK gmat_qt_engine
          ENVIRONMENT "GMAT_QT_CAPTURE_CHILD_OUTPUT=1" WORKING_DIRECTORY "$<TARGET_FILE_DIR:GmatQt>")
-      foreach(acceptance_target GmatQtGuiAcceptance GmatQtScriptAcceptance)
+      foreach(acceptance_target check-qt build-qt-acceptance GmatQtGuiAcceptance GmatQtScriptAcceptance)
          if(TARGET ${acceptance_target})
             add_dependencies(${acceptance_target} GmatQtNasaMatlabCInterfaceTests)
          endif()
@@ -4862,4 +6780,114 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND PLUGIN_MATLABINTERFACE AND Matlab_FOUN
          add_dependencies(${acceptance_target} GmatQtNasaMatlabLibraryWriterTests)
       endif()
    endforeach()
+endif()
+
+# Independent body-to-reference offset witnesses; original aligned-frame cases remain intact.
+if(GMAT_QT_BUILD_TESTS)
+   add_executable(GmatQtNasaAttitudeFixedOffsetTests tests/NasaAttitudeFixedOffsetTests.cpp)
+   target_link_libraries(GmatQtNasaAttitudeFixedOffsetTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtNasaAttitudeFixedOffsetTests GmatQt)
+   foreach(offset_case Inertial Ecliptic Translated BodySpin BodySweep OrbitRadial OrbitVelocity)
+      add_test(NAME QtGui.NasaAttitudeFixedOffset${offset_case} COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
+         $<TARGET_FILE:GmatQtNasaAttitudeFixedOffsetTests> "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/AttitudeFixedOffsetCases.json" ${offset_case})
+      set_tests_properties(QtGui.NasaAttitudeFixedOffset${offset_case} PROPERTIES LABELS qt-gui TIMEOUT 300)
+   endforeach()
+endif()
+
+if(GMAT_QT_BUILD_TESTS)
+   add_executable(GmatQtNasaAttitudeOffsetScopeTests tests/NasaAttitudeOffsetScopeTests.cpp)
+   target_link_libraries(GmatQtNasaAttitudeOffsetScopeTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtNasaAttitudeOffsetScopeTests GmatQt)
+   file(READ "${CMAKE_CURRENT_SOURCE_DIR}/tests/AttitudeOffsetScopeCases.json" offset_scope_json)
+   string(JSON offset_scope_count LENGTH "${offset_scope_json}" cases)
+   math(EXPR offset_scope_last "${offset_scope_count} - 1")
+   foreach(offset_scope_index RANGE 0 ${offset_scope_last})
+      string(JSON offset_scope_key GET "${offset_scope_json}" cases ${offset_scope_index} key)
+      add_test(NAME QtGui.NasaAttitudeOffsetScope${offset_scope_key}
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
+         $<TARGET_FILE:GmatQtNasaAttitudeOffsetScopeTests> "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/AttitudeOffsetScopeCases.json" ${offset_scope_key})
+      set_tests_properties(QtGui.NasaAttitudeOffsetScope${offset_scope_key} PROPERTIES LABELS qt-gui TIMEOUT 300 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+endif()
+
+if(GMAT_QT_BUILD_TESTS)
+   add_executable(GmatQtNasaAttitudeOffsetBoundaryTests tests/NasaAttitudeOffsetBoundaryTests.cpp)
+   target_link_libraries(GmatQtNasaAttitudeOffsetBoundaryTests PRIVATE GmatQtFrontend Qt6::Test)
+   add_dependencies(GmatQtNasaAttitudeOffsetBoundaryTests GmatQt)
+   file(READ "${CMAKE_CURRENT_SOURCE_DIR}/tests/AttitudeOffsetBoundaryCases.json" offset_boundary_json)
+   string(JSON offset_boundary_count LENGTH "${offset_boundary_json}" cases)
+   math(EXPR offset_boundary_last "${offset_boundary_count} - 1")
+   foreach(offset_boundary_index RANGE 0 ${offset_boundary_last})
+      string(JSON offset_boundary_key GET "${offset_boundary_json}" cases ${offset_boundary_index} key)
+      add_test(NAME QtGui.NasaAttitudeOffsetBoundary${offset_boundary_key}
+         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         "${CMAKE_COMMAND}" -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
+         $<TARGET_FILE:GmatQtNasaAttitudeOffsetBoundaryTests> "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/AttitudeOffsetBoundaryCases.json" ${offset_boundary_key})
+      set_tests_properties(QtGui.NasaAttitudeOffsetBoundary${offset_boundary_key} PROPERTIES LABELS qt-gui TIMEOUT 300 RESOURCE_LOCK gmat_qt_engine)
+   endforeach()
+endif()
+
+if(GMAT_QT_BUILD_TESTS)
+   # These registrations follow the earlier acceptance-target census. Attach
+   # its observer and build dependencies explicitly for ordinary CTest reuse.
+   foreach(offset_target GmatQtNasaAttitudeFixedOffsetTests GmatQtNasaAttitudeOffsetScopeTests GmatQtNasaAttitudeOffsetBoundaryTests)
+      if(TARGET GmatQtAcceptanceSupport)
+         target_sources(${offset_target} PRIVATE $<TARGET_OBJECTS:GmatQtAcceptanceSupport>)
+      endif()
+      if(TARGET check-qt)
+         add_dependencies(check-qt ${offset_target})
+      endif()
+      if(TARGET build-qt-acceptance)
+         add_dependencies(build-qt-acceptance ${offset_target})
+      endif()
+   endforeach()
+   add_executable(GmatQtNasaAttitudeFixedOffsetSupportTests tests/NasaAttitudeFixedOffsetSupportTests.cpp)
+   target_link_libraries(GmatQtNasaAttitudeFixedOffsetSupportTests PRIVATE GmatQtFrontend)
+   # A short test-only hold lets the external observer bind the actual native
+   # process maps before this small backend contract exits; no GUI claim.
+   add_test(NAME QtGui.NasaAttitudeFixedOffsetSupport COMMAND ${CMAKE_COMMAND} -E env GMAT_QT_TEST_PROCESS_HOLD_MS=250 $<TARGET_FILE:GmatQtNasaAttitudeFixedOffsetSupportTests>)
+   set_tests_properties(QtGui.NasaAttitudeFixedOffsetSupport PROPERTIES LABELS "qt-gui;qt-acceptance-support;qt-acceptance-transaction" TIMEOUT 30)
+   if(TARGET check-qt)
+      add_dependencies(check-qt GmatQtNasaAttitudeFixedOffsetSupportTests)
+   endif()
+   if(TARGET build-qt-acceptance)
+      add_dependencies(build-qt-acceptance GmatQtNasaAttitudeFixedOffsetSupportTests)
+   endif()
+endif()
+
+if(GMAT_QT_BUILD_TESTS)
+   add_executable(GmatQtMcpBridgeTests McpBridgeTests.cpp)
+   target_link_libraries(GmatQtMcpBridgeTests PRIVATE GmatQtFrontend)
+endif()
+
+if(GMAT_QT_BUILD_TESTS)
+   add_dependencies(GmatQtMcpBridgeTests GmatQt)
+   foreach(acceptance_target check-qt build-qt-acceptance)
+      if(TARGET ${acceptance_target})
+         add_dependencies(${acceptance_target} GmatQtMcpBridgeTests)
+      endif()
+   endforeach()
+   if(WIN32 AND Python3_Interpreter_FOUND)
+      add_qt_test(QtGui.McpBridge GmatQtMcpBridgeTests "$<TARGET_FILE_DIR:GmatQt>/gmat_startup_qt.txt" "${CMAKE_CURRENT_SOURCE_DIR}/McpBridgeFixture.script")
+   elseif(Python3_Interpreter_FOUND AND QT_XVFB_RUN)
+      add_test(NAME QtGui.McpBridge COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/RunNativeTest.py" "${QT_XVFB_RUN}"
+         ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1
+         $<TARGET_FILE:GmatQtMcpBridgeTests> "${qt_test_startup}" "${CMAKE_CURRENT_SOURCE_DIR}/McpBridgeFixture.script")
+   else()
+      add_test(NAME QtGui.McpBridge COMMAND ${CMAKE_COMMAND} -E env QT_QPA_PLATFORM=offscreen
+         $<TARGET_FILE:GmatQtMcpBridgeTests> "$<TARGET_FILE_DIR:GmatQt>/gmat_startup_qt.txt" "${CMAKE_CURRENT_SOURCE_DIR}/McpBridgeFixture.script")
+   endif()
+   set_tests_properties(QtGui.McpBridge PROPERTIES LABELS qt-gui TIMEOUT 60)
+endif()
+
+if(WIN32)
+   target_link_libraries(GmatQtFrontend PRIVATE advapi32)
+elseif(APPLE)
+   target_link_libraries(GmatQtFrontend PRIVATE "-framework Security" "-framework CoreFoundation")
+endif()
+
+if(GMAT_QT_BUILD_TESTS AND WIN32)
+   set_property(TEST QtGui.McpBridge PROPERTY ENVIRONMENT "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:GmatQt>")
 endif()

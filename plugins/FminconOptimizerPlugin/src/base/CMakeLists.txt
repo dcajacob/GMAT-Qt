@@ -70,3 +70,21 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GMAT_INCLUDE_QT_GUI)
 else()
   TARGET_LINK_LIBRARIES(${TargetName} PRIVATE ${Matlab_LIBRARIES})
 endif()
+
+# Keep the build-tree callback client and nested-job helper with this backend.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GMAT_INCLUDE_QT_GUI)
+  SET_PROPERTY(TARGET ${TargetName} APPEND PROPERTY LINK_DEPENDS
+    "${PROJECT_SOURCE_DIR}/application/matlab/gmat_fmincon/GmatQtFminconCall.m"
+    "${PROJECT_SOURCE_DIR}/application/matlab/gmat_fmincon/GmatQtMatlabJob.m"
+    "${PROJECT_SOURCE_DIR}/application/matlab/gmat_fmincon/GmatQtOptimizerWorkspace.m"
+    "${PROJECT_SOURCE_DIR}/application/matlab/gmat_fmincon/GmatFminconOptimizationDriver.m")
+  ADD_CUSTOM_COMMAND(TARGET ${TargetName} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${TargetName}>/../matlab/gmat_fmincon"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "${PROJECT_SOURCE_DIR}/application/matlab/gmat_fmincon/GmatQtFminconCall.m"
+      "${PROJECT_SOURCE_DIR}/application/matlab/gmat_fmincon/GmatQtMatlabJob.m"
+      "${PROJECT_SOURCE_DIR}/application/matlab/gmat_fmincon/GmatQtOptimizerWorkspace.m"
+      "${PROJECT_SOURCE_DIR}/application/matlab/gmat_fmincon/GmatFminconOptimizationDriver.m"
+      "$<TARGET_FILE_DIR:${TargetName}>/../matlab/gmat_fmincon"
+    VERBATIM)
+endif()

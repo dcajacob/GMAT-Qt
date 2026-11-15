@@ -331,6 +331,9 @@ void EphemWriterCCSDS::Copy(const EphemerisWriter* orig)
 void EphemWriterCCSDS::BufferOrbitData(Real epochInDays, const Real state[6],
                                        const Real cov[21], const Real quat[4], const Real accel[3])
 {
+   if (fileType == CCSDS_OEM && ephemVersion == "1.0")
+      CcsdsOemB1Text::RequireState(epochInDays, state, 6);
+
    #ifdef DEBUG_EPHEMFILE_BUFFER
    MessageInterface::ShowMessage
       ("EphemWriterCCSDS::BufferOrbitData() entered, epochInDays=%.15f, "
@@ -870,6 +873,14 @@ void EphemWriterCCSDS::HandleCcsdsOrbitData(bool writeData, bool &timeToWrite)
 //------------------------------------------------------------------------------
 void EphemWriterCCSDS::FinishUpWritingOrbitData()
 {
+   // Explicit bounds can defer every output until finalization, bypassing
+   // HandleCcsdsOrbitData's normal first-write header initialization.
+   if (firstTimeWriting)
+   {
+      WriteHeader();
+      firstTimeWriting = false;
+   }
+
    #ifdef DEBUG_EPHEMFILE_FINISH
    MessageInterface::ShowMessage
       ("EphemWriterCCSDS::FinishUpWritingOrbitData() entered, canFinalize=%d, "
@@ -899,6 +910,7 @@ void EphemWriterCCSDS::FinishUpWritingOrbitData()
          
          // Attempt to lower the order required to write data if needed
          Integer numPoints = interpolator->GetPointCount();
+         RequireInterpolationData(numPoints,"interpolation input samples");
 
          if (numPoints < (interpolationOrder + 1))
             MessageInterface::ShowMessage("WARNING: Not enough points provided to "
@@ -1195,7 +1207,9 @@ void EphemWriterCCSDS::WriteCcsdsOrbitDataSegment()
    if (saveMetaDataStart)
    {
       // Do not overwrite meta data start time (LOJ: 2013.03.21 GMT-3716 Fix)
-      if (metaDataStartStr == "YYYY-MM-DDTHH:MM:SS.SSS")
+      // A short explicit interval may first produce data during finalization,
+      // before a placeholder metadata block has been written.
+      if (metaDataStartStr.empty() || metaDataStartStr == "YYYY-MM-DDTHH:MM:SS.SSS")
       {
          metaDataStart = (a1MjdArray.front())->GetReal();
          metaDataStartStr = ccsdsOemWriter->FormatEpoch(metaDataStart);
@@ -1314,6 +1328,7 @@ void EphemWriterCCSDS::WriteCcsdsOemMetaData()
    
    if (metaDataWriteOption == 2)
    {
+      RequireInterpolationData(numPoints,"exported OEM records");
       if (numPoints <= interpolationOrder)
       {
          actualInterpOrder = numPoints > 0 ? numPoints - 1 : 0;

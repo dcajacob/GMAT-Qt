@@ -31,6 +31,7 @@
 #include "BeginFileThrust.hpp"
 #include "CommandException.hpp"
 #include "MessageInterface.hpp"
+#include "ODEModel.hpp"
 
 //#define DEBUG_BEGIN_MANEUVER
 //#define DEBUG_BEGIN_MANEUVER_EXE
@@ -631,6 +632,9 @@ bool BeginFileThrust::Execute()
       }
    }
 
+   ODEModel::SetTransientAccelerationContext(burnForce, std::find(transientForces->begin(),
+         transientForces->end(), burnForce) != transientForces->end());
+
    // Set maneuvering to Publisher so that any subscriber can do its own action
    if (!sats.empty())
    {
@@ -638,7 +642,7 @@ bool BeginFileThrust::Execute()
       // but publisher->SetManeuvering() only takes a Real epoch, it doesn't have a precision time overload
       Real epoch = sats[0]->GetEpoch();
       publisher->SetManeuvering(this, true, epoch, satNames,
-         "begin of thrust history file maneuver");
+         "begin of thrust history file maneuver", ObjectArray(sats.begin(), sats.end()));
    }
 
    #ifdef DEBUG_BEGIN_MANEUVER_EXE

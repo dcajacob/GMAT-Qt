@@ -115,6 +115,21 @@ MathNode::~MathNode()
    //    GetName().c_str());
 }
 
+std::vector<MathNode*> MathNode::GetStructuralChildren() const
+{
+   auto *node = const_cast<MathNode*>(this);
+   return {node->GetLeft(), node->GetRight()};
+}
+
+void MathNode::RebindClonedChildren(const MathNode &source,
+      const std::function<MathNode*(MathNode*)> &resolve)
+{
+   auto *node = const_cast<MathNode*>(&source);
+   MathNode *left = node->GetLeft(), *right = node->GetRight();
+   if ((left || right) && !SetChildren(resolve(left), resolve(right)))
+      throw MathException("Cannot reconnect copied expression children.\n");
+}
+
 
 //------------------------------------------------------------------------------
 //  MathNode(const MathNode &mn)
@@ -235,6 +250,11 @@ std::string MathNode::EvaluateString()
    return STRING_PARAMETER_UNDEFINED;
 }
 
+Rvector MathNode::VectorEvaluate()
+{
+   throw MathException("This math node does not return a vector.\n");
+}
+
 //---------------------------------------------------------------------------
 //  bool RenameRefObject(const UnsignedInt type,
 //                       const std::string &oldName, const std::string &newName)
@@ -323,4 +343,15 @@ void MathNode::Copy(const GmatBase *original)
    if (CopyExactMathNode<Transpose>(this, original)) return;
    throw GmatBaseException("Cannot copy unsupported derived math node " +
                            GetTypeName());
+}
+
+void MathNode::RebindExpressionReferences(const MathNode &,
+      const std::function<GmatBase*(GmatBase*)> &, WrapperMap *)
+{
+   throw MathException("MathNode provider must implement passive expression binding.\n");
+}
+
+void MathNode::RetireExpressionReferences()
+{
+   throw MathException("MathNode provider must implement expression retirement.\n");
 }

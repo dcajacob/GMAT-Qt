@@ -48,6 +48,7 @@
 #include "PropSetup.hpp"
 #include "Simulator.hpp"
 #include "EventManager.hpp"
+#include <memory>
 
 
 class ESTIMATION_API RunSimulator : public RunSolver
@@ -78,10 +79,15 @@ public:
 
    virtual bool HasLocalClones();
    virtual void UpdateClonedObject(GmatBase *obj);
+   virtual void UpdateClonedObjectParameter(GmatBase *obj, Integer parameterId);
+   virtual ObjectArray GetCommandOwnedObjects() const;
+   virtual void RetireFunctionBindings(ObjectMap *store);
 
 protected:
    /// The simulator that drives this process
    Simulator      *theSimulator;
+   std::unique_ptr<Simulator> pendingDefinition;
+   void ClearNavigationReferences(bool closeStreams);
    /// Flag indicating if command execution is started
    bool commandRunning;
 //   /// Flag indicating if propagation is running an needs reentrance

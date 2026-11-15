@@ -35,6 +35,7 @@
 #include "SubscriberException.hpp"
 #include "StringUtil.hpp"            // for GmatStringUtil::ReplaceName(), GetArrayName()
 #include "MessageInterface.hpp"      // for ShowMessage()
+#include "Function.hpp"
 #include <sstream>                   // for <<
 
 //#define DEBUG_XYPLOT_INIT 1
@@ -161,12 +162,12 @@ XyPlot::XyPlot(const XyPlot &orig) :
    mYParamNames = orig.mYParamNames;
    mAllParamNames = orig.mAllParamNames;
    
-   mOldName = orig.mOldName;
+   mOldName = instanceName;
    mPlotTitle = orig.mPlotTitle;
    mXAxisTitle = orig.mXAxisTitle;
    mYAxisTitle = orig.mYAxisTitle;
    mDrawGrid = orig.mDrawGrid;
-   mIsXyPlotWindowSet = orig.mIsXyPlotWindowSet;
+   mIsXyPlotWindowSet = false;
    
    mDataCollectFrequency = orig.mDataCollectFrequency;
    mUpdatePlotFrequency = orig.mUpdatePlotFrequency;
@@ -180,6 +181,7 @@ XyPlot::XyPlot(const XyPlot &orig) :
    markerSize = orig.markerSize;
    drawing    = orig.drawing;
    breakCount = orig.breakCount;
+   if (typeid(orig) == typeid(XyPlot)) ReconnectSubscriberCopy(orig);
 }
 
 
@@ -194,39 +196,45 @@ XyPlot& XyPlot::operator=(const XyPlot& orig)
 {
    if (this == &orig)
       return *this;
-   
-   Subscriber::operator=(orig);
-   
-   mXParam = orig.mXParam;
-   mYParams = orig.mYParams;
-   
-   mNumXParams = orig.mNumXParams;
-   mNumYParams = orig.mNumYParams;
-   
-   mXParamName = orig.mXParamName;
-   mYParamNames = orig.mYParamNames;
-   mAllParamNames = orig.mAllParamNames;
-   
-   mOldName = orig.mOldName;
-   mPlotTitle = orig.mPlotTitle;
-   mXAxisTitle = orig.mXAxisTitle;
-   mYAxisTitle = orig.mYAxisTitle;
-   mDrawGrid = orig.mDrawGrid;
-   mIsXyPlotWindowSet = orig.mIsXyPlotWindowSet;
-   
-   mDataCollectFrequency = orig.mDataCollectFrequency;
-   mUpdatePlotFrequency = orig.mUpdatePlotFrequency;
-   
-   mNumDataPoints = orig.mNumDataPoints;
-   mNumCollected = orig.mNumCollected;
-   
-   useLines   = orig.useLines;
-   lineWidth  = orig.lineWidth;
-   useMarkers = orig.useMarkers;
-   markerSize = orig.markerSize;
-   drawing    = orig.drawing;
-   breakCount = orig.breakCount;
-   
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = typeid(*this) == typeid(XyPlot) ? BeginSubscriberValueCopy(orig) : SubscriberValueCopyToken{};
+   {
+      FunctionValueCopyGuard nativeCopy;
+
+      Subscriber::operator=(orig);
+
+      mXParam = orig.mXParam;
+      mYParams = orig.mYParams;
+
+      mNumXParams = orig.mNumXParams;
+      mNumYParams = orig.mNumYParams;
+
+      mXParamName = orig.mXParamName;
+      mYParamNames = orig.mYParamNames;
+      mAllParamNames = orig.mAllParamNames;
+
+      // Preserve this output's pending native rename.
+      mPlotTitle = orig.mPlotTitle;
+      mXAxisTitle = orig.mXAxisTitle;
+      mYAxisTitle = orig.mYAxisTitle;
+      mDrawGrid = orig.mDrawGrid;
+      // The destination retains its own physical window.
+
+      mDataCollectFrequency = orig.mDataCollectFrequency;
+      mUpdatePlotFrequency = orig.mUpdatePlotFrequency;
+
+      mNumDataPoints = orig.mNumDataPoints;
+      mNumCollected = orig.mNumCollected;
+
+      useLines   = orig.useLines;
+      lineWidth  = orig.lineWidth;
+      useMarkers = orig.useMarkers;
+      markerSize = orig.markerSize;
+      drawing    = orig.drawing;
+      breakCount = orig.breakCount;
+
+   }
+   if (typeid(*this) == typeid(XyPlot)) CompleteSubscriberValueCopy(orig, transaction);
    return *this;
 }
 
@@ -318,6 +326,38 @@ bool XyPlot::AddYParameter(const std::string &paramName, Integer index)
 // methods inherited from Subscriber
 //----------------------------------
 
+std::unique_ptr<FunctionInvocationState> XyPlot::SuspendFunctionBindings()
+{
+   const auto xName = mXParamName;
+   const auto yNames = mYParamNames;
+   Parameter *x = mXParam;
+   const auto xIdentity = x ? x->GetLifetimeToken() : std::weak_ptr<const void>{};
+   auto y = std::make_shared<std::vector<Parameter*>>(mYParams);
+   auto identities = std::make_shared<std::vector<std::weak_ptr<const void>>>();
+   for (auto *parameter : *y)
+      identities->push_back(parameter ? parameter->GetLifetimeToken() : std::weak_ptr<const void>{});
+   auto restore = [this, xName, yNames, x, xIdentity, y, identities]()
+   {
+      bool valid = xName == mXParamName && yNames == mYParamNames;
+      mXParam = !x || GmatBase::IsLiveReference(x, xIdentity) ? x : nullptr;
+      if (x && !mXParam) valid = false;
+      for (size_t i = 0; i < y->size(); ++i)
+         if ((*y)[i] && !GmatBase::IsLiveReference((*y)[i], (*identities)[i]))
+         { (*y)[i] = nullptr; valid = false; }
+      mYParams.swap(*y);
+      if (!valid)
+      {
+         if (xName != mXParamName) mXParam = nullptr;
+         if (yNames != mYParamNames) mYParams.clear();
+         isInitialized = false;
+         GmatBase::isInitialized = false;
+         throw SubscriberException("Cannot restore XYPlot parameter bindings.\n");
+      }
+   };
+   return std::make_unique<FunctionInvocationState>(*this, std::move(restore),
+         Subscriber::SuspendFunctionBindings());
+}
+
 //------------------------------------------------------------------------------
 // virtual bool Initialize()
 //------------------------------------------------------------------------------
@@ -367,7 +407,7 @@ bool XyPlot::Initialize()
    
    bool status = false;
    
-   if (IsGlobal())
+   if (IsGlobal() && !IsLocal() && mIsXyPlotWindowSet && isInitialized)
    {
       status = true;
       
@@ -404,11 +444,11 @@ bool XyPlot::Initialize()
          #endif
          
          PlotInterface::CreateXyPlotWindow
-            (instanceName, mOldName, mPlotUpperLeft[0], mPlotUpperLeft[1],
+            (GetRuntimePlotName(), GetRuntimePlotName(mOldName), mPlotUpperLeft[0], mPlotUpperLeft[1],
              mPlotSize[0], mPlotSize[1], isMaximized, mPlotTitle,
              mXAxisTitle, mYAxisTitle, mDrawGrid);
          
-         PlotInterface::SetXyPlotTitle(instanceName, mPlotTitle);
+         PlotInterface::SetXyPlotTitle(GetRuntimePlotName(), mPlotTitle);
          mIsXyPlotWindowSet = true;
          
          #if DEBUG_XYPLOT_INIT
@@ -431,19 +471,19 @@ bool XyPlot::Initialize()
                    curveTitle.c_str());
                #endif
                
-               PlotInterface::AddXyPlotCurve(instanceName, i, curveTitle, penColor);
+               PlotInterface::AddXyPlotCurve(GetRuntimePlotName(), i, curveTitle, penColor);
             }
          }
          
-         PlotInterface::ShowXyPlotLegend(instanceName);
+         PlotInterface::ShowXyPlotLegend(GetRuntimePlotName());
          status = true;
          
          #if DEBUG_XYPLOT_INIT
          MessageInterface::ShowMessage("   <%p>'%s' calling ClearXyPlotData()\n", this, GetName().c_str());
          #endif
          
-         PlotInterface::ClearXyPlotData(instanceName);
-         PlotInterface::XyPlotCurveSettings(instanceName, useLines, lineWidth, 100,
+         PlotInterface::ClearXyPlotData(GetRuntimePlotName());
+         PlotInterface::XyPlotCurveSettings(GetRuntimePlotName(), useLines, lineWidth, 100,
                                             useMarkers, markerSize, -1);
       }
       else
@@ -454,7 +494,7 @@ bool XyPlot::Initialize()
              this, GetName().c_str());
          #endif
          
-         status =  PlotInterface::DeleteXyPlot(instanceName);
+         status =  PlotInterface::DeleteXyPlot(GetRuntimePlotName());
       }
    }
    
@@ -482,7 +522,15 @@ bool XyPlot::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* XyPlot::Clone() const
 {
-   return (new XyPlot(*this));
+   if (typeid(*this) != typeid(XyPlot))
+      throw GmatBaseException("A derived XyPlot must provide its complete Clone.\n");
+   std::unique_ptr<XyPlot> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new XyPlot(*this));
+   }
+   value->ReconnectSubscriberCopy(*this);
+   return value.release();
 }
 
 
@@ -495,9 +543,19 @@ GmatBase* XyPlot::Clone() const
  * @param orig The original that is being copied.
  */
 //---------------------------------------------------------------------------
-void XyPlot::Copy(const GmatBase* orig)
+void XyPlot::Copy(const GmatBase *original)
 {
-   operator=(*((XyPlot *)(orig)));
+   const auto *source = dynamic_cast<const XyPlot*>(original);
+   if (!source || typeid(*source) != typeid(*this) || !HasSubscriberValueReferenceProvider())
+      throw GmatBaseException("Cannot copy an incompatible XyPlot value.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = BeginSubscriberValueCopy(*source);
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   CompleteSubscriberValueCopy(*source, transaction);
 }
 
 
@@ -552,14 +610,14 @@ bool XyPlot::TakeAction(const std::string &action,
    {
       // Toggle suppresses publications upstream. Notify the receiver as well
       // so reactivation cannot connect across samples it never received.
-      PlotInterface::TakeXYAction(instanceName, "ToggleOff");
-      PlotInterface::DeactivateXyPlot(instanceName);
+      PlotInterface::TakeXYAction(GetRuntimePlotName(), "ToggleOff");
+      PlotInterface::DeactivateXyPlot(GetRuntimePlotName());
       return true;
    }
    if (action == "ToggleOn")
    {
-      PlotInterface::TakeXYAction(instanceName, "ToggleOn");
-      PlotInterface::ActivateXyPlot(instanceName);
+      PlotInterface::TakeXYAction(GetRuntimePlotName(), "ToggleOn");
+      PlotInterface::ActivateXyPlot(GetRuntimePlotName());
       return true;
    }
    if (action == "Clear")
@@ -573,7 +631,7 @@ bool XyPlot::TakeAction(const std::string &action,
    else if (action == "Finalize")
    {
       // This action is usually called when GMAT function finalizes
-      return PlotInterface::DeleteXyPlot(instanceName);
+      return PlotInterface::DeleteXyPlot(GetRuntimePlotName());
    }
    else if (action == "ClearData")
    {
@@ -593,7 +651,7 @@ bool XyPlot::TakeAction(const std::string &action,
    }
    else if (action == "SolverScope")
    {
-      PlotInterface::TakeXYAction(instanceName, "SolverScope=" + actionData);
+      PlotInterface::TakeXYAction(GetRuntimePlotName(), "SolverScope=" + actionData);
       return true;
    }
    else if (action == "MarkBreak")
@@ -1487,9 +1545,9 @@ const StringArray& XyPlot::GetWrapperObjectNameArray(bool completeSet)
 void XyPlot::SetRunState(Gmat::RunState rs)
 {
    if (rs == Gmat::IDLE)
-      PlotInterface::TakeXYAction(instanceName, "AlwaysRedraw");
+      PlotInterface::TakeXYAction(GetRuntimePlotName(), "AlwaysRedraw");
    else
-      PlotInterface::TakeXYAction(instanceName, "RunModeRedraw");
+      PlotInterface::TakeXYAction(GetRuntimePlotName(), "RunModeRedraw");
    Subscriber::SetRunState(SolverBranchCommand::GetPlotRunState(rs));
 }
 
@@ -1646,7 +1704,7 @@ bool XyPlot::RemoveYParameter(const std::string &name)
 //------------------------------------------------------------------------------
 bool XyPlot::ResetYParameters()
 {
-   PlotInterface::ClearXyPlotData(instanceName);
+   PlotInterface::ClearXyPlotData(GetRuntimePlotName());
    return true;
 }
 
@@ -1655,7 +1713,7 @@ bool XyPlot::ResetYParameters()
 //------------------------------------------------------------------------------
 bool XyPlot::PenUp()
 {
-   PlotInterface::XyPlotPenUp(instanceName);
+   PlotInterface::XyPlotPenUp(GetRuntimePlotName());
    drawing = false;
    return true;
 }
@@ -1665,7 +1723,7 @@ bool XyPlot::PenUp()
 //------------------------------------------------------------------------------
 bool XyPlot::PenDown()
 {
-   PlotInterface::XyPlotPenDown(instanceName);
+   PlotInterface::XyPlotPenDown(GetRuntimePlotName());
    drawing = true;
    return true;
 }
@@ -1680,7 +1738,7 @@ bool XyPlot::PenDown()
 //------------------------------------------------------------------------------
 bool XyPlot::MarkPoint()
 {
-   PlotInterface::XyPlotMarkPoint(instanceName);
+   PlotInterface::XyPlotMarkPoint(GetRuntimePlotName());
    return true;
 }
 
@@ -1697,7 +1755,7 @@ bool XyPlot::MarkPoint()
 //------------------------------------------------------------------------------
 bool XyPlot::Darken(Integer factor)
 {
-   PlotInterface::XyPlotDarken(instanceName, factor);
+   PlotInterface::XyPlotDarken(GetRuntimePlotName(), factor);
    return true;
 }
 
@@ -1714,7 +1772,7 @@ bool XyPlot::Darken(Integer factor)
 //------------------------------------------------------------------------------
 bool XyPlot::Lighten(Integer factor)
 {
-   PlotInterface::XyPlotLighten(instanceName, factor);
+   PlotInterface::XyPlotLighten(GetRuntimePlotName(), factor);
    return true;
 }
 
@@ -1731,7 +1789,7 @@ bool XyPlot::Lighten(Integer factor)
 bool XyPlot::MarkBreak()
 {
    if (mSolverIterOption == SI_CURRENT)
-      PlotInterface::XyPlotMarkBreak(instanceName);
+      PlotInterface::XyPlotMarkBreak(GetRuntimePlotName());
    return true;
 }
 
@@ -1747,7 +1805,7 @@ bool XyPlot::MarkBreak()
 bool XyPlot::ClearFromBreak()
 {
    if (mSolverIterOption == SI_CURRENT)
-      PlotInterface::XyPlotClearFromBreak(instanceName);
+      PlotInterface::XyPlotClearFromBreak(GetRuntimePlotName());
    return true;
 }
 
@@ -1758,7 +1816,7 @@ bool XyPlot::ClearFromBreak()
 void XyPlot::DeletePlotCurves()
 {
    // delete exiting curves
-   PlotInterface::DeleteAllXyPlotCurves(instanceName, mOldName);
+   PlotInterface::DeleteAllXyPlotCurves(GetRuntimePlotName(), GetRuntimePlotName(mOldName));
 }
 
 
@@ -1809,7 +1867,7 @@ bool XyPlot::Distribute(const Real * dat, Integer len)
             ("XyPlot::Distribute() <%p>'%s' returning PlotInterface::RefreshXyPlot(), "
              "end of data received\n", this, GetName().c_str());
          #endif
-         return PlotInterface::RefreshXyPlot(instanceName);
+         return PlotInterface::RefreshXyPlot(GetRuntimePlotName());
       }
    }
    
@@ -1919,7 +1977,7 @@ bool XyPlot::Distribute(const Real * dat, Integer len)
             
             // return flag is ignored here since it needs to return true
             // for all case
-            PlotInterface::UpdateXyPlot(instanceName, mOldName, xval,
+            PlotInterface::UpdateXyPlot(GetRuntimePlotName(), GetRuntimePlotName(mOldName), xval,
                                         yvals, mPlotTitle, mXAxisTitle, mYAxisTitle,
                                         mSolverIterOption, update, mDrawGrid);
             
@@ -1979,3 +2037,22 @@ void XyPlot::WriteDeprecatedMessage(Integer id) const
 }
 
 
+
+
+bool XyPlot::HasSubscriberValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(XyPlot);
+}
+
+void XyPlot::RebindSubscriberValueReferences(const Subscriber &original,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &source = dynamic_cast<const XyPlot&>(original);
+   auto *x = MapSubscriberReference(source.mXParam, resolve);
+   std::vector<Parameter*> y;
+   y.reserve(source.mYParams.size());
+   for (auto *parameter : source.mYParams) y.push_back(MapSubscriberReference(parameter, resolve));
+   Subscriber::RebindSubscriberValueReferences(source, resolve);
+   mXParam = x;
+   mYParams.swap(y);
+}

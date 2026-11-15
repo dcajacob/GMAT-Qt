@@ -54,6 +54,7 @@
 class GMAT_API OwnedPlot : public Subscriber
 {
 public:
+   bool HasSubscriberValueReferenceProvider() const override;
    OwnedPlot(const std::string &name, const std::string &plotTitle = "",
           const std::string &xAxisTitle = "",
           const std::string &yAxisTitle = "");
@@ -215,7 +216,7 @@ protected:
 
    enum
    {
-      ADD = GmatBaseParamCount,
+      ADD = SubscriberParamCount,
       PLOT_TITLE,
       X_AXIS_TITLE,
       Y_AXIS_TITLE,
@@ -236,9 +237,9 @@ protected:
    };
    
    static const Gmat::ParameterType
-      PARAMETER_TYPE[OwnedPlotParamCount - GmatBaseParamCount];
+      PARAMETER_TYPE[OwnedPlotParamCount - SubscriberParamCount];
    static const std::string
-      PARAMETER_TEXT[OwnedPlotParamCount - GmatBaseParamCount];
+      PARAMETER_TEXT[OwnedPlotParamCount - SubscriberParamCount];
 };
 
 #endif

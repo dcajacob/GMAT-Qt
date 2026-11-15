@@ -169,7 +169,9 @@ RejectFilter& RejectFilter::operator=(const RejectFilter& rf)
 //------------------------------------------------------------------------------
 GmatBase* RejectFilter::Clone() const
 {
-   return new RejectFilter(*this);
+   std::unique_ptr<RejectFilter> value(new RejectFilter(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -188,13 +190,7 @@ bool RejectFilter::Initialize()
 	MessageInterface::ShowMessage("RejectFilter<%s,%p>::Initialize()   entered\n", GetName().c_str(), this);
 #endif
 
-   bool retval = false;
-   if (DataFilter::Initialize())
-   {
-      //@todo: Initialize code is here
-
-      isInitialized = retval;
-   }
+   const bool retval = DataFilter::Initialize();
 
 #ifdef DEBUG_INITIALIZATION
    MessageInterface::ShowMessage("RejectFilter<%s,%p>::Initialize()   exit\n", GetName().c_str(), this);
@@ -739,5 +735,7 @@ void RejectFilter::Copy(const GmatBase *original)
       throw GmatBaseException("Cannot copy incompatible object into RejectFilter");
    if (source == this)
       return;
+   const auto previous = GetFunctionValueContext();
    operator=(*source);
+   RebindFunctionValueContext(*source);
 }

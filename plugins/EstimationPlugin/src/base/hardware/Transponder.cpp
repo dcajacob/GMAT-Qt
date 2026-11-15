@@ -27,6 +27,7 @@
 //------------------------------------------------------------------------------
 
 #include "Transponder.hpp"
+#include <memory>
 #include "HardwareException.hpp"
 #include "MessageInterface.hpp"
 #include <stdlib.h>                // for atof
@@ -172,7 +173,9 @@ Transponder& Transponder::operator=(const Transponder& trans)
 //------------------------------------------------------------------------------
 GmatBase* Transponder::Clone() const
 {
-   return new Transponder(*this);
+   std::unique_ptr<Transponder> value(new Transponder(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -187,7 +190,13 @@ GmatBase* Transponder::Clone() const
 //---------------------------------------------------------------------------
 void Transponder::Copy(const GmatBase* orig)
 {
-   operator=(*((Transponder *)(orig)));
+   const auto *source = dynamic_cast<const Transponder*>(orig);
+   if (!source || source->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Incompatible Transponder value copy.");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 

@@ -45,6 +45,8 @@ public:
     ~LinearInterpolator();
     LinearInterpolator(const LinearInterpolator &l);
     LinearInterpolator& operator=(const LinearInterpolator &li);
+   void ValidateRestorationLayout(const LinearInterpolator &source) const;
+   void RestoreValues(const LinearInterpolator &source);
 
     virtual bool Interpolate(const Real ind, Real *results);
     

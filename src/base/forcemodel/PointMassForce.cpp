@@ -208,11 +208,14 @@ PointMassForce& PointMassForce::operator= (const PointMassForce& pmf)
    if (&pmf == this)
       return *this;
       
+   const bool restoring = GmatBase::IsNativeRestorationCopy();
+   if (restoring && (satCount != pmf.satCount || isPrimaryBody != pmf.isPrimaryBody))
+      throw ODEModelException("Prepare point-mass spacecraft roles before restoring a changed force.");
    PhysicalModel::operator=(pmf);
    epoch            = pmf.epoch;
    mu               = pmf.mu;
    dimension        = pmf.dimension;
-   isInitialized    = false;
+   if (!restoring) isInitialized = false;
    elapsedTime      = pmf.elapsedTime;
    estimationMethod = pmf.estimationMethod;
    isPrimaryBody    = pmf.isPrimaryBody;
@@ -967,7 +970,7 @@ Gmat::ParameterType PointMassForce::GetParameterType(const Integer id) const
 std::string PointMassForce::GetParameterTypeString(const Integer id) const
 {
    if ((id >= PhysicalModelParamCount) && (id < PointMassParamCount))
-      return PARAMETER_TEXT[id - PhysicalModelParamCount];
+      return GmatBase::PARAM_TYPE_STRING[GetParameterType(id)];
    return PhysicalModel::GetParameterTypeString(id);
 }
 

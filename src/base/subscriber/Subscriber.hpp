@@ -50,10 +50,21 @@
 #include "CoordinateSystem.hpp"
 #include "SolarSystem.hpp"
 #include "ElementWrapper.hpp"
+#include <cstdint>
+#include <map>
+
+class FunctionInvocationState;
+class SharedSubscriberBindings;
+class SubscriberBindingState;
+struct SubscriberValueCopyState;
 
 class GMAT_API Subscriber : public GmatBase
 {
+   // Publisher restores cached checkpoint flags without calling event hooks.
+   friend class Publisher;
 public:
+   static constexpr unsigned int NativeValueProviderDepth = GmatBase::NativeValueProviderDepth + 1;
+
    Subscriber(const std::string &typeStr, const std::string &nomme);
    Subscriber(const Subscriber &);
    Subscriber& operator=(const Subscriber &);
@@ -61,6 +72,22 @@ public:
    
    virtual bool         Initialize();
    virtual bool         IsInitialized();
+   bool InitializeForRun();
+   void ConfigureRuntimeOutput(bool privateOutput);
+   const std::string& GetRuntimePlotName() const;
+   const std::string& GetRuntimePlotName(const std::string &logicalName) const;
+   virtual bool HasSubscriberValueReferenceProvider() const;
+   bool HasFunctionValueBindings();
+   bool EnsureFunctionValueOutput();
+   void PrepareClonedSubscriberValue(const Subscriber &source);
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
+   void GetClonedOwnedObjects(const Subscriber &target,
+         ObjectArray &originals, ObjectArray &copies) const;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source,
+         SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+   void RebindSubscriberEnvironment(const Subscriber &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
    virtual bool         ReceiveData(const char * datastream);
    virtual bool         ReceiveData(const char * datastream, const Integer len);
    virtual bool         ReceiveData(const Real * datastream, const Integer len = 0);
@@ -114,6 +141,10 @@ public:
    virtual bool         SetElementWrapper(ElementWrapper* toWrapper,
                                           const std::string &name);
    virtual void         ClearWrappers(bool clearX = false, bool clearY = true);
+   // Preserve enclosing parameter bindings while a function uses this actual
+   // subscriber. Stream, plot history and explicit configuration remain live.
+   virtual std::unique_ptr<FunctionInvocationState> SuspendFunctionBindings();
+   void CommitFunctionValueBindings() noexcept;
    
    // for rename reference objects
    virtual bool         RenameRefObject(const UnsignedInt type,
@@ -237,6 +268,39 @@ protected:
    WrapperArray         yParamWrappers;
    /// Old wrappers to delete after setting new wrappers
    WrapperArray         oldWrappersToDelete;
+   // Restored bindings can outlive another owner retiring the same wrapper.
+   // These invocation leases stay cold in definition/value copies.
+   std::vector<ElementWrapper::InvocationLease> invocationWrapperLeases;
+   // Failed native copies can retain a mixture of old and new borrowed slots.
+   std::shared_ptr<SubscriberValueCopyState> copyRetirements;
+   StringArray functionValueXRoles, functionValueYRoles;
+   bool functionValueRolesBound = false;
+   void PruneInvocationWrapperLeases() noexcept;
+   std::unique_ptr<FunctionInvocationState> WrapFunctionBindings(
+         std::shared_ptr<SubscriberBindingState> native,
+         std::unique_ptr<FunctionInvocationState> enclosing);
+   void CopyWrapperGraph(const Subscriber &source);
+   using SubscriberValueCopyToken = std::shared_ptr<SubscriberValueCopyState>;
+   SubscriberValueCopyToken BeginSubscriberValueCopy(const Subscriber &source);
+   void ReconnectSubscriberCopy(const Subscriber &source);
+   void CompleteSubscriberValueCopy(const Subscriber &source,
+         const SubscriberValueCopyToken &transaction);
+   virtual void RebindSubscriberValueReferences(const Subscriber &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+   virtual bool HasNativeSubscriberBindings() const;
+   template<class T> static T *MapSubscriberReference(T *source,
+         const std::function<GmatBase*(GmatBase*)> &resolve)
+   {
+      if (!source) return nullptr;
+      auto *value = dynamic_cast<T*>(resolve(source));
+      if (!value) throw GmatBaseException("Incompatible copied subscriber reference.\n");
+      return value;
+   }
+   // Physical output identity is independent of script names and value copies.
+   std::uint64_t runtimeOutputIdentity = 0;
+   bool runtimeOutputStarted = false;
+   bool runtimeOutputCreated = false;
+   mutable std::map<std::string, std::string> runtimeOutputNames;
    
    // For ElementWrapper
    bool                 SetActualElementWrapper(const StringArray &wrapperNames,
@@ -301,6 +365,24 @@ private:
    
    static const std::string SOLVER_ITER_OPTION_TEXT[SolverIterOptionCount];
    bool    wrappersCopied;
+};
+
+// Shared subscription bindings follow call scopes; explicit value assignment
+// commits its actual target through every active enclosing scope.
+class GMAT_API SharedSubscriberBindings
+{
+public:
+   SharedSubscriberBindings(ObjectMap *local, ObjectMap *global);
+   ~SharedSubscriberBindings() noexcept;
+   bool Restore() noexcept;
+   static void Commit(Subscriber &subscriber) noexcept;
+   SharedSubscriberBindings(const SharedSubscriberBindings&) = delete;
+   SharedSubscriberBindings& operator=(const SharedSubscriberBindings&) = delete;
+private:
+   struct State;
+   std::unique_ptr<State> state;
+   SharedSubscriberBindings *previous = nullptr;
+   void Unlink() noexcept;
 };
 #endif // Subscribe_hpp
 

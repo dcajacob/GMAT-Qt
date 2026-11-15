@@ -1,0 +1,126 @@
+{
+  "mu": 398600.4418,
+  "radius": 7000.0,
+  "reference_radius": 8000.0,
+  "duration_seconds": 60.0,
+  "matrix_block_tolerances": [
+    2e-08,
+    2e-06,
+    2e-11,
+    2e-08
+  ],
+  "position_tolerance_km": 2e-05,
+  "velocity_tolerance_km_s": 2e-08,
+  "status": "frozen-before-execution",
+  "cases": [
+    {
+      "key": "OffsetPrimaryRTN",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "R",
+      "singular": false
+    },
+    {
+      "key": "OffsetOriginRTN",
+      "primary": "Earth",
+      "origin": "Ref",
+      "x_axis": "R",
+      "singular": false
+    },
+    {
+      "key": "OffsetPrimaryVNB",
+      "primary": "Ref",
+      "origin": "Earth",
+      "x_axis": "V",
+      "singular": false
+    }
+  ],
+  "expected_reads": 45,
+  "providers": [
+    "original",
+    "clone",
+    "copy"
+  ],
+  "scope": "Full-state Python force callback with independent affine-system dynamics and owner-frame STM checks.",
+  "coarse_step_seconds": 0.1,
+  "fine_step_seconds": 0.05,
+  "refinement_state_bounds": [
+    1e-08,
+    1e-11
+  ],
+  "refinement_matrix_block_bounds": [
+    1e-10,
+    1e-08,
+    1e-13,
+    1e-10
+  ],
+  "pose_intervals": 60,
+  "transverse_offset_km": 0.0,
+  "transverse_speed_km_s": 7.5,
+  "mass_kg": 1000.0,
+  "area_m2": 100000000.0,
+  "cr": 1.6,
+  "flux_w_m2": 1367.0,
+  "nominal_sun_km": 149597870.691,
+  "sun_radius_km": 695990.0,
+  "earth_radius_km": 6378.1363,
+  "illumination_domain": "full_sun",
+  "frame_input_mode": "propagated_native_matrix",
+  "force_type": "ExternalModel",
+  "gradient_tolerance": 1e-13,
+  "shape": "Spherical",
+  "attitude": "CoordinateSystemFixed",
+  "attitude_reference_body": "Earth",
+  "attitude_constraint": "OrbitNormal",
+  "attitude_alignment": [
+    -1,
+    0,
+    0
+  ],
+  "attitude_body_constraint": [
+    0,
+    1,
+    0
+  ],
+  "external_module": "ExternalStmForce",
+  "external_position_matrix": [
+    [
+      -1.1e-06,
+      2e-08,
+      -3e-08
+    ],
+    [
+      2e-08,
+      -9e-07,
+      1e-08
+    ],
+    [
+      -3e-08,
+      1e-08,
+      -1.3e-06
+    ]
+  ],
+  "external_velocity_matrix": [
+    [
+      -2e-05,
+      3e-06,
+      0
+    ],
+    [
+      -3e-06,
+      -1e-05,
+      2e-06
+    ],
+    [
+      0,
+      -2e-06,
+      -1.5e-05
+    ]
+  ],
+  "external_constant": [
+    2e-05,
+    -3e-05,
+    4e-05
+  ],
+  "amatrix_tolerance": 1e-13
+}

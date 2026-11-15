@@ -28,13 +28,35 @@
  */
 //------------------------------------------------------------------------------
 
+#include <algorithm>
 #include <sstream>
 #include <cmath>
 #include <cstdio>                   // for sprintf
+#include <limits>
+#include <memory>
 #include "EphemerisPropagator.hpp"
+#include "PropagatorException.hpp"
 #include "MessageInterface.hpp"
 #include "TimeTypes.hpp"
 #include "TimeSystemConverter.hpp"
+
+namespace
+{
+Integer EphemerisStateExtent(PropagationStateManager *manager, size_t objects)
+{
+   if (objects == 0) return 0;
+   if (manager)
+   {
+      // The state manager has already packed all registered objects.
+      const Integer size = manager->GetState()->GetSize();
+      if (size < 0) throw PropagatorException("Invalid ephemeris propagation state size.");
+      return size;
+   }
+   if (objects > static_cast<size_t>(std::numeric_limits<Integer>::max() / 6))
+      throw PropagatorException("Ephemeris propagation state exceeds native index capacity.");
+   return static_cast<Integer>(objects) * 6;
+}
+}
 
 
 //#define DEBUG_INITIALIZATION
@@ -1352,32 +1374,31 @@ bool EphemerisPropagator::Initialize()
 
    bool retval = false;
 
-   Integer perSatDim = 6;
-
-   if (psm)
-      perSatDim = psm->GetState()->GetSize();
+   isInitialized = false;
+   if (propObjects.empty())
+      throw PropagatorException("An ephemeris propagator requires a propagated object.");
+   const Integer nextDimension = EphemerisStateExtent(psm, propObjects.size());
+   if (nextDimension == 0)
+      throw PropagatorException("Prepare the ephemeris propagation state before initialization.");
 
    #ifdef DEBUG_EXTENDED_STATES
-      MessageInterface::ShowMessage("perSatDim = %d\n", perSatDim);
+      MessageInterface::ShowMessage("ephemeris state dimension = %d\n", nextDimension);
    #endif
 
-   Integer oldDim = dimension;
-   dimension = perSatDim * propObjects.size();
-   if (dimension > 0)
+   // Stage every required allocation before retiring either live array.
+   // A compatible J2000 buffer keeps its existing borrowed address.
+   std::unique_ptr<Real[]> incomingState(new Real[nextDimension]);
+   const bool replaceJ2k = !j2kState || dimension != nextDimension;
+   std::unique_ptr<Real[]> incomingJ2k;
+   if (replaceJ2k) incomingJ2k.reset(new Real[nextDimension]);
+   delete [] state;
+   state = incomingState.release();
+   if (replaceJ2k)
    {
-      if (state != NULL)
-         delete [] state;
-      state = new Real[dimension];
-
-      if ((j2kState != NULL) && (oldDim != dimension))
-      {
-         delete [] j2kState;
-         j2kState = NULL;
-      }
-
-      if (j2kState == NULL)
-         j2kState = new Real[dimension];
+      delete [] j2kState;
+      j2kState = incomingJ2k.release();
    }
+   dimension = nextDimension;
 
    //for (UnsignedInt i = 0; i < dimension; ++i)
    //   state[i] = j2kState[i] = 0.0;
@@ -1569,12 +1590,16 @@ bool EphemerisPropagator::Step(Real dt)
 
    if (isInitialized)
    {
-      Real tempStep = ephemStep;
+      struct StepSizeScope
+      {
+         Real &value;
+         Real previous;
+         ~StepSizeScope() { value = previous; }
+      } restoreStep{ephemStep, ephemStep};
       ephemStep = dt;
       retval = Step();
       if (retval)
          ((SpaceObject*)(propObjects[0]))->HasEphemPropagated(true);
-      ephemStep = tempStep;
    }
 
    return retval;
@@ -1593,10 +1618,7 @@ bool EphemerisPropagator::Step(Real dt)
 Integer EphemerisPropagator::GetDimension()
 {
    if (dimension == 0)
-   {
-      Integer perSatDim = (psm ? psm->GetState()->GetSize() : 6);
-      dimension = perSatDim * propObjects.size();
-   }
+      dimension = EphemerisStateExtent(psm, propObjects.size());
    return dimension;
 }
 
@@ -1653,7 +1675,6 @@ void EphemerisPropagator::UpdateSpaceObject(Real newEpoch)
       Integer stateSize;
       Integer vectorSize;
       GmatState *newState;
-      ReturnFromOrigin(newEpoch);
 
       newState = psm->GetState();
       stateSize = newState->GetSize();
@@ -1667,11 +1688,12 @@ void EphemerisPropagator::UpdateSpaceObject(Real newEpoch)
          currentEpoch = newEpoch;
          timeFromEpoch = (currentEpoch-initialEpoch) * GmatTimeConstants::SECS_PER_DAY;
       }
+      currentEpochGT = currentEpoch;
       UpdateState();
+      ReturnFromOrigin(currentEpoch);
 
       memcpy(newState->GetState(), j2kState, vectorSize);
       newState->SetEpoch(currentEpoch);
-      //newState->SetEpochGT(currentEpochGT);
 
       psm->MapVectorToObjects();
 
@@ -1718,8 +1740,9 @@ void EphemerisPropagator::UpdateSpaceObjectGT(GmatTime newEpoch)
          currentEpochGT = newEpoch;
          timeFromEpoch = (currentEpochGT - initialEpochGT).GetTimeInSec();
       }
+      currentEpoch = currentEpochGT.GetMjd();
       UpdateState();
-      ReturnFromOriginGT(newEpoch);
+      ReturnFromOriginGT(currentEpochGT);
 
       memcpy(newState->GetState(), j2kState, vectorSize);
       newState->SetEpochGT(currentEpochGT);
@@ -1794,21 +1817,21 @@ void EphemerisPropagator::RevertSpaceObject()
    
    if (HasPrecisionTime())
    {
-      timeFromEpoch = (previousState.GetEpochGT() - initialEpochGT).GetTimeInSec();
-      currentEpochGT = initialEpochGT; currentEpochGT.AddSeconds(timeFromEpoch);
+      currentEpochGT = previousState.GetEpochGT();
+      currentEpoch = currentEpochGT.GetMjd();
+      timeFromEpoch = (currentEpochGT - initialEpochGT).GetTimeInSec();
       UpdateState();
 
-      //MoveToOriginGT();
-      ReturnFromOriginGT(); // J.McGreevy's version upload by Darrel on 10/12/2017
+      ReturnFromOriginGT(currentEpochGT);
    }
    else
-   {                 
-      timeFromEpoch = (previousState.GetEpoch() - initialEpoch) * GmatTimeConstants::SECS_PER_DAY;
-      currentEpoch = initialEpoch + timeFromEpoch / GmatTimeConstants::SECS_PER_DAY;
+   {
+      currentEpoch = previousState.GetEpoch();
+      currentEpochGT = currentEpoch;
+      timeFromEpoch = (currentEpoch - initialEpoch) * GmatTimeConstants::SECS_PER_DAY;
       UpdateState();
 
-      // MoveToOrigin();
-      ReturnFromOrigin();   // J.McGreevy's version upload by Darrel on 10/12/2017
+      ReturnFromOrigin(currentEpoch);
    }
 }
 
@@ -1854,6 +1877,17 @@ Real EphemerisPropagator::GetTime()
 void EphemerisPropagator::SetTime(Real t)
 {
    timeFromEpoch = t;
+   if (HasPrecisionTime())
+   {
+      currentEpochGT = initialEpochGT;
+      currentEpochGT.AddSeconds(t);
+      currentEpoch = currentEpochGT.GetMjd();
+   }
+   else
+   {
+      currentEpoch = initialEpoch + t / GmatTimeConstants::SECS_PER_DAY;
+      currentEpochGT = currentEpoch;
+   }
 }
 
 
@@ -2042,7 +2076,7 @@ void EphemerisPropagator::MoveToOrigin(Real newEpoch)
       Rvector6 cbState, mj2kState, delta;
       Real now = ((newEpoch < 0.0) ? currentEpoch : newEpoch);
       cbState = propOrigin->GetMJ2000State(now);
-      mj2kState = j2kBody->GetState(now);
+      mj2kState = j2kBody->GetMJ2000State(now);
 
       delta = cbState - mj2kState;
 
@@ -2124,9 +2158,9 @@ void EphemerisPropagator::MoveToOriginGT(GmatTime newEpoch)
    if (centralBody != j2kBodyName)
    {
       Rvector6 cbState, mj2kState, delta;
-      GmatTime now = ((newEpoch < 0.0) ? currentEpoch : newEpoch);
+      GmatTime now = ((newEpoch < 0.0) ? currentEpochGT : newEpoch);
       cbState = propOrigin->GetMJ2000State(now);
-      mj2kState = j2kBody->GetState(now);
+      mj2kState = j2kBody->GetMJ2000State(now);
 
       delta = cbState - mj2kState;
 
@@ -2208,7 +2242,7 @@ void EphemerisPropagator::ReturnFromOrigin(Real newEpoch)
       Rvector6 cbState, jkState, delta;
       Real now = ((newEpoch < 0.0) ? currentEpoch : newEpoch);
       cbState = propOrigin->GetMJ2000State(now);
-      jkState = j2kBody->GetState(now);
+      jkState = j2kBody->GetMJ2000State(now);
 
       delta = jkState - cbState;
 
@@ -2269,9 +2303,9 @@ void EphemerisPropagator::ReturnFromOriginGT(GmatTime newEpoch)
    if (centralBody != j2kBodyName)
    {
       Rvector6 cbState, jkState, delta;
-      GmatTime now = ((newEpoch < 0.0) ? currentEpoch : newEpoch);
+      GmatTime now = ((newEpoch < 0.0) ? currentEpochGT : newEpoch);
       cbState = propOrigin->GetMJ2000State(now);
-      jkState = j2kBody->GetState(now);
+      jkState = j2kBody->GetMJ2000State(now);
 
       delta = jkState - cbState;
 
@@ -2308,4 +2342,35 @@ void EphemerisPropagator::ReturnFromOriginGT(GmatTime newEpoch)
 #endif
       }
    }
+}
+
+void EphemerisPropagator::RebindClonedReferences(const Propagator &source, SolarSystem *system,
+      const std::function<GmatBase*(GmatBase*)> &resolve, bool bindObjects)
+{
+   const auto *original = dynamic_cast<const EphemerisPropagator*>(&source);
+   if (!original) throw PropagatorException("Incompatible retained EphemerisPropagator.");
+   ObjectArray objects;
+   StringArray names = bindObjects ? original->propObjectNames : propObjectNames;
+   const ObjectArray empty;
+   for (GmatBase *from : bindObjects ? original->propObjects : empty)
+   {
+      if (!from) throw PropagatorException("Null retained ephemeris propagation object.");
+      GmatBase *to = resolve(from);
+      if (!to || to->GetTypeName() != from->GetTypeName())
+         throw PropagatorException("Incompatible retained ephemeris propagation object.");
+      if (std::find(objects.begin(), objects.end(), to) != objects.end())
+         throw PropagatorException("Distinct ephemeris propagation entries map to one target.");
+      objects.push_back(to);
+      for (auto &name : names) if (name == from->GetName()) name = to->GetName();
+   }
+   Propagator::RebindClonedReferences(source, system, resolve, bindObjects);
+   solarSystem = system;
+   delete [] state;
+   state = NULL;
+   delete [] j2kState;
+   j2kState = NULL;
+   propObjects.swap(objects);
+   propObjectNames.swap(names);
+   psm = NULL;
+   isInitialized = false;
 }

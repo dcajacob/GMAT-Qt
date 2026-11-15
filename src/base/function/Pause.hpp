@@ -40,6 +40,8 @@
 class GMAT_API Pause : public BuiltinGmatFunction
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = BuiltinGmatFunction::NativeValueProviderDepth + 1;
+
    Pause(const std::string &typeStr, const std::string &name);
    virtual ~Pause();
    Pause(const Pause &f);
@@ -58,6 +60,11 @@ public:
    // inherited from GmatBase
    virtual GmatBase*    Clone() const;
    virtual void         Copy(const GmatBase* orig);
+   std::unique_ptr<FunctionInvocationState> SuspendInvocationState() override;
+   bool HasFunctionValueReferenceProvider() const override;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+
 
 protected:
    /// The millisecond count for the pause function

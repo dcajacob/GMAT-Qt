@@ -82,7 +82,9 @@ Jacobian::~Jacobian()
 //------------------------------------------------------------------------------
 Jacobian::Jacobian(const Jacobian &jac) :
    DerivativeModel         (jac),
-   numComponents           (jac.numComponents)
+   numComponents           (jac.numComponents),
+   nominal                 (jac.nominal),
+   jacobian                (jac.jacobian)
 {
    
 }
@@ -134,11 +136,9 @@ bool Jacobian::Initialize(UnsignedInt varCount, UnsignedInt componentCount)
    numComponents = componentCount;
    UnsignedInt elementCount = variableCount * numComponents;
    
-   for (UnsignedInt i = 0; i < numComponents; ++i)
-      nominal.push_back(0.0);
-   
-   for (UnsignedInt i = 0; i < elementCount; ++i)
-      jacobian.push_back(0.0);
+   // Reinitialization starts a new problem, including when its size shrinks.
+   nominal.assign(numComponents, 0.0);
+   jacobian.assign(elementCount, 0.0);
    
    #ifdef DEBUG_JACOBIAN
       MessageInterface::ShowMessage(
@@ -175,6 +175,8 @@ void Jacobian::Achieved(Integer pertNumber, Integer componentId,
 {
    if (pertNumber == -1)
    {
+      if (componentId < 0 || static_cast<UnsignedInt>(componentId) >= numComponents)
+         throw SolverException("Invalid component when setting a nominal Jacobian value.");
       #ifdef DEBUG_JACOBIAN
          MessageInterface::ShowMessage(
                "   Nominal data[%d], gives %.12lf\n", componentId, 

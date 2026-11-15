@@ -45,10 +45,19 @@
 const char CINTERFACE_API *getLastMessage();
 int CINTERFACE_API StartGmat();
 
+/* Loading or rerunning a script invalidates the selected runtime model and
+ * state pointers, including after failure. Rediscover/select models after
+ * RunScript initializes the new sandbox. Model IDs are scoped to that run. */
 int CINTERFACE_API LoadScript(const char* scriptName);
 int CINTERFACE_API RunScript();
+/* Equivalent to LoadScript followed by RunScript only after a successful load.
+ * Returns the load error without executing commands, or the run status. The
+ * final operation supplies getLastMessage(). PrepareMissionSequence retains
+ * its prepare-only behavior. Call StartGmat first, as for the separate calls. */
 int CINTERFACE_API LoadAndRunScript(const char* scriptName);
 
+/* Locate a numerical model in the initialized run's command graph, including
+ * branch children. Lookup never executes a mission command or advances it. */
 int CINTERFACE_API FindOdeModel(const char* modelName);
 int CINTERFACE_API SetModel(int modelID);
 int CINTERFACE_API SetModelByName(const char* modelName);

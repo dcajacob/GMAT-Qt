@@ -2834,11 +2834,18 @@
             <row>
               <entry><guilabel>EA</guilabel></entry>
 
-              <entry>N</entry>
+              <entry>Y</entry>
 
               <entry>Y</entry>
 
-              <entry><para>Eccentric anomaly.</para><variablelist>
+              <entry><para>Eccentric anomaly. Spacecraft EA, MA and HA
+              parameters can also be assigned in their selected body/frame.
+              Assignment preserves the other five Keplerian elements, epoch and
+              display settings. Inputs must be finite angles in degrees. EA
+              requires an elliptic orbit and HA requires a hyperbolic orbit;
+              MA uses the applicable conic conversion. Failed conversion leaves
+              the spacecraft state unchanged. Parameters owned by other Space
+              Points remain read-only.</para><variablelist>
                   <varlistentry>
                     <term>Data Type</term>
 
@@ -3639,11 +3646,17 @@
             <row>
               <entry><guilabel>HA</guilabel></entry>
 
-              <entry>N</entry>
+              <entry>Y</entry>
 
               <entry>Y</entry>
 
-              <entry><para>Hyperbolic anomaly.</para><variablelist>
+              <entry><para>Hyperbolic anomaly. This signed, nonperiodic value uses
+                  the mathematical hyperbolic anomaly multiplied by 180/pi.
+                  Reading or writing HA requires a hyperbolic orbit with
+                  eccentricity greater than one; undefined conics are rejected.
+                  Use Spacecraft.Body.HA for the established body-relative
+                  value, or Spacecraft.CoordinateSystem.HA to use the state in
+                  a coordinate system with a celestial-body origin.</para><variablelist>
                   <varlistentry>
                     <term>Data Type</term>
 
@@ -4195,7 +4208,7 @@
             <row>
               <entry><guilabel>MA</guilabel></entry>
 
-              <entry>N</entry>
+              <entry>Y</entry>
 
               <entry>Y</entry>
 
@@ -5827,7 +5840,7 @@
 
               <entry>Y</entry>
 
-              <entry><para>See <link
+              <entry><para>Writable in the spacecraft's default Native orbit-parameter access mode. With <literal>OrbitParameterAccess = Worksheet</literal>, this calculation parameter is read-only. See the <link linkend="Spacecraft">Spacecraft</link> access-policy description.</para><para>See <link
               linkend="Spacecraft"><guilabel>Spacecraft</guilabel>.<guilabel>RMAG</guilabel></link></para><variablelist>
                   <varlistentry>
                     <term>Data Type</term>
@@ -5862,7 +5875,7 @@
 
               <entry>Y</entry>
 
-              <entry><para>See <link
+              <entry><para>Writable in the spacecraft's default Native orbit-parameter access mode. With <literal>OrbitParameterAccess = Worksheet</literal>, this calculation parameter is read-only. See the <link linkend="Spacecraft">Spacecraft</link> access-policy description.</para><para>See <link
               linkend="SpacecraftOrbitState"><guilabel>Spacecraft</guilabel>.<guilabel>SemilatusRectum</guilabel></link></para><variablelist>
                   <varlistentry>
                     <term>Data Type</term>

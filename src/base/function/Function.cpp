@@ -30,13 +30,82 @@
 //------------------------------------------------------------------------------
 
 #include "Function.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration functionValueProvider({
+   Function::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const Function*>(object) != nullptr; },
+   [](const GmatBase *object) { return dynamic_cast<const Function*>(object)->GetFunctionValueOwnedObjectsImpl(); },
+   nullptr,
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "FunctionException.hpp"    // for exception
 #include "StringUtil.hpp"           // for GmatStringUtil::
+#include "FileUtil.hpp"             // for ParseFileName()
 #include "Parameter.hpp"            // for GetOwner()
 #include "MessageInterface.hpp"
+#include "ExpressionBinding.hpp"
+#include "ObjectManagedFunction.hpp"
+#include <typeinfo>
+#include <fstream>
+#include <limits>
 
 //#define DEBUG_FUNCTION_SET
 //#define DEBUG_FUNCTION_IN_OUT
+
+FunctionInvocationState::FunctionInvocationState(GmatBase &value,
+      std::function<void()> action, std::unique_ptr<FunctionInvocationState> parent,
+      bool parentFirst) :
+   owner(&value), identity(value.GetLifetimeToken()), restore(std::move(action)),
+   enclosing(std::move(parent)), restoreEnclosingFirst(parentFirst)
+{
+}
+
+FunctionInvocationState::~FunctionInvocationState() noexcept
+{
+   Restore();
+   // Dismissed states still own their captures. Retire the leaf before its
+   // enclosing dependencies, matching the ordinary restoration order.
+   restore = {};
+   enclosing.reset();
+}
+
+void FunctionInvocationState::Dismiss() noexcept
+{
+   active = false;
+   if (enclosing) enclosing->Dismiss();
+}
+
+bool FunctionInvocationState::Restore() noexcept
+{
+   if (!active) return restoredSuccessfully;
+   active = false;
+   if (restoreEnclosingFirst && enclosing)
+   {
+      if (!enclosing->Restore()) restoredSuccessfully = false;
+      enclosing.reset();
+   }
+   if (GmatBase::IsLiveReference(owner, identity) && restore)
+   {
+      try { restore(); }
+      catch (...)
+      {
+         restoredSuccessfully = false;
+         try { MessageInterface::ShowMessage("Function invocation state restoration failed.\n"); }
+         catch (...) {}
+      }
+   }
+   // Retire inner native storage while its inner environment still lives.
+   restore = {};
+   if (enclosing && !enclosing->Restore()) restoredSuccessfully = false;
+   enclosing.reset();
+   return restoredSuccessfully;
+}
 
 //---------------------------------
 // static data
@@ -47,7 +116,9 @@ Function::PARAMETER_TEXT[FunctionParamCount - GmatBaseParamCount] =
    "FunctionPath",
    "FunctionName",
    "Input",
-   "Output"
+   "Output",
+   "SourceFormat",
+   "RequireOutputBrackets"
 };
 
 const Gmat::ParameterType
@@ -57,6 +128,8 @@ Function::PARAMETER_TYPE[FunctionParamCount - GmatBaseParamCount] =
    Gmat::STRING_TYPE,         // "FunctionName",
    Gmat::STRINGARRAY_TYPE,    // "Input",
    Gmat::STRINGARRAY_TYPE,    // "Output"
+   Gmat::ENUMERATION_TYPE,    // "SourceFormat"
+   Gmat::BOOLEAN_TYPE,        // "RequireOutputBrackets"
 };
 
 
@@ -75,6 +148,8 @@ Function::Function(const std::string &typeStr, const std::string &name) :
    callDescription    (""),
    functionPath       (""),
    functionName       (""),
+   sourceFormat       ("Native"),
+   requireOutputBrackets(false),
    solarSys           (NULL),
    internalCoordSys   (NULL),
    forces             (NULL),
@@ -112,6 +187,8 @@ Function::Function(const Function &f) :
    callDescription    (f.callDescription),
    functionPath       (f.functionPath),
    functionName       (f.functionName),
+   sourceFormat       (f.sourceFormat),
+   requireOutputBrackets(f.requireOutputBrackets),
    inputNames         (f.inputNames),
    outputNames        (f.outputNames),
    outputWrapperTypes (f.outputWrapperTypes),
@@ -141,15 +218,23 @@ Function& Function::operator=(const Function &f)
 {
    if (this == &f)
       return *this;
+
+   // A borrowed source can point into storage owned by this destination.
+   // Preserve that table until completed value binding can make its own copy.
+   const auto previousBindings = functionBindings;
    
    GmatBase::operator=(f);
    
    callDescription    = f.callDescription;
    functionPath       = f.functionPath;
    functionName       = f.functionName;
+   sourceFormat       = f.sourceFormat;
+   requireOutputBrackets = f.requireOutputBrackets;
    solarSys           = f.solarSys;
    internalCoordSys   = f.internalCoordSys;
    forces             = f.forces;
+   functionBindings = previousBindings && previousBindings->OwnsForces(f.forces) ?
+         previousBindings : f.functionBindings;
    errorFound         = f.errorFound;
    inputNames         = f.inputNames;
    outputNames        = f.outputNames;
@@ -157,6 +242,53 @@ Function& Function::operator=(const Function &f)
    outputRowCounts    = f.outputRowCounts;
    outputColCounts    = f.outputColCounts;
    return *this;
+}
+
+bool Function::HasFunctionValueReferenceProvider() const
+{
+   return false;
+}
+
+void Function::PrepareClonedFunctionValue(const Function &source)
+{
+   if (&source == this || typeid(*this) != typeid(source) ||
+         GetTypeName() != source.GetTypeName())
+      throw FunctionException("Incompatible retained Function definition.\n");
+}
+
+ObjectArray Function::GetFunctionValueOwnedObjectsImpl() const
+{
+   return {};
+}
+
+void Function::GetClonedOwnedObjects(const Function &target,
+      ObjectArray &sources, ObjectArray &copies) const
+{
+   if (typeid(*this) != typeid(target))
+      throw FunctionException("Incompatible Function component inventory.\n");
+   sources.clear();
+   copies.clear();
+}
+
+void Function::RebindFunctionEnvironment(const Function &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   if (&source == this || typeid(*this) != typeid(source))
+      throw FunctionException("Incompatible Function environment copy.\n");
+   ExpressionBindingScope binding;
+   auto *system = BindExpressionReference(source.solarSys, resolve);
+   auto *frame = BindExpressionReference(source.internalCoordSys, resolve);
+   const bool ownedForces = (source.functionBindings && source.functionBindings->OwnsForces(source.forces)) ||
+         (functionBindings && functionBindings->OwnsForces(source.forces));
+   auto *transients = ownedForces ? binding.scopes->CopyForces(source.forces, resolve) : source.forces;
+   // Native setters can mutate a shared callee. This pass assigns actual refs
+   // directly and never resumes a function or reuses an active invocation FOS.
+   functionBindings = binding.scopes;
+   solarSys = system;
+   internalCoordSys = frame;
+   forces = transients;
+   errorFound = source.errorFound;
+   isInitialized = false;
 }
 
 //------------------------------------------------------------------------------
@@ -193,14 +325,87 @@ WrapperTypeArray Function::GetOutputTypes(IntegerArray &rowCounts,
 void Function::SetOutputTypes(WrapperTypeArray &outputTypes,
                               IntegerArray &rowCounts, IntegerArray &colCounts)
 {
-   #ifdef DEBUG_FUNCTION_IN_OUT
-   MessageInterface::ShowMessage
-      ("Function::SetOutputTypes() setting %d outputTypes\n", outputTypes.size());
-   #endif
-   
-   outputWrapperTypes = outputTypes;
-   outputRowCounts = rowCounts;
-   outputColCounts = colCounts;   
+   if (outputTypes.size() != rowCounts.size() || outputTypes.size() != colCounts.size())
+      throw FunctionException("Function output types and dimensions must have matching lengths.\n");
+   if (notifyingOutputObjects)
+   {
+      if (outputWrapperTypes == outputTypes && outputRowCounts == rowCounts && outputColCounts == colCounts)
+         return;
+      throw FunctionException("Function output declarations changed recursively during object preparation.\n");
+   }
+
+   // Complete allocations, including a stable callable, before publishing.
+   WrapperTypeArray types(outputTypes);
+   IntegerArray rows(rowCounts), columns(colCounts);
+   const auto initialize = outputObjectInitializer;
+   outputWrapperTypes.swap(types);
+   outputRowCounts.swap(rows);
+   outputColCounts.swap(columns);
+   if (!initialize) return;
+
+   struct Notification
+   {
+      bool &active;
+      explicit Notification(bool &flag) : active(flag) { active = true; }
+      ~Notification() { active = false; }
+   } notification(notifyingOutputObjects);
+   try
+   {
+      // Native initialization can bind typed output pointers immediately after
+      // this setter returns. Prepare those objects synchronously, not later.
+      initialize();
+   }
+   catch (...)
+   {
+      outputWrapperTypes.swap(types);
+      outputRowCounts.swap(rows);
+      outputColCounts.swap(columns);
+      throw;
+   }
+}
+
+Function::OutputObjectInitializer Function::ExchangeOutputObjectInitializer(
+      OutputObjectInitializer initializer)
+{
+   outputObjectInitializer.swap(initializer);
+   return initializer;
+}
+
+std::unique_ptr<FunctionInvocationState> Function::EnterInvocation()
+{
+   if (activeInvocationDepth == std::numeric_limits<unsigned int>::max())
+      throw FunctionException("Function invocation depth cannot be represented.\n");
+   std::unique_ptr<FunctionInvocationState> enclosing;
+   if (activeInvocationDepth)
+   {
+      enclosing = SuspendInvocationState();
+      if (!enclosing) throw FunctionException("Missing enclosing function invocation state.\n");
+   }
+   auto invocation = std::make_unique<FunctionInvocationState>(*this,
+         [this]() noexcept
+         {
+            RetireInvocationInterfaces();
+            --activeInvocationDepth;
+         }, std::move(enclosing));
+   ++activeInvocationDepth;
+   return invocation;
+}
+
+std::unique_ptr<FunctionInvocationState> Function::SuspendInvocationState()
+{
+   auto state = CaptureInvocationFields({}, callDescription, functionPath,
+         functionName, sourceFormat, requireOutputBrackets, inputNames,
+         outputNames, outputWrapperTypes, outputRowCounts, outputColCounts,
+         solarSys, internalCoordSys, forces, errorFound, isInitialized,
+         notifyingOutputObjects, functionBindings);
+   // A nested call made by an output-preparation callback has its own
+   // declaration cycle; the enclosing notification resumes on restoration.
+   notifyingOutputObjects = false;
+   return state;
+}
+
+void Function::RetireInvocationInterfaces() noexcept
+{
 }
 
 
@@ -280,6 +485,10 @@ void Function::SetSolarSystem(SolarSystem *ss)
        GetName().c_str(), ss);
    #endif
    
+   // An explicit service replacement or detach supersedes the completed-call
+   // observation. Ordinary invocation retirement clears only the active field.
+   if (auto *managed = dynamic_cast<ObjectManagedFunction*>(this))
+      managed->ClearObservedSolarSystem();
    solarSys = ss;
 }
 
@@ -288,7 +497,9 @@ void Function::SetSolarSystem(SolarSystem *ss)
 //------------------------------------------------------------------------------
 const SolarSystem* Function::GetSolarSystem() const
 {
-   return solarSys;
+   if (solarSys) return solarSys;
+   const auto *managed = dynamic_cast<const ObjectManagedFunction*>(this);
+   return managed ? managed->GetObservedSolarSystem() : nullptr;
 }
 
 //------------------------------------------------------------------------------
@@ -302,9 +513,8 @@ void Function::SetInternalCoordSystem(CoordinateSystem *cs)
        GetName().c_str(), cs);
    #endif
    
-   // if cs is not NULL, set (loj: 2008.10.07)
-   if (cs != NULL)
-      internalCoordSys = cs;
+   // Null explicitly detaches a previous invocation's internal frame.
+   internalCoordSys = cs;
 }
 
 //------------------------------------------------------------------------------
@@ -355,11 +565,103 @@ std::string Function::GetFunctionPathAndName()
 //---------------------------------------------------------------------------
 bool Function::IsParameterReadOnly(const Integer id) const
 {
+   if (id == FUNCTION_SOURCE_FORMAT || id == REQUIRE_OUTPUT_BRACKETS)
+      return !IsOfType("GmatFunction");
    // We want both path and name when we write out, so skip this parameter
    if ((id == FUNCTION_NAME) || (id == FUNCTION_INPUT) || (id == FUNCTION_OUTPUT))
       return true;
    
    return GmatBase::IsParameterReadOnly(id);
+}
+
+bool Function::IsParameterCloaked(const Integer id) const
+{
+   if (id == REQUIRE_OUTPUT_BRACKETS)
+      return !IsOfType("GmatFunction") || !requireOutputBrackets;
+   if (id == FUNCTION_SOURCE_FORMAT)
+      return !IsOfType("GmatFunction") || sourceFormat == "Native";
+   return GmatBase::IsParameterCloaked(id);
+}
+
+bool Function::IsParameterCommandModeSettable(const Integer id) const
+{
+   if (id == FUNCTION_SOURCE_FORMAT || id == REQUIRE_OUTPUT_BRACKETS)
+      return false;
+   return GmatBase::IsParameterCommandModeSettable(id);
+}
+
+const StringArray& Function::GetPropertyEnumStrings(const Integer id) const
+{
+   if (id == FUNCTION_SOURCE_FORMAT)
+   {
+      static const StringArray formats = {"Native", "LegacyASCII"};
+      return formats;
+   }
+   return GmatBase::GetPropertyEnumStrings(id);
+}
+
+bool Function::GetBooleanParameter(const Integer id) const
+{
+   if (id == REQUIRE_OUTPUT_BRACKETS) return requireOutputBrackets;
+   return GmatBase::GetBooleanParameter(id);
+}
+
+bool Function::GetBooleanParameter(const std::string &label) const
+{
+   return GetBooleanParameter(GetParameterID(label));
+}
+
+bool Function::SetBooleanParameter(const Integer id, const bool value)
+{
+   if (id == REQUIRE_OUTPUT_BRACKETS)
+   {
+      if (!IsOfType("GmatFunction"))
+         throw FunctionException("RequireOutputBrackets applies only to GmatFunction resources.");
+      requireOutputBrackets = value;
+      return true;
+   }
+   return GmatBase::SetBooleanParameter(id, value);
+}
+
+bool Function::SetBooleanParameter(const std::string &label, const bool value)
+{
+   return SetBooleanParameter(GetParameterID(label), value);
+}
+
+// Validate every resolved source before parsing, including nested fragments.
+// Native mode retains general include filenames; LegacyASCII keeps all function
+// contents in .gmf files, as well as requiring seven-bit ASCII bytes.
+void Function::ValidateSourceFilePolicy(const std::string &path,
+                                        bool includeFile) const
+{
+   if (!IsOfType("GmatFunction") || sourceFormat != "LegacyASCII")
+      return;
+
+   const std::string filename = GmatFileUtil::ParseFileName(path);
+   if (filename.size() <= 4 || filename.compare(filename.size()-4, 4, ".gmf") != 0)
+      throw FunctionException("GmatFunction '" + GetName() +
+         "' with SourceFormat = LegacyASCII requires a .gmf " +
+         (includeFile ? "include" : "function") + " file: '" + path + "'.");
+
+   std::ifstream source(path.c_str(), std::ios::binary);
+   if (!source)
+      throw FunctionException("Cannot read GmatFunction source '" + path +
+         "' to enforce SourceFormat = LegacyASCII for '" + GetName() + "'.");
+   char bytes[4096];
+   std::streamoff offset = 0;
+   while (source.read(bytes, sizeof(bytes)) || source.gcount() > 0)
+   {
+      const std::streamsize count = source.gcount();
+      for (std::streamsize i = 0; i < count; ++i)
+         if (static_cast<unsigned char>(bytes[i]) > 127)
+            throw FunctionException("GmatFunction '" + GetName() +
+               "' with SourceFormat = LegacyASCII found a non-ASCII byte at offset " +
+               std::to_string(offset + i) + " in '" + path + "'.");
+      offset += count;
+   }
+   if (source.bad() || (!source.eof() && source.fail()))
+      throw FunctionException("Error reading GmatFunction source '" + path +
+         "' while enforcing SourceFormat = LegacyASCII.");
 }
 
 
@@ -470,6 +772,8 @@ std::string Function::GetStringParameter(const Integer id) const
    }
    else if (id == FUNCTION_NAME)
       return functionName;
+   else if (id == FUNCTION_SOURCE_FORMAT)
+      return sourceFormat;
    
    return GmatBase::GetStringParameter(id);
 }
@@ -504,7 +808,7 @@ std::string Function::GetStringParameter(const Integer id,
    switch (id)
    {
    case FUNCTION_INPUT:
-      if (index >= (Integer)inputNames.size())
+      if (index < 0 || index >= (Integer)inputNames.size())
       {
          FunctionException fe;
          fe.SetDetails("The index of %d for field \"%s\" is out of bounds for the "
@@ -516,7 +820,7 @@ std::string Function::GetStringParameter(const Integer id,
          return inputNames[index];
       
    case FUNCTION_OUTPUT:
-      if (index >= (Integer)outputNames.size())
+      if (index < 0 || index >= (Integer)outputNames.size())
       {
          FunctionException fe;
          fe.SetDetails("The index of %d for field \"%s\" is out of bounds for the "
@@ -621,6 +925,14 @@ bool Function::SetStringParameter(const Integer id, const std::string &value)
    
    switch (id)
    {
+   case FUNCTION_SOURCE_FORMAT:
+      if (!IsOfType("GmatFunction"))
+         throw FunctionException("SourceFormat applies only to GmatFunction resources.");
+      if (value != "Native" && value != "LegacyASCII")
+         throw FunctionException("Invalid SourceFormat '" + value +
+            "' for GmatFunction '" + GetName() + "'; expected Native or LegacyASCII.");
+      sourceFormat = value;
+      return true;
    case FUNCTION_NAME:
       functionName = value;
       return true;

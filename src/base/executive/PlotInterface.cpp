@@ -32,6 +32,8 @@
 
 #include "PlotInterface.hpp"
 #include "MessageInterface.hpp"
+#include <map>
+#include <mutex>
 
 //#define DEBUG_PLOTIF_GL 1
 //#define DEBUG_PLOTIF_GL_CREATE 1
@@ -40,6 +42,46 @@
 //#define DEBUG_PLOTIF_XY 1
 //#define DEBUG_PLOTIF_XY_UPDATE 1
 //#define DEBUG_RENAME 1
+
+namespace
+{
+struct PlotDisplayNames
+{
+   std::mutex mutex;
+   std::map<std::string, std::string> names;
+};
+PlotDisplayNames &DisplayNames()
+{
+   static auto *names = new PlotDisplayNames;
+   return *names;
+}
+}
+
+void PlotInterface::SetPlotDisplayName(const std::string &backendName, const std::string &displayName)
+{
+   auto &state = DisplayNames();
+   std::lock_guard<std::mutex> lock(state.mutex);
+   state.names[backendName] = displayName;
+}
+
+std::string PlotInterface::GetPlotDisplayName(const std::string &backendName)
+{
+   auto &state = DisplayNames();
+   std::lock_guard<std::mutex> lock(state.mutex);
+   const auto found = state.names.find(backendName);
+   return found == state.names.end() ? backendName : found->second;
+}
+
+void PlotInterface::ForgetPlotDisplayName(const std::string &backendName) noexcept
+{
+   try
+   {
+      auto &state = DisplayNames();
+      std::lock_guard<std::mutex> lock(state.mutex);
+      state.names.erase(backendName);
+   }
+   catch (...) {}
+}
 
 //---------------------------------
 //  static data

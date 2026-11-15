@@ -1,8 +1,10 @@
 #pragma once
 #include <QWidget>
 #include <QMdiSubWindow>
+#include <QPointer>
 #include <functional>
 class QDialogButtonBox;
+class QLabel;
 class EditablePanel : public QWidget
 {
 public:
@@ -18,8 +20,11 @@ public:
    std::function<void()> onApplied;
 protected:
    void appliedSuccessfully();
+   void refreshCompletionActions();
 private:
    bool closeAfterApply=false;
+   QPointer<QDialogButtonBox> completionButtons;
+   QPointer<QLabel> completionStatus;
 };
 class EditorSubWindow final : public QMdiSubWindow
 {

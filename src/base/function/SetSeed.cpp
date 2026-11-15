@@ -34,7 +34,24 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ExpressionBinding.hpp"
+#include <memory>
+#include <typeinfo>
 #include "SetSeed.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration setSeedValueProvider({
+   SetSeed::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const SetSeed*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<SetSeed*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "FunctionException.hpp"
 #include "RealUtilities.hpp"       // for SetSeed()
 #include "MessageInterface.hpp"
@@ -165,9 +182,7 @@ void SetSeed::SetOutputTypes(WrapperTypeArray &outputTypes,
    #endif
    
    // Set output wrapper type for SetSeed
-   outputWrapperTypes = outputTypes;
-   outputRowCounts = rowCounts;
-   outputColCounts = colCounts;   
+   Function::SetOutputTypes(outputTypes, rowCounts, colCounts);
 }
 
 //------------------------------------------------------------------------------
@@ -383,7 +398,15 @@ void SetSeed::Finalize(bool cleanUp)
 //------------------------------------------------------------------------------
 GmatBase* SetSeed::Clone() const
 {
-   return (new SetSeed(*this));
+   std::unique_ptr<SetSeed> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new SetSeed(*this));
+   }
+   if (typeid(*value) != typeid(*this))
+      throw FunctionException("A derived SetSeed must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -398,6 +421,39 @@ GmatBase* SetSeed::Clone() const
 //---------------------------------------------------------------------------
 void SetSeed::Copy(const GmatBase* orig)
 {
-   operator=(*((SetSeed *)(orig)));
+   const auto *source = dynamic_cast<const SetSeed*>(orig);
+   if (!source || typeid(*this) != typeid(SetSeed) || typeid(*this) != typeid(*source))
+      throw FunctionException("Incompatible SetSeed value copy or missing derived Copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   const auto previousFunctionBindings = functionBindings;
+   const auto previousObjectBindings = objectBindings;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
 }
 
+
+
+bool SetSeed::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const SetSeed*>(&original);
+   if (!source || typeid(*this) != typeid(SetSeed) || typeid(original) != typeid(SetSeed))
+      throw FunctionException("Derived SetSeed references need their own passive provider.\n");
+   RebindObjectManagedFunctionValue(*source, resolve);
+   return true;
+}
+
+bool SetSeed::HasFunctionValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(SetSeed);
+}
+
+std::unique_ptr<FunctionInvocationState> SetSeed::SuspendInvocationState()
+{
+   return CaptureInvocationFields(BuiltinGmatFunction::SuspendInvocationState(),
+         seedValue);
+}

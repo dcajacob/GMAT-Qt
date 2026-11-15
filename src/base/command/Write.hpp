@@ -45,6 +45,7 @@ class GMAT_API Write : public GmatCommand
 public:
    Write();
    virtual ~Write();
+   void RetireFunctionBindings(ObjectMap *store) override;
    Write(const Write &dispCmd);
    Write& operator=(const Write &dispCmd);
    

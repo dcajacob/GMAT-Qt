@@ -42,6 +42,8 @@
 class KALMAN_API Smoother: public SmootherBase
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = SmootherBase::NativeValueProviderDepth + 1;
+
    Smoother(const std::string &name);
    virtual ~Smoother();
    Smoother(const Smoother &sm);
@@ -49,6 +51,9 @@ public:
 
    virtual GmatBase*       Clone() const;
    virtual void            Copy(const GmatBase*);
+
+   bool HasSolverValueReferenceProviderImpl() const;
+   void PrepareClonedSolverValueImpl(const Solver &source);
 
 protected:
    virtual void           SmoothState(SmootherInfoType &smootherStat, bool includeUpdate);

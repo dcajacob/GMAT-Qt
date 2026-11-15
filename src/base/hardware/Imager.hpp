@@ -34,10 +34,13 @@
 #include "gmatdefs.hpp"
 #include "Hardware.hpp"
 #include "FieldOfView.hpp"
+#include <memory>
 
 class GMAT_API Imager: public Hardware
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = Hardware::NativeValueProviderDepth + 1;
+
    Imager(UnsignedInt typeId, const std::string &ofType, const std::string &withName);
    virtual ~Imager();
    Imager(const Imager &other);
@@ -144,6 +147,8 @@ public:
 
    virtual FieldOfView* GetFieldOfView();
    virtual bool        HasFOV();
+   bool                OwnsFieldOfView() const { return ownedFov != nullptr; }
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
 
    DEFAULT_TO_NO_CLONES
 
@@ -152,6 +157,8 @@ protected:
    bool                    fovIsModeled;
    FieldOfView             *fov;
    std::string             fovName;
+   /// File-generated station masks are owned; configured FOV references are borrowed.
+   std::unique_ptr<FieldOfView> ownedFov;
    Real                    naifID;
 
    /// Enumeration defining user accessible parameters for Hardware elements.

@@ -57,6 +57,7 @@ public:
    ConditionalBranch& operator=(const ConditionalBranch &cb);
    // destructor
    virtual ~ConditionalBranch();
+   void RetireFunctionBindings(ObjectMap *store) override;
          
    // Method to set up the condition(s) for the conditional branch commands
    virtual bool         SetCondition(const std::string &lhs, 

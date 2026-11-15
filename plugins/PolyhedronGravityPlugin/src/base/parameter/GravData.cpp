@@ -134,6 +134,25 @@ GravData& GravData::operator= (const GravData &right)
 }
 
 
+// Map cached identities without evaluating or initializing a Parameter.
+void GravData::RebindClonedParameterCaches(const RefData &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &data = ClonedParameterData<GravData>(source);
+   auto *bound_mSpacecraft = BindClonedParameterReference(data.mSpacecraft, resolve);
+   auto *bound_mSolarSystem = BindClonedParameterReference(data.mSolarSystem, resolve);
+   auto *bound_mModel = BindClonedParameterReference(data.mModel, resolve);
+   auto *bound_cbForce = BindClonedParameterReference(data.cbForce, resolve);
+   auto *bound_body = BindClonedParameterReference(data.body, resolve);
+   mSpacecraft = bound_mSpacecraft;
+   mSolarSystem = bound_mSolarSystem;
+   mModel = bound_mModel;
+   cbForce = bound_cbForce;
+   body = bound_body;
+}
+
+
+
 //------------------------------------------------------------------------------
 // ~GravData()
 //------------------------------------------------------------------------------

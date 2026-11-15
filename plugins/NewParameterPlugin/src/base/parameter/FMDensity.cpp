@@ -140,5 +140,10 @@ bool FMDensity::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* FMDensity::Clone() const
 {
-   return new FMDensity(*this);
+   return CompleteParameterClone(new FMDensity(*this));
+}
+
+void FMDensity::Copy(const GmatBase *source)
+{
+   CopyParameterValue<FMDensity>(source);
 }

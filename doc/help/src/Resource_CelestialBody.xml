@@ -39,6 +39,59 @@
     You can create a custom resource to model a planet, asteroid, comet, or
     moon. This resource cannot be modified in the Mission Sequence.</para>
 
+    <para>Native kernel loads, unloads and pool resets invalidate cached body
+    states, including a repeat query at the same epoch. The next state query
+    uses the current pool and the body's configured ephemeris source. This
+    cache invalidation does not change an explicitly configured NAIF ID or
+    declare an unavailable kernel to be loaded.</para>
+    <para>Native loaded-state and coverage queries consult CSPICE's loaded
+    kernel table. Coverage failure classification includes SPK files loaded
+    through a meta-kernel; querying their coverage does not load a second copy
+    under another filename spelling. Configured body kernel lists and explicit
+    NAIF IDs retain their authored meanings.</para>
+
+    <para><guilabel>PhysicalBody</guilabel> identifies the default physical
+    model retained by a named user-defined body. It must name a default body
+    of the same concrete type and can be selected only once, before
+    BeginMissionSequence. The resource keeps its own name, numerical physical
+    properties and appearance settings. Its DE/SPICE target and native
+    orientation model follow the selected physical body. The ephemeris source
+    remains controlled by SolarSystem, and native pole and rotation constants
+    remain read-only. The identity is written before other body settings in a
+    saved configuration.</para>
+
+    <para>A physical-body identity retains Earth, Luna, Neptune and other
+    body-specific behavior when the resource has another name. Resource
+    references and script statements continue to use the resource's actual
+    name. Ordinary user-defined bodies without PhysicalBody retain their
+    configured SPICE or TwoBodyPropagation source and editable simplified
+    orientation model.</para>
+
+    <para>The Qt <guimenuitem>Copy celestial body</guimenuitem> command can
+    copy a default body, including the Sun, into a named user-defined resource.
+    The saved configuration retains PhysicalBody, its effective writable
+    values, kernel lists and appearance. Earth-specific nutation and DSN
+    settings and Luna's supported native rotation choice follow the retained
+    physical identity. A Sun copy also retains its radiance, reference
+    distance and photosphere radius as its own saved values.</para>
+
+    <para>If an individual native kernel unload fails, GMAT reports the
+    failure and attempts to reload the remaining directly furnished kernel
+    roots in their observed load order, retaining repeated furnish operations.
+    Requested-filename bookkeeping is then reconciled with the actual loaded
+    table. Unavailable files and incomplete meta-kernel recovery are still
+    reported as failures; recovery does not establish complete kernel or
+    scientific validity.</para>
+
+    <para>Unload requests use the native loaded filename, including
+    meta-kernel children and recognized filesystem aliases. During failure
+    recovery each replayed root's ordered child selection is reconciled with
+    the pre-failure table before later roots are loaded. Children removed
+    earlier are removed again if the meta-kernel replay brings them back.
+    If a root's observed selection cannot be restored, GMAT attempts to retire
+    that replayed root and reports the failure, including a retirement
+    failure.</para>
+
     <para><phrase role="ref_seealso">See Also</phrase>: <xref
     linkend="SolarSystem"/>, <xref linkend="Barycenter"/>, <xref
     linkend="LibrationPoint"/>, <xref linkend="CoordinateSystem"/>, <xref
@@ -1410,12 +1463,10 @@
             <entry><guilabel>PosVelSource </guilabel></entry>
 
             <entry><para>The model for user-defined body orbit ephemeredes.
-            GMAT currently only supports a single ephemeris model for custom
-            bodies (SPICE) and this is set using
-            <guilabel>PosVelSource</guilabel> field. The default for
-            <guilabel>PosVelSource</guilabel> is SPICE and it is not necessary
-            to configure this field in the current version of GMAT. This field
-            has no effect for built-in bodies.</para><variablelist>
+            Select SPICE for kernel ephemerides or TwoBodyPropagation for an
+            analytic Keplerian orbit about the body's central body. The default
+            is SPICE. TwoBodyPropagation is available only for user-defined
+            bodies; built-in sources remain configured on the SolarSystem.</para><variablelist>
                 <varlistentry>
                   <term>Data Type</term>
 
@@ -1428,7 +1479,7 @@
                   <term>Allowed Values</term>
 
                   <listitem>
-                    <para><guilabel>SPICE</guilabel></para>
+                    <para><guilabel>SPICE</guilabel>, <guilabel>TwoBodyPropagation</guilabel></para>
                   </listitem>
                 </varlistentry>
 
@@ -2354,11 +2405,39 @@ Ceres.CentralBody          = Sun
 Ceres.OrbitSpiceKernelName = ...
     {'../data/planetary_ephem/spk/ceres_1900_2100.bsp'}</code></programlisting>
 
-      <para>Note: GMAT currently only supports a single ephemeris model for
-      custom bodies (SPICE) and this is set using
-      <guilabel>PosVelSource</guilabel> field. The default for
-      <guilabel>PosVelSource</guilabel> is SPICE and it is not necessary to
-      configure this field in the current version of GMAT.</para>
+      <para>SPICE remains the default ephemeris model. To configure an analytic
+      orbit, select <guilabel>PosVelSource = TwoBodyPropagation</guilabel> and set
+      <guilabel>InitialEpoch</guilabel> in A1ModJulian, followed by
+      <guilabel>SMA</guilabel> in km, <guilabel>ECC</guilabel>, and
+      <guilabel>INC</guilabel>, <guilabel>RAAN</guilabel>, <guilabel>AOP</guilabel>,
+      and <guilabel>TA</guilabel> in degrees. The elements use the central body
+      as origin and the MJ2000Eq axes. Ellipses require positive SMA and
+      eccentricity below one; hyperbolas require negative SMA and eccentricity
+      above one. Finite SMA does not parameterize a parabolic orbit. The relative
+      two-body gravitational parameter is the sum of the body's and central
+      body's gravitational parameters.</para>
+      <para>Native acceleration queries use the exact relative two-body
+      acceleration plus the central body's acceleration for TwoBodyPropagation.
+      For kernel/DE-backed bodies, GMAT differentiates the selected provider's
+      MJ2000 velocity with a fourth-order stencil at one-second spacing, rather
+      than returning a zero acceleration. The ordinary stencil needs samples
+      two seconds on either side; near a coverage boundary a fourth-order
+      one-sided stencil can use four seconds on the available side. Every
+      sample must be supplied by the ephemeris. Insufficient coverage is an
+      error. A scoped cache bypass covers these samples and their parent-body
+      queries while preserving configured update intervals. Acceleration is
+      relative to the same J2000 reference body as the
+      state, in MJ2000 axes and km/s². Body-referenced frame rates consume these
+      native queries. Optional OEM acceleration output also uses them for
+      celestial-body origin translations in fixed inertial axes; moving-axis
+      acceleration conversion requires a second rotation derivative and is
+      explicitly rejected.</para>
+
+      <para>TwoBodyPropagation supplies native GMAT state queries. Event
+      locators obtain celestial-body geometry directly from SPICE kernels;
+      selecting an analytic body as an event geometry body or a station/region
+      central body is rejected. The analytic orbit is not substituted by a
+      kernel that happens to use the same NAIF ID.</para>
 
       <warning>
         <para>NAIF distributes SPICE kernels for many celestial bodies and

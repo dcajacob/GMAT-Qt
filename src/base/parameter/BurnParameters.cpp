@@ -191,7 +191,12 @@ void ImpBurnElements::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* ImpBurnElements::Clone(void) const
 {
-   return new ImpBurnElements(*this);
+   return CompleteParameterClone(new ImpBurnElements(*this));
+}
+
+void ImpBurnElements::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ImpBurnElements>(source);
 }
 
 
@@ -327,7 +332,12 @@ void TotalMassFlowRate::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* TotalMassFlowRate::Clone(void) const
 {
-   return new TotalMassFlowRate(*this);
+   return CompleteParameterClone(new TotalMassFlowRate(*this));
+}
+
+void TotalMassFlowRate::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TotalMassFlowRate>(source);
 }
 
 
@@ -480,7 +490,12 @@ void TotalAcceleration::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* TotalAcceleration::Clone(void) const
 {
-   return new TotalAcceleration(*this);
+   return CompleteParameterClone(new TotalAcceleration(*this));
+}
+
+void TotalAcceleration::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TotalAcceleration>(source);
 }
 
 
@@ -633,7 +648,12 @@ void TotalThrust::SetReal(Real val)
 //------------------------------------------------------------------------------
 GmatBase* TotalThrust::Clone(void) const
 {
-   return new TotalThrust(*this);
+   return CompleteParameterClone(new TotalThrust(*this));
+}
+
+void TotalThrust::Copy(const GmatBase *source)
+{
+   CopyParameterValue<TotalThrust>(source);
 }
 
 

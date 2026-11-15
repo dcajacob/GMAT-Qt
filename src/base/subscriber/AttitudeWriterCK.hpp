@@ -56,6 +56,7 @@ protected:
 
    SpiceAttitudeKernelWriter* ckWriter;        // owned object
    std::string sclkFileName;
+   std::string sclkDirectory;                  // owned, reserved private directory
 
    bool        ckWriteFailed;
 
@@ -72,6 +73,8 @@ protected:
       const std::string& outFormat,
       const std::string& covFormat);
    void         CreateSpiceKernelWriter();
+   // Strict retirement for assignment; failures keep pending ownership.
+   void         RetireWriter();
 
    // Data   
    virtual void HandleOrbitData();

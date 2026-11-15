@@ -1,5 +1,6 @@
 #include "FolderRunDialog.hpp"
 #include "QtPlotReceiver.hpp"
+#include "WorkspaceLayout.hpp"
 #include <QApplication>
 #include <QCheckBox>
 #include <QDialogButtonBox>
@@ -51,7 +52,9 @@ FolderRunDialog::FolderRunDialog(const QString &initialOutput,Run run,std::funct
    runFolders=new QCheckBox("Use Run_1, Run_2, … output folders",settings); runFolders->setObjectName("folderRunFolders"); form->addRow(runFolders);
    compare=new QCheckBox("Compare ReportFile outputs",settings); compare->setObjectName("folderCompare"); form->addRow(compare); baseline=path("Comparison folder","folderBaseline");
    replacement=new QLineEdit("GMAT",settings); replacement->setObjectName("folderReplacement"); form->addRow("Replace GMAT in reference filenames with",replacement);
-   tolerance=new QDoubleSpinBox(settings); tolerance->setObjectName("folderTolerance"); tolerance->setDecimals(12); tolerance->setRange(0,1e100); tolerance->setValue(1e-6); form->addRow("Absolute numerical tolerance",tolerance);
+   tolerance=new QDoubleSpinBox(settings); tolerance->setObjectName("folderTolerance"); tolerance->setDecimals(12); tolerance->setRange(0,1e100); tolerance->setValue(1e-6);
+   auto *toleranceUnit=new QLabel("Absolute numerical tolerance (column units)",settings);toleranceUnit->setObjectName("folderToleranceUnit");form->addRow(toleranceUnit,tolerance);
+   tolerance->setToolTip("Applied to each numeric value as stored. Convert or normalize differing units before comparing; no automatic unit conversion is performed.");
    saveComparison=new QCheckBox("Save comparison results",settings); saveComparison->setObjectName("folderSaveComparison"); form->addRow(saveComparison); comparisonFile=path("Comparison results file","folderComparisonFile",true);
    auto *note=new QLabel("The range refers to the sorted mission list before filters. Functions and backup files are excluded. Saved copies retain exact source bytes; relative assets continue to resolve from the original script folder. Explicit output filenames retain their destinations.",settings); note->setWordWrap(true); form->addRow(note);
    const auto dependencies=[this] {
@@ -65,7 +68,7 @@ FolderRunDialog::FolderRunDialog(const QString &initialOutput,Run run,std::funct
    auto *arrange=new QHBoxLayout; plotLayout->addLayout(arrange);
    auto *tile=new QPushButton("Tile windows",plotPage),*cascade=new QPushButton("Cascade windows",plotPage); arrange->addWidget(tile); arrange->addWidget(cascade); arrange->addStretch();
    auto *workspace=new QMdiArea(plotPage); workspace->setObjectName("folderPlots"); plotLayout->addWidget(workspace,1); tabs->addTab(plotPage,"Plots"); plots=std::make_unique<QtPlotReceiver>(workspace);
-   connect(tile,&QPushButton::clicked,workspace,&QMdiArea::tileSubWindows); connect(cascade,&QPushButton::clicked,workspace,&QMdiArea::cascadeSubWindows);
+   connect(tile,&QPushButton::clicked,this,[workspace] { tileWorkspaceWindows(workspace); }); connect(cascade,&QPushButton::clicked,workspace,&QMdiArea::cascadeSubWindows);
    status=new QLabel(this); status->setObjectName("folderStatus"); status->setWordWrap(true); layout->addWidget(status);
    auto *buttons=new QDialogButtonBox(QDialogButtonBox::Close,this); layout->addWidget(buttons); closeButton=buttons->button(QDialogButtonBox::Close);
    runButton=buttons->addButton("Run",QDialogButtonBox::ActionRole); runButton->setObjectName("folderRun"); stopButton=buttons->addButton("Stop",QDialogButtonBox::ActionRole); stopButton->setObjectName("folderStop"); stopButton->setEnabled(false);

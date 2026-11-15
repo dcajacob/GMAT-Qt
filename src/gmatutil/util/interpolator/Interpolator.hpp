@@ -88,6 +88,10 @@ public:
 //   DEFAULT_TO_NO_REFOBJECTS
 
 protected:
+   // Table-only helpers for concrete native restoration providers. These do
+   // not replace storage or restore a derived interpolator's scratch state.
+   void ValidateTableRestoration(const Interpolator &source) const;
+   void RestoreTableValues(const Interpolator &source);
    /// Data array used for the independent variable
    Real *independent;
    /// The data that gets interpolated

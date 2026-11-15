@@ -61,6 +61,9 @@ public:
 
    
 protected:
+   void RebindClonedParameterCaches(const RefData &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
+
 
    // The inherited methods from RefData
    virtual void InitializeRefObjects();

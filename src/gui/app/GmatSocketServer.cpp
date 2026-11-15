@@ -29,6 +29,9 @@
 #include "GmatMainFrame.hpp"
 #include "GmatSocketServer.hpp"
 #include "MessageInterface.hpp"
+#include "GmatInterface.hpp"
+#include <cstdio>
+#include <cstring>
 
 #define DEBUG_SOCKET
 
@@ -118,6 +121,9 @@ bool GmatSocketServer::RunRequest(SOCKET sock)
 	#endif
 
 
+   const bool rejected = std::strncmp(buf, "script,", 7) == 0 &&
+      !GmatInterface::CanAcceptMatlabCommand(buf + 7);
+
 	// 2. Echo back the data
 	send(sock, buf, len, 0);
 	#ifdef DEBUG_SOCKET
@@ -132,6 +138,15 @@ bool GmatSocketServer::RunRequest(SOCKET sock)
 		#endif
 	#endif
 
+
+   if (rejected)
+   {
+      // The echo acknowledges receipt only. Never queue a denied request for
+      // execution after the MATLAB function or callback has already returned.
+      std::fprintf(stderr, "GMAT refused a MATLAB command during active function/callback/script control\n");
+      delete[] buf;
+      return false;
+   }
 
 	// 3. if the received message contains 'Request' string then run
 	//    OnRequest() function

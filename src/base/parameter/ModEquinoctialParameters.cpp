@@ -105,7 +105,12 @@ bool ModEquinP::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* ModEquinP::Clone(void) const
 {
-   return new ModEquinP(*this);
+   return CompleteParameterClone(new ModEquinP(*this));
+}
+
+void ModEquinP::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ModEquinP>(source);
 }
 
 
@@ -167,7 +172,12 @@ bool ModEquinF::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* ModEquinF::Clone(void) const
 {
-   return new ModEquinF(*this);
+   return CompleteParameterClone(new ModEquinF(*this));
+}
+
+void ModEquinF::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ModEquinF>(source);
 }
 
 
@@ -230,7 +240,12 @@ bool ModEquinG::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* ModEquinG::Clone(void) const
 {
-   return new ModEquinG(*this);
+   return CompleteParameterClone(new ModEquinG(*this));
+}
+
+void ModEquinG::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ModEquinG>(source);
 }
 
 
@@ -293,7 +308,12 @@ bool ModEquinH::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* ModEquinH::Clone(void) const
 {
-   return new ModEquinH(*this);
+   return CompleteParameterClone(new ModEquinH(*this));
+}
+
+void ModEquinH::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ModEquinH>(source);
 }
 
 
@@ -355,7 +375,12 @@ bool ModEquinK::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* ModEquinK::Clone(void) const
 {
-   return new ModEquinK(*this);
+   return CompleteParameterClone(new ModEquinK(*this));
+}
+
+void ModEquinK::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ModEquinK>(source);
 }
 
 
@@ -418,7 +443,12 @@ bool ModEquinTLONG::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* ModEquinTLONG::Clone(void) const
 {
-   return new ModEquinTLONG(*this);
+   return CompleteParameterClone(new ModEquinTLONG(*this));
+}
+
+void ModEquinTLONG::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ModEquinTLONG>(source);
 }
 
 
@@ -484,7 +514,12 @@ bool ModEquinState::Evaluate()
 //------------------------------------------------------------------------------
 GmatBase* ModEquinState::Clone(void) const
 {
-   return new ModEquinState(*this);
+   return CompleteParameterClone(new ModEquinState(*this));
+}
+
+void ModEquinState::Copy(const GmatBase *source)
+{
+   CopyParameterValue<ModEquinState>(source);
 }
 
 

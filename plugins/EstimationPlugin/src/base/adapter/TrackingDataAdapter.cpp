@@ -37,7 +37,31 @@
 #include "GroundstationInterface.hpp"
 #include "Spacecraft.hpp"
 #include "Receiver.hpp"
+#include <memory>
 #include <sstream>
+
+namespace
+{
+// The adapter destructor owns these lists; copies must own separate strings.
+std::vector<StringArray*> CopyParticipantLists(
+      const std::vector<StringArray*> &source)
+{
+   std::vector<StringArray*> copies;
+   copies.reserve(source.size());
+   try
+   {
+      for (const auto *path : source)
+         copies.push_back(path ? new StringArray(*path) : NULL);
+   }
+   catch (...)
+   {
+      for (auto *path : copies)
+         delete path;
+      throw;
+   }
+   return copies;
+}
+}
 
 //#define DEBUG_CONSTRUCTION
 //#define DEBUG_SET_PARAMETER
@@ -103,6 +127,7 @@ TrackingDataAdapter::TrackingDataAdapter(const std::string &typeStr,
    timeGapForPassBreak  (1.0e70),
    
    useHorp              (false),
+   forceHorp            (false),
    horpHeight           (500.0),
    horpAngle            (70.0),
    horpOblateness       (false),
@@ -213,7 +238,6 @@ TrackingDataAdapter::TrackingDataAdapter(const TrackingDataAdapter& ma) :
    MeasurementModelBase (ma),
    measurementType      (ma.measurementType),
    dimNames             (ma.dimNames),
-   participantLists     (ma.participantLists),
    calcData             (NULL),
    navLog               (ma.navLog),
    logLevel             (ma.logLevel),
@@ -223,6 +247,11 @@ TrackingDataAdapter::TrackingDataAdapter(const TrackingDataAdapter& ma) :
    modelType            (ma.modelType),
    multiplier           (ma.multiplier),
    withLighttime        (ma.withLighttime),
+   useHorp              (ma.useHorp),
+   forceHorp            (ma.forceHorp),
+   horpHeight           (ma.horpHeight),
+   horpAngle            (ma.horpAngle),
+   horpOblateness       (ma.horpOblateness),
    timeGapForPassBreak  (ma.timeGapForPassBreak),
 
    thePropagators       (NULL),
@@ -250,6 +279,10 @@ TrackingDataAdapter::TrackingDataAdapter(const TrackingDataAdapter& ma) :
    MessageInterface::ShowMessage("TrackingDataAdapter copy constructor  from <%p> to <%p>\n", &ma, this);
 #endif
    isInitialized = false;
+   std::unique_ptr<MeasureModel> modelCopy(ma.calcData ?
+         static_cast<MeasureModel*>(ma.calcData->Clone()) : NULL);
+   participantLists = CopyParticipantLists(ma.participantLists);
+   calcData = modelCopy.release();
 }
 
 
@@ -275,6 +308,11 @@ TrackingDataAdapter& TrackingDataAdapter::operator=(
    {
       MeasurementModelBase::operator=(ma);
 
+      auto copiedParticipants = CopyParticipantLists(ma.participantLists);
+      for (auto *path : participantLists)
+         delete path;
+      participantLists.swap(copiedParticipants);
+
       measurementType    = ma.measurementType;
       dimNames           = ma.dimNames;
       navLog             = ma.navLog;
@@ -285,6 +323,11 @@ TrackingDataAdapter& TrackingDataAdapter::operator=(
       modelType          = ma.modelType;
       multiplier         = ma.multiplier;
       withLighttime      = ma.withLighttime;
+      useHorp            = ma.useHorp;
+      forceHorp          = ma.forceHorp;
+      horpHeight         = ma.horpHeight;
+      horpAngle          = ma.horpAngle;
+      horpOblateness     = ma.horpOblateness;
 
       timeGapForPassBreak= ma.timeGapForPassBreak;
 
@@ -1346,8 +1389,12 @@ MeasureModel* TrackingDataAdapter::GetMeasurementModel()
 //------------------------------------------------------------------------------
 StringArray TrackingDataAdapter::GetParticipants(Integer forPathIndex)
 {
-   StringArray list = *(participantLists[0]);
-   return list;
+   if (forPathIndex < 0 ||
+         static_cast<size_t>(forPathIndex) >= participantLists.size() ||
+         participantLists[forPathIndex] == NULL)
+      throw MeasurementException("Signal path index is out of range on tracking adapter " +
+            instanceName);
+   return *participantLists[forPathIndex];
 }
 
 

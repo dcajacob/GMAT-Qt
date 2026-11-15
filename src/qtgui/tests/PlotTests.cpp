@@ -650,7 +650,7 @@ int main(int argc,char **argv)
          slider->setValue(400); play->trigger();
          require(slider->value()==400 && timer->isActive() && play->text()=="Pause","Playback resumed from start instead of selected position");
          play->trigger(); require(slider->value()==400 && !timer->isActive(),"Pause lost playback position");
-         speed->setCurrentIndex(4); play->trigger(); QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection);
+         speed->setCurrentIndex(speed->findData(4.)); play->trigger(); QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection);
          require(slider->value()==440,"Playback speed control did not change replay advance");
          slider->sliderPressed(); require(!timer->isActive() && !play->isChecked(),"Scrubbing did not pause replay");
          replayPlot.findChild<QAction *>("plotReplayStart")->trigger(); require(slider->value()==0,"Start did not rewind replay");
@@ -658,7 +658,7 @@ int main(int argc,char **argv)
          play->trigger(); require(slider->value()==0,"Play at end did not restart history");
          slider->setValue(990); QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection);
          require(slider->value()==1000 && !play->isChecked() && !timer->isActive(),"Replay failed to stop at history end");
-         speed->setCurrentIndex(0); slider->setValue(400); play->trigger();
+         speed->setCurrentIndex(speed->findData(.25)); slider->setValue(400); play->trigger();
          QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection);
          QMetaObject::invokeMethod(timer,"timeout",Qt::DirectConnection);
          require(slider->value()==405,"Quarter-speed replay lost fractional advances");

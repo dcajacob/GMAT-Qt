@@ -1,0 +1,39 @@
+{
+  "status": "frozen-before-execution",
+  "row": "FRR!E406",
+  "script": "Create Variable Alpha Cost Keep;\nAlpha = 0;\nCost = 0;\nKeep = 41;\nEarth.Mu = 398600.4415;\nCreate Spacecraft Sat;\nSat.DateFormat = UTCGregorian;\nSat.Epoch = '01 Jan 2000 12:00:00.000';\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = 7.5460532872678359;\nSat.VZ = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nFM.Drag = None;\nFM.SRP = Off;\nCreate Propagator P;\nP.FM = FM;\nP.InitialStepSize = 5;\nP.MinStep = 5;\nP.MaxStep = 5;\nP.Accuracy = 1e-12;\nCreate FminconOptimizer Opt;\nOpt.MaximumIterations = @ITERATIONS@;\nOpt.MaxFunEvals = '@EVALUATIONS@';\nOpt.TolX = '1e-9';\nOpt.TolFun = '1e-10';\nOpt.TolCon = '1e-10';\nOpt.ShowProgress = false;\nOpt.ReportFile = '@WORK@/Optimizer.txt';\nCreate ReportFile Trials;\nTrials.Filename = '@WORK@/Trials.csv';\nTrials.WriteHeaders = false;\nTrials.FixedWidth = false;\nTrials.Delimiter = ',';\nTrials.Precision = 25;\nTrials.SolverIterations = All;\nCreate EphemerisFile Export;\nExport.Spacecraft = Sat;\nExport.FileFormat = CCSDS-OEM;\nExport.Filename = '@WORK@/Final.oem';\nExport.CoordinateSystem = EarthMJ2000Eq;\nExport.StepSize = IntegratorSteps;\nExport.InterpolationOrder = 7;\nBeginMissionSequence;\nOptimize Opt {SolveMode = @MODE@, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary Opt(Alpha = 0, {Lower = 0, Upper = 1, Perturbation = 0.0001, MaxStep = 0.5});\nCost = (Alpha-2)^2;\nSat.X = 7000+100*Alpha;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = sqrt(398600.4415/(7000+100*Alpha));\nSat.VZ = 0;\nReport Trials Alpha Cost Keep;\nPropagate P(Sat) {Sat.ElapsedSecs = 120};\nMinimize Opt(Cost);\nEndOptimize;\n",
+  "mu": 398600.4415,
+  "position_bound_km": 2e-05,
+  "velocity_bound_km_s": 2e-08,
+  "control_bound": 1e-06,
+  "epoch_bound_seconds": 0.002,
+  "phases": [
+    {
+      "key": "exhausted",
+      "mode": "Solve",
+      "iterations": 1,
+      "evaluations": "2",
+      "expected_converged": false,
+      "expected_rows": 0
+    },
+    {
+      "key": "converged",
+      "mode": "Solve",
+      "iterations": 60,
+      "evaluations": "500",
+      "expected_converged": true,
+      "expected_rows": 25,
+      "expected_alpha": 1.0,
+      "expected_cost": 1.0
+    },
+    {
+      "key": "initial_guess",
+      "mode": "RunInitialGuess",
+      "iterations": 60,
+      "evaluations": "500",
+      "expected_rows": 25,
+      "expected_alpha": 0.0,
+      "expected_cost": 4.0
+    }
+  ]
+}

@@ -1,0 +1,512 @@
+{
+  "scope": "Supplementary native GUI display of physical body units; no mission or rendering claim. Prior dimensionless unit assertions remain unchanged.",
+  "cases": [
+    {
+      "key": "SunBodyBodyPhysical",
+      "group": "BodyPhysical",
+      "object": "Sun",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Mu": "km³/s²",
+        "EquatorialRadius": "km",
+        "OrientationEpoch": "A1ModJulian",
+        "RotationConstant": "deg",
+        "RotationRate": "deg/day",
+        "SpinAxisDECConstant": "deg",
+        "SpinAxisDECRate": "deg/century",
+        "SpinAxisRAConstant": "deg",
+        "SpinAxisRARate": "deg/century",
+        "3DModelRotationX": "deg",
+        "3DModelRotationY": "deg",
+        "3DModelRotationZ": "deg"
+      }
+    },
+    {
+      "key": "SunBodyBodyOffsets",
+      "group": "BodyOffsets",
+      "object": "Sun",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "3DModelOffsetX": "km",
+        "3DModelOffsetY": "km",
+        "3DModelOffsetZ": "km"
+      }
+    },
+    {
+      "key": "MercuryBodyBodyPhysical",
+      "group": "BodyPhysical",
+      "object": "Mercury",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Mu": "km³/s²",
+        "EquatorialRadius": "km",
+        "OrientationEpoch": "A1ModJulian",
+        "RotationConstant": "deg",
+        "RotationRate": "deg/day",
+        "SpinAxisDECConstant": "deg",
+        "SpinAxisDECRate": "deg/century",
+        "SpinAxisRAConstant": "deg",
+        "SpinAxisRARate": "deg/century",
+        "3DModelRotationX": "deg",
+        "3DModelRotationY": "deg",
+        "3DModelRotationZ": "deg"
+      }
+    },
+    {
+      "key": "MercuryBodyBodyOffsets",
+      "group": "BodyOffsets",
+      "object": "Mercury",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "3DModelOffsetX": "km",
+        "3DModelOffsetY": "km",
+        "3DModelOffsetZ": "km"
+      }
+    },
+    {
+      "key": "VenusBodyBodyPhysical",
+      "group": "BodyPhysical",
+      "object": "Venus",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Mu": "km³/s²",
+        "EquatorialRadius": "km",
+        "OrientationEpoch": "A1ModJulian",
+        "RotationConstant": "deg",
+        "RotationRate": "deg/day",
+        "SpinAxisDECConstant": "deg",
+        "SpinAxisDECRate": "deg/century",
+        "SpinAxisRAConstant": "deg",
+        "SpinAxisRARate": "deg/century",
+        "3DModelRotationX": "deg",
+        "3DModelRotationY": "deg",
+        "3DModelRotationZ": "deg"
+      }
+    },
+    {
+      "key": "VenusBodyBodyOffsets",
+      "group": "BodyOffsets",
+      "object": "Venus",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "3DModelOffsetX": "km",
+        "3DModelOffsetY": "km",
+        "3DModelOffsetZ": "km"
+      }
+    },
+    {
+      "key": "EarthBodyBodyPhysical",
+      "group": "BodyPhysical",
+      "object": "Earth",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Mu": "km³/s²",
+        "EquatorialRadius": "km",
+        "OrientationEpoch": "A1ModJulian",
+        "RotationConstant": "deg",
+        "RotationRate": "deg/day",
+        "SpinAxisDECConstant": "deg",
+        "SpinAxisDECRate": "deg/century",
+        "SpinAxisRAConstant": "deg",
+        "SpinAxisRARate": "deg/century",
+        "3DModelRotationX": "deg",
+        "3DModelRotationY": "deg",
+        "3DModelRotationZ": "deg"
+      }
+    },
+    {
+      "key": "EarthBodyBodyOffsets",
+      "group": "BodyOffsets",
+      "object": "Earth",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "3DModelOffsetX": "km",
+        "3DModelOffsetY": "km",
+        "3DModelOffsetZ": "km"
+      }
+    },
+    {
+      "key": "LunaBodyBodyPhysical",
+      "group": "BodyPhysical",
+      "object": "Luna",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Mu": "km³/s²",
+        "EquatorialRadius": "km",
+        "OrientationEpoch": "A1ModJulian",
+        "RotationConstant": "deg",
+        "RotationRate": "deg/day",
+        "SpinAxisDECConstant": "deg",
+        "SpinAxisDECRate": "deg/century",
+        "SpinAxisRAConstant": "deg",
+        "SpinAxisRARate": "deg/century",
+        "3DModelRotationX": "deg",
+        "3DModelRotationY": "deg",
+        "3DModelRotationZ": "deg"
+      }
+    },
+    {
+      "key": "LunaBodyBodyOffsets",
+      "group": "BodyOffsets",
+      "object": "Luna",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "3DModelOffsetX": "km",
+        "3DModelOffsetY": "km",
+        "3DModelOffsetZ": "km"
+      }
+    },
+    {
+      "key": "MarsBodyBodyPhysical",
+      "group": "BodyPhysical",
+      "object": "Mars",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Mu": "km³/s²",
+        "EquatorialRadius": "km",
+        "OrientationEpoch": "A1ModJulian",
+        "RotationConstant": "deg",
+        "RotationRate": "deg/day",
+        "SpinAxisDECConstant": "deg",
+        "SpinAxisDECRate": "deg/century",
+        "SpinAxisRAConstant": "deg",
+        "SpinAxisRARate": "deg/century",
+        "3DModelRotationX": "deg",
+        "3DModelRotationY": "deg",
+        "3DModelRotationZ": "deg"
+      }
+    },
+    {
+      "key": "MarsBodyBodyOffsets",
+      "group": "BodyOffsets",
+      "object": "Mars",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "3DModelOffsetX": "km",
+        "3DModelOffsetY": "km",
+        "3DModelOffsetZ": "km"
+      }
+    },
+    {
+      "key": "JupiterBodyBodyPhysical",
+      "group": "BodyPhysical",
+      "object": "Jupiter",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Mu": "km³/s²",
+        "EquatorialRadius": "km",
+        "OrientationEpoch": "A1ModJulian",
+        "RotationConstant": "deg",
+        "RotationRate": "deg/day",
+        "SpinAxisDECConstant": "deg",
+        "SpinAxisDECRate": "deg/century",
+        "SpinAxisRAConstant": "deg",
+        "SpinAxisRARate": "deg/century",
+        "3DModelRotationX": "deg",
+        "3DModelRotationY": "deg",
+        "3DModelRotationZ": "deg"
+      }
+    },
+    {
+      "key": "JupiterBodyBodyOffsets",
+      "group": "BodyOffsets",
+      "object": "Jupiter",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "3DModelOffsetX": "km",
+        "3DModelOffsetY": "km",
+        "3DModelOffsetZ": "km"
+      }
+    },
+    {
+      "key": "SaturnBodyBodyPhysical",
+      "group": "BodyPhysical",
+      "object": "Saturn",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Mu": "km³/s²",
+        "EquatorialRadius": "km",
+        "OrientationEpoch": "A1ModJulian",
+        "RotationConstant": "deg",
+        "RotationRate": "deg/day",
+        "SpinAxisDECConstant": "deg",
+        "SpinAxisDECRate": "deg/century",
+        "SpinAxisRAConstant": "deg",
+        "SpinAxisRARate": "deg/century",
+        "3DModelRotationX": "deg",
+        "3DModelRotationY": "deg",
+        "3DModelRotationZ": "deg"
+      }
+    },
+    {
+      "key": "SaturnBodyBodyOffsets",
+      "group": "BodyOffsets",
+      "object": "Saturn",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "3DModelOffsetX": "km",
+        "3DModelOffsetY": "km",
+        "3DModelOffsetZ": "km"
+      }
+    },
+    {
+      "key": "UranusBodyBodyPhysical",
+      "group": "BodyPhysical",
+      "object": "Uranus",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Mu": "km³/s²",
+        "EquatorialRadius": "km",
+        "OrientationEpoch": "A1ModJulian",
+        "RotationConstant": "deg",
+        "RotationRate": "deg/day",
+        "SpinAxisDECConstant": "deg",
+        "SpinAxisDECRate": "deg/century",
+        "SpinAxisRAConstant": "deg",
+        "SpinAxisRARate": "deg/century",
+        "3DModelRotationX": "deg",
+        "3DModelRotationY": "deg",
+        "3DModelRotationZ": "deg"
+      }
+    },
+    {
+      "key": "UranusBodyBodyOffsets",
+      "group": "BodyOffsets",
+      "object": "Uranus",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "3DModelOffsetX": "km",
+        "3DModelOffsetY": "km",
+        "3DModelOffsetZ": "km"
+      }
+    },
+    {
+      "key": "NeptuneBodyBodyPhysical",
+      "group": "BodyPhysical",
+      "object": "Neptune",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Mu": "km³/s²",
+        "EquatorialRadius": "km",
+        "OrientationEpoch": "A1ModJulian",
+        "RotationConstant": "deg",
+        "RotationRate": "deg/day",
+        "SpinAxisDECConstant": "deg",
+        "SpinAxisDECRate": "deg/century",
+        "SpinAxisRAConstant": "deg",
+        "SpinAxisRARate": "deg/century",
+        "3DModelRotationX": "deg",
+        "3DModelRotationY": "deg",
+        "3DModelRotationZ": "deg"
+      }
+    },
+    {
+      "key": "NeptuneBodyBodyOffsets",
+      "group": "BodyOffsets",
+      "object": "Neptune",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "3DModelOffsetX": "km",
+        "3DModelOffsetY": "km",
+        "3DModelOffsetZ": "km"
+      }
+    },
+    {
+      "key": "PlutoBodyBodyPhysical",
+      "group": "BodyPhysical",
+      "object": "Pluto",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "Mu": "km³/s²",
+        "EquatorialRadius": "km",
+        "OrientationEpoch": "A1ModJulian",
+        "RotationConstant": "deg",
+        "RotationRate": "deg/day",
+        "SpinAxisDECConstant": "deg",
+        "SpinAxisDECRate": "deg/century",
+        "SpinAxisRAConstant": "deg",
+        "SpinAxisRARate": "deg/century",
+        "3DModelRotationX": "deg",
+        "3DModelRotationY": "deg",
+        "3DModelRotationZ": "deg"
+      }
+    },
+    {
+      "key": "PlutoBodyBodyOffsets",
+      "group": "BodyOffsets",
+      "object": "Pluto",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "3DModelOffsetX": "km",
+        "3DModelOffsetY": "km",
+        "3DModelOffsetZ": "km"
+      }
+    },
+    {
+      "key": "MoonBodyBodyPhysical",
+      "group": "BodyPhysical",
+      "object": "UnitsMoon",
+      "fixture": "Create Moon UnitsMoon;\nUnitsMoon.CentralBody = Earth;\nUnitsMoon.NAIFId = 2000001;\nUnitsMoon.OrbitSpiceKernelName = {'@DATA@/planetary_ephem/spk/ceres_1900_2100.bsp'};\nUnitsMoon.Mu = 63;\nUnitsMoon.EquatorialRadius = 470;\nUnitsMoon.SpinAxisDECConstant = 90;\n",
+      "route": "body",
+      "units": {
+        "Mu": "km³/s²",
+        "EquatorialRadius": "km",
+        "OrientationEpoch": "A1ModJulian",
+        "RotationConstant": "deg",
+        "RotationRate": "deg/day",
+        "SpinAxisDECConstant": "deg",
+        "SpinAxisDECRate": "deg/century",
+        "SpinAxisRAConstant": "deg",
+        "SpinAxisRARate": "deg/century",
+        "3DModelRotationX": "deg",
+        "3DModelRotationY": "deg",
+        "3DModelRotationZ": "deg"
+      }
+    },
+    {
+      "key": "MoonBodyBodyOffsets",
+      "group": "BodyOffsets",
+      "object": "UnitsMoon",
+      "fixture": "Create Moon UnitsMoon;\nUnitsMoon.CentralBody = Earth;\nUnitsMoon.NAIFId = 2000001;\nUnitsMoon.OrbitSpiceKernelName = {'@DATA@/planetary_ephem/spk/ceres_1900_2100.bsp'};\nUnitsMoon.Mu = 63;\nUnitsMoon.EquatorialRadius = 470;\nUnitsMoon.SpinAxisDECConstant = 90;\n",
+      "route": "body",
+      "units": {
+        "3DModelOffsetX": "km",
+        "3DModelOffsetY": "km",
+        "3DModelOffsetZ": "km"
+      }
+    },
+    {
+      "key": "PlanetBodyBodyPhysical",
+      "group": "BodyPhysical",
+      "object": "UnitsPlanet",
+      "fixture": "Create Planet UnitsPlanet;\nUnitsPlanet.CentralBody = Sun;\nUnitsPlanet.NAIFId = 2000001;\nUnitsPlanet.OrbitSpiceKernelName = {'@DATA@/planetary_ephem/spk/ceres_1900_2100.bsp'};\nUnitsPlanet.Mu = 63;\nUnitsPlanet.EquatorialRadius = 470;\nUnitsPlanet.SpinAxisDECConstant = 90;\n",
+      "route": "body",
+      "units": {
+        "Mu": "km³/s²",
+        "EquatorialRadius": "km",
+        "OrientationEpoch": "A1ModJulian",
+        "RotationConstant": "deg",
+        "RotationRate": "deg/day",
+        "SpinAxisDECConstant": "deg",
+        "SpinAxisDECRate": "deg/century",
+        "SpinAxisRAConstant": "deg",
+        "SpinAxisRARate": "deg/century",
+        "3DModelRotationX": "deg",
+        "3DModelRotationY": "deg",
+        "3DModelRotationZ": "deg"
+      }
+    },
+    {
+      "key": "PlanetBodyBodyOffsets",
+      "group": "BodyOffsets",
+      "object": "UnitsPlanet",
+      "fixture": "Create Planet UnitsPlanet;\nUnitsPlanet.CentralBody = Sun;\nUnitsPlanet.NAIFId = 2000001;\nUnitsPlanet.OrbitSpiceKernelName = {'@DATA@/planetary_ephem/spk/ceres_1900_2100.bsp'};\nUnitsPlanet.Mu = 63;\nUnitsPlanet.EquatorialRadius = 470;\nUnitsPlanet.SpinAxisDECConstant = 90;\n",
+      "route": "body",
+      "units": {
+        "3DModelOffsetX": "km",
+        "3DModelOffsetY": "km",
+        "3DModelOffsetZ": "km"
+      }
+    },
+    {
+      "key": "CometBodyBodyPhysical",
+      "group": "BodyPhysical",
+      "object": "UnitsComet",
+      "fixture": "Create Comet UnitsComet;\nUnitsComet.CentralBody = Sun;\nUnitsComet.NAIFId = 2000001;\nUnitsComet.OrbitSpiceKernelName = {'@DATA@/planetary_ephem/spk/ceres_1900_2100.bsp'};\nUnitsComet.Mu = 63;\nUnitsComet.EquatorialRadius = 470;\nUnitsComet.SpinAxisDECConstant = 90;\n",
+      "route": "body",
+      "units": {
+        "Mu": "km³/s²",
+        "EquatorialRadius": "km",
+        "OrientationEpoch": "A1ModJulian",
+        "RotationConstant": "deg",
+        "RotationRate": "deg/day",
+        "SpinAxisDECConstant": "deg",
+        "SpinAxisDECRate": "deg/century",
+        "SpinAxisRAConstant": "deg",
+        "SpinAxisRARate": "deg/century",
+        "3DModelRotationX": "deg",
+        "3DModelRotationY": "deg",
+        "3DModelRotationZ": "deg"
+      }
+    },
+    {
+      "key": "CometBodyBodyOffsets",
+      "group": "BodyOffsets",
+      "object": "UnitsComet",
+      "fixture": "Create Comet UnitsComet;\nUnitsComet.CentralBody = Sun;\nUnitsComet.NAIFId = 2000001;\nUnitsComet.OrbitSpiceKernelName = {'@DATA@/planetary_ephem/spk/ceres_1900_2100.bsp'};\nUnitsComet.Mu = 63;\nUnitsComet.EquatorialRadius = 470;\nUnitsComet.SpinAxisDECConstant = 90;\n",
+      "route": "body",
+      "units": {
+        "3DModelOffsetX": "km",
+        "3DModelOffsetY": "km",
+        "3DModelOffsetZ": "km"
+      }
+    },
+    {
+      "key": "AsteroidBodyBodyPhysical",
+      "group": "BodyPhysical",
+      "object": "UnitsAsteroid",
+      "fixture": "Create Asteroid UnitsAsteroid;\nUnitsAsteroid.CentralBody = Sun;\nUnitsAsteroid.NAIFId = 2000001;\nUnitsAsteroid.OrbitSpiceKernelName = {'@DATA@/planetary_ephem/spk/ceres_1900_2100.bsp'};\nUnitsAsteroid.Mu = 63;\nUnitsAsteroid.EquatorialRadius = 470;\nUnitsAsteroid.SpinAxisDECConstant = 90;\n",
+      "route": "body",
+      "units": {
+        "Mu": "km³/s²",
+        "EquatorialRadius": "km",
+        "OrientationEpoch": "A1ModJulian",
+        "RotationConstant": "deg",
+        "RotationRate": "deg/day",
+        "SpinAxisDECConstant": "deg",
+        "SpinAxisDECRate": "deg/century",
+        "SpinAxisRAConstant": "deg",
+        "SpinAxisRARate": "deg/century",
+        "3DModelRotationX": "deg",
+        "3DModelRotationY": "deg",
+        "3DModelRotationZ": "deg"
+      }
+    },
+    {
+      "key": "AsteroidBodyBodyOffsets",
+      "group": "BodyOffsets",
+      "object": "UnitsAsteroid",
+      "fixture": "Create Asteroid UnitsAsteroid;\nUnitsAsteroid.CentralBody = Sun;\nUnitsAsteroid.NAIFId = 2000001;\nUnitsAsteroid.OrbitSpiceKernelName = {'@DATA@/planetary_ephem/spk/ceres_1900_2100.bsp'};\nUnitsAsteroid.Mu = 63;\nUnitsAsteroid.EquatorialRadius = 470;\nUnitsAsteroid.SpinAxisDECConstant = 90;\n",
+      "route": "body",
+      "units": {
+        "3DModelOffsetX": "km",
+        "3DModelOffsetY": "km",
+        "3DModelOffsetZ": "km"
+      }
+    },
+    {
+      "key": "SunOffsetPilot",
+      "group": "BodyOffsetPilot",
+      "object": "Sun",
+      "fixture": "",
+      "route": "body",
+      "units": {
+        "3DModelOffsetX": "km",
+        "3DModelOffsetY": "km",
+        "3DModelOffsetZ": "km"
+      }
+    }
+  ]
+}

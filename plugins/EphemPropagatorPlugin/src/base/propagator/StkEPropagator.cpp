@@ -1086,7 +1086,10 @@ void StkEPropagator::UpdateState()
    {
       // Convert to J2000Eq
       Real theStateMJ2000[6];
-      cc.Convert(lastEpoch, theState.GetDataVector(), ephemCoord, theStateMJ2000, j2k);
+      if (hasPrecisionTime)
+         cc.Convert(currentEpochGT, theState.GetDataVector(), ephemCoord, theStateMJ2000, j2k);
+      else
+         cc.Convert(currentEpoch, theState.GetDataVector(), ephemCoord, theStateMJ2000, j2k);
       std::memcpy(state, theStateMJ2000, 6*sizeof(Real));
    }
    else

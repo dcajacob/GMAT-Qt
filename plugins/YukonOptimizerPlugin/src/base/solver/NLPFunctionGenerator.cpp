@@ -31,6 +31,8 @@
 //------------------------------------------------------------------------------
 
 #include "NLPFunctionGenerator.hpp"
+#include "OptimizerValueCopy.hpp"
+#include <utility>
 #include "UtilityException.hpp"
 #include <iostream>
 #include <cfloat>                // For FLT_MAX
@@ -52,6 +54,8 @@ NLPFunctionGenerator::NLPFunctionGenerator(YukonUserProblem *inputUserFunction)
    isModeElastic = false;
 
    // Set pointer to the user function
+   if (!inputUserFunction)
+      throw UtilityException("NLPFunctionGenerator requires a user problem.\n");
    userFunction = inputUserFunction;
 
    // Call the user function to get infor needed for initialization
@@ -94,6 +98,8 @@ NLPFunctionGenerator::NLPFunctionGenerator(YukonUserProblem *inputUserFunction,
    inf = std::numeric_limits<double>::infinity();
 
    // Set pointer to the user function
+   if (!inputUserFunction)
+      throw UtilityException("NLPFunctionGenerator requires a user problem.\n");
    userFunction = inputUserFunction;
 
    // Call the user function to get infor needed for initialization
@@ -124,6 +130,91 @@ NLPFunctionGenerator::NLPFunctionGenerator(YukonUserProblem *inputUserFunction,
 * Destructor
 */
 //------------------------------------------------------------------------------
+NLPFunctionGenerator::NLPFunctionGenerator(const NLPFunctionGenerator &source) :
+   userFunction(source.userFunction),
+   numUserDecisionVars(source.numUserDecisionVars),
+   numUserConstraints(source.numUserConstraints),
+   numBoundCons(source.numBoundCons),
+   totalNumDecisionVars(source.totalNumDecisionVars),
+   totalNumConstraints(source.totalNumConstraints),
+   numElasticVars(source.numElasticVars),
+   numElasticConstraints(source.numElasticConstraints),
+   isModeElastic(source.isModeElastic),
+   conValues(OptimizerValueCopy::Vector(source.conValues)),
+   costJac(OptimizerValueCopy::Vector(source.costJac)),
+   conJac(OptimizerValueCopy::Matrix(source.conJac)),
+   nlpConLowerBounds(OptimizerValueCopy::Vector(source.nlpConLowerBounds)),
+   nlpConUpperBounds(OptimizerValueCopy::Vector(source.nlpConUpperBounds)),
+   nlpVarLowerBounds(OptimizerValueCopy::Vector(source.nlpVarLowerBounds)),
+   nlpVarUpperBounds(OptimizerValueCopy::Vector(source.nlpVarUpperBounds)),
+   boundAMatrix(OptimizerValueCopy::Matrix(source.boundAMatrix)),
+   userConJacRowStartIdx(source.userConJacRowStartIdx),
+   userConJacRowStopIdx(source.userConJacRowStopIdx),
+   userConJacColStartIdx(source.userConJacColStartIdx),
+   userConJacColStopIdx(source.userConJacColStopIdx),
+   elasticWeight(source.elasticWeight),
+   elasticVarVStartIdx(source.elasticVarVStartIdx),
+   elasticVarVStopIdx(source.elasticVarVStopIdx),
+   elasticVarWStartIdx(source.elasticVarWStartIdx),
+   elasticVarWStopIdx(source.elasticVarWStopIdx),
+   userVarBoundConIdxs(OptimizerValueCopy::Vector(source.userVarBoundConIdxs)),
+   inf(source.inf)
+{
+}
+
+NLPFunctionGenerator& NLPFunctionGenerator::operator=(const NLPFunctionGenerator &source)
+{
+   if (&source == this) return *this;
+   NLPFunctionGenerator prepared(source);
+   SwapValueState(prepared);
+   return *this;
+}
+
+void NLPFunctionGenerator::SwapValueState(NLPFunctionGenerator &other)
+{
+   using std::swap;
+   swap(userFunction, other.userFunction);
+   swap(numUserDecisionVars, other.numUserDecisionVars);
+   swap(numUserConstraints, other.numUserConstraints);
+   swap(numBoundCons, other.numBoundCons);
+   swap(totalNumDecisionVars, other.totalNumDecisionVars);
+   swap(totalNumConstraints, other.totalNumConstraints);
+   swap(numElasticVars, other.numElasticVars);
+   swap(numElasticConstraints, other.numElasticConstraints);
+   swap(isModeElastic, other.isModeElastic);
+   conValues.Swap(other.conValues);
+   costJac.Swap(other.costJac);
+   conJac.Swap(other.conJac);
+   nlpConLowerBounds.Swap(other.nlpConLowerBounds);
+   nlpConUpperBounds.Swap(other.nlpConUpperBounds);
+   nlpVarLowerBounds.Swap(other.nlpVarLowerBounds);
+   nlpVarUpperBounds.Swap(other.nlpVarUpperBounds);
+   boundAMatrix.Swap(other.boundAMatrix);
+   swap(userConJacRowStartIdx, other.userConJacRowStartIdx);
+   swap(userConJacRowStopIdx, other.userConJacRowStopIdx);
+   swap(userConJacColStartIdx, other.userConJacColStartIdx);
+   swap(userConJacColStopIdx, other.userConJacColStopIdx);
+   swap(elasticWeight, other.elasticWeight);
+   swap(elasticVarVStartIdx, other.elasticVarVStartIdx);
+   swap(elasticVarVStopIdx, other.elasticVarVStopIdx);
+   swap(elasticVarWStartIdx, other.elasticVarWStartIdx);
+   swap(elasticVarWStopIdx, other.elasticVarWStopIdx);
+   userVarBoundConIdxs.Swap(other.userVarBoundConIdxs);
+   swap(inf, other.inf);
+}
+
+YukonUserProblem* NLPFunctionGenerator::GetUserProblem() const
+{
+   return userFunction;
+}
+
+void NLPFunctionGenerator::RebindUserProblem(YukonUserProblem *original, YukonUserProblem *replacement)
+{
+   if (!original || !replacement || userFunction != original)
+      throw UtilityException("Incompatible NLP callback ownership binding.\n");
+   userFunction = replacement;
+}
+
 NLPFunctionGenerator::~NLPFunctionGenerator()
 {}
 

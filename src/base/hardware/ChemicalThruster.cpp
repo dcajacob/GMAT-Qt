@@ -27,6 +27,8 @@
 //------------------------------------------------------------------------------
 
 
+#include "Spacecraft.hpp"
+#include <memory>
 #include "ChemicalThruster.hpp"
 #include "StringUtil.hpp"
 #include "HardwareException.hpp"
@@ -258,7 +260,9 @@ ChemicalThruster& ChemicalThruster::operator=(const ChemicalThruster& th)
 //---------------------------------------------------------------------------
 GmatBase* ChemicalThruster::Clone() const
 {
-   return new ChemicalThruster(*this);
+   std::unique_ptr<ChemicalThruster> value(new ChemicalThruster(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -275,7 +279,13 @@ GmatBase* ChemicalThruster::Clone() const
 //---------------------------------------------------------------------------
 void ChemicalThruster::Copy(const GmatBase* orig)
 {
-   operator=(*((ChemicalThruster *)(orig)));
+   const auto *source = dynamic_cast<const ChemicalThruster*>(orig);
+   if (!source || source->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Incompatible ChemicalThruster value copy.");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -798,6 +808,7 @@ bool ChemicalThruster::Initialize()
 //---------------------------------------------------------------------------
 bool ChemicalThruster::CalculateThrustAndIsp()
 {
+
    #ifdef DEBUG_THRUST_ISP
    MessageInterface::ShowMessage
       ("ChemicalThruster::CalculateThrustAndIsp() <%p>'%s' entered, thrusterFiring=%d, "
@@ -811,6 +822,10 @@ bool ChemicalThruster::CalculateThrustAndIsp()
    }
    else
    {
+      // Tank replacement can leave an older borrowed cache. Resolve current
+      // owner references only when firing needs pressure/temperature data;
+      // preserve the disabled thruster's native zero-result path.
+      if (spacecraft) BindTankReferences(spacecraft->GetRefObjectArray(Gmat::FUEL_TANK));
       if (tanks.empty())
          throw HardwareException("ChemicalThruster \"" + instanceName +
                                  "\" does not have a fuel tank");

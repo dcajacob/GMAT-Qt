@@ -36,6 +36,12 @@
 #include "Formation.hpp"
 #include "StringUtil.hpp"
 #include <algorithm>          // for find()
+#include <limits>
+#include <cmath>
+#include <memory>
+#include <functional>
+#include <typeinfo>
+#include <utility>
 #include <stdio.h>            // for sprintf()
 
 //#define DEBUG_FORMATION
@@ -44,6 +50,116 @@
 //#define DEBUG_SET_STRING
 
 #include "MessageInterface.hpp"
+
+namespace
+{
+Integer MemberStateSize(const std::vector<SpaceObject *> &members,
+                        const std::string &formationName)
+{
+   Integer size = 0;
+   for (auto *member : members)
+   {
+      if (!member || !member->IsOfType(Gmat::SPACECRAFT))
+         throw SpaceObjectException("Invalid spacecraft reference in formation \"" +
+            formationName + "\".");
+      const Integer memberSize = member->GetState().GetSize();
+      if (memberSize < 6 || memberSize > std::numeric_limits<Integer>::max() - size)
+         throw SpaceObjectException("Invalid or overflowing state size in formation \"" +
+            formationName + "\".");
+      size += memberSize;
+   }
+   return size;
+}
+
+void CheckMemberEpochs(const std::vector<SpaceObject *> &members,
+                       const std::string &formationName)
+{
+   if (members.empty()) return;
+   auto *first = members.front();
+   for (auto *member : members)
+      if (member->GetEpoch() != first->GetEpoch() ||
+          (first->HasPrecisionTime() && member->HasPrecisionTime() &&
+           member->GetEpochGT() != first->GetEpochGT()))
+         throw SpaceObjectException("Epochs are not synchronized in formation \"" +
+            formationName + "\" (" + first->GetName() + ", " + member->GetName() + ").");
+}
+
+std::vector<SpaceObject *> OrderedMembers(const StringArray &names,
+      const std::vector<SpaceObject *> &members, const std::string &formationName)
+{
+   if (names.empty() || names.size() != members.size())
+      throw SpaceObjectException("Bind every configured spacecraft before building formation \"" +
+         formationName + "\".");
+   std::vector<SpaceObject *> ordered;
+   ordered.reserve(names.size());
+   for (const auto &name : names)
+   {
+      auto match = std::find_if(members.begin(), members.end(),
+         [&](SpaceObject *member) { return member && member->GetName() == name; });
+      if (match == members.end() || std::find(ordered.begin(), ordered.end(), *match) != ordered.end())
+         throw SpaceObjectException("Missing or duplicate spacecraft \"" + name +
+            "\" in formation \"" + formationName + "\".");
+      ordered.push_back(*match);
+   }
+   return ordered;
+}
+
+void CheckMemberOrder(const StringArray &names,
+      const std::vector<SpaceObject *> &members, const std::string &formationName)
+{
+   if (names.empty() || names.size() != members.size())
+      throw SpaceObjectException("Incomplete member layout in formation \"" + formationName + "\".");
+   for (UnsignedInt i = 0; i < names.size(); ++i)
+      if (!members[i] || members[i]->GetName() != names[i])
+         throw SpaceObjectException("Rebuild the configured member order in formation \"" +
+            formationName + "\".");
+}
+
+Real &MemberElement(const StringArray &names, const std::vector<SpaceObject *> &members,
+      Integer dimension, Integer index, const std::string &formationName)
+{
+   const Integer size = MemberStateSize(members, formationName);
+   CheckMemberOrder(names, members, formationName);
+   CheckMemberEpochs(members, formationName);
+   if (dimension != size || index < 0 || index >= size)
+      throw SpaceObjectException("Rebuild the shared member layout in formation \"" + formationName + "\".");
+   for (auto *member : members)
+   {
+      const Integer memberSize = member->GetState().GetSize();
+      if (index < memberSize) return member->GetState()[index];
+      index -= memberSize;
+   }
+   throw SpaceObjectException("Invalid shared formation state index.");
+}
+
+template <typename Epoch>
+Rvector6 SharedCenter(const StringArray &names, const std::vector<SpaceObject *> &members,
+      const std::string &referenceName, const std::string &formationName, const Epoch &epoch)
+{
+   MemberStateSize(members, formationName);
+   CheckMemberOrder(names, members, formationName);
+   CheckMemberEpochs(members, formationName);
+   Rvector6 center;
+   for (auto *member : members)
+   {
+      if (member->GetJ2000BodyName() != referenceName)
+         throw SpaceObjectException("Shared formation \"" + formationName +
+            "\" has inconsistent J2000 references.");
+      const Rvector6 value = member->GetMJ2000State(epoch);
+      for (Integer i = 0; i < 6; ++i)
+      {
+         if (!std::isfinite(value[i]))
+            throw SpaceObjectException("Nonfinite member state in shared formation \"" + formationName + "\".");
+         center[i] += value[i];
+      }
+   }
+   center /= members.size();
+   for (Integer i = 0; i < 6; ++i)
+      if (!std::isfinite(center[i]))
+         throw SpaceObjectException("Nonfinite shared formation center for \"" + formationName + "\".");
+   return center;
+}
+}
 
 
 //---------------------------------
@@ -56,6 +172,7 @@ Formation::PARAMETER_TEXT[FormationParamCount - SpaceObjectParamCount] =
    "Remove",
    "Clear",
    "STM",
+   "AllowSharedMembers",
    "CartesianState",
 };
 
@@ -67,6 +184,7 @@ Formation::PARAMETER_TYPE[FormationParamCount - SpaceObjectParamCount] =
    Gmat::OBJECT_TYPE,     
    Gmat::BOOLEAN_TYPE,
    Gmat::RMATRIX_TYPE,      // FORMATION_STM,
+   Gmat::BOOLEAN_TYPE,     // ALLOW_SHARED_MEMBERS,
    Gmat::REAL_TYPE,        // FORMATION_CARTESIAN_STATE,
 };
 
@@ -91,7 +209,8 @@ Formation::Formation(UnsignedInt typeId, const std::string &typeStr,
                      const std::string &instName) :
    FormationInterface(typeId, typeStr, instName),
    dimension         (0),
-   satCount          (0)
+   satCount          (0),
+   allowSharedMembers(false)
 {
    objectTypes.push_back(Gmat::FORMATION);
    objectTypeNames.push_back("Formation");
@@ -121,17 +240,26 @@ Formation::~Formation()
  * @param <orig> Formation that is copied onto this one.
  */
 //------------------------------------------------------------------------------
-Formation::Formation(const Formation& orig) :
+Formation::Formation(const Formation& orig) : Formation(orig, true)
+{
+}
+
+Formation::Formation(const Formation& orig, bool sampleMembers) :
    FormationInterface   (orig),
    componentNames       (orig.componentNames),
    dimension            (orig.dimension),
-   satCount             (orig.satCount)
+   satCount             (orig.satCount),
+   allowSharedMembers   (orig.allowSharedMembers)
 {
    parameterCount = FormationParamCount;
-   
-   // No need to clear components here because this is a fresh object, and 
-   // nothing has been loaded into it yet
-   //components.clear();
+   if (sampleMembers && orig.HasLiveMembers())
+   {
+      // Capture a current snapshot without adopting the source's bindings.
+      // A dormant alias may have an older packed state than its spacecraft.
+      components = orig.components;
+      BuildState();
+      components.clear();
+   }
 }
 
 
@@ -150,11 +278,38 @@ Formation& Formation::operator=(const Formation& orig)
 {
    if (this != &orig)
    {
-      FormationInterface::operator=(orig);
+      const bool restoring = GmatBase::IsNativeRestorationCopy();
+      const bool ready = isInitialized;
+      bool complete = false;
+      const auto onFailure = [&](void*) { if (restoring && !complete) isInitialized = false; };
+      const std::unique_ptr<void, decltype(onFailure)> restorationState(this, onFailure);
+      if (restoring)
+      {
+         if (componentNames != orig.componentNames || dimension != orig.dimension ||
+             satCount != orig.satCount || allowSharedMembers != orig.allowSharedMembers)
+            throw SpaceObjectException("Prepare formation declarations before changing an active restoration graph.");
+         if (!components.empty())
+         {
+            CheckMemberOrder(componentNames, components, instanceName);
+            if (components.size() != size_t(satCount) || MemberStateSize(components, instanceName) != dimension)
+               throw SpaceObjectException("The active formation member layout has changed.");
+         }
+      }
+      std::unique_ptr<Formation> current;
+      const Formation *source = &orig;
+      if (orig.HasLiveMembers())
+      {
+         current.reset(new Formation(orig));
+         source = current.get();
+      }
+      FormationInterface::operator=(*source);
       
-      componentNames = orig.componentNames;
-      dimension      = orig.dimension;
-      satCount       = orig.satCount;
+      componentNames = source->componentNames;
+      dimension      = source->dimension;
+      satCount       = source->satCount;
+      allowSharedMembers = source->allowSharedMembers;
+      if (restoring) isInitialized = ready;
+      complete = true;
       
       // Don't clear components here because the assignment operator is used 
       // DURING propagation to evaluate stopping conditions 
@@ -190,7 +345,20 @@ Formation& Formation::operator=(const Formation& orig)
 //------------------------------------------------------------------------------
 const Rvector6 Formation::GetMJ2000State(const A1Mjd &atTime)
 {
+   if (allowSharedMembers)
+   {
+      if (!j2000Body) throw SpaceObjectException("MJ2000 body not yet set for " + instanceName);
+      return SharedCenter(componentNames, components, GetJ2000BodyName(), instanceName, atTime);
+   }
    satCount = components.size();
+   if (satCount)
+   {
+      CheckMemberOrder(componentNames, components, instanceName);
+      const Integer size = MemberStateSize(components, instanceName);
+      if (dimension <= 0 || state.GetSize() != dimension || dimension != size)
+         throw SpaceObjectException("Build the current member state before requesting formation \"" +
+            instanceName + "\" state.");
+   }
    
    if (j2000Body == NULL)
       throw SpaceObjectException("MJ2000 body not yet set for " +
@@ -199,7 +367,7 @@ const Rvector6 Formation::GetMJ2000State(const A1Mjd &atTime)
    // First calculate the geometric center of the formation
    Rvector6 centerState;
 
-   GmatState ps = GetState();
+   GmatState &ps = GetState();
    Real *st = ps.GetState();
    
    if (satCount == 0)
@@ -209,13 +377,14 @@ const Rvector6 Formation::GetMJ2000State(const A1Mjd &atTime)
       return centerState;
    }
 
-   // The Formation GmatState contains state data for the spacecraft, tanks, and
-   // (eventually) attitude.  The first 6*satcount elements are the spacecraft
-   // position and velocity data.
-   for (UnsignedInt i = 0; i < satCount; ++i)
+   // BuildState packs complete member states. Cartesian data are the first
+   // six elements of each packet, whose full size determines the next offset.
+   Integer packetOffset = 0;
+   for (auto *member : components)
    {
       for (Integer j = 0; j < 6; ++j)
-         centerState[j] += st[i*6+j];
+         centerState[j] += st[packetOffset + j];
+      packetOffset += member->GetState().GetSize();
    }
    centerState /= satCount;
 
@@ -248,7 +417,20 @@ const Rvector6 Formation::GetMJ2000State(const A1Mjd &atTime)
  //------------------------------------------------------------------------------
 const Rvector6 Formation::GetMJ2000State(const GmatTime &atTimeGT)
 {
+   if (allowSharedMembers)
+   {
+      if (!j2000Body) throw SpaceObjectException("MJ2000 body not yet set for " + instanceName);
+      return SharedCenter(componentNames, components, GetJ2000BodyName(), instanceName, atTimeGT);
+   }
    satCount = components.size();
+   if (satCount)
+   {
+      CheckMemberOrder(componentNames, components, instanceName);
+      const Integer size = MemberStateSize(components, instanceName);
+      if (dimension <= 0 || state.GetSize() != dimension || dimension != size)
+         throw SpaceObjectException("Build the current member state before requesting formation \"" +
+            instanceName + "\" state.");
+   }
 
    if (j2000Body == NULL)
       throw SpaceObjectException("MJ2000 body not yet set for " +
@@ -257,7 +439,7 @@ const Rvector6 Formation::GetMJ2000State(const GmatTime &atTimeGT)
    // First calculate the geometric center of the formation
    Rvector6 centerState;
 
-   GmatState ps = GetState();
+   GmatState &ps = GetState();
    Real *st = ps.GetState();
 
    if (satCount == 0)
@@ -267,13 +449,14 @@ const Rvector6 Formation::GetMJ2000State(const GmatTime &atTimeGT)
       return centerState;
    }
 
-   // The Formation GmatState contains state data for the spacecraft, tanks, and
-   // (eventually) attitude.  The first 6*satcount elements are the spacecraft
-   // position and velocity data.
-   for (UnsignedInt i = 0; i < satCount; ++i)
+   // BuildState packs complete member states. Cartesian data are the first
+   // six elements of each packet, whose full size determines the next offset.
+   Integer packetOffset = 0;
+   for (auto *member : components)
    {
       for (Integer j = 0; j < 6; ++j)
-         centerState[j] += st[i * 6 + j];
+         centerState[j] += st[packetOffset + j];
+      packetOffset += member->GetState().GetSize();
    }
    centerState /= satCount;
 
@@ -294,6 +477,83 @@ const Rvector6 Formation::GetMJ2000State(const GmatTime &atTimeGT)
 //------------------------------------------------------------------------------
 // Accessor methods
 //------------------------------------------------------------------------------
+
+bool Formation::HasLiveMembers() const
+{
+   return allowSharedMembers && !components.empty() && components.size() == componentNames.size();
+}
+
+void Formation::CheckLiveMembers() const
+{
+   MemberStateSize(components, instanceName);
+   CheckMemberOrder(componentNames, components, instanceName);
+   CheckMemberEpochs(components, instanceName);
+}
+
+Real Formation::GetEpoch()
+{
+   if (HasLiveMembers())
+   {
+      CheckLiveMembers();
+      return components.front()->GetEpoch();
+   }
+   return FormationInterface::GetEpoch();
+}
+
+GmatTime Formation::GetEpochGT()
+{
+   if (HasLiveMembers())
+   {
+      CheckLiveMembers();
+      return components.front()->GetEpochGT();
+   }
+   return FormationInterface::GetEpochGT();
+}
+
+Real Formation::SetEpoch(const Real epoch)
+{
+   if (HasLiveMembers()) return SetRealParameter(EPOCH_PARAM, epoch);
+   return FormationInterface::SetEpoch(epoch);
+}
+
+GmatTime Formation::SetEpochGT(const GmatTime epoch)
+{
+   if (HasLiveMembers()) return SetGmatTimeParameter(EPOCH_PARAM, epoch);
+   return FormationInterface::SetEpochGT(epoch);
+}
+
+GmatTime Formation::GetGmatTimeParameter(const Integer id) const
+{
+   if (id == EPOCH_PARAM) return const_cast<Formation *>(this)->GetEpochGT();
+   return FormationInterface::GetGmatTimeParameter(id);
+}
+
+GmatTime Formation::GetGmatTimeParameter(const std::string &label) const
+{
+   return GetGmatTimeParameter(GetParameterID(label));
+}
+
+GmatTime Formation::SetGmatTimeParameter(const Integer id, const GmatTime value)
+{
+   if (id == EPOCH_PARAM) MemberStateSize(components, instanceName);
+   const GmatTime result = FormationInterface::SetGmatTimeParameter(id, value);
+   if (id == EPOCH_PARAM)
+   {
+      // Match the existing Real-epoch coupling, retaining the full native time
+      // rather than leaving members at the preceding rounded Real epoch.
+      for (auto *member : components)
+      {
+         const GmatTime actual = member->SetGmatTimeParameter(EPOCH_PARAM, value);
+         if (actual != value) throw SpaceObjectException("Formation constituent returned incorrect precision epoch.");
+      }
+   }
+   return result;
+}
+
+GmatTime Formation::SetGmatTimeParameter(const std::string &label, const GmatTime value)
+{
+   return SetGmatTimeParameter(GetParameterID(label), value);
+}
 
 //------------------------------------------------------------------------------
 //  bool RenameRefObject(const UnsignedInt type,
@@ -345,7 +605,9 @@ bool Formation::RenameRefObject(const UnsignedInt type,
 //------------------------------------------------------------------------------
 GmatBase* Formation::Clone() const
 {
-   return new Formation(*this);
+   std::unique_ptr<Formation> value(new Formation(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -360,13 +622,145 @@ GmatBase* Formation::Clone() const
 //---------------------------------------------------------------------------
 void Formation::Copy(const GmatBase* orig)
 {
-   operator=(*((Formation *)(orig)));
-   // Whole-object assignment must copy the borrowed member bindings together
-   // with their names and state. The assignment operator deliberately retains
-   // bindings for propagation stop-condition work; Copy has object semantics.
-   components = static_cast<const Formation *>(orig)->components;
+   const auto *source = dynamic_cast<const Formation*>(orig);
+   if (!source) throw SpaceObjectException("Cannot copy an incompatible resource into a Formation.");
+   if (source == this) return;
+   const auto previous = GetFunctionValueContext();
+   operator=(*source);
+   // Native whole-object Copy transfers member bindings; native operator=
+   // retains destination bindings for propagation stop-condition work.
+   if (!GmatBase::IsNativeRestorationCopy()) components = source->components;
+   RebindFunctionValueContext(*source);
 }
 
+
+//------------------------------------------------------------------------------
+// RebindClonedReferences
+//------------------------------------------------------------------------------
+void Formation::RebindClonedReferences(const FormationInterface &original,
+      const std::function<GmatBase*(GmatBase*)> &resolve, bool bindMembers)
+{
+   const auto *source = dynamic_cast<const Formation*>(&original);
+   if (!source || source == this)
+      throw SpaceObjectException("Incompatible Formation reference-copy source.");
+
+   if (!bindMembers)
+   {
+      // Native Clone creates a dormant propagation buffer. Retain its body
+      // safely while keeping the native empty member bindings and packed data.
+      SpacePoint *body = dynamic_cast<SpacePoint*>(resolve(source->GetJ2000Body()));
+      if (source->GetJ2000Body() && !body)
+         throw SpaceObjectException("Incompatible Formation J2000 reference.");
+      SetJ2000Body(body);
+      return;
+   }
+
+   // Stage the complete name/pointer packet before changing this Formation.
+   // Sequential RenameRefObject/SetRefObject cannot handle name permutations,
+   // and Clear/Add/BuildState would discard an authoritative packed snapshot.
+   StringArray names = source->componentNames;
+   std::vector<SpaceObject*> members;
+   members.reserve(source->components.size());
+   for (UnsignedInt i = 0; i < names.size(); ++i)
+   {
+      auto found = std::find_if(source->components.begin(), source->components.end(),
+            [&](SpaceObject *member) { return member && member->GetName() == source->componentNames[i]; });
+      if (found == source->components.end()) continue; // an unresolved configured member
+      auto *member = dynamic_cast<SpaceObject*>(resolve(*found));
+      if (!member || !member->IsOfType(Gmat::SPACECRAFT) ||
+          member->GetState().GetSize() != (*found)->GetState().GetSize())
+         throw SpaceObjectException("Incompatible retained member in Formation \"" + instanceName + "\".");
+      if (std::find(members.begin(), members.end(), member) != members.end())
+         throw SpaceObjectException("Duplicate retained spacecraft in Formation \"" + instanceName + "\".");
+      members.push_back(member);
+      names[i] = member->GetName();
+   }
+   if (members.size() != source->components.size())
+      throw SpaceObjectException("Formation has an unconfigured or duplicate bound member: " + source->GetName());
+   for (UnsignedInt i = 0; i < names.size(); ++i)
+      if (std::find(names.begin(), names.begin() + i, names[i]) != names.begin() + i)
+         throw SpaceObjectException("Ambiguous retained member names in Formation \"" + instanceName + "\".");
+   if (source->allowSharedMembers && members.size() == names.size())
+      CheckMemberEpochs(members, instanceName);
+
+   SpacePoint *body = dynamic_cast<SpacePoint*>(resolve(source->GetJ2000Body()));
+   if (source->GetJ2000Body() && !body)
+      throw SpaceObjectException("Incompatible Formation J2000 reference.");
+
+   componentNames.swap(names);
+   components.swap(members);
+   satCount = components.size();
+   SetJ2000Body(body);
+   // Keep this native copy's dimension, packed state, epoch, STM, precision
+   // flag and AllowSharedMembers. Binding never pushes values into members.
+}
+
+std::unique_ptr<FormationRestorationPlan> Formation::PrepareRestorationLayout(
+      const FormationInterface &snapshot, const ObjectArray &members)
+{
+   const auto *source = dynamic_cast<const Formation*>(&snapshot);
+   if (!source) throw SpaceObjectException("Incompatible formation restoration value.");
+   if (typeid(*this) != typeid(Formation) || typeid(*source) != typeid(Formation))
+      return FormationInterface::PrepareRestorationLayout(snapshot, members);
+   std::vector<SpaceObject*> targets;
+   targets.reserve(members.size());
+   for (GmatBase *object : members)
+   {
+      auto *member = dynamic_cast<SpaceObject*>(object);
+      if (!member || !member->IsOfType(Gmat::SPACECRAFT) ||
+            std::find(targets.begin(), targets.end(), member) != targets.end())
+         throw SpaceObjectException("Invalid captured native formation member.");
+      targets.push_back(member);
+   }
+   CheckMemberOrder(source->componentNames, targets, instanceName);
+   if (source->componentNames.size() != targets.size() || source->satCount != targets.size() ||
+         MemberStateSize(targets, instanceName) != source->dimension ||
+         source->state.GetSize() != source->dimension)
+      throw SpaceObjectException("Captured formation state and member layouts disagree.");
+   bool sameState = true;
+   try { state.ValidateRestorationLayout(source->state); }
+   catch (const BaseException &) { sameState = false; }
+   if (sameState && componentNames == source->componentNames && components == targets &&
+         dimension == source->dimension && satCount == source->satCount &&
+         allowSharedMembers == source->allowSharedMembers) return {};
+   struct Layout
+   {
+      // Retire the displaced layout while its actual previous owner lives.
+      std::shared_ptr<const FunctionValueContext> previousOwner;
+      std::unique_ptr<Formation> value;
+   };
+   auto saved = std::make_shared<Layout>();
+   saved->previousOwner = GetFunctionValueContext();
+   saved->value = std::make_unique<Formation>(*source);
+   saved->value->components.swap(targets);
+   struct Plan final : FormationRestorationPlan
+   {
+      std::function<void()> apply;
+      void Apply() noexcept override { apply(); }
+   };
+   auto plan = std::make_unique<Plan>();
+   plan->apply = [this, saved]() noexcept
+   {
+      Formation &prepared = *saved->value;
+      using std::swap;
+      componentNames.swap(prepared.componentNames);
+      components.swap(prepared.components);
+      swap(dimension, prepared.dimension);
+      swap(satCount, prepared.satCount);
+      swap(allowSharedMembers, prepared.allowSharedMembers);
+      state.Swap(prepared.state);
+   };
+   return plan;
+}
+
+GmatBase *Formation::CloneRestorationProbe() const
+{
+   if (typeid(*this) != typeid(Formation))
+      return FormationInterface::CloneRestorationProbe();
+   // The current member selection can have been replaced or retired. A probe
+   // copies its packed data/configuration without reading those member objects.
+   return new Formation(*this, false);
+}
 
 //------------------------------------------------------------------------------
 // void ParametersHaveChanged(bool flag)
@@ -491,6 +885,24 @@ bool Formation::IsParameterReadOnly(const Integer id) const
    return FormationInterface::IsParameterReadOnly(id);
 }
 
+bool Formation::IsParameterEqualToDefault(const Integer id) const
+{
+   if (id == ALLOW_SHARED_MEMBERS) return !allowSharedMembers;
+   return FormationInterface::IsParameterEqualToDefault(id);
+}
+
+bool Formation::IsParameterEqualToDefault(const std::string &label) const
+{
+   return IsParameterEqualToDefault(GetParameterID(label));
+}
+
+bool Formation::IsParameterCommandModeSettable(const Integer id) const
+{
+   // Sharing is structural configuration, validated across the resource graph.
+   if (id == ALLOW_SHARED_MEMBERS) return false;
+   return FormationInterface::IsParameterCommandModeSettable(id);
+}
+
 //------------------------------------------------------------------------------
 // bool GetBooleanParameter(const Integer id) const
 //------------------------------------------------------------------------------
@@ -506,6 +918,8 @@ bool Formation::GetBooleanParameter(const Integer id) const
 {
    switch (id)
    {
+      case ALLOW_SHARED_MEMBERS:
+         return allowSharedMembers;
       case CLEAR_NAMES:
          return false;
       default:
@@ -552,6 +966,11 @@ bool Formation::SetBooleanParameter(const Integer id, const bool value)
  
    switch (id)
    {
+      case ALLOW_SHARED_MEMBERS:
+         // Freeze a current snapshot before leaving shared-view mode.
+         if (allowSharedMembers && !value && HasLiveMembers()) UpdateState();
+         allowSharedMembers = value;
+         return true;
       case CLEAR_NAMES:
          return ClearSpacecraftList();
       default:
@@ -613,6 +1032,38 @@ std::string Formation::GetParameterTypeString(const Integer id) const
  * @return  success flag.
  */
 //------------------------------------------------------------------------------
+void Formation::SetField(const Integer id, const StringArray &value)
+{
+   if (id != ADDED_SPACECRAFT) { FormationInterface::SetField(id, value); return; }
+   StringArray next(value);
+   for (size_t i = 0; i < next.size(); ++i)
+   {
+      if (!GmatStringUtil::IsValidIdentity(next[i]) || next[i] == instanceName)
+         throw SpaceObjectException("Invalid Formation member name: " + next[i]);
+      if (std::find(next.begin(), next.begin() + i, next[i]) != next.begin() + i)
+         throw SpaceObjectException("Repeated Formation member: " + next[i]);
+   }
+   if (next == componentNames) return;
+   // A changed definition is dormant until its actual members are bound.
+   // Match native Clear's placeholder without publishing names before allocation.
+   GmatState empty(state);
+   empty.SetSize(6);
+   const Real zeros[6] = {};
+   if (!empty.SetState(zeros, 6)) throw SpaceObjectException("Cannot clear Formation state.");
+   const auto previous = GetFunctionValueContext();
+   state = empty;
+   componentNames.swap(next);
+   components.clear();
+   dimension = 0;
+   satCount = 0;
+   parmsChanged = true;
+}
+
+UnsignedInt Formation::GetPropertyObjectType(const Integer id) const
+{
+   return id == ADDED_SPACECRAFT ? Gmat::SPACECRAFT : FormationInterface::GetPropertyObjectType(id);
+}
+
 bool Formation::SetStringParameter(const Integer id, const std::string &value)
 {
 #ifdef DEBUG_SET_STRING
@@ -625,6 +1076,7 @@ bool Formation::SetStringParameter(const Integer id, const std::string &value)
               componentNames.end())
          return false;
       componentNames.push_back(value);
+      dimension = 0;
 
       #ifdef DEBUG_FORMATION_ACTIONS
          MessageInterface::ShowMessage("%s%s%s\n",
@@ -660,11 +1112,20 @@ bool Formation::SetStringParameter(const Integer id, const std::string &value)
 //------------------------------------------------------------------------------
 Real Formation::SetRealParameter(const Integer id, const Real value)
 {
+   if (id == EPOCH_PARAM) MemberStateSize(components, instanceName);
    Real retval = -1.0;
 
    if ((id >= FORMATION_CARTESIAN_STATE) && 
        (id < FORMATION_CARTESIAN_STATE + dimension))
    {
+      if (HasLiveMembers())
+      {
+         // Refresh the complete packet before changing one element so a
+         // dormant alias cannot later overwrite newer, untouched member data.
+         UpdateState();
+         MemberElement(componentNames, components, dimension,
+            id - FORMATION_CARTESIAN_STATE, instanceName) = value;
+      }
       state[id - FORMATION_CARTESIAN_STATE] = value;
       retval = value;
    }
@@ -752,13 +1213,21 @@ bool Formation::SetStringParameter(const Integer id, const std::string &value,
             parmsChanged = false;
          else
          {
+            if (std::find(componentNames.begin(), componentNames.end(), value) != componentNames.end())
+               throw SpaceObjectException("Duplicate spacecraft \"" + value + "\" in formation \"" + instanceName + "\".");
             componentNames[index] = value;
+            dimension = 0;
             parmsChanged = true;
          }
       }
       else
       {
+         if (index < 0)
+            throw SpaceObjectException("Invalid formation member index.");
+         if (std::find(componentNames.begin(), componentNames.end(), value) != componentNames.end())
+            return false;
          componentNames.push_back(value);
+         dimension = 0;
          parmsChanged = true;
       }
       return true;
@@ -870,7 +1339,9 @@ const StringArray&
 //------------------------------------------------------------------------------
 const ObjectTypeArray& Formation::GetRefObjectTypeArray()
 {
+   #ifdef DEBUG_REF_OBJ
    MessageInterface::ShowMessage("Formation::GetRefObjectTypeArray() enter\n");
+   #endif
 
    refObjectTypes.clear();
    refObjectTypes.push_back(Gmat::SPACECRAFT);
@@ -892,6 +1363,17 @@ const StringArray& Formation::GetRefObjectNameArray(const UnsignedInt type)
    return componentNames;
 }
 
+
+//------------------------------------------------------------------------------
+// GmatBase* GetRefObject(type, name)
+//------------------------------------------------------------------------------
+GmatBase* Formation::GetRefObject(const UnsignedInt type, const std::string &name)
+{
+   if (type == Gmat::UNKNOWN_OBJECT || type == Gmat::SPACECRAFT || type == Gmat::SPACEOBJECT)
+      for (SpaceObject *member : components)
+         if (member && member->GetName() == name) return member;
+   return FormationInterface::GetRefObject(type, name);
+}
 
 //------------------------------------------------------------------------------
 // GmatBase* Formation::GetRefObject(const UnsignedInt type,
@@ -936,57 +1418,51 @@ GmatBase* Formation::GetRefObject(const UnsignedInt type,
 bool Formation::SetRefObject(GmatBase *obj, const UnsignedInt type,
                              const std::string &name)
 {
-   #ifdef DEBUG_REF_OBJ
-   MessageInterface::ShowMessage
-      ("Formation::SetRefObject() entered, obj=<%p>, type=%d, name='%s'\n",
-       obj, type, name.c_str());
-   #endif
-   
-   SpaceObject *so;
-   
-   if (type == Gmat::SPACECRAFT)
+   if (!obj) return false;
+   if (type == Gmat::FORMATION)
+      throw SpaceObjectException("GMAT does not allow Formations of Formations: \"" +
+         instanceName + "\".");
+   if (type != Gmat::SPACECRAFT)
+      return FormationInterface::SetRefObject(obj, type, name);
+   if (!obj->IsOfType(Gmat::SPACECRAFT)) return false;
+
+   auto *spacecraft = static_cast<SpaceObject *>(obj);
+   if (std::find(componentNames.begin(), componentNames.end(), spacecraft->GetName()) == componentNames.end())
+      return false;
+
+   // Rebinding a same-name spacecraft replaces its old pointer. Build the
+   // candidate in Add order, independent of reference-resolution order.
+   std::vector<SpaceObject *> next;
+   next.reserve(componentNames.size());
+   for (const auto &configured : componentNames)
    {
-      so = ((SpaceObject*)(obj));
-      if (find(components.begin(), components.end(), so) == components.end())
+      if (configured == spacecraft->GetName())
+         next.push_back(spacecraft);
+      else
       {
-         GmatState *ps = &(so->GetState());
-         Integer size = ps->GetSize();
-         dimension += size;
-         Real newepoch = so->GetEpoch();
-         GmatTime newepochGT = so->GetEpochGT();
-         if (components.size() == 0)
-         {
-            state.SetEpoch(newepoch);
-            state.SetEpochGT(newepochGT);
-            state.SetPrecisionTimeFlag(so->HasPrecisionTime());
-         }
-         else
-            if (state.GetEpoch() != newepoch)
-            {
-               char errorMsg[256];
-               sprintf(errorMsg, "Epochs (%lf) and (%lf) are not synchronized "
-                       "in the formation %s", newepoch, state.GetEpoch(),
-                       instanceName.c_str());
-              
-               throw SpaceObjectException(errorMsg);
-            }
-         components.push_back(so);
+         auto prior = std::find_if(components.begin(), components.end(),
+            [&](SpaceObject *member) { return member && member->GetName() == configured; });
+         if (prior != components.end()) next.push_back(*prior);
       }
-      if (type == Gmat::FORMATION)
-      {
-         throw SpaceObjectException("GMAT does not allow Formations of "
-               "Formations, so the Formation \"" + name + "\" cannot be added "
-               "to the Formation \"" + instanceName + "\".");
-      }
-      
-      #ifdef DEBUG_REF_OBJ
-      MessageInterface::ShowMessage
-         ("Formation::SetRefObject() returning true\n");
-      #endif
-     return true;
    }
-   
-   return FormationInterface::SetRefObject(obj, type, name);
+   MemberStateSize(next, instanceName);
+   CheckMemberEpochs(next, instanceName);
+   auto *first = next.front();
+   const bool changed = next != components || state.GetEpoch() != first->GetEpoch() ||
+      state.GetEpochGT() != first->GetEpochGT();
+   components.swap(next);
+   satCount = components.size();
+   if (changed)
+   {
+      // A copied dimension is not the size of the newly resolved layout.
+      // Keep the copied state for buffers, but require BuildState for new refs.
+      dimension = 0;
+      parmsChanged = true;
+   }
+   state.SetEpoch(first->GetEpoch());
+   state.SetEpochGT(first->GetEpochGT());
+   state.SetPrecisionTimeFlag(state.HasPrecisionTime() || first->HasPrecisionTime());
+   return true;
 }
 
 
@@ -1089,66 +1565,34 @@ ObjectArray& Formation::GetRefObjectArray(const std::string& typeString)
 //------------------------------------------------------------------------------
 void Formation::BuildState()
 {
-   #ifdef DEBUG_FORMATION_ACTIONS
-      MessageInterface::ShowMessage("%s%s%s%d\n",
-         "In BuildState, Formation \"", instanceName.c_str(),
-         "\" has dimension ", dimension);
-   #endif
+   auto ordered = OrderedMembers(componentNames, components, instanceName);
+   const Integer newDimension = MemberStateSize(ordered, instanceName);
+   if (newDimension > std::numeric_limits<Integer>::max() - FORMATION_CARTESIAN_STATE)
+      throw SpaceObjectException("Formation Cartesian parameter indices overflow for \"" + instanceName + "\".");
+   CheckMemberEpochs(ordered, instanceName);
 
-   if (dimension <= 0)
-      throw SpaceObjectException(
-         "Error building Formation state; no spacecraft are set");
-
-   // Setup the GmatState
-   Real *data = new Real[dimension], *st;
-   Integer j = 0, k;
-   GmatState *ps;
-
-   if (state.GetSize() < dimension)
-      state.SetSize(dimension);
-   
-   for (std::vector<SpaceObject*>::iterator i = components.begin();
-        i != components.end(); ++i)
+   // Recompute from resolved members, never from a copied or previously
+   // accumulated dimension. All bytes are initialized and exactly sized.
+   std::vector<Real> data(newDimension);
+   Integer offset = 0;
+   for (auto *member : ordered)
    {
-      if ((*i) == NULL)
-         throw SpaceObjectException(
-            "Error building Formation state; member spacecraft not set");
-      ps = &((*i)->GetState());
-      st = ps->GetState();
-      for (k = 0; k < ps->GetSize(); ++k)
-      {
-         data[j + k] = st[k];
-      }
-      j += ps->GetSize();
+      GmatState &memberState = member->GetState();
+      const Integer size = memberState.GetSize();
+      std::copy(memberState.GetState(), memberState.GetState() + size, data.begin() + offset);
+      offset += size;
    }
-   
-   #ifdef DEBUG_FORMATION_ACTIONS
-      MessageInterface::ShowMessage("%s%s%s\n",
-         "In BuildState, Formation \"", instanceName.c_str(),
-         "\" consists of these spacecraft names:");
-      for (StringArray::iterator i = componentNames.begin(); 
-           i != componentNames.end(); ++i)
-         MessageInterface::ShowMessage("    \"%s\"\n", i->c_str());
-  
-      MessageInterface::ShowMessage("%s%s%s\n",
-         "In BuildState, Formation \"", instanceName.c_str(),
-         "\" consists of these spacecraft:");
-      for (std::vector<SpaceObject *>::iterator j = components.begin(); 
-           j < components.end(); ++j)
-      {
-         MessageInterface::ShowMessage("    \"%s\"\n", (*j)->GetName().c_str());
-      }
-   #endif
-   
-   if (!state.SetState(data, dimension))
-   {
-      delete [] data;
-      throw SpaceObjectException("Error building Formation state");
-   }
-   
-   // as per kw report
-   // Shouldn't we delete data here since GmatState::SetState() copies the data
-   delete [] data;
+   GmatState next(state);
+   next.SetSize(newDimension);
+   if (!next.SetState(data.data(), newDimension))
+      throw SpaceObjectException("Error building formation state for \"" + instanceName + "\".");
+   next.SetEpoch(ordered.front()->GetEpoch());
+   next.SetEpochGT(ordered.front()->GetEpochGT());
+
+   state = next;
+   components.swap(ordered);
+   dimension = newDimension;
+   satCount = components.size();
 }
 
 
@@ -1161,17 +1605,22 @@ void Formation::BuildState()
 //------------------------------------------------------------------------------
 void Formation::UpdateElements()
 {
-   Integer size, index = 0;
-   GmatState *ps;
-   for (std::vector<SpaceObject*>::iterator i = components.begin();
-        i != components.end(); ++i)
+   const Integer size = MemberStateSize(components, instanceName);
+   CheckMemberOrder(componentNames, components, instanceName);
+   if (dimension != size || state.GetSize() != size)
+      throw SpaceObjectException("Rebuild formation \"" + instanceName +
+         "\" before updating its members after a layout change.");
+
+   // Check the entire layout before writing any member, avoiding a partial
+   // update or an out-of-bounds memcpy after membership or state-size changes.
+   Integer offset = 0;
+   for (auto *member : components)
    {
-      ps = &((*i)->GetState());
-      size = ps->GetSize();
-      memcpy(ps->GetState(), &((state.GetState())[index]), size*sizeof(Real));
-      index += size;
-      if ((*i)->GetType() == Gmat::FORMATION)
-         ((Formation*)(*i))->UpdateElements();
+      GmatState &memberState = member->GetState();
+      const Integer memberSize = memberState.GetSize();
+      std::copy(state.GetState() + offset, state.GetState() + offset + memberSize,
+         memberState.GetState());
+      offset += memberSize;
    }
 }
 
@@ -1185,45 +1634,28 @@ void Formation::UpdateElements()
 //------------------------------------------------------------------------------
 void Formation::UpdateState()
 {
-   Integer size, index = 0;
-   GmatState *ps;
-   
-   Real ep0 = 0.0, ep;
-   for (std::vector<SpaceObject*>::iterator i = components.begin();
-        i != components.end(); ++i)
+   // Propagation stop-condition buffers deliberately have copied state and
+   // epoch but no member bindings. Preserve that snapshot; do not set epoch 0.
+   if (components.empty()) return;
+   const Integer size = MemberStateSize(components, instanceName);
+   if (dimension != size || state.GetSize() != size)
    {
-      if (i == components.begin())
-      {
-         ep0 = (*i)->GetEpoch();
-         #ifdef DEBUG_FORMATION
-            MessageInterface::ShowMessage("Base epoch is %.12lf\n", ep0);
-         #endif
-      }
-      else
-      {
-         ep = (*i)->GetEpoch();
-         if (ep != ep0)
-            MessageInterface::ShowMessage(
-               "WARNING!  Formation Member Epochs are not synchronized!\n"
-               "First spacecraft epoch is %.12lf, but %s has epoch %.12lf\n", 
-               ep0, (*i)->GetName().c_str(), ep);
-      }
-      ps = &((*i)->GetState());
-      size = ps->GetSize();
-      
-      #ifdef DEBUG_FORMATION_UPDATES
-         MessageInterface::ShowMessage(
-            "Formation: Updating(%d to %d) from %s::%s\n", 
-            index, index + size - 1, instanceName.c_str(), (*i)->GetName().c_str());
-      #endif
-      
-      memcpy(&((state.GetState())[index]), ps->GetState(), size*sizeof(Real));
-      index += size;
-      if ((*i)->GetType() == Gmat::FORMATION)
-         ((Formation*)(*i))->UpdateState();
+      BuildState();
+      return;
    }
-   
-   SetEpoch(ep0);
+   CheckMemberOrder(componentNames, components, instanceName);
+   CheckMemberEpochs(components, instanceName);
+   Integer offset = 0;
+   for (auto *member : components)
+   {
+      GmatState &memberState = member->GetState();
+      const Integer memberSize = memberState.GetSize();
+      std::copy(memberState.GetState(), memberState.GetState() + memberSize,
+         state.GetState() + offset);
+      offset += memberSize;
+   }
+   state.SetEpoch(components.front()->GetEpoch());
+   state.SetEpochGT(components.front()->GetEpochGT());
 }
 
 //------------------------------------------------------------------------------
@@ -1328,6 +1760,12 @@ bool Formation::ClearSpacecraftList()
    #endif
    componentNames.clear();
    components.clear();
+   dimension = 0;
+   satCount = 0;
+   parmsChanged = true;
+   state.SetSize(6); // SpaceObject retains its empty six-element placeholder.
+   const Real emptyState[6] = {};
+   state.SetState(emptyState, 6);
    return true;
 }
 
@@ -1369,6 +1807,8 @@ bool Formation::RemoveSpacecraft(const std::string &name)
             break;
          }
       }
+      dimension = 0;
+      satCount = components.size();
 
       #ifdef DEBUG_FORMATION_ACTIONS
          MessageInterface::ShowMessage("%s%s%s\n",
@@ -1451,7 +1891,7 @@ Integer Formation::GetPropItemSize(const Integer item)
    switch (item)
    {
       case Gmat::CARTESIAN_STATE:
-         retval = state.GetSize();
+         retval = dimension;
          break;
          
       case Gmat::ORBIT_STATE_TRANSITION_MATRIX:
@@ -1503,8 +1943,14 @@ Real Formation::GetRealParameter(const Integer id) const
       //   stateType.c_str());
    #endif
 
-   if (id >= FORMATION_CARTESIAN_STATE )
+   if (id == EPOCH_PARAM) return const_cast<Formation *>(this)->GetEpoch();
+   if (id >= FORMATION_CARTESIAN_STATE && id - FORMATION_CARTESIAN_STATE < dimension)
+   {
+      if (HasLiveMembers())
+         return MemberElement(componentNames, components, dimension,
+            id - FORMATION_CARTESIAN_STATE, instanceName);
       return state[id - FORMATION_CARTESIAN_STATE];
+   }
    
    return FormationInterface::GetRealParameter(id);
 }
@@ -1523,7 +1969,7 @@ Real Formation::GetRealParameter(const std::string &label) const
 {
    // Performance!
     if (label == "A1Epoch")
-       return state.GetEpoch();
+       return const_cast<Formation *>(this)->GetEpoch();
    
     return GetRealParameter(GetParameterID(label));
 }

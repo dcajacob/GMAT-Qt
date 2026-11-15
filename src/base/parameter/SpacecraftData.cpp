@@ -86,6 +86,17 @@ SpacecraftData& SpacecraftData::operator= (const SpacecraftData& right)
 }
 
 
+// Map cached identities without evaluating or initializing a Parameter.
+void SpacecraftData::RebindClonedParameterCaches(const RefData &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &data = ClonedParameterData<SpacecraftData>(source);
+   auto *bound_mSpacecraft = BindClonedParameterReference(data.mSpacecraft, resolve);
+   mSpacecraft = bound_mSpacecraft;
+}
+
+
+
 //------------------------------------------------------------------------------
 // ~SpacecraftData()
 //------------------------------------------------------------------------------

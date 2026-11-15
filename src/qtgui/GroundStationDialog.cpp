@@ -1,4 +1,5 @@
 #include "GroundStationDialog.hpp"
+#include "PlacePicker.hpp"
 #include "ResourceProperties.hpp"
 #include "BodyFixedPoint.hpp"
 #include "Moderator.hpp"
@@ -19,8 +20,40 @@
 #include <QScrollArea>
 #include <QScreen>
 #include <QVBoxLayout>
+#include <QStylePainter>
+#include <QStyleOptionFrame>
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
+
+namespace {
+class CoordinateLineEdit final : public QLineEdit
+{
+public:
+   CoordinateLineEdit(const QString &value,QWidget *parent) : QLineEdit(value,parent)
+   {
+      const auto describe=[this] {
+         setToolTip("Exact value " + text() + "\nFocus this field to edit all digits.");
+         setAccessibleDescription("Exact value " + text());
+      };
+      connect(this,&QLineEdit::textChanged,this,describe);
+      describe();
+   }
+protected:
+   void paintEvent(QPaintEvent *event) override
+   {
+      bool valid=false; const double value=text().toDouble(&valid);
+      if (hasFocus() || !valid || !std::isfinite(value)) { QLineEdit::paintEvent(event); return; }
+      QStyleOptionFrame option; initStyleOption(&option);
+      QStylePainter painter(this); painter.drawPrimitive(QStyle::PE_PanelLineEdit,option);
+      const QRect content=style()->subElementRect(QStyle::SE_LineEditContents,&option,this)
+         .marginsRemoved(textMargins()).adjusted(2,0,-2,0);
+      painter.setClipRect(content); painter.setFont(font());
+      painter.setPen(palette().color(isEnabled() ? QPalette::Active : QPalette::Disabled,QPalette::Text));
+      painter.drawText(content,alignment()|Qt::AlignVCenter,QString::number(value,'g',12));
+   }
+};
+}
 
 QSet<QString> applyGroundStationLocation(GmatBase &object,const QMap<QString,QString> &values)
 {
@@ -49,7 +82,7 @@ GroundStationDialog::GroundStationDialog(GmatBase &station,const QMap<QString,QS
 {
    setObjectName("groundStationDialog"); setWindowTitle("Ground station");
    auto *layout=new QVBoxLayout(this);
-   auto *help=new QLabel("OK keeps changes pending. Apply the station to update the mission.",this); help->setWordWrap(true); layout->addWidget(help);
+   auto *help=new QLabel("Use settings keeps changes pending. Apply the station to update the mission.",this); help->setWordWrap(true); layout->addWidget(help);
    auto *scroll=new QScrollArea(this); scroll->setObjectName("stationScroll"); scroll->setWidgetResizable(true); scroll->setFrameShape(QFrame::NoFrame);
    auto *content=new QWidget(scroll); auto *groups=new QVBoxLayout(content); groups->setContentsMargins(0,0,0,0); scroll->setWidget(content); layout->addWidget(scroll,1);
    std::unique_ptr<GmatBase> preview(original->Clone()); QString initialError;
@@ -78,10 +111,15 @@ GroundStationDialog::GroundStationDialog(GmatBase &station,const QMap<QString,QS
    type=selector("StateType","State type"); horizon=selector("HorizonReference","Horizon reference");
    for (int i=0;i<3;++i) {
       const auto name="Location"+QString::number(i+1); auto *row=new QWidget(location); auto *line=new QHBoxLayout(row); line->setContentsMargins(0,0,0,0);
-      auto *edit=new QLineEdit(initial.value(name),row); edit->setObjectName("station_"+name); fields.insert(name,edit); line->addWidget(edit);
+      auto *edit=new CoordinateLineEdit(initial.value(name),row); edit->setObjectName("station_"+name); fields.insert(name,edit); line->addWidget(edit);
       labels[i]=new QLabel(location); labels[i]->setObjectName("stationLabel_"+name);
       units[i]=new QLabel(row); units[i]->setObjectName("stationUnit_"+name); line->addWidget(units[i]); locationForm->addRow(labels[i],row);
    }
+   auto *findPlace=new QPushButton("Find a place…",location); findPlace->setObjectName("stationFindPlace");
+   findPlace->setToolTip("Choose an offline place or search online to fill latitude and longitude");
+   findPlace->setEnabled(body->currentText()=="Earth"); locationForm->addRow(findPlace);
+   connect(findPlace,&QPushButton::clicked,this,[this] { choosePlace(); });
+   connect(body,&QComboBox::currentTextChanged,findPlace,[findPlace](const QString &name) { findPlace->setEnabled(name=="Earth"); });
    auto *display=new QGroupBox("Display",content); auto *displayForm=new QFormLayout(display); groups->addWidget(display);
    for (const auto &name:QStringList{"OrbitColor","TargetColor"}) {
       auto *edit=text(displayForm,name,name=="OrbitColor" ? "Station color" : "Target color");
@@ -108,8 +146,11 @@ GroundStationDialog::GroundStationDialog(GmatBase &station,const QMap<QString,QS
    for (auto *edit:fields) connect(edit,&QLineEdit::textChanged,error,&QLabel::clear);
    previousBody=body->currentText(); previousType=type->currentText(); previousHorizon=horizon->currentText();
    refresh(*preview,false); error->setText(initialError);
+   connect(fields.value("Location2"),&QLineEdit::textChanged,this,[this] { refreshLongitudeHint(); });
    for (auto *combo:{body,type,horizon}) connect(combo,&QComboBox::currentTextChanged,this,[this] { convert(); });
    auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,this); layout->addWidget(buttons);
+   buttons->button(QDialogButtonBox::Ok)->setText("Use settings");
+   buttons->button(QDialogButtonBox::Ok)->setToolTip("Keep these settings pending in the resource editor, then Apply them to the mission");
    connect(buttons,&QDialogButtonBox::rejected,this,&QDialog::reject);
    connect(buttons,&QDialogButtonBox::accepted,this,[this] {
       try {
@@ -129,6 +170,26 @@ GroundStationDialog::GroundStationDialog(GmatBase &station,const QMap<QString,QS
 
 GroundStationDialog::~GroundStationDialog()=default;
 
+void GroundStationDialog::choosePlace()
+{
+   PlacePicker picker(this);
+   if (picker.exec()!=QDialog::Accepted) return;
+   const auto place=picker.selectedPlace();
+   if (!place) return;
+   try {
+      std::unique_ptr<GmatBase> preview(original->Clone());
+      applyGroundStationLocation(*preview,settings());
+      preview->SetStringParameter("StateType","Spherical");
+      preview->SetStringParameter("HorizonReference","Ellipsoid");
+      preview->SetRealParameter("Location1",place->coordinates.y());
+      preview->SetRealParameter("Location2",place->coordinates.x());
+      const QSignalBlocker typeBlock(type),horizonBlock(horizon);
+      type->setCurrentText("Spherical"); horizon->setCurrentText("Ellipsoid");
+      refresh(*preview); previousType=type->currentText(); previousHorizon=horizon->currentText(); error->clear();
+   } catch (BaseException &failure) { error->setText(QString::fromStdString(failure.GetFullMessage())); }
+   catch (const std::exception &failure) { error->setText(QString::fromUtf8(failure.what())); }
+}
+
 QMap<QString,QString> GroundStationDialog::settings() const
 {
    QMap<QString,QString> result={{"CentralBody",body->currentText()},{"StateType",type->currentText()},{"HorizonReference",horizon->currentText()}};
@@ -145,6 +206,18 @@ void GroundStationDialog::refresh(GmatBase &station,bool updateValues)
       if (updateValues) fields["Location"+QString::number(i+1)]->setText(QString::number(station.GetRealParameter("Location"+index),'g',17));
    }
    horizon->setEnabled(type->currentText()!="Cartesian");
+   refreshLongitudeHint();
+}
+
+void GroundStationDialog::refreshLongitudeHint()
+{
+   if (type->currentText()!="Spherical") return;
+   bool valid=false; const double longitude=fields.value("Location2")->text().toDouble(&valid);
+   if (!valid || !std::isfinite(longitude)) { units[1]->setText("deg E"); return; }
+   const double signedLongitude=std::remainder(longitude,360.);
+   units[1]->setText(QString("deg E · %1° %2").arg(QString::number(std::abs(signedLongitude),'g',10),signedLongitude<0 ? "W" : "E"));
+   units[1]->setWordWrap(true);
+   units[1]->setToolTip("The field uses east-positive longitude. The equivalent signed direction is shown here.");
 }
 
 void GroundStationDialog::convert()
@@ -157,9 +230,11 @@ void GroundStationDialog::convert()
       refresh(*preview); error->clear(); previousBody=body->currentText(); previousType=type->currentText(); previousHorizon=horizon->currentText();
    } catch (BaseException &failure) {
       const QSignalBlocker a(body),b(type),c(horizon); body->setCurrentText(previousBody); type->setCurrentText(previousType); horizon->setCurrentText(previousHorizon);
+      findChild<QPushButton *>("stationFindPlace")->setEnabled(previousBody=="Earth");
       error->setText(QString::fromStdString(failure.GetFullMessage()));
    } catch (const std::exception &failure) {
       const QSignalBlocker a(body),b(type),c(horizon); body->setCurrentText(previousBody); type->setCurrentText(previousType); horizon->setCurrentText(previousHorizon);
+      findChild<QPushButton *>("stationFindPlace")->setEnabled(previousBody=="Earth");
       error->setText(QString::fromUtf8(failure.what()));
    }
 }

@@ -43,6 +43,11 @@ public:
    virtual ~ObjectWrapper();
    
    virtual ElementWrapper*     Clone() const;
+   void RebindClonedReferences(const ElementWrapper &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
+
+   bool OwnsRefObject() const override;
+   void AdoptRefObject(std::unique_ptr<GmatBase> value);
 
    virtual std::string         ToString();
    virtual Gmat::ParameterType GetDataType() const;
@@ -63,6 +68,8 @@ protected:
    // the object pointer
    GmatBase *theObject;
    
+   std::unique_ptr<GmatBase> ownedObject;
+
    virtual void         SetupWrapper();
 };
 #endif // ObjectWrapper_hpp

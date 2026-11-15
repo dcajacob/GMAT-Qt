@@ -41,7 +41,33 @@
 #include "MessageInterface.hpp"
 #include "Moderator.hpp"
 #include "Publisher.hpp"
+#include "GmatGlobal.hpp"
 #include "SpacePoint.hpp"
+#include "EphemerisFile.hpp"
+#include <exception>             // for deferred command finalization errors
+#include <memory>
+#include <algorithm>
+
+namespace
+{
+bool IsInitializedSharedSubscriber(GmatBase *object, const ObjectMap *global)
+{
+   return object && global && object->IsOfType(Gmat::SUBSCRIBER) && object->IsInitialized() &&
+         std::any_of(global->begin(), global->end(),
+               [object](const auto &entry) { return entry.second == object; });
+}
+
+void BindFunctionEphemerisForces(ObjectMap *local, ObjectMap *global,
+      std::vector<PhysicalModel*> *forces)
+{
+   for (ObjectMap *store : {local, global})
+      if (store)
+         for (const auto &entry : *store)
+            if (auto *ephemeris = dynamic_cast<EphemerisFile*>(entry.second))
+               if (!IsInitializedSharedSubscriber(ephemeris, global))
+                  ephemeris->SetTransientForces(forces);
+}
+}
 
 //#define DEBUG_FUNCTION_CONSTRUCT
 //#define DEBUG_FUNCTION_SET
@@ -190,9 +216,10 @@ GmatFunction::~GmatFunction()
        GetName().c_str(), fcs);
    #endif
    
+   // Release result wrappers before commands and their local resources retire.
+   ClearOutputWrappers();
    // delete function sequence including NoOp (loj: 2008.12.22)
-   if (fcs != NULL)
-      GmatCommandUtil::ClearCommandSeq(fcs, false);
+   ClearFunctionControlSequence();
    
    if (unusedGlobalObjectList != NULL)
    {
@@ -239,8 +266,12 @@ GmatFunction& GmatFunction::operator=(const GmatFunction& right)
    if (this == &right)
       return *this;
    
-   Function::operator=(right);
+   UserDefinedFunction::operator=(right);
+   // The base either retained this identical compiled definition unchanged or
+   // rejected a different one before mutation. Its cached scope stays valid.
+   if (fcs) return *this;
    mIsNewFunction = false;
+   delete unusedGlobalObjectList;
    unusedGlobalObjectList = NULL;
    
    return *this;
@@ -294,6 +325,7 @@ bool GmatFunction::Initialize(ObjectInitializer *objInit, bool reinitialize,
       MessageInterface::ShowMessage("   internalCS is %p\n", internalCoordSys);
    #endif
    if (!fcs) return false;
+   PruneExpiredAutomaticReferences();
    
    // Override input to initialize if new types of inputs were received
    if (changingInputType)
@@ -425,6 +457,9 @@ bool GmatFunction::Initialize(ObjectInitializer *objInit, bool reinitialize,
    {
       std::string autoObjName = omi->first;
       GmatBase *autoObj = omi->second;
+      // A retired borrowed invocation preserves its lexical declaration key.
+      // Native validation reconstructs that automatic object in the new scope.
+      if (!autoObj) continue;
       
       #ifdef DEBUG_FUNCTION_INIT
       MessageInterface::ShowMessage
@@ -556,6 +591,7 @@ bool GmatFunction::Initialize(ObjectInitializer *objInit, bool reinitialize,
    for (UnsignedInt ii = 0; ii < removeFromObjectStore.size(); ii++)
       objectStore->erase(removeFromObjectStore.at(ii));
    
+   BindFunctionEphemerisForces(objectStore, globalObjectStore, forces);
    GmatCommand *current = fcs;
 
    // Set object map on Validator (moved here from below) LOJ: 2015.04.09
@@ -594,7 +630,28 @@ bool GmatFunction::Initialize(ObjectInitializer *objInit, bool reinitialize,
       #endif
       InitializeLocalObjects(objInit, current, true);
    }
+
+   // Refreshing inputs and restoring a recursive frame can Copy stations
+   // without taking the full object-initialization path above. Their frames
+   // are detached by value copying; restore only those local station bindings.
+   for (const auto &entry : *objectStore)
+   {
+      GmatBase *object = entry.second;
+      if (object && object->IsOfType(Gmat::GROUND_STATION) &&
+          (!object->IsGlobal() || object->IsLocal()) && !object->IsInitialized() &&
+          !objInit->InitializeGroundStation(object))
+         throw FunctionException("Cannot initialize copied station \"" + entry.first +
+               "\" in function \"" + functionName + "\"");
+   }
    
+   // Every structural command, including nested branches, receives the new
+   // function's configuration lookup before validation inspects copied operands.
+   for (auto *command : GmatCommandUtil::GetCommandSequenceNodes(fcs))
+   {
+      command->SetCurrentFunction(this);
+      command->SetConfiguredObjectMap(&validatorStore);
+   }
+
    // Set object store, solar system, etc to all the commands and
    // validate command to create necessary wrappers
    while (current)
@@ -677,7 +734,7 @@ bool GmatFunction::Initialize(ObjectInitializer *objInit, bool reinitialize,
             throw FunctionException("Unable to start the server needed by the " +
                                    (current->GetTypeName()) + " command");
 
-      current = current->GetNext();
+      current = current->GetNextWhileExecuting();
    }
    
    
@@ -707,6 +764,44 @@ bool GmatFunction::Initialize(ObjectInitializer *objInit, bool reinitialize,
 //------------------------------------------------------------------------------
 // bool Execute(ObjectInitializer *objInit, bool reinitialize = true)
 //------------------------------------------------------------------------------
+void GmatFunction::NotifyCloneOwners(GmatCommand *command, ObjectInitializer *initializer)
+{
+   if (!command || !command->AffectsClones()) return;
+   GmatBase *source = command->GetUpdatedObject();
+   if (!source) return;
+   const auto sourceIdentity = source->GetLifetimeToken();
+   const Integer parameter = command->GetUpdatedObjectParameterIndex();
+   const auto owners = GmatBase::GetCloneUpdateOwners(*source);
+   for (const auto &entry : owners)
+   {
+      GmatBase *owner = entry.first;
+      if (!GmatBase::IsLiveReference(owner, entry.second) || owner == source) continue;
+      if (!GmatBase::IsLiveReference(source, sourceIdentity))
+         throw FunctionException("Clone notification source expired during a function update.\n");
+      const bool ready = owner->IsInitialized();
+      // Fresh declaration graphs are associated after all declaration values
+      // are complete. Already-live caller/global owners still observe edits.
+      if (!objectsInitialized && !ready) continue;
+      if (parameter >= 0) owner->UpdateClonedObjectParameter(source, parameter);
+      else owner->UpdateClonedObject(source);
+      if (ready && !owner->IsInitialized())
+      {
+         bool localOwner = false;
+         if (objectStore && (!owner->IsGlobal() || owner->IsLocal()))
+            for (const auto &object : *objectStore) if (object.second == owner) localOwner = true;
+         // A shared definition can notify a caller's actual owner outside this
+         // FOS. Its existing bindings must not be replaced from local names.
+         if (localOwner && initializer)
+         {
+            initializer->BuildReferences(owner);
+            initializer->BuildAssociations(owner);
+         }
+         if (!owner->Initialize())
+            throw FunctionException("Cannot initialize a clone owner after function update: " + owner->GetName());
+      }
+   }
+}
+
 bool GmatFunction::Execute(ObjectInitializer *objInit, bool reinitialize)
 {
    if (!fcs) return false;
@@ -801,10 +896,13 @@ bool GmatFunction::Execute(ObjectInitializer *objInit, bool reinitialize)
    
    // A function owns its command dispatcher while the Sandbox waits in the
    // CallFunction command. Service GUI controls here at the Sandbox cadence.
-   // Only poll during mission execution: initialization-time math functions
-   // may run while the Moderator/Publisher is idle.
+   // Solver trials and accepted passes are mission execution too. Only exclude
+   // inactive states: initialization-time math functions may run while idle.
+   const Gmat::RunState publicationState = Publisher::Instance()->GetRunState();
    const bool serviceRunControls =
-      Publisher::Instance()->GetRunState() == Gmat::RUNNING;
+      publicationState == Gmat::RUNNING || publicationState == Gmat::TARGETING ||
+      publicationState == Gmat::OPTIMIZING || publicationState == Gmat::ESTIMATING ||
+      publicationState == Gmat::SOLVING || publicationState == Gmat::SOLVEDPASS;
    Integer controlPollCount = 0;
 
    // Go through each command in the sequence and execute.
@@ -881,8 +979,26 @@ bool GmatFunction::Execute(ObjectInitializer *objInit, bool reinitialize)
              current->GetGeneratingString(Gmat::NO_COMMENTS).c_str());
          #endif
          
+         // Function commands have their own dispatcher while Sandbox waits in
+         // CallFunction. Honor the same echo and repeated-line rules here.
+         if (GmatGlobal::Instance()->EchoCommands() &&
+               !((current->IsOfType("Propagate") || current->IsOfType("BranchCommand")) &&
+                 current->GetPropStatus()))
+         {
+            std::string line = "CurrentCommand: " +
+                  current->GetGeneratingString(Gmat::NO_COMMENTS);
+            if (auto *branch = dynamic_cast<BranchCommand*>(current))
+            {
+               const std::string nested = branch->GetCurrentGeneratingString(
+                     Gmat::NO_COMMENTS, "  --> ");
+               if (!nested.empty()) line = nested;
+            }
+            MessageInterface::ShowMessage("%s\n", line.c_str());
+         }
+
          if (!(current->Execute()))
             return false;
+         NotifyCloneOwners(current, objInit);
       }
       catch (BaseException &e)
       {
@@ -967,7 +1083,7 @@ bool GmatFunction::Execute(ObjectInitializer *objInit, bool reinitialize)
    
    // create output wrappers and put into map
    GmatBase *obj = NULL;
-   wrappersToDelete.clear();
+   ClearOutputWrappers();
    for (unsigned int jj = 0; jj < outputNames.size(); jj++)
    {
       #ifdef DEBUG_FUNCTION_EXEC
@@ -988,8 +1104,12 @@ bool GmatFunction::Execute(ObjectInitializer *objInit, bool reinitialize)
           GmatBase::WriteObjectInfo("", obj, false).c_str(), outName.c_str());
       #endif
       
-      ElementWrapper *outWrapper =
-         validator->CreateElementWrapper(outName, false, 0);
+      std::unique_ptr<ElementWrapper> pendingWrapper(
+         validator->CreateElementWrapper(outName, false, 0));
+      ElementWrapper *outWrapper = pendingWrapper.get();
+      if (!outWrapper)
+         throw FunctionException("Cannot create output wrapper for \"" + outName +
+                                 "\" in function \"" + functionName + "\"\n");
       
       #ifdef DEBUG_MORE_MEMORY
       MessageInterface::ShowMessage
@@ -998,11 +1118,16 @@ bool GmatFunction::Execute(ObjectInitializer *objInit, bool reinitialize)
           outWrapper->GetDescription().c_str());
       #endif
       
-      outWrapper->SetRefObject(obj);
+      if (!outWrapper->SetRefObject(obj))
+      {
+         throw FunctionException("Cannot bind output \"" + outName +
+                                 "\" in function \"" + functionName + "\"\n");
+      }
       
-      // nested CallFunction crashes if old outWrappers are deleted here. (loj: 2008.11.24)
-      // so collect here and delete when FunctionRunner completes.
-      wrappersToDelete.push_back(outWrapper);         
+      // Keep wrappers alive until FunctionManager has copied the complete
+      // result. The queue also owns a wrapper if map insertion below fails.
+      ObjectManagedFunction::wrappersToDelete.push_back(outWrapper);
+      pendingWrapper.release(); // The queue retains it for caller cleanup.
       
       // Set new outWrapper
       outputArgMap[outName] = outWrapper;
@@ -1045,6 +1170,9 @@ void GmatFunction::Finalize(bool cleanUp)
        "NOT finalized, so call fcs->RunComplete");
    #endif
    
+   // Keep the recursion guard set while attempting every command, even if an
+   // earlier command fails. Report the first error after restoring references.
+   std::exception_ptr firstError;
    // Call RunComplete on each command in fcs
    if (!fcsFinalized)
    {
@@ -1062,8 +1190,16 @@ void GmatFunction::Finalize(bool cleanUp)
                    "(call RunComplete on) command %s\n",
                    (current->GetTypeName()).c_str());
          #endif
-         current->RunComplete();
-         current = current->GetNext();
+         try
+         {
+            current->RunComplete();
+         }
+         catch (...)
+         {
+            if (!firstError)
+               firstError = std::current_exception();
+         }
+         current = current->GetNextWhileExecuting();
       }
    }
    
@@ -1071,7 +1207,17 @@ void GmatFunction::Finalize(bool cleanUp)
    MessageInterface::ShowMessage("   Calling Function::Finalize()\n");
    #endif
    
-   UserDefinedFunction::Finalize(cleanUp);
+   try
+   {
+      UserDefinedFunction::Finalize(cleanUp);
+   }
+   catch (...)
+   {
+      if (!firstError)
+         firstError = std::current_exception();
+   }
+   if (firstError)
+      std::rethrow_exception(firstError);
    
    #ifdef DEBUG_FUNCTION_FINALIZE
    MessageInterface::ShowMessage("GmatFunction::Finalize() leaving\n");
@@ -1111,7 +1257,10 @@ GmatBase* GmatFunction::Clone() const
 //---------------------------------------------------------------------------
 void GmatFunction::Copy(const GmatBase* orig)
 {
-   operator=(*((GmatFunction *)(orig)));
+   const auto *function = dynamic_cast<const GmatFunction *>(orig);
+   if (!function)
+      throw FunctionException("GmatFunction::Copy requires a GmatFunction source");
+   operator=(*function);
 }
 
 
@@ -1137,6 +1286,13 @@ bool GmatFunction::SetStringParameter(const Integer id, const std::string &value
    bool retval = false;
    switch (id)
    {
+   case FUNCTION_SOURCE_FORMAT:
+      // A cached command sequence was parsed under its original source policy.
+      // Require a rebuild instead of relabeling that sequence as ASCII-checked.
+      if (fcs && value != sourceFormat)
+         throw FunctionException("Rebuild GmatFunction '" + GetName() +
+            "' before changing SourceFormat; its source has already been interpreted.");
+      return UserDefinedFunction::SetStringParameter(id, value);
    case FUNCTION_PATH:
       {
          retval = SetGmatFunctionPath(value);
@@ -1244,6 +1400,9 @@ bool GmatFunction::InitializeLocalObjects(ObjectInitializer *objInit,
    // Why internal coordinate system is empty in ObjectInitializer?
    // Set internal coordinate system (added (loj: 2008.10.07)
    objInit->SetInternalCoordinateSystem(internalCoordSys);
+   // Function-created ephemerides use the same live burn context as the
+   // caller's commands, just as Sandbox does for main-sequence ephemerides.
+   BindFunctionEphemerisForces(objectStore, globalObjectStore, forces);
    
    // Let's try initializing local objects using ObjectInitializer (2008.06.19)
    // We need to add subscribers to publisher, so pass true
@@ -1325,6 +1484,7 @@ void GmatFunction::CreateSubscriberWrappers()
       if (funcObj->IsOfType(Gmat::SUBSCRIBER))
       {
          Subscriber *sub = (Subscriber*)funcObj;
+         if (IsInitializedSharedSubscriber(sub, globalObjectStore) || sub->HasFunctionValueBindings()) continue;
          const StringArray wrapperNames = sub->GetWrapperObjectNameArray();
          
          #ifdef DEBUG_FUNCTION_INIT
@@ -1348,9 +1508,9 @@ void GmatFunction::CreateSubscriberWrappers()
                MessageInterface::ShowMessage
                   ("   About to create wrapper for '%s'\n", wname.c_str());
                #endif
-               ElementWrapper *ew = validator->CreateElementWrapper(wname, true, 2);
+               std::unique_ptr<ElementWrapper> ew(validator->CreateElementWrapper(wname, true, 2));
                
-               if (sub->SetElementWrapper(ew, wname) == false)
+               if (!ew || !sub->SetElementWrapper(ew.get(), wname))
                {
                   #ifdef DEBUG_FUNCTION_INIT
                   MessageInterface::ShowMessage
@@ -1364,7 +1524,9 @@ void GmatFunction::CreateSubscriberWrappers()
                                 "%s '%s' in the function \"%s\"",
                                 wname.c_str(), funcObj->GetTypeName().c_str(),
                                 funcObj->GetName().c_str(), functionPath.c_str());
+                  throw fe;
                }
+               ew.release(); // The subscriber accepted its actual owner.
             }
             catch (BaseException &ex)
             {
@@ -1389,121 +1551,108 @@ void GmatFunction::CreateSubscriberWrappers()
 //------------------------------------------------------------------------------
 bool GmatFunction::SetGmatFunctionPath(const std::string &path)
 {
-   #ifdef DEBUG_FUNCTION_SET_PATH
-   MessageInterface::ShowMessage
-      ("GmatFunction::SetGmatFunctionPath() <%p> entered, path='%s'\n", this,
-       path.c_str());
-   #endif
-   
    FileManager *fm = FileManager::Instance();
-   
-   // Compose full path if it has relative path.
-   // Assuming if first char has '.', it has relative path.
-   std::string thePath  = GmatStringUtil::Trim(path);
-   std::string tempPath = thePath;
-   #ifdef DEBUG_FUNCTION_SET_PATH
-   MessageInterface::ShowMessage("   tempPath='%s'\n", tempPath.c_str());
-   #endif
-   if (tempPath[0] == '.')
-   {
-      #ifdef DEBUG_FUNCTION_SET_PATH
-      MessageInterface::ShowMessage("   It has relative path\n");
-      #endif
-      // Follow new file path implementation (LOJ: 2015.01.13)
-      //std::string currPath = fm->GetCurrentWorkingDirectory();
-      std::string currPath = fm->GetGmatWorkingDirectory();
-      
-      #ifdef DEBUG_FUNCTION_SET_PATH
-      MessageInterface::ShowMessage("   currPath='%s'\n", currPath.c_str());
-      #endif
-            
-      tempPath = currPath + thePath;
-      tempPath = GmatFileUtil::ConvertToOsFileName(tempPath);
+   const std::string requested = GmatStringUtil::Trim(path);
+   if (requested.empty())
+      throw FunctionException("FunctionPath cannot be empty for GmatFunction '" +
+         GetName() + "'.");
+   if (fcs && requested == functionPath)
+      return true;
 
-      // if it is not relative to the script, maybe it's relative to the
-      // bin directory
-      if (!fm->DoesDirectoryExist(tempPath))
-      {
-         std::string binDir   = fm->GetBinDirectory();
-         tempPath             = binDir + thePath;
-         tempPath             = GmatFileUtil::ConvertToOsFileName(tempPath);
-      }
-      
-      #ifdef DEBUG_FUNCTION_SET_PATH
-      MessageInterface::ShowMessage("   tempPath='%s'\n", tempPath.c_str());
-      #endif
-      
-      // If path has only a path name without a function name, append function name
-      // This will make FunctionPath to work without specifying function name (LOJ: 2015.03.16)
-      if (tempPath.find(".gmf") == tempPath.npos)
-      {
-         #ifdef DEBUG_FUNCTION_SET_PATH
-         MessageInterface::ShowMessage("   It has relative path only\n");
-         #endif
-         if ((tempPath[tempPath.size()-1] != '/') &&
-             (tempPath[tempPath.size()-1] != '\\'))
-            tempPath = tempPath + "/";
-         functionPath = tempPath + functionName + ".gmf";
-      }
-      else
-      {
-         #ifdef DEBUG_FUNCTION_SET_PATH
-         MessageInterface::ShowMessage("   It has relative path and name\n");
-         #endif
-         functionPath = tempPath;
-      }
-   }
-   else
+   auto fromDirectory = [&](std::string directory) {
+      if (!directory.empty() && directory.back() != '/' && directory.back() != '\\')
+         directory += '/';
+      return GmatFileUtil::ConvertToOsFileName(directory + requested);
+   };
+   auto isDirectory = [&](std::string candidate) {
+      if (candidate.empty())
+         return false;
+      // DoesDirectoryExist tests the directory portion of its argument. A
+      // trailing separator makes that the candidate itself, not its parent.
+      if (candidate.back() != '/' && candidate.back() != '\\')
+         candidate += '/';
+      return fm->DoesDirectoryExist(candidate, false);
+   };
+   auto exists = [&](const std::string &candidate) {
+      return isDirectory(candidate) ||
+         GmatFileUtil::DoesFileExist(candidate);
+   };
+
+   std::string resolved = GmatFileUtil::ConvertToOsFileName(requested);
+   if (!GmatFileUtil::IsPathAbsolute(requested))
    {
-      // Check if it has only absolute path
-      if (tempPath.find(".gmf") == tempPath.npos)
+      resolved = fromDirectory(fm->GetGmatWorkingDirectory());
+      // A file is a valid working-directory match too. Do not replace it just
+      // because the directory-only query returns false for a .gmf file.
+      if (!exists(resolved))
       {
-         #ifdef DEBUG_FUNCTION_SET_PATH
-         MessageInterface::ShowMessage("   It has absolute path only\n");
-         #endif
-         if ((tempPath[tempPath.size()-1] != '/') &&
-             (tempPath[tempPath.size()-1] != '\\'))
-            tempPath = tempPath + '/';
-         functionPath = tempPath + functionName + ".gmf";
-      }
-      else
-      {
-         #ifdef DEBUG_FUNCTION_SET_PATH
-         MessageInterface::ShowMessage("   It has absolute path and name\n");
-         #endif
-         functionPath = tempPath;
+         const std::string binaryCandidate = fromDirectory(fm->GetBinDirectory());
+         if (exists(binaryCandidate))
+            resolved = binaryCandidate;
       }
    }
-   
-   // Add to GmatFunction path so that nested function can be found
-   // Do we need to add to FileManager function path? exclude it (LOJ: 2015.03.17)
-   std::string funcPathOnly = GmatFileUtil::ParsePathName(functionPath);
-   #ifdef DEBUG_FUNCTION_SET_PATH
-   MessageInterface::ShowMessage
-      ("   ===> Adding GmatFunction path '%s' to FileManager for function '%s'\n",
-       funcPathOnly.c_str(), GetName().c_str());
-   #endif
-   fm->AddGmatFunctionPath(funcPathOnly);
-   
-   // Remove path for function name
-   functionName = GmatFileUtil::ParseFileName(functionPath);
-   
-   // Remove .gmf for GmatFunction name
-   std::string::size_type dotIndex = functionName.find(".gmf");
-   functionName = functionName.substr(0, dotIndex);
-   
-   #ifdef DEBUG_FUNCTION_SET_PATH
-   MessageInterface::ShowMessage("   functionPath='%s'\n", functionPath.c_str());
-   MessageInterface::ShowMessage("   functionName='%s'\n", functionName.c_str());
-   #endif
-   
-   #ifdef DEBUG_FUNCTION_SET_PATH
-   MessageInterface::ShowMessage
-      ("GmatFunction::SetGmatFunctionPath() <%p> returning true\n", this);
-   #endif
+
+   std::string filename = GmatFileUtil::ParseFileName(resolved);
+   const bool gmfFile = filename.size() > 4 &&
+      filename.compare(filename.size()-4, 4, ".gmf") == 0;
+   const bool directory = resolved.back() == '/' || resolved.back() == '\\' ||
+      isDirectory(resolved);
+   if (directory || (!gmfFile && !GmatFileUtil::DoesFileExist(resolved)))
+   {
+      if (resolved.back() != '/' && resolved.back() != '\\')
+         resolved += '/';
+      resolved += functionName + ".gmf";
+      filename = GmatFileUtil::ParseFileName(resolved);
+   }
+
+   if (fcs && resolved != functionPath)
+      throw FunctionException("Rebuild GmatFunction '" + GetName() +
+         "' before changing FunctionPath; its source has already been interpreted.");
+
+   std::string resolvedName = filename;
+   // Native source mode retains its historical .gmf-prefixed filename rule
+   // (for example Encoded.gmf.txt declares Encoded). LegacyASCII validates the
+   // final .gmf suffix separately before interpretation.
+   const auto extension = resolvedName.find(".gmf");
+   if (extension != std::string::npos)
+      resolvedName.resize(extension);
+
+   // Commit only after resolving the file/directory and checking cached-source
+   // ownership. A rejected path must not change the function or search list.
+   fm->AddGmatFunctionPath(GmatFileUtil::ParsePathName(resolved));
+   functionPath.swap(resolved);
+   functionName.swap(resolvedName);
    return true;
 }
 
+
+std::unique_ptr<FunctionInvocationState> GmatFunction::SuspendInvocationState()
+{
+   struct NativeFrame
+   {
+      std::unique_ptr<StringArray> unusedGlobals;
+      bool newFunction = false;
+      bool armed = false;
+   };
+   auto saved = std::make_shared<NativeFrame>();
+   saved->newFunction = mIsNewFunction;
+   auto restore = [this, saved]() noexcept
+   {
+      if (!saved->armed) return;
+      delete unusedGlobalObjectList;
+      unusedGlobalObjectList = saved->unusedGlobals.release();
+      mIsNewFunction = saved->newFunction;
+   };
+   // Keep the inner native list installed through command completion; this
+   // leaf owns only strings and can restore after its enclosing graph/services.
+   auto state = std::make_unique<FunctionInvocationState>(*this, std::move(restore),
+         UserDefinedFunction::SuspendInvocationState(), true);
+   saved->unusedGlobals.reset(unusedGlobalObjectList);
+   unusedGlobalObjectList = nullptr;
+   mIsNewFunction = false;
+   saved->armed = true;
+   return state;
+}
 
 //------------------------------------------------------------------------------
 // void BuildUnusedGlobalObjectList()
@@ -1524,10 +1673,8 @@ void GmatFunction::BuildUnusedGlobalObjectList()
        globalObjectStore->size());
    #endif
    
-   if (unusedGlobalObjectList != NULL)
-      delete unusedGlobalObjectList;
-   
-   unusedGlobalObjectList = new StringArray;
+   // Keep the previous invocation's list valid if lookup/allocation fails.
+   auto unused = std::make_unique<StringArray>();
    
    // Check global object store
    std::string cmdName;
@@ -1556,11 +1703,13 @@ void GmatFunction::BuildUnusedGlobalObjectList()
                MessageInterface::ShowMessage
                   ("==> Adding '%s' to unusedGOL\n", (omi->first).c_str());
                #endif
-               unusedGlobalObjectList->push_back(omi->first);
+               unused->push_back(omi->first);
             }
          }
       }
    }
+   delete unusedGlobalObjectList;
+   unusedGlobalObjectList = unused.release();
    #ifdef DEBUG_UNUSED_GOL
    MessageInterface::ShowMessage
       ("BuildUnusedGlobalObjectList() leaving, There are %d unused global objects\n",

@@ -1,0 +1,36 @@
+Qt default celestial-body copying
+=================================
+
+Qt now provides Copy celestial body for default planets, moons and the Sun, using a detached value whose PhysicalBody identity is captured before renaming. Body copy scripts combine a full-precision native configuration snapshot with authored scalar settings, retain effective ordered lists once and select the physical model before dependent fields. The editor uses the body-specific writable-field/validation route. Sun construction and saved stellar-value storage, Earth DSN identity checks and independent native rotation-source restoration are repaired. Broad any-object clone/scientific scope remains incomplete; no whole original row or verification credit is added.
+
+Owning-source findings and implementation
+------------------------------------------
+
+MainWindow adds IncludeDefaultBodies without changing existing policy enum values and wires Copy celestial body through the Edit and default-body context menus. Standard Clone retains its documented default-body restriction. The detached body captures MakeDefaultBodyCopy before SetName, preserving the canonical physical target. The editor identifies the retained physical model and commits name/settings together through the existing candidate-script route. User-defined bodies and copy-of-copy values use the same command; hidden special ephemeris bodies are handled through the existing calculated-point route rather than a body factory declaration.
+
+nativeResourceCopySnapshot scopes the native explicit export and temporarily selects at least max_digits10 precision, restoring the prior global setting on return or exception. Body snapshots retain native parameter ordering, including PhysicalBody first, and provide a declaration when a default body has none in authored source. Native effective fields supply missing defaults while authored writable scalar statements retain owner-only renaming, expressions and comments. Scalar metadata IDs recognize aliases, digit-leading names and indexed/nested field prefixes. The existing include boundary mapping and original configuration/mission dependency guards remain in effect.
+
+Body kernel/directory arrays are copied from their effective native list snapshots in existing order instead of replaying additive/indexed authored assignments over those same values. PhysicalBody is emitted once from the immutable native descriptor, before Earth/Luna-dependent settings; readonly authored native-model properties are reconstructed through the model policy. Body scalar authored fields suppress only their corresponding default entries, preserving other inherited values. Nonbody palette/file/function defaults remain under the existing path, and existing implicit point/frame native snapshots now also use full native precision. No synthetic parser/model execution was used to validate this logic.
+
+ResourceProperties uses celestialBodyFields for body copy editors, omitting unsupported/read-only fields and matching source choices, color values, file inputs and newline-separated kernel lists to the existing body commit handler. This avoids exposing generic properties that the specialized body handler cannot commit. Physical-body copies explicitly write their supported factory rotation source when selected; the native setter restores that source independently of a canonical body currently using another supported source. Legacy policy for other bodies is preserved. Earth-only DSN scalar/indexed-list checks now use the retained physical identity, allowing an Earth copy to reconstruct its own directories.
+
+The Star factory previously left radiantPower/referenceDistance/photosphereRadius uninitialized and supplied no central reference before Moderator::CreateCelestialBody calls SetUpBody. It now initializes those values from the same existing constants used for the native Sun and supplies Earth as the Sun model reference. A named Sun copy can therefore reach its saved PhysicalBody/settings. Physical Star copies serialize their own stellar values through the existing real parameter accessors; the protected Sun and ordinary user Star read-only policies remain. The established New-resource type menu stays intact. No new stellar equations, ephemerides, numerical constants or units are introduced.
+
+The Resource Tree and CelestialBody help explain the additional command, effective values, native identity, list handling and stellar-value retention. All edits were captured before mutation. Compiler build v1 completed 74/74 steps without warnings. Existing tests, the original workbook/extracted requirements, assertions, tolerances and gate/disposition metadata remain unchanged. The feature has not been executed in the GUI or through native/model/parser/save-load acceptance.
+
+Limits
+------
+
+This packet implements the public default-body copy/source route but does not establish runtime acceptance or completion of the full any-object Clone requirement. Included mixed configuration/mission blocks and included array initializers, remaining inherited/private/owned provider state, generic CelestialBody assignment ownership, shared kernel/provider lifetimes, external-file mutation and full function/Save/scientific scope remain open. Snapshot/source integration and pending-editor behavior require later runtime/save-load/numerical verification, including Sun and copied Lunar rotation choices, ordered/empty kernel and DSN lists, authored scalar expressions and cancellation/rollback. No new tests or runtime checks were performed; all 105 original acceptance rows remain open and the full implementation audit is incomplete.
+
+Compilation and retained evidence
+---------------------------------
+
+Build v1 returned 0 in 15.81s, progress 74/74, 0 existing compiler deprecation warnings. All compiler sessions are terminal. Final hashes match build v1. 8 existing source/help preimages, 0 absent-new-path records, 19 unchanged reference files and four planning snapshots preceded edits. Indexed/combined patches, hashes, source findings and compiler receipts are retained. New text passes whitespace checks (0 inherited whitespace lines recognized by the diff). Participating help XML files parse.
+
+No new tests, native/model/helper/parser/GUI/MATLAB/mission/numerical/runtime execution, acceptance auditors/readers/seals or evidence admission occurred. Original requirements/text/fingerprints/fixtures/assertions/tolerances/denominator/gates/dispositions remain unchanged. No row or verification credit. Tracking-v148 retains 1093/1158 (94.39%), 65 unresolved engineering rows. Recorded source-versioned verified baseline remains 1053/1158 (90.9%); all 105 original acceptance rows remain open. Full implementation audit and goal remain incomplete.
+
+Next implementation
+-------------------
+
+Continue the original any-object Clone inventory and source reconstruction gaps, especially mixed configuration/mission includes, included array initializers and any remaining inherited/private/owned configuration, provider-context and external-file behavior. Complete the original function/provider graph, any-Resource Save and other campaign implementation requirements before runtime verification. Keep original requirements, fixtures, assertions, tolerances, denominator, gates and dispositions intact.

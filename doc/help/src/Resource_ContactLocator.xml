@@ -28,7 +28,30 @@
   </refnamediv>
 
   <refsection>
+    <title>Root refinement</title>
+    <para><literal>RootFindingMethod</literal> selects <literal>SPICE</literal>
+    (the default) or <literal>Brent</literal>. For spacecraft targets, Brent
+    refines station rise/set crossings and contact interval boundaries using
+    apparent elevation, field-of-view and occultation geometry. Each contact's
+    maximum-elevation epoch uses its own contact window.
+    <literal>RootTolerance</literal> is a positive finite time tolerance in TDB
+    seconds, defaulting to 1e-6. Tolerances below the representable epoch
+    resolution are rejected. <literal>StepSize</literal> controls candidate
+    discovery separately; refinement cannot recover an event missed by that
+    search step. Clipped search-window endpoints are retained. An interior
+    boundary without a continuous sign-changing geometry bracket reports an
+    error. Planetographic-region transitions use their signed boundary distance
+    and also check the native A1 epoch resolution.</para>
+  </refsection>
+
+  <refsection>
     <title>Description</title>
+
+    <para>Reinitialization and reference rebinding retire the locator's
+    generated frame and instrument kernels before replacing their setup.
+    Failed unloading or deletion reports an error and leaves the pending
+    filenames available for retry. Cleanup during destruction reports failures
+    and retains files whose native unloading could not be confirmed.</para>
 
     <note>
       <para><guilabel>ContactLocator</guilabel> is a SPICE-based subsystem

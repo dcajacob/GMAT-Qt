@@ -832,6 +832,19 @@ const StringArray& CalculatedPoint::GetStringArrayParameter(
  */
 //------------------------------------------------------------------------------
 GmatBase* CalculatedPoint::GetRefObject(const UnsignedInt type,
+                                        const std::string &name)
+{
+   if (type == Gmat::SPACE_POINT || type == Gmat::CELESTIAL_BODY ||
+       type == Gmat::CALCULATED_POINT)
+   {
+      for (SpacePoint *point : bodyList)
+         if (point && point->GetName() == name && point->IsOfType(type))
+            return point;
+   }
+   return SpacePoint::GetRefObject(type, name);
+}
+
+GmatBase* CalculatedPoint::GetRefObject(const UnsignedInt type,
                                         const std::string &name,
                                         const Integer index)
 {

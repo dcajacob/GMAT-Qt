@@ -44,6 +44,57 @@
 #include <memory>
 #include "TimeSystemConverter.hpp"
 #include "MessageInterface.hpp"
+#include "OrbitStmForceGradient.hpp"
+#include <map>
+#include <cmath>
+
+namespace
+{
+Rmatrix RelativisticStateJacobian(const Real *position, const Real *velocity,
+      const Real *spin, const Real *precession, Real mu, Real lightSpeed)
+{
+   const Rvector3 r(position[0], position[1], position[2]);
+   const Rvector3 v(velocity[0], velocity[1], velocity[2]);
+   const Rvector3 angularMomentum(spin[0], spin[1], spin[2]);
+   const Rvector3 omega(precession[0], precession[1], precession[2]);
+   const Real radiusSquared = r * r;
+   if (!(radiusSquared > 0) || !std::isfinite(radiusSquared))
+      throw ODEModelException("Relativistic state derivatives require a finite nonzero radius.");
+   const Real radius = std::sqrt(radiusSquared);
+   const Real factor = mu / (lightSpeed * lightSpeed * radiusSquared * radius);
+   const Real radialTerm = 4 * mu / radius - v * v;
+   const Real velocityTerm = 4 * (r * v);
+   const Real spinProjection = r * angularMomentum;
+   const Real spinTerm = 3 * spinProjection / radiusSquared;
+   const Rvector3 orbitalMomentum = Cross(r, v);
+   const Rvector3 velocityCrossSpin = Cross(v, angularMomentum);
+   const Rvector3 combined = radialTerm * r + velocityTerm * v +
+      2 * (spinTerm * orbitalMomentum + velocityCrossSpin);
+   Rmatrix gradient(3,6);
+   for (Integer column = 0; column < 3; ++column)
+   {
+      Rvector3 unit(0,0,0);
+      unit[column] = 1;
+      const Real factorDerivative = -3 * factor * r[column] / radiusSquared;
+      const Real radialDerivative = -4 * mu * r[column] / (radiusSquared * radius);
+      const Real spinDerivative = 3 * angularMomentum[column] / radiusSquared -
+         6 * spinProjection * r[column] / (radiusSquared * radiusSquared);
+      const Rvector3 positionDerivative = factorDerivative * combined + factor *
+         (radialDerivative * r + radialTerm * unit + 4 * v[column] * v +
+          2 * (spinDerivative * orbitalMomentum + spinTerm * Cross(unit, v)));
+      const Rvector3 velocityDerivative = factor *
+         (-2 * v[column] * r + 4 * r[column] * v + velocityTerm * unit +
+          2 * (spinTerm * Cross(r, unit) + Cross(unit, angularMomentum))) +
+         2 * Cross(omega, unit);
+      for (Integer row = 0; row < 3; ++row)
+      {
+         gradient(row,column) = positionDerivative[row];
+         gradient(row,column+3) = velocityDerivative[row];
+      }
+   }
+   return gradient;
+}
+}
 
 //#define DEBUG_RELATIVISTIC_CORRECTION
 //#define DEBUG_DERIVATIVES
@@ -135,15 +186,11 @@ RelativisticCorrection::RelativisticCorrection(const RelativisticCorrection &rc)
    bodyFixed      (NULL),
    eop            (rc.eop)
 {
-   objectTypeNames.push_back("RelativisticCorrection");
    parameterCount = RelativisticCorrectionParamCount;
    dimension      = rc.dimension;
    epoch          = rc.epoch;
    isInitialized    = false;
 
-   derivativeIds.push_back(Gmat::CARTESIAN_STATE);
-   derivativeIds.push_back(Gmat::ORBIT_STATE_TRANSITION_MATRIX);
-   derivativeIds.push_back(Gmat::ORBIT_A_MATRIX);
 }
 
 //------------------------------------------------------------------------------
@@ -158,24 +205,31 @@ RelativisticCorrection& RelativisticCorrection::operator=(const RelativisticCorr
    if (&rc == this)
       return *this;
 
-   std::unique_ptr<CoordinateSystem> nextInertial(rc.bodyInertial ?
+   const bool restoring = GmatBase::IsNativeRestorationCopy();
+   if (restoring && (satCount != rc.satCount || (eop && rc.eop && eop != rc.eop)))
+      throw ODEModelException("Prepare relativistic-force references before restoring changed bindings.");
+   std::unique_ptr<CoordinateSystem> nextInertial(!restoring && rc.bodyInertial ?
       static_cast<CoordinateSystem*>(rc.bodyInertial->Clone()) : NULL);
-   std::unique_ptr<CoordinateSystem> nextFixed(rc.bodyFixed ?
+   std::unique_ptr<CoordinateSystem> nextFixed(!restoring && rc.bodyFixed ?
       static_cast<CoordinateSystem*>(rc.bodyFixed->Clone()) : NULL);
 
    PhysicalModel::operator=(rc);
 
-   theSun         = NULL;
+   if (!restoring) theSun = NULL;
    bodyRadius     = rc.bodyRadius;
    bodyMu         = rc.bodyMu;
+   sunMu          = rc.sunMu;
    bodySpinRate   = rc.bodySpinRate;
    now            = rc.now;
    satCount       = rc.satCount;
-   delete bodyInertial;
-   delete bodyFixed;
-   bodyInertial   = nextInertial.release();
-   bodyFixed      = nextFixed.release();
-   eop            = rc.eop;
+   if (!restoring)
+   {
+      delete bodyInertial;
+      delete bodyFixed;
+      bodyInertial = nextInertial.release();
+      bodyFixed = nextFixed.release();
+      eop = rc.eop;
+   }
 
    return *this;
 }
@@ -250,7 +304,8 @@ bool RelativisticCorrection::GetDerivatives(Real *state, Real dt, Integer order,
 
    now         = epoch + (elapsedTime + dt)/GmatTimeConstants::SECS_PER_DAY;
 
-   if (fillCartesian)
+   std::map<Integer, Rmatrix> stateJacobians;
+   if (fillCartesian || fillSTM || fillAMatrix)
    {
       Real      c      = GmatPhysicalConstants::SPEED_OF_LIGHT_VACUUM * GmatMathConstants::M_TO_KM;
       sunMu            = theSun->GetGravitationalConstant();
@@ -402,6 +457,10 @@ bool RelativisticCorrection::GetDerivatives(Real *state, Real dt, Integer order,
          ar[1]  = schwarzschild[1] + geodesic[1] + lenseThirring[1];
          ar[2]  = schwarzschild[2] + geodesic[2] + lenseThirring[2];
 
+         if (fillSTM || fillAMatrix)
+            stateJacobians.emplace(nOffset,
+               RelativisticStateJacobian(rv, vv, J, omega, bodyMu, c));
+
          #ifdef DEBUG_RELATIVISTIC_CORRECTION
             MessageInterface::ShowMessage("spacecraft position = %le   %le   %le\n", rv[0], rv[1], rv[2]);
             MessageInterface::ShowMessage("spacecraft velocity = %le   %le   %le\n", vv[0], vv[1], vv[2]);
@@ -411,7 +470,7 @@ bool RelativisticCorrection::GetDerivatives(Real *state, Real dt, Integer order,
          #endif
 
          // Fill Derivatives
-         switch (order)
+         if (fillCartesian) switch (order)
          {
             case 1:
                deriv[0+nOffset] = 0.0;
@@ -436,87 +495,29 @@ bool RelativisticCorrection::GetDerivatives(Real *state, Real dt, Integer order,
    }   // fillCartesian
 
 
-   if (fillSTM)
+   auto fillStateMatrices = [&](Integer start, Integer count)
    {
-		Integer i6 = stmStart;
-      Integer element;
-      for (Integer i = 0; i < stmCount; ++i)
+      if (!theState)
+         throw ODEModelException("Relativistic state derivatives require a propagation state.");
+      for (Integer i = 0; i < count; ++i)
       {
-			Integer ix;
-         
-			// Get Spacecraft object
-			Spacecraft* sc = (Spacecraft*)scObjs[i];
-
-			// Create aTilde matrix
-			stmRowCount = sc->GetIntegerParameter("FullSTMRowCount");
-			Integer stmSize = stmRowCount * stmRowCount;
-			Real *aTilde = new Real[stmSize];
-
-			// Calculate A-tilde
-			for (Integer j = 0; j < stmRowCount; ++j)
-         {
-            ix = j * stmRowCount;
-            for (Integer k = 0; k < stmRowCount; ++k)
-               aTilde[ix+k] = 0.0;
-         }
-
-			
-         for (Integer j = 0; j < stmRowCount; j++)
-         {
-            for (Integer k = 0; k < stmRowCount; k++)
-            {
-               element = j * stmRowCount + k;
-               #ifdef DEBUG_DERIVATIVES
-                  MessageInterface::ShowMessage("------ deriv[%d] = %12.10f\n", (i6+element), aTilde[element]);
-               #endif
-               deriv[i6+element] = aTilde[element];
-            }
-         }
-
-			delete[] aTilde;
-			i6 = i6 + stmSize;
+         auto *spacecraft = static_cast<Spacecraft*>(scObjs[i]);
+         const Integer rows = spacecraft->GetIntegerParameter("FullSTMRowCount");
+         const Integer associatedState = theState->GetAssociateIndex(start);
+         const auto found = stateJacobians.find(associatedState);
+         if (rows < 6 || found == stateJacobians.end())
+            throw ODEModelException("Relativistic state matrix has no associated Cartesian state.");
+         for (Integer row = 0; row < rows; ++row)
+            for (Integer column = 0; column < rows; ++column)
+               deriv[start + row * rows + column] = row >= 3 && row < 6 && column < 6
+                  ? found->second(row - 3,column) : 0;
+         start += rows * rows;
       }
-   }
+   };
+   if (fillSTM)
+      fillStateMatrices(stmStart, stmCount);
    if (fillAMatrix)
-   {
-      Integer i6 = aMatrixStart;
-      Integer element;
-      for (Integer i = 0; i < stmCount; ++i)
-      {
-			Integer ix;
-
-			// Get Spacecraft object
-			Spacecraft* sc = (Spacecraft*)scObjs[i];
-
-         // Create aTilde matrix
-			stmRowCount = sc->GetIntegerParameter("FullSTMRowCount");
-			Integer stmSize = stmRowCount * stmRowCount;
-			Real *aTilde = new Real[stmSize];
-
-			// Calculate A-tilde
-         for (Integer j = 0; j < stmRowCount; ++j)
-         {
-            ix = j * stmRowCount;
-            for (Integer k = 0; k < stmRowCount; ++k)
-               aTilde[ix+k] = 0.0;
-         }
-
-         for (Integer j = 0; j < stmRowCount; j++)
-         {
-            for (Integer k = 0; k < stmRowCount; k++)
-            {
-               element = j * stmRowCount + k;
-               #ifdef DEBUG_DERIVATIVES
-                  MessageInterface::ShowMessage("------ deriv[%d] = %12.10f\n", (i6+element), aTilde[element]);
-               #endif
-               deriv[i6+element] = aTilde[element];
-            }
-         }
-
-			delete[] aTilde;
-			i6 = i6 + stmSize;
-		}
-   }
+      fillStateMatrices(aMatrixStart, aMatrixCount);
 
    return true;
 }
@@ -717,6 +718,10 @@ Rvector6 RelativisticCorrection::GetDerivativesForSpacecraft(Spacecraft* sc)
    dv[3] = ar[0];
    dv[4] = ar[1];
    dv[5] = ar[2];
+
+   if (OrbitStmForceGradient::Request::For(this))
+      OrbitStmForceGradient::Request::Capture(this,
+         RelativisticStateJacobian(rv, vv, J, omega, bodyMu, c));
 
    return dv;
 }

@@ -46,6 +46,7 @@ public:
 
    // methods inherited from GmatBase
    virtual GmatBase* Clone() const;
+   void Copy(const GmatBase *source) override;
 };
 
 #endif /* SolverState_hpp */

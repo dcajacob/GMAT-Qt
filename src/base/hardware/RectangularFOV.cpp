@@ -25,6 +25,7 @@
  */
  //------------------------------------------------------------------------------
 #include "RectangularFOV.hpp"
+#include <memory>
 #include "RealUtilities.hpp"
 #include "GmatConstants.hpp"
 #include "FieldOfViewException.hpp"
@@ -145,7 +146,9 @@ RectangularFOV::~RectangularFOV()
 //------------------------------------------------------------------------------
 GmatBase* RectangularFOV::Clone() const
 {
-	return new RectangularFOV(*this);
+	std::unique_ptr<RectangularFOV> value(new RectangularFOV(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 //------------------------------------------------------------------------------
@@ -482,5 +485,8 @@ void RectangularFOV::Copy(const GmatBase* source)
    if (!typed || typed->GetTypeName() != GetTypeName())
       throw GmatBaseException("Cannot copy into " + GetTypeName() +
                              " from a null or incompatible object");
+   if (typed == this) return;
+   const auto previousContext = GetFunctionValueContext();
    operator=(*typed);
+   RebindFunctionValueContext(*typed);
 }

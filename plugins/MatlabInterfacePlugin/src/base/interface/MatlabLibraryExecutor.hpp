@@ -2,7 +2,8 @@
 
 // One owner for the non-thread-safe MATLAB C libraries in the Linux Qt build.
 // The caller remains synchronous while its UI services GMAT callbacks. A callback
-// cannot issue another MATLAB request while the pending evaluation owns MATLAB.
+// must route nested work through the callback bridge while an evaluation owns
+// MATLAB; the vendor C libraries themselves cannot be reentered.
 #include "InterfaceException.hpp"
 #include <chrono>
 #include <condition_variable>

@@ -28,6 +28,11 @@
   <refsection>
     <title>Description</title>
 
+    <para>Copies also own separate tracking-set and data-filter definitions.
+    The estimation state manager reconnects solve-for registrations to those
+    owned measurements. Generated adapters, streams and observation cursors are
+    prepared for the new measurement manager.</para>
+
     <para>A batch least squares estimator is a method for obtaining an
     estimate for a parameter vector, x0, such that a performance index, which
     is a function of that parameter, J = J(x0), is minimized. For our
@@ -35,8 +40,24 @@
     a specific epoch and the performance index is a weighted sum of the
     squares of the measurement residuals.</para>
 
+    <para>Estimator resource copies own separate propagation setup definitions.
+    Propagation updates follow the actual selected setup, integrator and force
+    model; an unrelated resource with the same name does not select an owned
+    definition for updating. Estimation still waits for observation data before
+    performing its delayed initialization.</para>
+
     <para><phrase role="ref_seealso">See Also</phrase>: <xref
     linkend="TrackingFileSet"/>, <xref linkend="RunEstimator"/></para>
+    <para>Function values own their propagation, tracking and estimation-filter
+    definitions. Estimation-state declarations bind to the copied participant
+    objects, and native command preparation rebuilds covariance and other engine
+    associations. Copying the resource does not open observation streams.</para>
+
+    <para>Estimation restoration buffers retain the actual destination identity
+    for each captured value. Restoration checks the complete destination and
+    concrete-type correspondence before applying values, preserves resource
+    names, and uses native type-specific copy behavior.</para>
+
   </refsection>
 
   <refsection>

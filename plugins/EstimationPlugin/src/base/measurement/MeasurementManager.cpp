@@ -30,6 +30,7 @@
 //------------------------------------------------------------------------------
 
 #include "MeasurementManager.hpp"
+#include "NavigationMeasurementCopies.hpp"
 #include "MeasurementException.hpp"
 #include "GmatConstants.hpp"
 #include "MessageInterface.hpp"
@@ -112,7 +113,7 @@ void MeasurementManager::CleanUp()
    participants.clear();
 
    // clean up std::vector<TrackingFileSet*>    trackingSets;
-   // It cannot delete these objects because they were not created in this class. TrackingFileSet objects are created by Factory and they will be deleted in Sandbox
+   // The raw list views ownedTrackingSets, released after runtime borrowers below.
    trackingSets.clear();
 
    // clean up std::map<TrackingFileSet*, StringArray> adapterFromTFSMap;
@@ -219,6 +220,10 @@ void MeasurementManager::CleanUp()
    }
    trackingConfigsMap.clear();
    
+   definitionOrigins.clear();
+   trackingReferenceNames.clear();
+   ownedTrackingSets.clear();
+   retiredTrackingSets.clear();
 }
 
 
@@ -231,24 +236,36 @@ void MeasurementManager::CleanUp()
  * @param mm The manager that gets copied
  */
 //------------------------------------------------------------------------------
-MeasurementManager::MeasurementManager(const MeasurementManager &mm) :
-   thePropagators    (mm.thePropagators),
-   satPropagatorMap  (mm.satPropagatorMap),
-   anchorEpochGT     (mm.anchorEpochGT),
-   currentEpochGT    (mm.currentEpochGT),
-   obsIndex          (mm.obsIndex),
-   idBase            (mm.idBase),
-   largestId         (mm.largestId),
-   eventCount        (mm.eventCount),
-   inSimulationMode  (mm.inSimulationMode),
-   isForward         (mm.isForward),
-   modelNames        (mm.modelNames),
-   adapters          (mm.adapters),
-   trackingSets      (mm.trackingSets),
-   
-   transientForces   (NULL)
+MeasurementManager::MeasurementManager(const MeasurementManager &mm)
+   : thePropagators(nullptr), satPropagatorMap(nullptr), anchorEpochGT(mm.anchorEpochGT),
+     currentEpochGT(mm.currentEpochGT), obsIndex(0), idBase(mm.idBase), largestId(mm.idBase),
+     eventCount(0), inSimulationMode(mm.inSimulationMode), isForward(mm.isForward),
+     modelNames(mm.modelNames), transientForces(nullptr)
 {
+   std::vector<std::unique_ptr<TrackingFileSet>> prepared;
+   DefinitionOrigins origins;
+   prepared.reserve(mm.trackingSets.size());
+   ObjectArray forbidden(mm.trackingSets.begin(), mm.trackingSets.end());
+   for (auto *source : mm.trackingSets)
+   {
+      if (!source) throw MeasurementException("A tracking definition is unresolved.\n");
+      auto value = NavigationMeasurementCopies::Clone(*source, nullptr, false, forbidden);
+      forbidden.push_back(value.get());
+      origins[source] = {source->GetLifetimeToken(), value.get()};
+      const auto &from = source->GetOwnedDataFilters();
+      const auto &to = value->GetOwnedDataFilters();
+      if (from.size() != to.size()) throw MeasurementException("Tracking filter copy has an incompatible shape.\n");
+      for (size_t i = 0; i < from.size(); ++i)
+         origins[from[i]] = {from[i]->GetLifetimeToken(), to[i]};
+      prepared.push_back(std::move(value));
+   }
+   trackingSets.reserve(prepared.size());
+   for (const auto &value : prepared) trackingSets.push_back(value.get());
+   trackingReferenceNames = mm.trackingReferenceNames;
+   ownedTrackingSets.swap(prepared);
+   definitionOrigins.swap(origins);
 }
+
 
 //------------------------------------------------------------------------------
 // MeasurementManager& operator=(const MeasurementManager &mm)
@@ -263,52 +280,24 @@ MeasurementManager::MeasurementManager(const MeasurementManager &mm) :
 //------------------------------------------------------------------------------
 MeasurementManager& MeasurementManager::operator=(const MeasurementManager &mm)
 {
-#ifdef DEBUG_CONSTRUCTION
-   MessageInterface::ShowMessage("MeasurementManager::operator= enter: <%p> assign from <%p>\n", this, &mm);  
-#endif
-   if (&mm != this)
-   {
-      thePropagators   = mm.thePropagators;
-      satPropagatorMap = mm.satPropagatorMap;
-      anchorEpochGT    = mm.anchorEpochGT;
-      currentEpochGT   = mm.currentEpochGT;
-      obsIndex         = mm.obsIndex;
-      modelNames       = mm.modelNames;
-      eventCount       = mm.eventCount;
-      inSimulationMode = mm.inSimulationMode;
-      isForward        = mm.isForward;
-      transientForces  = NULL;
-
-      adapters         = mm.adapters;
-      trackingSets     = mm.trackingSets;
-
-      //// Clone the measurements, adapters, and tracking file sets
-      //for (std::vector<TrackingDataAdapter*>::iterator i = adapters.begin();
-      //      i != adapters.end(); ++i)
-      //   delete (*i);
-      //adapters.clear();
-
-      //for (std::vector<TrackingFileSet*>::iterator i = trackingSets.begin();
-      //      i != trackingSets.end(); ++i)
-      //   delete (*i);
-      //trackingSets.clear();
-
-      measurements.clear();
-
-      ////for (std::vector<TrackingDataAdapter*>::const_iterator i = mm.adapters.begin();
-      ////      i != mm.adapters.end(); ++i)
-      ////   adapters.push_back((TrackingDataAdapter*)(*i)->Clone());
-
-      ////for (std::vector<TrackingFileSet*>::const_iterator i = mm.trackingSets.begin();
-      ////      i != mm.trackingSets.end(); ++i)
-      ////   trackingSets.push_back((TrackingFileSet*)((*i)->Clone()));
-
-      // Should measurements be rebuilt here?
-   }
-
-#ifdef DEBUG_CONSTRUCTION
-   MessageInterface::ShowMessage("MeasurementManager::operator= exit: <%p> assign from <%p>\n", this, &mm);  
-#endif
+   if (&mm == this) return *this;
+   MeasurementManager prepared(mm);
+   auto *owner = GetLiveOwner();
+   CleanUp();
+   anchorEpochGT = prepared.anchorEpochGT;
+   currentEpochGT = prepared.currentEpochGT;
+   idBase = prepared.idBase;
+   largestId = idBase;
+   obsIndex = eventCount = 0;
+   inSimulationMode = prepared.inSimulationMode;
+   isForward = prepared.isForward;
+   modelNames.swap(prepared.modelNames);
+   trackingSets.swap(prepared.trackingSets);
+   ownedTrackingSets.swap(prepared.ownedTrackingSets);
+   trackingReferenceNames.swap(prepared.trackingReferenceNames);
+   definitionOrigins.swap(prepared.definitionOrigins);
+   transientForces = nullptr;
+   SetOwner(owner);
    return *this;
 }
 
@@ -336,6 +325,8 @@ bool MeasurementManager::SetPropagators(std::vector<PropSetup*> *props,
 
    thePropagators = props;
    satPropagatorMap = satPropMap;
+   for (auto *definition : trackingSets)
+      if (definition) definition->SetPropagators(thePropagators, satPropagatorMap);
 
    return (thePropagators != NULL);
 }
@@ -365,6 +356,7 @@ bool MeasurementManager::Initialize()
 
    bool retval = true;
 
+   ResetRuntimeProducts();
    measurements.clear();
    
    for (UnsignedInt i = 0; i < trackingSets.size(); ++i)
@@ -372,6 +364,7 @@ bool MeasurementManager::Initialize()
       // For each tracking set, It needs to do the following steps to process
 
       // Step 1: Initialize trackingSets[i]
+      trackingSets[i]->ResetPreparedMeasurements();
       if (trackingSets[i]->Initialize() == false)
          return false;
 
@@ -2403,6 +2396,17 @@ void MeasurementManager::AddMeasurementName(std::string measName)
       modelNames.push_back(measName);
 }
 
+void MeasurementManager::ClearMeasurements()
+{
+   ResetRuntimeProducts();
+   modelNames.clear();
+   trackingSets.clear();
+   trackingReferenceNames.clear();
+   definitionOrigins.clear();
+   ownedTrackingSets.clear();
+   retiredTrackingSets.clear();
+}
+
 //-----------------------------------------------------------------------------
 // const StringArray& GetMeasurementNames() const
 //-----------------------------------------------------------------------------
@@ -2548,22 +2552,22 @@ const IntegerArray MeasurementManager::GetMeasurementId(
 //-----------------------------------------------------------------------------
 GmatBase* MeasurementManager::GetClone(GmatBase *obj)
 {
-   GmatBase *retval = NULL;
-   // Look for an object named same as obj
-   std::string objname = obj->GetName();
-
-   if (objname != "")
+   if (!obj) return nullptr;
+   const auto origin = definitionOrigins.find(obj);
+   if (origin != definitionOrigins.end() && GmatBase::IsLiveReference(obj, origin->second.first))
    {
-      // Check the tracking file sets
-      for (UnsignedInt i = 0; i < trackingSets.size(); ++i)
-         if (trackingSets[i]->GetName() == objname)
-         {
-            retval = trackingSets[i];
-            break;
-         }
+      if (!origin->second.second)
+         throw MeasurementException("A replaced measurement component has no corresponding definition.\n");
+      return origin->second.second;
    }
-
-   return retval;
+   GmatBase *result = nullptr;
+   for (auto *definition : trackingSets)
+      if (definition == obj || definition->IsCloneOf(*obj))
+      {
+         if (result && result != definition) throw MeasurementException("Ambiguous actual tracking definition.\n");
+         result = definition;
+      }
+   return result;
 }
 
 
@@ -3246,19 +3250,48 @@ bool MeasurementManager::IsForward()
 //------------------------------------------------------------------------------
 Integer MeasurementManager::AddMeasurement(TrackingFileSet* tfs)
 {
-   Integer retval = -1;
+   if (!tfs) throw MeasurementException("Cannot add a null tracking definition.\n");
+   for (auto *value : trackingSets)
+      if (value == tfs || value->GetCloneSource() == tfs) return -1;
+   ObjectArray forbidden(trackingSets.begin(), trackingSets.end());
+   auto value = NavigationMeasurementCopies::Clone(*tfs, GetLiveOwner(), true, forbidden);
+   value->SetPropagators(thePropagators, satPropagatorMap);
+   trackingSets.reserve(trackingSets.size() + 1);
+   ownedTrackingSets.reserve(ownedTrackingSets.size() + 1);
+   trackingReferenceNames.reserve(trackingReferenceNames.size() + 1);
+   std::string name = tfs->GetName();
+   trackingReferenceNames.push_back(std::move(name));
+   trackingSets.push_back(value.get());
+   ownedTrackingSets.push_back(std::move(value));
+   return -1;
+}
 
-   if (find(trackingSets.begin(),trackingSets.end(), tfs) == trackingSets.end())
+Integer MeasurementManager::BindMeasurement(TrackingFileSet *source, const std::string &referenceName)
+{
+   if (!source) throw MeasurementException("Cannot bind a null tracking definition.\n");
+   size_t found = trackingSets.size();
+   for (size_t i = 0; i < trackingReferenceNames.size(); ++i)
+      if (trackingReferenceNames[i] == referenceName)
+      {
+         if (found != trackingSets.size()) throw MeasurementException("Ambiguous tracking reference slot.\n");
+         found = i;
+      }
+   if (found == trackingSets.size())
    {
-      #ifdef DEBUG_INITIALIZATION
-         MessageInterface::ShowMessage("Adding %s TrackingFileSet %s <%p>\n",
-               (tfs->IsInitialized() ? "initialized" : "not initialized"),
-               tfs->GetName().c_str(), tfs);
-      #endif
-      trackingSets.push_back(tfs);
+      std::string role = referenceName;
+      const auto previous = trackingSets.size();
+      AddMeasurement(source);
+      if (trackingSets.size() > previous) trackingReferenceNames.back().swap(role);
+      return -1;
    }
-
-   return retval;
+   if (trackingSets[found] == source || trackingSets[found]->GetCloneSource() == source) return -1;
+   ObjectArray forbidden(trackingSets.begin(), trackingSets.end());
+   auto value = NavigationMeasurementCopies::Clone(*source, GetLiveOwner(), true, forbidden);
+   value->SetPropagators(thePropagators, satPropagatorMap);
+   retiredTrackingSets.reserve(retiredTrackingSets.size() + 1);
+   ResetRuntimeProducts();
+   ReplaceDefinition(found, std::move(value));
+   return -1;
 }
 
 
@@ -3326,6 +3359,11 @@ const std::vector<TrackingFileSet*>& MeasurementManager::GetAllTrackingFileSets(
    return trackingSets;
 }
 
+const std::vector<TrackingFileSet*>& MeasurementManager::GetAllTrackingFileSets() const
+{
+   return trackingSets;
+}
+
 
 //------------------------------------------------------------------------------
 // UnsignedInt GetMeasurementSize()
@@ -3384,4 +3422,143 @@ void MeasurementManager::ClearIonosphereCache()
    for (auto it = trackingSets.begin(); it != trackingSets.end(); ++it) {
       (*it)->ClearIonosphereCache();
    }
+}
+
+GmatBase *MeasurementManager::GetLiveOwner() const
+{
+   return GmatBase::IsLiveReference(definitionOwner, definitionOwnerIdentity) ? definitionOwner : nullptr;
+}
+
+void MeasurementManager::SetOwner(GmatBase *owner)
+{
+   definitionOwner = owner;
+   definitionOwnerIdentity = owner ? owner->GetLifetimeToken() : std::weak_ptr<const void>();
+   for (auto *value : trackingSets) if (value) value->SetCloneOwner(owner);
+}
+
+void MeasurementManager::ResetRuntimeProducts()
+{
+   for (auto &measurement : measurements) measurement.CleanUp();
+   measurements.clear();
+   adapters.clear();
+   adapterFromTFSMap.clear();
+   participants.clear();
+   derivatives.clear();
+   observations.clear();
+   activeEvents.clear();
+   activeMeasurements.clear();
+   idToStreamMap.clear();
+   idToRampTableStreamMap.clear();
+   streamNames.clear();
+   rampTableDataStreamNames.clear();
+   for (auto *stream : streamList) { if (stream) stream->CloseStream(); delete stream; }
+   streamList.clear();
+   for (auto *stream : rampTableDataStreamList) { if (stream) stream->CloseStream(); delete stream; }
+   rampTableDataStreamList.clear();
+   rampTables.clear();
+   trackingConfigsMap.clear();
+   obsIndex = eventCount = 0;
+   largestId = idBase;
+}
+
+void MeasurementManager::ReplaceDefinition(size_t index, std::unique_ptr<TrackingFileSet> value)
+{
+   if (index >= trackingSets.size() || index >= ownedTrackingSets.size() || !value)
+      throw MeasurementException("Invalid owned tracking definition slot.\n");
+   auto *old = trackingSets[index];
+   auto origins = definitionOrigins;
+   const auto &oldFilters = old->GetOwnedDataFilters();
+   const auto &newFilters = value->GetOwnedDataFilters();
+   for (auto &entry : origins)
+   {
+      if (entry.second.second == old) entry.second.second = value.get();
+      else
+         for (auto *filter : oldFilters)
+            if (entry.second.second == filter)
+            {
+               GmatBase *replacement = nullptr;
+               bool ambiguous = false;
+               const auto *source = filter->GetCloneSource();
+               for (auto *candidate : newFilters)
+                  if (source && candidate->GetCloneSource() == source &&
+                      typeid(*candidate) == typeid(*filter))
+                  {
+                     if (replacement) ambiguous = true;
+                     replacement = candidate;
+                  }
+               entry.second.second = ambiguous ? nullptr : replacement;
+            }
+   }
+   origins[old] = {old->GetLifetimeToken(), value.get()};
+   for (auto *filter : oldFilters)
+   {
+      GmatBase *replacement = nullptr;
+      bool ambiguous = false;
+      for (auto *candidate : newFilters)
+         if (filter->GetCloneSource() && candidate->GetCloneSource() == filter->GetCloneSource() &&
+             typeid(*candidate) == typeid(*filter))
+         {
+            if (replacement) ambiguous = true;
+            replacement = candidate;
+         }
+      origins[filter] = {filter->GetLifetimeToken(), ambiguous ? nullptr : replacement};
+   }
+   value->SetCloneOwner(GetLiveOwner());
+   value->SetPropagators(thePropagators, satPropagatorMap);
+   GmatBase::RetargetCloneSources(*old, *value);
+   retiredTrackingSets.push_back(std::move(ownedTrackingSets[index]));
+   trackingSets[index] = value.get();
+   ownedTrackingSets[index] = std::move(value);
+   definitionOrigins.swap(origins);
+}
+
+bool MeasurementManager::HasDefinitionSource(const GmatBase *source) const
+{
+   if (!source) return false;
+   const auto origin = definitionOrigins.find(source);
+   if (origin != definitionOrigins.end() && GmatBase::IsLiveReference(source, origin->second.first)) return true;
+   for (auto *value : trackingSets) if (value && value->HasDefinitionSource(source)) return true;
+   return false;
+}
+
+bool MeasurementManager::ApplyDefinitionUpdate(GmatBase *source, Integer parameterId)
+{
+   if (!source) return false;
+   GmatBase *mapped = nullptr;
+   const auto origin = definitionOrigins.find(source);
+   if (origin != definitionOrigins.end() && GmatBase::IsLiveReference(source, origin->second.first))
+   {
+      mapped = origin->second.second;
+      if (!mapped) throw MeasurementException("The pending tracking component was removed.\n");
+   }
+   std::vector<std::pair<size_t, std::unique_ptr<TrackingFileSet>>> prepared;
+   ObjectArray forbidden(trackingSets.begin(), trackingSets.end());
+   for (size_t i = 0; i < trackingSets.size(); ++i)
+   {
+      auto *old = trackingSets[i];
+      const auto &oldFilters = old->GetOwnedDataFilters();
+      const bool mappedRoot = old == mapped || old == source;
+      auto filter = std::find(oldFilters.begin(), oldFilters.end(), mapped);
+      if (filter == oldFilters.end())
+         filter = std::find(oldFilters.begin(), oldFilters.end(), source);
+      const bool mappedFilter = filter != oldFilters.end();
+      if (!mappedRoot && !mappedFilter && !old->HasDefinitionSource(source)) continue;
+      auto value = NavigationMeasurementCopies::Clone(*old, GetLiveOwner(), false, forbidden);
+      GmatBase *target = mappedRoot ? static_cast<GmatBase*>(value.get()) : nullptr;
+      if (mappedFilter) target = value->GetOwnedDataFilters()[filter - oldFilters.begin()];
+      if (!value->ApplyDefinitionUpdate(source, parameterId, target))
+         throw MeasurementException("Cannot apply the matched native tracking definition.\n");
+      forbidden.push_back(value.get());
+      prepared.emplace_back(i, std::move(value));
+   }
+   if (prepared.empty()) return false;
+   retiredTrackingSets.reserve(retiredTrackingSets.size() + prepared.size());
+   ResetRuntimeProducts();
+   for (auto &entry : prepared) ReplaceDefinition(entry.first, std::move(entry.second));
+   return true;
+}
+
+void MeasurementManager::ReleaseRetiredDefinitions()
+{
+   retiredTrackingSets.clear();
 }

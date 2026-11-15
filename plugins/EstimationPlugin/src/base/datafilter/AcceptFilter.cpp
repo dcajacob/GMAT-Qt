@@ -30,6 +30,20 @@
 
 
 #include "AcceptFilter.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration acceptFilterValueProvider({
+   AcceptFilter::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const AcceptFilter*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<AcceptFilter*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "GmatBaseException.hpp"
 #include <typeinfo>
 #include "GmatBase.hpp"
@@ -172,7 +186,24 @@ AcceptFilter& AcceptFilter::operator=(const AcceptFilter& af)
 //------------------------------------------------------------------------------
 GmatBase* AcceptFilter::Clone() const
 {
-   return new AcceptFilter(*this);
+   std::unique_ptr<AcceptFilter> value(new AcceptFilter(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
+}
+
+bool AcceptFilter::RebindFunctionValueReferencesImpl(const GmatBase &source,
+      SolarSystem *solarSystem, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *filter = dynamic_cast<const AcceptFilter*>(&source);
+   if (!filter) throw MeasurementException("Incompatible AcceptFilter function value.\n");
+   // These keys use observation tracking configuration/IDs, not resource names.
+   // Value copies preserve thinning progress; native CleanUp still resets it.
+   auto counts = filter->recCountMap;
+   auto windows = filter->startTimeWindowMap;
+   DataFilter::RebindFunctionValueReferencesImpl(source, solarSystem, resolve);
+   recCountMap.swap(counts);
+   startTimeWindowMap.swap(windows);
+   return true;
 }
 
 
@@ -191,13 +222,7 @@ bool AcceptFilter::Initialize()
 	MessageInterface::ShowMessage("AcceptFilter<%s,%p>::Initialize()   entered\n", GetName().c_str(), this);
 #endif
 
-   bool retval = false;
-   if (DataFilter::Initialize())
-   {
-      //@todo: Initialize code is here
-
-      isInitialized = retval;
-   }
+   const bool retval = DataFilter::Initialize();
 
 #ifdef DEBUG_INITIALIZATION
    MessageInterface::ShowMessage("AcceptFilter<%s,%p>::Initialize()   exit\n", GetName().c_str(), this);
@@ -1048,5 +1073,7 @@ void AcceptFilter::Copy(const GmatBase *original)
       throw GmatBaseException("Cannot copy incompatible object into AcceptFilter");
    if (source == this)
       return;
+   const auto previous = GetFunctionValueContext();
    operator=(*source);
+   RebindFunctionValueContext(*source);
 }

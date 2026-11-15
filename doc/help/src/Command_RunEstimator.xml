@@ -37,6 +37,18 @@
   <refsection>
     <title>Description</title>
 
+    <para>Changes to the selected resource or its actual propagation definitions
+    are staged for this command. The next execution rebuilds the command's native
+    engines from the updated definition, including a restart when an earlier
+    execution is still in progress. Separate resources with equal names in
+    another scope do not select this command for updating.</para>
+
+    <para>Estimation retains its delayed initialization until observation data is
+    available. Updating a related definition also invalidates the command's
+    previously completed filter result until the estimator runs again.</para>
+
+    <para>Accepted batch-estimation SPK output selects spacecraft from the current publication. Each target uses its own propagation group's precise epoch, frame and Cartesian packet values. A writer for an unrelated spacecraft does not require this estimator to propagate it. SPK time-cell sampling remains a detached output calculation and does not step the live spacecraft.</para>
+
     <para>The <guilabel>RunEstimator</guilabel> command ingests navigation
     measurements and generates an estimated state vector according to the
     specifications of the input <guilabel>BatchEstimator</guilabel> or

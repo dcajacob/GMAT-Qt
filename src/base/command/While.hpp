@@ -53,6 +53,8 @@ public:
    While& operator=(const While &wc);
    // destructor
    virtual ~While(void);
+   void RetireFunctionBindings(ObjectMap *store) override;
+   void ClearWrappers() override;
 
    // Inherited methods that need some enhancement from the base class
    virtual bool         Append(GmatCommand *cmd);

@@ -1,0 +1,201 @@
+{
+  "cases": [
+    {
+      "key": "PointMassForce",
+      "setup": "Create PointMassForce Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create PointMassForce Subject"
+      ],
+      "filename": "Subject.PointMassForce.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyName",
+          "type": "Object",
+          "expected": "Earth"
+        }
+      ],
+      "expected_native_type": "PointMassForce",
+      "source_seed_type": "PointMassForce"
+    },
+    {
+      "key": "GravityField",
+      "setup": "Create GravityField Subject;\nSubject.Degree = 2;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create GravityField Subject"
+      ],
+      "filename": "Subject.GravityField.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Degree",
+          "type": "Integer",
+          "expected": 2
+        }
+      ],
+      "expected_native_type": "GravityField",
+      "source_seed_type": "GravityField"
+    },
+    {
+      "key": "FiniteThrust",
+      "setup": "Create FiniteThrust Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create FiniteThrust Subject"
+      ],
+      "filename": "Subject.FiniteThrust.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyName",
+          "type": "Object",
+          "expected": "Earth"
+        }
+      ],
+      "expected_native_type": "FiniteThrust",
+      "source_seed_type": "FiniteThrust"
+    },
+    {
+      "key": "RelativisticCorrection",
+      "setup": "Create RelativisticCorrection Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create RelativisticCorrection Subject"
+      ],
+      "filename": "Subject.RelativisticCorrection.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyName",
+          "type": "Object",
+          "expected": "Earth"
+        }
+      ],
+      "expected_native_type": "RelativisticCorrection",
+      "source_seed_type": "RelativisticCorrection"
+    },
+    {
+      "key": "ExternalModel",
+      "setup": "Create ExternalModel Subject;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create ExternalModel Subject"
+      ],
+      "filename": "Subject.ExternalModel.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "BodyName",
+          "type": "Object",
+          "expected": "Earth"
+        }
+      ],
+      "expected_native_type": "ExternalModel",
+      "source_seed_type": "ExternalModel"
+    },
+    {
+      "key": "StopCondition",
+      "setup": "Create StopCondition Subject;\nSubject.Repeat = 4;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create StopCondition Subject"
+      ],
+      "filename": "Subject.StopCondition.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Repeat",
+          "type": "Integer",
+          "expected": 4
+        }
+      ],
+      "expected_native_type": "StopCondition",
+      "source_seed_type": "StopCondition"
+    },
+    {
+      "key": "OwnedPlot",
+      "setup": "Create OwnedPlot Subject;\nSubject.Grid = On;\nSubject.ShowPlot = false;\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create OwnedPlot Subject"
+      ],
+      "filename": "Subject.OwnedPlot.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Grid",
+          "type": "OnOff",
+          "expected": "On"
+        }
+      ],
+      "expected_native_type": "OwnedPlot",
+      "source_seed_type": "OwnedPlot"
+    },
+    {
+      "key": "StateNoiseCompensation",
+      "setup": "Create StateNoiseCompensation Subject;\nSubject.AccelNoiseSigma = [0.1 0.2 0.3];\n",
+      "selected": [
+        "Subject"
+      ],
+      "objects": [
+        "Subject"
+      ],
+      "definitions": [
+        "Create StateNoiseCompensation Subject"
+      ],
+      "filename": "Subject.SNCProcessNoise.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "AccelNoiseSigma",
+          "type": "Rvector",
+          "expected": [
+            0.1,
+            0.2,
+            0.3
+          ]
+        }
+      ],
+      "expected_native_type": "SNCProcessNoise",
+      "source_seed_type": "StateNoiseCompensation"
+    }
+  ],
+  "scope": "Only unresolved named Resource cases after v1. Correct BodyName metadata and test actual configured StopCondition Repeat loss/rejection. Other literal values and numerical bounds unchanged."
+}

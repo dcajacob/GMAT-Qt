@@ -228,6 +228,35 @@ public:
    virtual bool         IsCrossLink();
 
 protected:
+   // Endpoint adapters compute at receiver-end epochs. Keep the enclosing
+   // counted observable tagged at its original observation marker on return.
+   class ObservationEpochGuard
+   {
+   public:
+      ObservationEpochGuard(MeasurementData &result, const ObservationData *obs) :
+         measurement(result), observed(obs != NULL),
+         observationEpoch(obs ? obs->GetEpochInA1() : GmatTime(0.0)) {}
+      ~ObservationEpochGuard() noexcept
+      {
+         if (observed)
+         {
+            measurement.epochGT = observationEpoch;
+            measurement.epoch = observationEpoch.GetMjd();
+            measurement.epochSystem = TimeSystemConverter::A1MJD;
+         }
+      }
+      GmatTime GetEpoch(const GmatTime &simulationEpoch) const
+      {
+         return observed ? observationEpoch : simulationEpoch;
+      }
+      ObservationEpochGuard(const ObservationEpochGuard&) = delete;
+      ObservationEpochGuard& operator=(const ObservationEpochGuard&) = delete;
+   private:
+      MeasurementData &measurement;
+      bool observed;
+      GmatTime observationEpoch;
+   };
+
    /// Measurement dimension
    StringArray               dimNames;
    /// The ordered list of participants in the measurement

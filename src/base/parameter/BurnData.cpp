@@ -151,6 +151,27 @@ BurnData& BurnData::operator= (const BurnData& right)
 }
 
 
+// Map cached identities without evaluating or initializing a Parameter.
+void BurnData::RebindClonedParameterCaches(const RefData &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &data = ClonedParameterData<BurnData>(source);
+   auto *bound_mSpacecraft = BindClonedParameterReference(data.mSpacecraft, resolve);
+   auto *bound_mBurn = BindClonedParameterReference(data.mBurn, resolve);
+   auto *bound_mSolarSystem = BindClonedParameterReference(data.mSolarSystem, resolve);
+   auto *bound_mOrigin = BindClonedParameterReference(data.mOrigin, resolve);
+   auto *bound_mInternalCoordSystem = BindClonedParameterReference(data.mInternalCoordSystem, resolve);
+   auto *bound_mOutCoordSystem = BindClonedParameterReference(data.mOutCoordSystem, resolve);
+   mSpacecraft = bound_mSpacecraft;
+   mBurn = bound_mBurn;
+   mSolarSystem = bound_mSolarSystem;
+   mOrigin = bound_mOrigin;
+   mInternalCoordSystem = bound_mInternalCoordSystem;
+   mOutCoordSystem = bound_mOutCoordSystem;
+}
+
+
+
 //------------------------------------------------------------------------------
 // ~BurnData()
 //------------------------------------------------------------------------------

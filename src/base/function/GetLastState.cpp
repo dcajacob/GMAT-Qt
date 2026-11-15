@@ -34,7 +34,25 @@
  */
 //------------------------------------------------------------------------------
 
+#include "FunctionException.hpp"
+#include "ExpressionBinding.hpp"
+#include <memory>
+#include <typeinfo>
 #include "GetLastState.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration getLastStateValueProvider({
+   GetLastState::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const GetLastState*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<GetLastState*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "ArrayWrapper.hpp"
 #include "Spacecraft.hpp"
 #include "MessageInterface.hpp"
@@ -170,9 +188,7 @@ void GetLastState::SetOutputTypes(WrapperTypeArray &outputTypes,
    #endif
    
    // Set output wrapper type for GetLastState
-   outputWrapperTypes = outputTypes;
-   outputRowCounts = rowCounts;
-   outputColCounts = colCounts;   
+   Function::SetOutputTypes(outputTypes, rowCounts, colCounts);
 }
 
 //------------------------------------------------------------------------------
@@ -413,7 +429,15 @@ void GetLastState::Finalize(bool cleanUp)
 //------------------------------------------------------------------------------
 GmatBase* GetLastState::Clone() const
 {
-   return (new GetLastState(*this));
+   std::unique_ptr<GetLastState> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new GetLastState(*this));
+   }
+   if (typeid(*value) != typeid(*this))
+      throw FunctionException("A derived GetLastState must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -428,6 +452,33 @@ GmatBase* GetLastState::Clone() const
 //---------------------------------------------------------------------------
 void GetLastState::Copy(const GmatBase* orig)
 {
-   operator=(*((GetLastState *)(orig)));
+   const auto *source = dynamic_cast<const GetLastState*>(orig);
+   if (!source || typeid(*this) != typeid(GetLastState) || typeid(*this) != typeid(*source))
+      throw FunctionException("Incompatible GetLastState value copy or missing derived Copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   const auto previousFunctionBindings = functionBindings;
+   const auto previousObjectBindings = objectBindings;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
 }
 
+
+
+bool GetLastState::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const GetLastState*>(&original);
+   if (!source || typeid(*this) != typeid(GetLastState) || typeid(original) != typeid(GetLastState))
+      throw FunctionException("Derived GetLastState references need their own passive provider.\n");
+   RebindObjectManagedFunctionValue(*source, resolve);
+   return true;
+}
+
+bool GetLastState::HasFunctionValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(GetLastState);
+}

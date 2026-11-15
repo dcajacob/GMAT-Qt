@@ -29,7 +29,9 @@
  */
 //------------------------------------------------------------------------------
 
+#include <memory>
 #include "FunctionRunner.hpp"
+#include "ExpressionBinding.hpp"
 #include "MessageInterface.hpp"
 #include "NumberWrapper.hpp"
 #include "Variable.hpp"
@@ -98,13 +100,23 @@ FunctionRunner::~FunctionRunner()
  */
 //------------------------------------------------------------------------------
 FunctionRunner::FunctionRunner(const FunctionRunner &copy) :
-   MathFunction(copy)
+   MathFunction(copy),
+   theFunctionManager(copy.theFunctionManager),
+   theObjectMap(NULL),
+   theGlobalObjectMap(NULL),
+   theFunctionName(copy.theFunctionName),
+   theFunction(copy.theFunction),
+   theInputNames(copy.theInputNames),
+   theOutputNames(copy.theOutputNames),
+   theInputNodes(copy.theInputNodes),
+   callingFunction(NULL),
+   internalCS(copy.internalCS)
 {
-   theObjectMap = copy.theObjectMap;
-   theGlobalObjectMap = copy.theGlobalObjectMap;
-   theFunction = copy.theFunction;
-   callingFunction = copy.callingFunction;
-   internalCS = copy.internalCS;
+   // Copy a call definition, never an active invocation or its scope maps.
+   theFunctionManager.SetObjectMap(NULL);
+   theFunctionManager.SetGlobalObjectMap(NULL);
+   theFunctionManager.SetInputs(theInputNames);
+   theFunctionManager.SetOutputs(theOutputNames);
 }
 
 
@@ -125,8 +137,10 @@ void FunctionRunner::SetFunctionName(const std::string &fname)
        GetName().c_str(), fname.c_str());
    #endif
    
-   theFunctionName = fname;
-   theFunctionManager.SetFunctionName(fname);
+   std::string replacement(fname);
+   theFunctionManager.SetExpressionFunctionName(fname);
+   if (theFunctionName != fname) theFunction = nullptr;
+   theFunctionName.swap(replacement);
 }
 
 
@@ -141,6 +155,8 @@ void FunctionRunner::SetFunctionName(const std::string &fname)
 //------------------------------------------------------------------------------
 void FunctionRunner::SetFunction(Function *function)
 {
+   if (!function)
+      throw MathException("Cannot bind a null function to an expression.\n");
    #ifdef DEBUG_FUNCTION
    MessageInterface::ShowMessage
       ("FunctionRunner::SetFunction() passingArgs='%s', function=%p, name='%s'\n",
@@ -148,7 +164,10 @@ void FunctionRunner::SetFunction(Function *function)
    #endif
    
    if (theFunctionManager.GetFunctionName() == function->GetName())
-      theFunctionManager.SetFunction(function);
+   {
+      theFunctionManager.SetExpressionEnvironment(function, theObjectMap, theGlobalObjectMap);
+      theFunction = function;
+   }
 }
 
 
@@ -291,41 +310,8 @@ void FunctionRunner::SetObjectMap(ObjectMap *map)
 //------------------------------------------------------------------------------
 void FunctionRunner::SetGlobalObjectMap(ObjectMap *map)
 {
-   #ifdef DEBUG_FUNCTION
-   MessageInterface::ShowMessage
-      ("FunctionRunner::SetGlobalObjectMap() entered, theFunctionName='%s', "
-       "map=<%p>\n", theFunctionName.c_str(), map);
-   #endif
-   
-   theGlobalObjectMap = map;
-   
-   // Now, find the function object
-   GmatBase *mapObj = FindObject(theFunctionName);
-   
-   #ifdef DEBUG_FUNCTION
-   MessageInterface::ShowMessage
-      ("   => found the function: <%p><%s>\n", mapObj,
-       mapObj ? mapObj->GetName().c_str() : "NULL");
-   #endif
-   
-   if (mapObj == NULL)
-   {
-      throw MathException("FunctionRunner::SetGlobalObjectMap cannot find the Function \"" +
-                          theFunctionName);
-   }
-   else
-   {
-      theFunction = (Function *)mapObj;
-      theFunctionManager.SetFunction(theFunction);
-   }
-   
-   theFunctionManager.SetGlobalObjectMap(map);
-   
-   #ifdef DEBUG_FUNCTION
-   MessageInterface::ShowMessage("FunctionRunner::SetGlobalObjectMap() exiting\n");
-   #endif
+   SetExpressionObjectMaps(theObjectMap, map);
 }
-
 
 //------------------------------------------------------------------------------
 //  void SetSolarSystem(SolarSystem *ss)
@@ -470,10 +456,22 @@ void FunctionRunner::GetOutputInfo(Integer &type,
       }
       else if (outputTypes[0] == Gmat::ARRAY_WT)
       {
+         if (rowCounts.size() != 1 || colCounts.size() != 1)
+            throw MathException("Function Array output is missing its dimensions.\n");
          type = Gmat::RMATRIX_TYPE;
          rowCount = rowCounts[0];
          colCount = colCounts[0];
          matrix.SetSize(rowCount, colCount);
+      }
+      else if (outputTypes[0] == Gmat::VECTOR_WT)
+      {
+         if (rowCounts.size() != 1 || colCounts.size() != 1 ||
+               rowCounts[0] <= 0 || colCounts[0] <= 0 ||
+               (rowCounts[0] != 1 && colCounts[0] != 1))
+            throw MathException("Function vector output must declare one row or column.\n");
+         type = Gmat::RVECTOR_TYPE;
+         rowCount = rowCounts[0] == 1 ? colCounts[0] : rowCounts[0];
+         colCount = 1;
       }
       else if (outputTypes[0] == Gmat::OBJECT_WT)
       {
@@ -481,12 +479,14 @@ void FunctionRunner::GetOutputInfo(Integer &type,
          rowCount = 1;
          colCount = 1;
       }
+      else
+         errMsg = "Unsupported function expression output type";
    }
-   
-   elementType = type;
    
    if (errMsg != "")
       throw MathException("FunctionRunner::GetOutputInfo() " + errMsg);
+
+   elementType = type;
    
    //======================================================================
    #ifdef __ALLOW_MATH_EXP_NODE__
@@ -594,9 +594,9 @@ Real FunctionRunner::Evaluate()
        function, internalCS);
    #endif
    
-   if (elementType == Gmat::RMATRIX_TYPE)
+   if (elementType == Gmat::RMATRIX_TYPE || elementType == Gmat::RVECTOR_TYPE)
       throw MathException
-         ("The function \"" + function->GetName() + "\" returns matrix value");
+         ("The function \"" + function->GetName() + "\" returns a matrix or vector value");
    
    //=======================================================
    #ifdef __ALLOW_MATH_EXP_NODE__
@@ -616,29 +616,8 @@ Real FunctionRunner::Evaluate()
    theFunctionManager.SetInternalCoordinateSystem(internalCS);
    result = theFunctionManager.Evaluate(callingFunction);
    
-   WrapperArray wrappersToDelete = theFunctionManager.GetWrappersToDelete();
-   #ifdef DEBUG_EVALUATE
-   MessageInterface::ShowMessage
-      ("FunctionRunner::Evaluate(), there are %d wrappers to delete\n",
-       wrappersToDelete.size());
-   #endif
-   
-   // Delete old output wrappers (loj: 2008.11.24)
-   for (WrapperArray::iterator ewi = wrappersToDelete.begin();
-        ewi < wrappersToDelete.end(); ewi++)
-   {
-      if ((*ewi) != NULL)
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            ((*ewi), (*ewi)->GetDescription(), "FunctionRunner::Evaluate()",
-             " deleting output wrapper");
-         #endif
-         delete (*ewi);
-         (*ewi) = NULL;
-      }
-   }
-   
+   // FunctionManager releases output wrappers after copying the result.
+
    #ifdef DEBUG_EVALUATE
    MessageInterface::ShowMessage
       ("FunctionRunner::Evaluate() returning %f\n", result);
@@ -655,13 +634,23 @@ Real FunctionRunner::Evaluate()
 
 
 //------------------------------------------------------------------------------
-// Rmatrix MatrixEvaluate()
+// Rvector VectorEvaluate()
 //------------------------------------------------------------------------------
 /**
  * @return the FunctionRunner of left node
  *
  */
 //------------------------------------------------------------------------------
+Rvector FunctionRunner::VectorEvaluate()
+{
+   if (!theFunctionManager.GetFunction())
+      throw MathException("FunctionRunner vector function is NULL.\n");
+   if (elementType != Gmat::RVECTOR_TYPE)
+      throw MathException("FunctionRunner does not declare a vector result.\n");
+   return theFunctionManager.VectorEvaluate(callingFunction);
+}
+
+// Matrix evaluation also accepts a vector represented as a column Array.
 Rmatrix FunctionRunner::MatrixEvaluate()
 {
    Function *function = theFunctionManager.GetFunction();
@@ -689,23 +678,8 @@ Rmatrix FunctionRunner::MatrixEvaluate()
    
    Rmatrix rmatResult = theFunctionManager.MatrixEvaluate(callingFunction);
    
-   WrapperArray wrappersToDelete = theFunctionManager.GetWrappersToDelete();
-   // Delete old output wrappers (loj: 2008.11.24)
-   for (WrapperArray::iterator ewi = wrappersToDelete.begin();
-        ewi < wrappersToDelete.end(); ewi++)
-   {
-      if ((*ewi) != NULL)
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            ((*ewi), (*ewi)->GetDescription(), "FunctionRunner::MatrixEvaluate()",
-             " deleting output wrapper");
-         #endif
-         delete (*ewi);
-         (*ewi) = NULL;
-      }
-   }
-   
+   // FunctionManager releases output wrappers after copying the result.
+
    #ifdef DEBUG_PERFORMANCE
    clock_t t2 = clock();
    MessageInterface::ShowMessage
@@ -751,23 +725,8 @@ GmatBase* FunctionRunner::EvaluateObject()
    
    GmatBase *retObj = theFunctionManager.EvaluateObject(callingFunction);
    
-   WrapperArray wrappersToDelete = theFunctionManager.GetWrappersToDelete();
-   // Delete old output wrappers (loj: 2008.11.24)
-   for (WrapperArray::iterator ewi = wrappersToDelete.begin();
-        ewi < wrappersToDelete.end(); ewi++)
-   {
-      if ((*ewi) != NULL)
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            ((*ewi), (*ewi)->GetDescription(), "FunctionRunner::EvaluateObject()",
-             " deleting output wrapper");
-         #endif
-         delete (*ewi);
-         (*ewi) = NULL;
-      }
-   }
-   
+   // FunctionManager releases output wrappers after copying the result.
+
    #ifdef DEBUG_PERFORMANCE
    clock_t t2 = clock();
    MessageInterface::ShowMessage
@@ -788,6 +747,20 @@ void FunctionRunner::Finalize()
       ("FunctionRunner::RunComplete() calling FunctionManager::Finalize()\n");
    #endif
    theFunctionManager.Finalize();
+}
+
+void FunctionRunner::RetireExpressionReferences()
+{
+   // Finalize is a separate step, attempted for every runner while its caller
+   // store still lives. Detachment must also work if that cleanup reported an
+   // error or is reentering the same manager.
+   theFunctionManager.RetireExpressionContext();
+   theObjectMap = nullptr;
+   theGlobalObjectMap = nullptr;
+   internalCS = nullptr;
+   callingFunction = nullptr;
+   theFunction = theFunctionManager.GetFunction();
+   isInitialized = false;
 }
 
 
@@ -870,85 +843,127 @@ void FunctionRunner::HandlePassingMathExp(Function *function)
        leftNode->IsFunctionInput() ? "" : " not",
        leftNode->IsOfType("MathElement") ? "" : " not");
    MessageInterface::ShowMessage
-      ("Calling FunctionManager::Initialize()\n"
+      ("Capturing function input nodes\n"
        "===================================================================\n");
    #endif
    
+   // Evaluate nodes before the common invocation entry creates or refreshes
+   // formals. Initialize here used to mutate a recursive caller's live store
+   // before PrepareExecution had a chance to save that caller frame.
    theFunctionManager.PrepareObjectMap();
-   theFunctionManager.Initialize();
-   
-   Integer numInputs = theInputNodes.size();
-   MessageInterface::ShowMessage("..... Has %d inputs\n", numInputs);
-   
-   #ifdef DEBUG_EVALUATE
-   MessageInterface::ShowMessage
-      ("Evaluating Function input nodes\n"
-       "===================================================================\n");
-   #endif
-   
-   // Evaluate input nodes
-   for (Integer i=0; i<numInputs; i++)
+   for (Integer i = 0; i < (Integer)theInputNodes.size(); ++i)
    {
-      Real result = theInputNodes[i]->Evaluate();
-      MessageInterface::ShowMessage("   ..... result=%f\n", result);
-      ElementWrapper *ew = theFunctionManager.GetInputWrapper(i);
-      if (ew)
-      {
-         if (ew->GetDataType() == Gmat::REAL_TYPE)
-         {
-            MessageInterface::ShowMessage("..... Just setting value to wrapper\n");
-            ew->SetReal(result);
-            NumberWrapper *nw = (NumberWrapper*)(theFunctionManager.GetInputWrapper(i));
-            MessageInterface::ShowMessage("..... got %f form this wrapper\n", nw->EvaluateReal());
-         }
-         else
-         {
-            MessageInterface::ShowMessage
-               ("***> Cannot set value to input wrapper, different data type\n");
-            MessageInterface::ShowMessage("..... Creating new NumberWrapper\n");
-            ElementWrapper *newWrapper = new NumberWrapper();
-            
-            #ifdef DEBUG_MEMORY
-            MemoryTracker::Instance()->Add
-               (newWrapper, newWrapper->GetDescription(), "FunctionRunner::HandlePassingMathExp()",
-                "*newWrapper = new NumberWrapper()");
-            #endif
-            
-            newWrapper->SetReal(result);
-            theFunctionManager.SetInputWrapper(i, newWrapper);
-         }
-      }
-      else
-      {
-         MessageInterface::ShowMessage("..... Creating new NumberWrapper\n");
-         ew = new NumberWrapper();
-         
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Add
-            (ew, ew->GetDescription(), "FunctionRunner::HandlePassingMathExp()",
-             "ew = new NumberWrapper()");
-         #endif
-         
-         ew->SetReal(result);
-         theFunctionManager.SetInputWrapper(i, ew);
-      }
-      
+      std::unique_ptr<Variable> passingInput(new Variable(theInputNodes[i]->GetName()));
+      passingInput->SetReal(theInputNodes[i]->Evaluate());
       bool inputAdded = false;
-      // depends on return type of theInputNodes[i]->Evaluate(), create Variable or Array
-      MessageInterface::ShowMessage
-         ("..... Creating Variable with '%s'\n", theInputNodes[i]->GetName().c_str());
-      Variable *passingInput = new Variable(theInputNodes[i]->GetName());
-      
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (passingInput, passingInput->GetName(), "FunctionRunner::HandlePassingMathExp()",
-          "*passingInput = new Variable(theInputNodes[i]->GetName())");
-      #endif
-      
-      passingInput->SetReal(result);
-      MessageInterface::ShowMessage("..... Calling FunctionManager::SetPassedInput()\n");
-      theFunctionManager.SetPassedInput(i, (GmatBase*)passingInput, inputAdded);
-      if (!inputAdded)
-         delete passingInput;
+      const bool accepted = theFunctionManager.SetPassedInput(i, passingInput.get(), inputAdded);
+      if (inputAdded) passingInput.release();
+      if (!accepted)
+         throw MathException("Unable to replace input argument for function \"" +
+                             function->GetName() + "\"\n");
    }
+}
+
+
+FunctionRunner& FunctionRunner::operator=(const FunctionRunner &copy)
+{
+   if (&copy == this) return *this;
+   const auto previousContext = GetFunctionValueContext();
+   // FunctionManager enforces its existing non-running assignment guard and
+   // disposes invocation-owned state before installing the copied definition.
+   theFunctionManager = copy.theFunctionManager;
+   MathFunction::operator=(copy);
+   theObjectMap = NULL;
+   theGlobalObjectMap = NULL;
+   theFunctionName = copy.theFunctionName;
+   theFunction = copy.theFunction;
+   theInputNames = copy.theInputNames;
+   theOutputNames = copy.theOutputNames;
+   theInputNodes = copy.theInputNodes;
+   callingFunction = NULL;
+   internalCS = copy.internalCS;
+   theFunctionManager.SetObjectMap(NULL);
+   theFunctionManager.SetGlobalObjectMap(NULL);
+   theFunctionManager.SetInputs(theInputNames);
+   theFunctionManager.SetOutputs(theOutputNames);
+   return *this;
+}
+
+std::vector<MathNode*> FunctionRunner::GetStructuralChildren() const
+{
+   auto children = MathNode::GetStructuralChildren();
+   children.insert(children.end(), theInputNodes.begin(), theInputNodes.end());
+   return children;
+}
+
+void FunctionRunner::RebindClonedChildren(const MathNode &source,
+      const std::function<MathNode*(MathNode*)> &resolve)
+{
+   const auto *runner = dynamic_cast<const FunctionRunner*>(&source);
+   if (!runner) throw MathException("Incompatible copied function expression.\n");
+   MathNodeArray inputs;
+   inputs.reserve(runner->theInputNodes.size());
+   for (MathNode *node : runner->theInputNodes) inputs.push_back(resolve(node));
+   MathNode::RebindClonedChildren(source, resolve);
+   theInputNodes.swap(inputs);
+}
+
+void FunctionRunner::SetExpressionObjectMaps(ObjectMap *local, ObjectMap *global)
+{
+   // Resolve in the incoming environment, including a local null declaration
+   // shadowing a global name. Native definition copies deliberately detach
+   // their old scopes; initialization must bind their callee again as well.
+   GmatBase *object = nullptr;
+   bool found = false;
+   for (ObjectMap *scope : {local, global})
+   {
+      if (!scope) continue;
+      const auto entry = scope->find(theFunctionName);
+      if (entry == scope->end()) continue;
+      object = entry->second;
+      found = true;
+      break;
+   }
+   auto *function = dynamic_cast<ObjectManagedFunction*>(object);
+   // Clear a previous callee on a missing or invalid binding. An initialization
+   // failure must not leave an expression able to call its previous function.
+   theFunctionManager.SetExpressionEnvironment(function, local, global);
+   theObjectMap = local;
+   theGlobalObjectMap = global;
+   theFunction = function;
+   if (!function)
+   {
+      if (!found || !object)
+         throw MathException("Cannot find function \"" + theFunctionName + "\" in the expression environment.\n");
+      throw MathException("Expression resource \"" + theFunctionName + "\" is not an ObjectManagedFunction.\n");
+   }
+}
+
+void FunctionRunner::RebindExpressionReferences(const MathNode &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve, WrapperMap *)
+{
+   const auto *runner = dynamic_cast<const FunctionRunner*>(&source);
+   if (!runner || typeid(*this) != typeid(source))
+      throw MathException("Incompatible native function expression copy.\n");
+   ExpressionBindingScope binding;
+   auto *local = binding.scopes->CopyMap(runner->theObjectMap, resolve);
+   // Global commands publish into the native shared store. A value-owned
+   // scope (including a local/global alias) keeps its copied-container policy.
+   const bool valueGlobal = runner->theGlobalObjectMap == runner->theObjectMap ||
+         runner->theFunctionManager.OwnsExpressionMap(runner->theGlobalObjectMap);
+   auto *global = valueGlobal ? binding.scopes->CopyMap(runner->theGlobalObjectMap, resolve) :
+         runner->theGlobalObjectMap;
+   Function *callee = runner->theFunctionManager.GetFunction();
+   if (callee && runner->theFunction != callee)
+      throw MathException("Inconsistent cached expression callee.\n");
+   // A call definition can be rebound by name on its next native Initialize.
+   // Do not inspect an expired cached object while copying that definition.
+   auto *function = BindExpressionReference(callee, resolve);
+   auto *coordinateSystem = BindExpressionReference(runner->internalCS, resolve);
+   theFunctionManager.RebindExpressionContext(runner->theFunctionManager, resolve, local, global);
+   theObjectMap = local;
+   theGlobalObjectMap = global;
+   theFunction = function;
+   internalCS = coordinateSystem;
+   callingFunction = nullptr;
 }

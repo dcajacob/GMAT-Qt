@@ -65,6 +65,24 @@ SolverData::SolverData() :
 {
 }
 
+
+// Map cached identities without evaluating or initializing a Parameter.
+void SolverData::RebindClonedParameterCaches(const RefData &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &data = ClonedParameterData<SolverData>(source);
+   auto *bound_mSolver = BindClonedParameterReference(data.mSolver, resolve);
+   std::vector<Solver*> solvers;
+   solvers.reserve(data.mSolvers.size());
+   for (Solver *solver : data.mSolvers)
+      solvers.push_back(BindClonedParameterReference(solver, resolve));
+   auto statuses = data.solverStatuses;
+   mSolver = bound_mSolver;
+   mSolvers.swap(solvers);
+   solverStatuses.swap(statuses);
+}
+
+
 //------------------------------------------------------------------------------
 // ~SolverData()
 //------------------------------------------------------------------------------

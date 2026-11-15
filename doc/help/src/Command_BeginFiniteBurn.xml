@@ -365,6 +365,8 @@
   <refsection>
     <title>Remarks</title>
 
+    <para>A captured finite-thrust value retains its burn and spacecraft reference roles. Restoring it within the same prepared propagation graph keeps the current live burn connections; an expired or changed connection requires preparing the burn again.</para>
+
     <refsection>
       <title>Configuring a Finite Burn</title>
 

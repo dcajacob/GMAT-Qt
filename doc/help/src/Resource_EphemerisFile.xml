@@ -19,8 +19,60 @@
     <refpurpose>Generate spacecraft’s ephemeris data</refpurpose>
   </refnamediv>
 
+  <refsection xml:id="EphemerisFile_InsufficientDataAction">
+    <title>Insufficient interpolation data</title>
+    <para><guilabel>InsufficientDataAction</guilabel> selects
+    <literal>ReduceOrder</literal> (the default) or <literal>Error</literal>
+    for the Lagrange generation paths used by CCSDS-OEM, STK-TimePosVel and
+    Code-500. ReduceOrder retains the existing attempt to lower interpolation
+    order at a finalized short segment. Error stops generation with a diagnostic
+    when that segment cannot supply the requested interpolation order, including
+    segments closed by a maneuver, dynamics change or assignment. Error
+    also requires enough exported OEM records to support the declared degree.
+    Normal startup continues collecting points; it does not fail just because
+    the interpolation buffer is still filling. The policy does not change the
+    interpolation method or extrapolate beyond the data. SPK and CK retain
+    their native kernel-writing requirements.</para>
+    <para>Reducing the order does not preserve the interpolation accuracy of
+    the requested order. A tight integrator accuracy setting does not add
+    interpolation constraints: sparse native samples can still produce errors
+    at intermediate output epochs. Select <literal>Error</literal> to reject
+    under-supported segments, or configure propagation to provide enough
+    samples for the required interpolation accuracy.</para>
+  </refsection>
+
   <refsection>
     <title>Description</title>
+
+    <para>Generated SPICE files are checked for successful unloading before
+    deletion or replacement. CK/SCLK replacement stops if either kernel fails
+    to unload or remains loaded. Cleanup during destruction reports failures
+    and retains files whose retirement could not be confirmed. Internal
+    temporary-file retention options still apply after successful unloading.</para>
+
+    <para>The native CK writer refreshes its file binding when switching
+    output files. A switched-to existing CK is opened for append with its own
+    writable DAF handle; a non-CK file or a conflicting open file reports an
+    error. CK close failures remain errors and retain handle ownership until
+    a successful retry or explicit abort. Destruction reports finalization
+    failures and attempts to release the owned handle without emitting more
+    buffered data after that failure.</para>
+
+    <para>Native CK writer value copies have independent segment buffers and
+    clock data and do not borrow an open handle from the source. Assignment
+    prepares those values before closing the destination's previous output.
+    Configured external filenames remain filenames; copying a value does not
+    duplicate the corresponding files.</para>
+
+    <para>CK subscriber copies retain configuration and start with an empty,
+    uninitialized output session. They do not share the source's sample buffer,
+    open writer, or generated clock. Assignment prepares the incoming settings
+    before finalizing or aborting the previous session and retiring its clock.
+    A retirement error stops assignment and keeps the pending cleanup owned by
+    the destination. Each new generated clock uses a separately reserved
+    temporary directory; cleanup removes its clock and then its empty directory.
+    Configured output filenames still require appropriate ownership when
+    multiple resources use the same file.</para>
 
     <para><guilabel>EphemerisFile</guilabel> is a user-defined resource that
     generates spacecraft’s ephemeris in a report format. You can generate
@@ -82,7 +134,19 @@
             command. It is however strongly recommended that, when including
             acceleration records in a CCSDS OEM Version 2 file, the same force
             model be used for both the Propagator and
-            AccelerationModel.</para><variablelist>
+            AccelerationModel.</para>
+            <para>Acceleration conversion requires the native MJ2000Eq/FK5
+            input axes and fixed inertial output axes. Moving axes are rejected
+            because the coordinate API does not supply the required second
+            rotation derivative. For a change of origin, both origins must be
+            celestial bodies, Barycenter, LibrationPoint or body-fixed resources
+            (including GroundStation) with a
+            common J2000 reference body. GMAT adds input
+            origin acceleration and subtracts output origin acceleration before
+            rotating the complete acceleration vector. Other origins without
+            native acceleration providers are rejected.
+            Without AccelerationModel, ordinary position, velocity and covariance
+            conversion does not require acceleration ephemeris samples.</para><variablelist>
                 <varlistentry>
                   <term>Data Type</term>
 
@@ -1487,6 +1551,85 @@
       dynamic models occurs. However, unlike the CCSDS ephemeris,
       STK-TimePosVel ephemeris is not generated during backward propagations
       and only forward propagation ephemeris is reported.</para>
+    </refsection>
+
+    <refsection>
+      <title>Output During Iterative Solving</title>
+
+      <para>Intermediate targeting, optimization and batch-estimation passes do
+      not generate ephemeris samples or discontinuity comments. An inner final
+      pass remains intermediate while an enclosing solver is still iterating.
+      Ephemeris toggles within a trial do not create files or split previously
+      accepted data. The final replay starts with the write flags that were in
+      effect before the trial passes, then applies its own toggle commands in
+      sequence.</para>
+
+      <para>A Filename assignment checks its resolved destination before the
+      current output is finalized. A different destination finishes the old
+      file and starts a new output at the next accepted sample. Reassigning
+      the same physical file keeps its existing data and sampling history.
+      Filename changes during trial passes remain visible to the commands in
+      that pass; the pre-trial filename is restored before final replay.
+      Invalid directories leave the current destination unchanged.</para>
+
+      <para>Copying settings into a live ephemeris resource during a trial
+      does not close its existing output. Its entry configuration is restored
+      before final replay. Function arguments still receive fresh input values.
+      A value assignment does not move the destination between local and
+      global scope.</para>
+
+      <para>When a returned ephemeris refers directly to a formal spacecraft,
+      coordinate system or acceleration model argument, its reference follows
+      the corresponding caller resource. An explicitly returned resource takes
+      precedence over its input alias. Shared global dependencies retain their
+      identity.</para>
+
+      <para>A returned ephemeris retains private spacecraft and coordinate
+      systems used for its output and input data. Spacecraft snapshots preserve
+      the current state, epoch, attached hardware and estimation references.
+      Their frames, axes, referenced coordinate systems and calculated points
+      are retained together. References
+      to formal resource arguments follow the caller bindings above. Other
+      private resources used by these frames must be passed as inputs or
+      returned with the ephemeris; a missing lifetime binding reports an error.
+      These resource snapshots do not transfer a live output file.</para>
+
+      <para>An EphemerisFile can also be a private dependency of another
+      returned resource. The enclosing function-value graph owns that detached
+      ephemeris and its private bindings. Its reference back to the graph is
+      weak, avoiding an ownership cycle. A later native copy acquires a lease
+      for the dependency graph and reconnects its references before the original
+      public root is released. Expired roots or incompatible native ownership
+      layouts report an error. Ordinary native preparation remains responsible
+      for creating a new output session.</para>
+
+      <para>A private acceleration model returned with an ephemeris retains
+      its static force configuration and referenced coordinate systems.
+      Active finite burns continue to follow the calling mission's current
+      BeginFiniteBurn and EndFiniteBurn commands. They are not frozen at the
+      function return point or duplicated from the model's runtime force list.
+      Ephemerides created inside a function use the same active-burn context
+      as its other commands.</para>
+
+      <para>Spacecraft, coordinate-system and acceleration-model bindings, and
+      numeric StepSize changes, remain visible within a trial without changing
+      the existing writer's accepted bindings or sampling step. Entry settings
+      are restored before final replay, which applies its own changes.</para>
+
+      <para>A typed data packet for another spacecraft does not create this ephemeris file or change its sampling and gap history. Accepted estimator SPK samples use the bound spacecraft's actual group epoch and frame; same-name resources in another scope remain distinct. End-of-run cleanup still finalizes data that was previously accepted.</para>
+
+      <para>Function-local ephemerides finalize previously accepted data even
+      when collection has been toggled off. Finalization errors are reported
+      to the calling function, and true global outputs remain available after
+      function return.</para>
+
+      <para>Target and Optimize retain their native final-replay behavior,
+      including RunInitialGuess and a terminal last iterate when convergence
+      is not achieved. A final replay does not itself certify convergence.
+      Batch estimation publishes its fitted final propagation only after
+      convergence; sequential estimation publishes its accepted filtering
+      trajectory. Stopping a run still finalizes any accepted data already
+      collected.</para>
     </refsection>
 
     <refsection>

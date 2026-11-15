@@ -39,9 +39,23 @@
 #include "Rmatrix.hpp"
 #include "RealUtilities.hpp"
 #include "Rvector.hpp"
+#include "UtilityException.hpp"
+#include <typeinfo>
+#include <utility>
 #include "Linear.hpp"         // for operator<<, operator >>
 
 template class ArrayTemplate<Real>;
+
+void Rvector::Swap(Rvector &other)
+{
+   // Fixed-size subclasses have their own shape contracts.
+   if (typeid(*this) != typeid(Rvector) || typeid(other) != typeid(Rvector))
+      throw UtilityException("Storage exchange requires native Rvector values.\n");
+   using std::swap;
+   swap(elementD, other.elementD);
+   swap(sizeD, other.sizeD);
+   swap(isSizedD, other.isSizedD);
+}
 
 //---------------------------------
 //  public

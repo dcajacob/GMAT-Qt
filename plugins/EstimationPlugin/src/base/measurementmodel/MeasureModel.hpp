@@ -189,6 +189,8 @@ public:
 
    /// Set value for Doppler count interval. It is used to calculate measurement for Start path
    void                 SetCountInterval(Real timeInterval);
+   /// Counted observable's receiver interval, independent of start-path offset.
+   void                 SetIntegrationInterval(Real timeInterval);
 
    /// Get paticipant objects lists
    virtual const std::vector<ObjectArray*>&
@@ -240,9 +242,12 @@ protected:
 
    /// Flag to indicate measurerment time tag to be at the end of signal path
    bool epochIsAtEnd;
+   /// Script/adapter default, kept separate from the last observation's tag.
+   bool configuredEpochIsAtEnd;
 
    /// Count interval is time interval (in seconds) between Start-path and End-path
    Real countInterval;
+   Real integrationInterval;
 
    /// The reporter for status information
    ProgressReporter *navLog;

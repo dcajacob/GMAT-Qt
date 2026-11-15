@@ -44,7 +44,6 @@ QMap<QString,QString> PropagatorSettings::values() const
 {
    QMap<QString,QString> result{{"Type",activeType}};if (numeric) result["FM"]=forceModel->text();
    for (auto it=editors.cbegin();it!=editors.cend();++it) {
-      if (activeType=="SPK" && it.key()=="CentralBody") continue;
       if (auto *choice=qobject_cast<QComboBox *>(it.value())) result[it.key()]=choice->currentText();
       else if (auto *line=qobject_cast<QLineEdit *>(it.value())) result[it.key()]=line->text();
    }return result;
@@ -86,10 +85,13 @@ void PropagatorSettings::populate(Propagator &propagator,const QMap<QString,QStr
          connect(choice,&QComboBox::currentTextChanged,this,[this,name=field.name](const QString &text) {changed(name,text);});
       }else {
          auto *line=new QLineEdit(value,owned);input=line;
-         if (activeType=="SPK" && field.name=="CentralBody") {line->setReadOnly(true);line->setToolTip("The current SPK engine ignores CentralBody. Configurable Origin remains an unresolved historical requirement.");}
+         if (activeType=="SPK" && field.name=="CentralBody") line->setToolTip("Celestial body used as the SPK propagation origin.");
          connect(line,&QLineEdit::textChanged,this,[this,name=field.name](const QString &text) {changed(name,text);});
       }
-      input->setObjectName("resource_"+field.name);if (input->toolTip().isEmpty()) input->setToolTip(field.help);editors[field.name]=input;fields->addRow(field.name+(field.unit.isEmpty() ? QString() : " ("+field.unit+")"),input);
+      input->setObjectName("resource_"+field.name);if (input->toolTip().isEmpty()) input->setToolTip(field.help);editors[field.name]=input;
+      auto *caption=new QLabel(field.name+(field.unit.isEmpty() ? QString() : " ("+field.unit+")"),owned);
+      if (field.name=="StartEpoch") caption->setObjectName("propagatorEpochUnit");
+      fields->addRow(caption,input);
    }
    auto *format=qobject_cast<QComboBox *>(editors.value("EpochFormat"));auto *epoch=qobject_cast<QComboBox *>(editors.value("StartEpoch"));
    if (format && epoch) {
@@ -100,6 +102,8 @@ void PropagatorSettings::populate(Propagator &propagator,const QMap<QString,QStr
          catch (BaseException &error) {format->setCurrentText(*previous);if (onError) onError(QString::fromStdString(error.GetFullMessage()));}
          catch (const std::exception &error) {format->setCurrentText(*previous);if (onError) onError(QString::fromUtf8(error.what()));}
          *converting=false;
+         if (auto *caption=owned->findChild<QLabel *>("propagatorEpochUnit"))
+            caption->setText("StartEpoch ("+epochInputUnit(format->currentText())+")");
       });
    }
 }

@@ -1,0 +1,54 @@
+{
+  "cases": [
+    {
+      "key": "OrbitViewColorOwner",
+      "setup": "Create Spacecraft Sat;\nSat.OrbitColor = Red;\nSat.TargetColor = Teal;\nCreate OrbitView Subject;\nSubject.ShowPlot = false;\nSubject.Add = {Sat, Earth};\nSubject.DrawObject = [true false];\n",
+      "objects": [
+        "Subject",
+        "Sat"
+      ],
+      "selected": [
+        "Subject",
+        "Sat"
+      ],
+      "definitions": [
+        "Create OrbitView Subject;",
+        "Create Spacecraft Sat;"
+      ],
+      "filename": "Subject_Sat.data",
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "Add",
+          "type": "ObjectArray",
+          "expected": [
+            "Sat",
+            "Earth"
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "DrawObject",
+          "type": "BooleanArray",
+          "expected": [
+            true,
+            false
+          ]
+        },
+        {
+          "object": "Sat",
+          "field": "OrbitColor",
+          "type": "Color",
+          "expected": "Red"
+        },
+        {
+          "object": "Sat",
+          "field": "TargetColor",
+          "type": "Color",
+          "expected": "Teal"
+        }
+      ]
+    }
+  ],
+  "scope": "Persist nondefault colors on the SpacePoint and the OrbitView reference that reads them."
+}

@@ -1,5 +1,6 @@
 #include "ResourcePreview.hpp"
 #include "OrbitViewDialog.hpp"
+#include "VectorLineEdit.hpp"
 #include "ResourceProperties.hpp"
 #include "GmatBase.hpp"
 #include "OrbitPlot.hpp"
@@ -176,10 +177,17 @@ OrbitViewDialog::OrbitViewDialog(GmatBase &plot,const QMap<QString,QString> &pen
       const auto name=cameraFields[i]; auto *row=new QWidget(camera); auto *rowLayout=new QHBoxLayout(row); rowLayout->setContentsMargins(0,0,0,0);
       CameraInput input; input.choice=new QComboBox(row); input.choice->setObjectName("orbit_"+name); input.choice->addItem("Vector"); input.choice->addItems(fields.value(name).references); rowLayout->addWidget(input.choice,1);
       QStringList parts; const auto value=initial.value(name); try { parts=vectorParts(value); input.choice->setCurrentText("Vector"); } catch (const std::exception &) { parts=vectorParts(defaults[i]); if (input.choice->findText(value)<0) input.choice->addItem(value); input.choice->setCurrentText(value); }
-      for (int j=0;j<3;++j) { input.vector[j]=new QLineEdit(parts[j],row); input.vector[j]->setObjectName("orbit_"+name+QString::number(j+1)); input.vector[j]->setMinimumWidth(65); input.vector[j]->setEnabled(input.choice->currentText()=="Vector"); rowLayout->addWidget(input.vector[j],1); }
-      connect(input.choice,&QComboBox::currentTextChanged,this,[input](const QString &text) { for (auto *edit:input.vector) edit->setEnabled(text=="Vector"); }); cameras.insert(name,input); cameraForm->addRow(labels[i],row);
+      for (int j=0;j<3;++j) { input.vector[j]=new VectorLineEdit(parts[j],row); input.vector[j]->setObjectName("orbit_"+name+QString::number(j+1)); input.vector[j]->setMinimumWidth(65); input.vector[j]->setEnabled(input.choice->currentText()=="Vector"); rowLayout->addWidget(input.vector[j],1); }
+      VectorLineEdit::link({input.vector[0],input.vector[1],input.vector[2]});
+      auto *caption=new QLabel(camera); cameraForm->addRow(caption,row);
+      auto updateMode=[input,caption,label=labels[i]](const QString &text) {
+         const bool vector=text=="Vector";
+         for (auto *edit:input.vector) edit->setEnabled(vector);
+         caption->setText(label+(vector ? " (km)" : ""));
+      };
+      connect(input.choice,&QComboBox::currentTextChanged,this,updateMode); updateMode(input.choice->currentText()); cameras.insert(name,input);
    }
-   scale=new QLineEdit(initial.value("ViewScaleFactor"),camera); scale->setObjectName("orbit_ViewScaleFactor"); cameraForm->addRow("View scale factor",scale);
+   scale=new QLineEdit(initial.value("ViewScaleFactor"),camera); scale->setObjectName("orbit_ViewScaleFactor"); cameraForm->addRow("View scale factor (dimensionless)",scale);
    choice("ViewUpCoordinateSystem","Up coordinate system"); choice("ViewUpAxis","Up axis");
    auto *drawing=new QGroupBox("Drawing and data",content); auto *form=new QFormLayout(drawing); groups->addWidget(drawing);
    const QMap<QString,QString> flagLabels={{"ShowPlot","Show plot"},{"ShowLabels","Show labels"},{"WireFrame","Wireframe"},{"EclipticPlane","Ecliptic plane"},{"XYPlane","XY plane"},{"Axes","Axes"},{"Grid","Grid"},{"SunLine","Sun line"},{"UseInitialView","Reset to script camera on each run"},{"EnableStars","Stars"},{"EnableConstellations","Constellations"}};

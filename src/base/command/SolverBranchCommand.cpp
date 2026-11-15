@@ -28,19 +28,28 @@
  * Definition for the Solver loop command base class (Target, Optimize and 
  * Iterate).
  */
+
 //------------------------------------------------------------------------------
 
 
+#include <exception>
+#include <typeinfo>
+#include <memory>
 #include "SolverBranchCommand.hpp"
 #include "Spacecraft.hpp"
 #include "Vary.hpp"                // For SetInitialValue() method
 #include "Subscriber.hpp"
 #include "MessageInterface.hpp"
 #include "FormationInterface.hpp"
+#include "NativeRestoration.hpp"
+#include "TransientForceSelection.hpp"
 #include "ListenerManagerInterface.hpp"
 #include "StringUtil.hpp"
 
 #include <sstream>                 // for <<
+#include <set>
+#include <utility>
+#include <algorithm>
 
 //#define DEBUG_PARSING
 //#define DEBUG_OPTIONS
@@ -52,6 +61,31 @@
 #ifdef DEBUG_MEMORY
 #include "MemoryTracker.hpp"
 #endif
+
+
+struct SolverCommandResources
+{
+   struct Member
+   {
+      GmatBase *source;
+      std::weak_ptr<const void> identity;
+   };
+   struct Snapshot
+   {
+      GmatBase *source;
+      std::weak_ptr<const void> identity;
+      std::shared_ptr<const FunctionValueContext> memberOwner;
+      std::unique_ptr<GmatBase> value;
+      std::vector<Member> members;
+   };
+   // Keep one local instance per native solver class, retaining identity for
+   // cached command/Parameter references across ordinary reinitialization.
+   std::vector<std::unique_ptr<Solver>> solvers;
+   std::vector<Snapshot> snapshots;
+   TransientForceSelection transientSelection;
+   Publisher *checkpointPublisher = nullptr;
+   Publisher::ManeuveringState maneuveringState;
+};
 
 
 namespace {
@@ -138,17 +172,12 @@ SolverBranchCommand::SolverBranchCommand(const std::string &typeStr) :
 //------------------------------------------------------------------------------
 SolverBranchCommand::~SolverBranchCommand()
 {
-   // Remove listener
    ClearListeners();
-   if (theSolver)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (theSolver, "local solver", "SolverBranchCommand::~SolverBranchCommand()",
-          "deleting local solver");
-      #endif
-      delete theSolver;
-   }
+   activeSubscribers.clear();
+   localStore.clear();
+   theSolver = nullptr;
+   // GmatCommand retains the resource owner until branch and following
+   // commands have been destroyed. Never delete a configured/master solver.
 }
 
 
@@ -169,7 +198,9 @@ SolverBranchCommand::SolverBranchCommand(const SolverBranchCommand& sbc) :
    exitMode       (sbc.exitMode),
    showProgressWindow (sbc.showProgressWindow),
    specialState   (Solver::INITIALIZING),
-   queryStatusID  (-1)
+   queryStatusID  (-1),
+   solverModes    (sbc.solverModes),
+   exitModes      (sbc.exitModes)
 {
 }
 
@@ -189,6 +220,9 @@ SolverBranchCommand& SolverBranchCommand::operator=(
 {
    if (&sbc != this)
    {
+      FreeLoopData();
+      ClearListeners();
+      activeSubscribers.clear();
       BranchCommand::operator=(sbc);
       solverName   = sbc.solverName;
       theSolver    = NULL;
@@ -197,6 +231,8 @@ SolverBranchCommand& SolverBranchCommand::operator=(
       showProgressWindow = sbc.showProgressWindow;
       specialState = Solver::INITIALIZING;
       queryStatusID = -1;
+      solverModes = sbc.solverModes;
+      exitModes = sbc.exitModes;
    }
    
    return *this;
@@ -213,11 +249,18 @@ SolverBranchCommand& SolverBranchCommand::operator=(
 //------------------------------------------------------------------------------
 bool SolverBranchCommand::Initialize()
 {
+   SetCloneNotificationsEnabled(false);
    #ifdef DEBUG_SOLVERBRANCHCOMMAND_INIT
    ShowCommand("SolverBranchCommand::Initialize() entered ", "this=", this);
    #endif
    
-   BranchCommand::Initialize();
+   if (!BranchCommand::Initialize())
+      return false;
+
+   // Sandbox's top-level action does not visit solvers inside ordinary
+   // branches or functions. Each initialized solver owns its notification
+   // marker; reinitialization also clears markers left by an edited sequence.
+   SolverBranchCommand::TakeAction("SetLastVaryCommand");
 
    if (theSolver)
       queryStatusID = theSolver->GetParameterID("IntegerSolverStatus");
@@ -236,6 +279,7 @@ bool SolverBranchCommand::Initialize()
    #ifdef DEBUG_SOLVERBRANCHCOMMAND_INIT
    ShowCommand("SolverBranchCommand::Initialize() exited ", "this=", this);
    #endif
+   SetCloneNotificationsEnabled(true);
    return true;
 
 }
@@ -292,129 +336,73 @@ GmatCommand* SolverBranchCommand::GetNext()
 //------------------------------------------------------------------------------
 void SolverBranchCommand::StoreLoopData()
 {
-   // Make local copies of all of the objects that may be affected by optimize
-   // loop iterations
-   // Check the Local Object Store first
-   std::map<std::string, GmatBase *>::iterator pair = objectMap->begin();
-   GmatBase *obj = NULL;
-   
-   // Loop through the object map, looking for objects we'll need to restore.
-   while (pair != objectMap->end()) 
-   {
-      obj = (*pair).second;
-      
-      if (obj == NULL)
-         throw CommandException
-            (typeName + "::StoreLoopData() cannot continue "
-             "due to NULL object pointer in " + generatingString);
-      
-      // Save copies of all of the spacecraft
-      if (obj->GetType() == Gmat::SPACECRAFT)
-      {
-         Spacecraft *orig = (Spacecraft*)(obj);
-         Spacecraft *sc = NULL;
-
-         // Only add if not already buffered
-         Integer bufferLoc = -1;
-         for (UnsignedInt i = 0; i < localStore.size(); ++i)
-            if (localStore[i]->GetName() == orig->GetName())
-               bufferLoc = i;
-
-         if (bufferLoc == -1)
+   PrepareSolverResources();
+   TransientForceSelection activeForces;
+   activeForces.Capture(forces);
+   Publisher::ManeuveringState publicationState;
+   if (publisher) publicationState = publisher->CaptureManeuveringState();
+   std::vector<GmatBase*> sources;
+   std::set<GmatBase*> identities;
+   std::set<GmatBase*> forbidden;
+   for (ObjectMap *map : {objectMap, globalObjectMap})
+      if (map)
+         for (const auto &entry : *map)
          {
-            sc = (Spacecraft*)orig->Clone();
-            #ifdef DEBUG_MEMORY
-            MemoryTracker::Instance()->Add
-               ((GmatBase*)sc, "cloned local sc", "SolverBranchCommand::StoreLoopData()",
-                "Spacecraft *sc = new Spacecraft(*orig)");
-            #endif
-            // Handle CoordinateSystems
-            if (orig->GetInternalCoordSystem() == NULL)
-               MessageInterface::ShowMessage(
-                  "Internal CS is NULL on spacecraft %s prior to optimizer cloning\n",
-                  orig->GetName().c_str());
-            if (orig->GetRefObject(Gmat::COORDINATE_SYSTEM, "") == NULL)
-               MessageInterface::ShowMessage(
-                  "Coordinate system is NULL on spacecraft %s prior to optimizer cloning\n",
-                  orig->GetName().c_str());
-            sc->SetInternalCoordSystem(orig->GetInternalCoordSystem());
-            sc->SetRefObject(orig->GetRefObject(Gmat::COORDINATE_SYSTEM, ""),
-               Gmat::COORDINATE_SYSTEM, "");
-            localStore.push_back(sc);
+            GmatBase *object = entry.second;
+            if (!object) continue;
+            forbidden.insert(object);
+            if ((object->IsOfType(Gmat::SPACECRAFT) || object->IsOfType(Gmat::FORMATION)) &&
+                  identities.insert(object).second) sources.push_back(object);
          }
-         else
-            // Call assignment operator
-            (*localStore[bufferLoc]) = (*obj);
-      }
-      if (obj->GetType() == Gmat::FORMATION)
+   for (auto *object : GetCommandOwnedObjects()) forbidden.insert(object);
+   // A retained formation can reference private spacecraft that have no entry
+   // in either script map. Capture each actual member once, including aliases.
+   for (size_t i = 0; i < sources.size(); ++i)
+      if (sources[i]->IsOfType(Gmat::FORMATION))
       {
-         FormationInterface *orig = (FormationInterface*)(obj);
-         FormationInterface *form = (FormationInterface*)orig->Clone();
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Add
-            ((GmatBase*)form, "cloned local form", "SolverBranchCommand::StoreLoopData()",
-             "Formation *form  = new Formation(*orig)");
-         #endif
-         
-         localStore.push_back(form);
+         const ObjectArray members = sources[i]->GetRefObjectArray(Gmat::SPACEOBJECT);
+         for (auto *member : members)
+         {
+            if (!member || (!member->IsOfType(Gmat::SPACECRAFT) && !member->IsOfType(Gmat::FORMATION)))
+               throw CommandException("Cannot capture an unresolved native formation member.\n");
+            forbidden.insert(member);
+            if (identities.insert(member).second) sources.push_back(member);
+         }
       }
-      ++pair;
-   }
-   // Check the Global Object Store next
-   std::map<std::string, GmatBase *>::iterator globalPair = globalObjectMap->begin();
-    
-   // Loop through the object map, looking for objects we'll need to restore.
-   while (globalPair != globalObjectMap->end()) 
+   std::vector<SolverCommandResources::Snapshot> snapshots;
+   snapshots.reserve(sources.size());
+   GmatBase::FunctionValueCopyGuard nativeCopy;
+   for (GmatBase *source : sources)
    {
-      obj = (*globalPair).second;
-      // Save copies of all of the spacecraft
-      if (obj->GetType() == Gmat::SPACECRAFT)
+      std::vector<SolverCommandResources::Member> members;
+      if (source->IsOfType(Gmat::FORMATION))
       {
-         Spacecraft *orig = (Spacecraft*)(obj);
-         Spacecraft *sc = new Spacecraft(*orig);
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Add
-            ((GmatBase*)sc, "cloned local sc",
-             "SolverBranchCommand::StoreLoopData()",
-             "Spacecraft *sc = new Spacecraft(*orig)");
-         #endif
-         // Handle CoordinateSystems
-         if (orig->GetInternalCoordSystem() == NULL)
-            MessageInterface::ShowMessage(
-               "Internal CS is NULL on spacecraft %s prior to optimizer cloning\n",
-               orig->GetName().c_str());
-         if (orig->GetRefObject(Gmat::COORDINATE_SYSTEM, "") == NULL)
-            MessageInterface::ShowMessage(
-               "Coordinate system is NULL on spacecraft %s prior to optimizer cloning\n",
-               orig->GetName().c_str());
-         sc->SetInternalCoordSystem(orig->GetInternalCoordSystem());
-         sc->SetRefObject(orig->GetRefObject(Gmat::COORDINATE_SYSTEM, ""),
-            Gmat::COORDINATE_SYSTEM, "");
-         
-         bool alreadyExists = false;
-         for (Integer ii = 0; ii < localStore.size(); ++ii)
-            if (localStore.at(ii)->GetName() == sc->GetName())
-            {
-               alreadyExists = true;
-               break;
-            }
-         if (!alreadyExists)
-            localStore.push_back(sc);
+         const ObjectArray values = source->GetRefObjectArray(Gmat::SPACEOBJECT);
+         for (auto *member : values) members.push_back({member, member->GetLifetimeToken()});
       }
-      if (obj->GetType() == Gmat::FORMATION)
+      std::unique_ptr<GmatBase> copy(source->Clone());
+      if (forbidden.count(copy.get()))
       {
-         FormationInterface *orig = (FormationInterface*)(obj);
-         FormationInterface *form  = (FormationInterface*)orig->Clone();
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Add
-            ((GmatBase*)form, "cloned local form",
-             "SolverBranchCommand::StoreLoopData()",
-             "Formation *form  = new Formation(*orig)");
-         #endif
-         localStore.push_back(form);
+         copy.release();
+         throw CommandException("Loop snapshot Clone returned a source or existing owned object.\n");
       }
-      ++globalPair;
+      if (!copy || typeid(*copy) != typeid(*source) || copy->GetTypeName() != source->GetTypeName())
+         throw CommandException("Cannot copy the native loop snapshot type.\n");
+      forbidden.insert(copy.get());
+      // Frozen values keep the current frame/owner context. Rebinding a value
+      // into another private scene here would change its restoration roles.
+      snapshots.push_back({source, source->GetLifetimeToken(), source->GetFunctionValueContext(),
+            std::move(copy), std::move(members)});
    }
+   ObjectArray views;
+   views.reserve(snapshots.size());
+   for (const auto &snapshot : snapshots) views.push_back(snapshot.value.get());
+   // All captures succeed before replacing the previous iteration's values.
+   solverResources->snapshots.swap(snapshots);
+   localStore.swap(views);
+   solverResources->transientSelection = std::move(activeForces);
+   solverResources->checkpointPublisher = publisher;
+   solverResources->maneuveringState = std::move(publicationState);
 }
 
 
@@ -427,32 +415,134 @@ void SolverBranchCommand::StoreLoopData()
 //------------------------------------------------------------------------------
 void SolverBranchCommand::ResetLoopData()
 {
-   Spacecraft *sc;
-   FormationInterface *fm;
-   std::string name;
-    
-   for (std::vector<GmatBase *>::iterator i = localStore.begin();
-        i != localStore.end(); ++i)
+   if (!solverResources || !solverResources->transientSelection.IsCaptured()) return;
+   auto activeForces = solverResources->transientSelection.PrepareRestoration(forces);
+   if (solverResources->checkpointPublisher != publisher)
+      throw CommandException("The captured loop publisher is no longer selected.");
+   auto maneuvering = publisher ? publisher->PrepareManeuveringRestoration(
+         solverResources->maneuveringState) : std::unique_ptr<NativeRestorationPlan>();
+   auto present = [&](GmatBase *object)
    {
-      name = (*i)->GetName();
-      //GmatBase *gb = (*objectMap)[name];
-      GmatBase *gb = FindObject(name);
-
-      if (gb != NULL)
+      for (ObjectMap *map : {objectMap, globalObjectMap})
+         if (map) for (const auto &entry : *map) if (entry.second == object) return true;
+      return false;
+   };
+   // Validate the complete restore set first. A new object with the same name
+   // cannot inherit an earlier object's numerical checkpoint.
+   for (const auto &snapshot : solverResources->snapshots)
+      if (!GmatBase::IsLiveReference(snapshot.source, snapshot.identity) ||
+            typeid(*snapshot.source) != typeid(*snapshot.value))
+         throw CommandException("The original loop snapshot target is no longer in this scope.\n");
+   std::set<GmatBase*> reachable;
+   std::set<GmatBase*> forbidden;
+   for (ObjectMap *map : {objectMap, globalObjectMap})
+      if (map) for (const auto &entry : *map) forbidden.insert(entry.second);
+   for (auto *object : GetCommandOwnedObjects()) forbidden.insert(object);
+   for (const auto &snapshot : solverResources->snapshots)
+   {
+      if (present(snapshot.source)) reachable.insert(snapshot.source);
+      forbidden.insert(snapshot.source);
+      forbidden.insert(snapshot.value.get());
+      if (snapshot.source->IsOfType(Gmat::FORMATION))
       {
-         if (gb->GetType() == Gmat::SPACECRAFT)
-         {
-            sc = (Spacecraft*)gb;
-            *sc = *((Spacecraft*)(*i));
-         }
-         else if (gb->GetType() == Gmat::FORMATION)
-         {
-            fm = (FormationInterface*)gb;
-            *fm = *((FormationInterface*)(*i));
-         }
+         for (const auto &member : snapshot.members)
+            if (!GmatBase::IsLiveReference(member.source, member.identity))
+               throw CommandException("The actual captured formation member is no longer alive.\n");
       }
    }
-   // Trigger reset for the propagators so they run identically loop to loop
+   // Follow the captured graph from actual script-map roots. A loop may
+   // change its current membership; captured owners keep the original private
+   // destinations alive. An equal-name replacement is never a fallback.
+   for (size_t previous = 0; previous != reachable.size();)
+   {
+      previous = reachable.size();
+      for (const auto &snapshot : solverResources->snapshots)
+         if (reachable.count(snapshot.source))
+            for (const auto &member : snapshot.members) reachable.insert(member.source);
+   }
+   ObjectArray destinations, values;
+   std::vector<std::unique_ptr<GmatBase>> prepared, probes;
+   prepared.reserve(solverResources->snapshots.size());
+   probes.reserve(solverResources->snapshots.size());
+   auto clone = [&](GmatBase &source, bool restorationProbe = false)
+   {
+      GmatBase::FunctionValueCopyGuard nativeCopy;
+      auto *formation = restorationProbe ? dynamic_cast<FormationInterface*>(&source) : nullptr;
+      std::unique_ptr<GmatBase> value(formation ? formation->CloneRestorationProbe() : source.Clone());
+      if (value && forbidden.count(value.get()))
+      {
+         value.release();
+         throw CommandException("Loop restoration Clone returned a borrowed object.\n");
+      }
+      if (!value || typeid(*value) != typeid(source) || value->GetTypeName() != source.GetTypeName())
+         throw CommandException("Cannot prepare a native loop restoration value.\n");
+      forbidden.insert(value.get());
+      return value;
+   };
+   for (const auto &snapshot : solverResources->snapshots)
+   {
+      if (!reachable.count(snapshot.source))
+         throw CommandException("The original loop snapshot target is no longer in this scope.\n");
+      auto value = clone(*snapshot.value);
+      if (!value->SetName(snapshot.source->GetName()))
+         throw CommandException("Cannot retain a loop restoration resource name.\n");
+      value->SetFullName(snapshot.source->GetFullName());
+      // Navigation commands can enable precision time after this loop's
+      // initial snapshot. Preserve the live mode and its storage, promoting
+      // only the detached saved value from the epoch it originally used.
+      // All other native layout/role checks remain in the restoration path.
+      auto *liveState = dynamic_cast<SpaceObject*>(snapshot.source);
+      auto *savedState = dynamic_cast<SpaceObject*>(value.get());
+      if (liveState && savedState && liveState->HasPrecisionTime() &&
+            !savedState->HasPrecisionTime())
+      {
+         const Real savedEpoch = savedState->GetEpoch();
+         savedState->SetPrecisionTimeFlag(true);
+         savedState->SetEpochGT(GmatTime(savedEpoch));
+      }
+      destinations.push_back(snapshot.source);
+      values.push_back(value.get());
+      prepared.push_back(std::move(value));
+   }
+   NativeRestoration::Validate(values, destinations);
+   std::vector<std::unique_ptr<FormationRestorationPlan>> layouts;
+   layouts.reserve(values.size());
+   for (size_t i = 0; i < values.size(); ++i)
+   {
+      auto *formation = dynamic_cast<FormationInterface*>(destinations[i]);
+      auto *frozen = dynamic_cast<FormationInterface*>(values[i]);
+      ObjectArray members;
+      std::unique_ptr<FormationRestorationPlan> layout;
+      if (formation)
+      {
+         if (!frozen) throw CommandException("Incompatible native formation restoration type.");
+         for (const auto &member : solverResources->snapshots[i].members)
+            members.push_back(member.source);
+         layout = formation->PrepareRestorationLayout(*frozen, members);
+      }
+      auto probe = clone(*destinations[i], true);
+      if (layout)
+      {
+         auto *trial = dynamic_cast<FormationInterface*>(probe.get());
+         if (!trial) throw CommandException("Incompatible native formation restoration probe.");
+         auto preparation = trial->PrepareRestorationLayout(*frozen, members);
+         if (preparation) preparation->Apply();
+      }
+      layouts.push_back(std::move(layout));
+      GmatBase::NativeRestorationGuard restore;
+      NativeRestoration::Copy({values[i]}, {probe.get()});
+      probes.push_back(std::move(probe));
+   }
+   // Every layout allocation and native probe succeeds before changing a live
+   // root. Swaps install captured membership/storage; ordinary fixed-layout
+   // native Copy then restores all packed and member values.
+   for (auto &layout : layouts) if (layout) layout->Apply();
+   {
+      GmatBase::NativeRestorationGuard restore;
+      NativeRestoration::Copy(values, destinations);
+   }
+   if (forces) forces->swap(activeForces);
+   if (maneuvering) maneuvering->Apply();
    BranchCommand::TakeAction("ResetLoopData");
 }
 
@@ -470,8 +560,11 @@ void SolverBranchCommand::ResetLoopData()
 //------------------------------------------------------------------------------
 void SolverBranchCommand::RunComplete()
 {
-   BranchCommand::RunComplete();
+   std::exception_ptr firstError;
+   try { BranchCommand::RunComplete(); }
+   catch (...) { firstError = std::current_exception(); }
    ClearListeners();
+   if (firstError) std::rethrow_exception(firstError);
 }
 
 //------------------------------------------------------------------------------
@@ -483,19 +576,14 @@ void SolverBranchCommand::RunComplete()
 //------------------------------------------------------------------------------
 void SolverBranchCommand::FreeLoopData()
 {
-   GmatBase *obj;
-   while (!localStore.empty())
-   {
-      obj = *(--localStore.end());
-      localStore.pop_back();
-      #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (obj, obj->GetName(), "SolverBranchCommand::FreeLoopData()",
-             "deleting local obj");
-      #endif
-      delete obj;
-   }
    localStore.clear();
+   if (solverResources)
+   {
+      solverResources->snapshots.clear();
+      solverResources->transientSelection.Clear();
+      solverResources->checkpointPublisher = nullptr;
+      solverResources->maneuveringState = {};
+   }
 }
 
 
@@ -815,31 +903,18 @@ bool SolverBranchCommand::TakeAction(const std::string &action,
    }
    else if (action == "SetLastVaryCommand")
    {
-      // Set the vary command for chunking ephemeris data
-      // (Fix for GMT-4097 LOJ: 2014.04.04)
-      std::vector<GmatCommand*>::iterator node;
-      GmatCommand *currentPtr = NULL;
-      GmatCommand *lastVary = NULL;
-      
-      for (node = branch.begin(); node != branch.end(); ++node)
-      {
-         currentPtr = *node;
-         while (currentPtr && (currentPtr != this))
+      // Preserve the last-in-script-order notification convention, including
+      // ordinary branch contents. Nested solvers mark their own controls.
+      Vary *lastVary = NULL;
+      for (GmatCommand *command : GetCommandsInSolverScope())
+         if (Vary *vary = dynamic_cast<Vary*>(command))
          {
-            if (currentPtr->IsOfType("Vary"))
-               lastVary = currentPtr;
-            
-            currentPtr = currentPtr->GetNext();
-            if (currentPtr == NULL)
-               throw CommandException("Branch command \"" + generatingString +
-                                      "\" was not terminated!");
+            vary->SetIsThisLastVaryCommand(false);
+            lastVary = vary;
          }
-      }
-      
+
       if (lastVary != NULL)
-      {
-         ((Vary*)lastVary)->SetIsThisLastVaryCommand(true);
-      }
+         lastVary->SetIsThisLastVaryCommand(true);
       
       return true;
    }
@@ -1190,18 +1265,113 @@ bool SolverBranchCommand::NeedsServerStartup()
 //------------------------------------------------------------------------------
 void SolverBranchCommand::ApplySolution()
 {
-   // Walk through the solver loop, setting new variable values as needed
-   GmatCommand *current;
-   std::vector<GmatCommand*>::iterator node;
-   for (node = branch.begin(); node != branch.end(); ++node)
-   {
-      current = *node;
+   for (GmatCommand *command : GetCommandsInSolverScope())
+      if (command->GetTypeName() == "Vary")
+         ((Vary*)command)->SetInitialValue(theSolver);
+}
 
-      while ((current != NULL) && (current != this))
+
+//------------------------------------------------------------------------------
+// std::vector<GmatCommand*> GetCommandsInSolverScope()
+//------------------------------------------------------------------------------
+/**
+ * Walks this solver's structural command scope in script order, including all
+ * arms of ordinary control-flow branches. Each branch ends at its owner's
+ * back-link. A nested solver owns its own controls, even when it uses the same
+ * configured solver resource as its parent, so its children are not included.
+ * Execution-dependent GetNext() must not be used: it can return the branch
+ * itself and change the publisher state when a solver is idle.
+ */
+//------------------------------------------------------------------------------
+std::vector<GmatCommand*> SolverBranchCommand::GetCommandsInSolverScope()
+{
+   typedef std::pair<GmatCommand*, GmatCommand*> ScopeEntry;
+   std::vector<ScopeEntry> pending;
+   for (auto entry = branch.rbegin(); entry != branch.rend(); ++entry)
+      pending.push_back(ScopeEntry(*entry, this));
+
+   std::vector<GmatCommand*> commands;
+   std::set<GmatCommand*> visited;
+   visited.insert(this);
+   while (!pending.empty())
+   {
+      const ScopeEntry entry = pending.back();
+      pending.pop_back();
+      GmatCommand *command = entry.first;
+      if (command == entry.second)
+         continue;
+      if (!command)
+         throw CommandException("Branch command \"" + generatingString +
+                                "\" was not terminated!");
+      if (!visited.insert(command).second)
+         throw CommandException("Solver command \"" + generatingString +
+                                "\" contains an invalid command cycle");
+
+      commands.push_back(command);
+      pending.push_back(ScopeEntry(command->GetNextWhileExecuting(), entry.second));
+      if (dynamic_cast<SolverBranchCommand*>(command))
+         continue;
+
+      std::vector<GmatCommand*> children;
+      for (Integer i = 0; GmatCommand *child = command->GetChildCommand(i); ++i)
+         children.push_back(child);
+      for (auto child = children.rbegin(); child != children.rend(); ++child)
+         pending.push_back(ScopeEntry(*child, command));
+   }
+   return commands;
+}
+
+
+//------------------------------------------------------------------------------
+// void RegisterSolverControlData(const StringArray&, VaryRegistrationReset)
+//------------------------------------------------------------------------------
+/**
+ * Registers solver controls in structural order without executing ordinary
+ * statements, choosing conditional arms, or iterating loops. Solver problem
+ * dimensions are fixed before nominal/perturbation passes begin. Nested solver
+ * controls belong to that solver and are never registered with this one.
+ *
+ * The native initialization sweep also runs direct nested solvers of the same
+ * command type to completion. Preserve that dispatch (including GetNext's
+ * completion/ExitMode behavior), but do not run a solver hidden in an ordinary
+ * branch before its enclosing control flow is evaluated during execution.
+ */
+//------------------------------------------------------------------------------
+void SolverBranchCommand::RegisterSolverControlData(
+      const StringArray &controlTypes, VaryRegistrationReset reset)
+{
+   // Validate the complete structural scope before registering any data.
+   const std::vector<GmatCommand*> commands = GetCommandsInSolverScope();
+   std::set<GmatCommand*> directCommands;
+   for (GmatCommand *entry : branch)
+      for (GmatCommand *command = entry; command != this;
+           command = command->GetNextWhileExecuting())
+         directCommands.insert(command);
+
+   for (GmatCommand *command : commands)
+   {
+      const std::string &type = command->GetTypeName();
+      if (std::find(controlTypes.begin(), controlTypes.end(), type) !=
+            controlTypes.end())
       {
-         if (current->GetTypeName() == "Vary")
-            ((Vary*)current)->SetInitialValue(theSolver);
-         current = current->GetNext();
+         const bool isVary = type == "Vary";
+         if (isVary && reset == VARY_RESET_BEFORE)
+            command->TakeAction("SolverReset");
+         if (!command->Execute())
+            throw CommandException("Failed to register solver control: " +
+                  command->GetGeneratingString(Gmat::NO_COMMENTS));
+         if (isVary && reset == VARY_RESET_AFTER)
+            command->TakeAction("SolverReset");
+      }
+      else if (type == GetTypeName() && directCommands.count(command) &&
+               dynamic_cast<SolverBranchCommand*>(command))
+      {
+         do
+         {
+            if (!command->Execute())
+               throw CommandException("Failed to initialize nested solver: " +
+                     command->GetGeneratingString(Gmat::NO_COMMENTS));
+         } while (command->GetNext() == command);
       }
    }
 }
@@ -1388,6 +1558,27 @@ void SolverBranchCommand::ApplySubscriberBreakpoint(Integer bp)
       }
 }
 
+// RunInitialGuess also has a nominal and a final publication pass. Its plot
+// checkpoint must not enroll those plots in Solve-mode pen/color automation,
+// which would override explicit plot commands in the initial-guess sequence.
+void SolverBranchCommand::UpdateInitialGuessSubscriberBreakpoint(bool clear)
+{
+   std::vector<Subscriber*> previous;
+   previous.swap(activeSubscribers);
+   try
+   {
+      GetActiveSubscribers();
+      if (clear) ApplySubscriberBreakpoint();
+      else SetSubscriberBreakpoint();
+   }
+   catch (...)
+   {
+      activeSubscribers.swap(previous);
+      throw;
+   }
+   activeSubscribers.swap(previous);
+}
+
 
 //------------------------------------------------------------------------------
 // Integer GetCloneCount()
@@ -1457,15 +1648,15 @@ bool SolverBranchCommand::HasLocalClones()
 //------------------------------------------------------------------------------
 void SolverBranchCommand::UpdateClonedObject(GmatBase *obj)
 {
-   if (obj->GetName() == solverName)
-   {
-      if (obj->GetTypeName() == theSolver->GetTypeName())
-         theSolver = (Solver*)obj;
-      else
-         throw CommandException("Object type mismatch (clone is a " +
-               theSolver->GetTypeName() + ", original is a " +
-               obj->GetTypeName() + ") when updating cloned solvers");
-   }
+   if (!obj || !theSolver || (obj != theSolver && !theSolver->IsCloneOf(*obj))) return;
+   auto *source = dynamic_cast<Solver*>(obj);
+   if (!source || typeid(*source) != typeid(*theSolver) || source->GetTypeName() != theSolver->GetTypeName())
+      throw CommandException("Object type mismatch when updating a local solver clone.\n");
+   if (source == theSolver) { isInitialized = false; return; }
+   const auto previousContext = theSolver->GetFunctionValueContext();
+   GmatBase::FunctionValueCopyGuard copying;
+   isInitialized = false;
+   theSolver->Copy(source);
 }
 
 
@@ -1482,9 +1673,10 @@ void SolverBranchCommand::UpdateClonedObject(GmatBase *obj)
 void SolverBranchCommand::UpdateClonedObjectParameter(GmatBase *obj,
       Integer updatedParameterId)
 {
-   if (obj->GetName() == solverName)
-      if (obj->GetTypeName() == theSolver->GetTypeName())
-         theSolver->CopyParameter(*obj, updatedParameterId);
+   if (!obj || !theSolver || (obj != theSolver && !theSolver->IsCloneOf(*obj))) return;
+   if (typeid(*obj) != typeid(*theSolver) || obj->GetTypeName() != theSolver->GetTypeName())
+      throw CommandException("Object type mismatch when updating a local solver parameter.\n");
+   if (obj != theSolver) theSolver->CopyParameter(*obj, updatedParameterId);
 }
 
 
@@ -1598,3 +1790,71 @@ void SolverBranchCommand::NotifyConstraintChanged(std::string name, Real desired
    }
 }
 
+
+void SolverBranchCommand::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   ClearListeners();
+   FreeLoopData();
+   activeSubscribers.clear();
+   queryStatusID = -1;
+   specialState = Solver::INITIALIZING;
+   // The solver definition remains with its native command owner. Native
+   // initialization replaces that instance on the next invocation.
+   BranchCommand::RetireFunctionBindings(store);
+}
+
+void SolverBranchCommand::PrepareSolverResources()
+{
+   if (solverResources) return;
+   auto resources = std::make_shared<SolverCommandResources>();
+   RetainCommandResourceOwner(resources);
+   solverResources = std::move(resources);
+}
+
+Solver *SolverBranchCommand::PrepareLocalSolver(GmatBase *source)
+{
+   auto *solver = dynamic_cast<Solver*>(source);
+   if (!solver) throw CommandException("A solver command requires a Solver resource.\n");
+   PrepareSolverResources();
+   std::set<GmatBase*> forbidden{source};
+   for (auto *object : GetCommandOwnedObjects()) forbidden.insert(object);
+   for (ObjectMap *map : {objectMap, globalObjectMap, configObjectMap})
+      if (map) for (const auto &entry : *map) if (entry.second) forbidden.insert(entry.second);
+   GmatBase::FunctionValueCopyGuard copying;
+   std::unique_ptr<GmatBase> value(source->Clone());
+   if (forbidden.count(value.get()))
+   {
+      value.release();
+      throw CommandException("Solver Clone returned a source or existing owned object.\n");
+   }
+   auto *copy = dynamic_cast<Solver*>(value.get());
+   if (!copy || typeid(*copy) != typeid(*source) || copy->GetTypeName() != source->GetTypeName())
+      throw CommandException("Cannot clone the native solver type.\n");
+   copy->SetCloneSource(source);
+   copy->SetCloneOwner(this);
+   for (const auto &owned : solverResources->solvers)
+      if (typeid(*owned) == typeid(*copy) && owned->GetTypeName() == copy->GetTypeName())
+      {
+         const auto previousContext = owned->GetFunctionValueContext();
+         owned->Copy(copy);
+         owned->SetCloneSource(source);
+         owned->SetCloneOwner(this);
+         return owned.get();
+      }
+   std::unique_ptr<Solver> owned(static_cast<Solver*>(value.release()));
+   Solver *result = owned.get();
+   solverResources->solvers.push_back(std::move(owned));
+   return result;
+}
+
+ObjectArray SolverBranchCommand::GetCommandOwnedObjects() const
+{
+   ObjectArray objects;
+   if (solverResources)
+   {
+      for (const auto &solver : solverResources->solvers) objects.push_back(solver.get());
+      for (const auto &snapshot : solverResources->snapshots) objects.push_back(snapshot.value.get());
+   }
+   return objects;
+}

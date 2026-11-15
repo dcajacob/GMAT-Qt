@@ -120,10 +120,12 @@
 #include "ODEModelException.hpp"
 
 #include <math.h>
+#include <functional>
 
 
 
 class PropagationStateManager;
+class ODEModel;
 
 
 /** 
@@ -149,6 +151,7 @@ public:
 
    PhysicalModel(const PhysicalModel&);
    PhysicalModel& operator=(const PhysicalModel&);
+   void ValidateRestorationLayout(const PhysicalModel &source) const;
     
    virtual bool Initialize();
 
@@ -172,6 +175,8 @@ public:
    virtual void SetState(GmatState * st);
 
    virtual CelestialBody* GetForceOrigin();
+   void RebindClonedBodyReferences(const PhysicalModel &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
 
    Real GetErrorThreshold() const;
    bool SetErrorThreshold(const Real thold = 0.10);
@@ -341,7 +346,20 @@ public:
 
    virtual bool IsSolvingForThrustEventsWithSpinningAttitude();
 
+   // Configured transient selection; legacy providers can keep name matching.
+   // Appended virtual: existing method positions remain, consistent rebuild required.
+   virtual bool TargetsSpacecraft(const Spacecraft *spacecraft) const;
+
+   // Non-owning force-list subscriptions; native value copies own their clones.
+   void RegisterODEBorrower(ODEModel *model);
+   void UnregisterODEBorrower(ODEModel *model) noexcept;
+
+
+
 protected:
+   void RetireODEBorrowers() noexcept;
+   void CopyOwnedArrays(const PhysicalModel &source);
+   void ReleaseOwnedArrays();
       
    /// pointer to the body for which this force is computed
    CelestialBody *body;

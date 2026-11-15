@@ -508,6 +508,8 @@
   <refsection>
     <title>Remarks</title>
 
+    <para>Transmitter and oscillator value copies retain their captured covariance and correlations independently of configured coefficient or drift sigmas. They also retain the resolved initial epoch; copying a transmitter preserves its current signal value. Sigma and epoch edits still follow their normal property and initialization behavior.</para>
+
     <refsection>
       <title>Transmitter Frequency use in Simulation and Estimation</title>
 

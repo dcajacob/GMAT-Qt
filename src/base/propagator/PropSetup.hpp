@@ -33,6 +33,7 @@
 
 #include "gmatdefs.hpp"
 #include "GmatBase.hpp"
+#include <functional>
 #include "PropagationStateManager.hpp"
 
 // Forward references
@@ -102,6 +103,15 @@ public:
    void                 AddPropObject(GmatBase* sat);
    bool                 RemovePropObject(GmatBase* sat);
    void                 PrepareInternals();
+   void RebindClonedReferences(const PropSetup &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve,
+         const std::function<void(const ObjectArray&, const ObjectArray&)> &owned, bool bindObjects = true);
+   bool InitializeClonedResource();
+   // Bind a runtime command clone to its actual definition and component graph.
+   void BindCloneDefinition(PropSetup &source, GmatBase *owner);
+   bool ApplyCloneUpdate(GmatBase *source, Integer parameterId = -1,
+         bool preservePropagationState = false);
+
    
    // inherited from GmatBase
    virtual bool         RenameRefObject(const UnsignedInt type,
@@ -210,8 +220,8 @@ private:
    ODEModel *mODEModel;
    PropagationStateManager psm;
    
-   void    ClonePropagator(Propagator *prop);
-   void    CloneODEModel(ODEModel *fm);
+   void    ClonePropagator(Propagator *prop, bool inheritSource = false);
+   void    CloneODEModel(ODEModel *fm, bool inheritSource = false);
    void    DeleteOwnedObject(Integer id, bool forceDelete = false);
    Integer GetOwnedObjectId(Integer id, UnsignedInt objType) const;
    

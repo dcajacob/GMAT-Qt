@@ -34,6 +34,7 @@
 #include "matlabinterface_defs.hpp"
 #include "CallFunction.hpp"
 #include "MatlabInterface.hpp"
+#include <functional>
 
 class MATLAB_API CallMatlabFunction : public CallFunction
 {
@@ -60,7 +61,14 @@ protected:
    
    bool ExecuteMatlabFunction();
    void SendInParam(Parameter *param, const std::string &inStr);
+   void SendInParam(GmatBase *object, const std::string &inStr);
    void GetOutParams();
+   void SendInputValue(const std::string &target, const MatlabValue &value);
+   void SendInputObject(GmatBase *object, const std::string &target);
+   std::vector<std::function<void()>> ReadOutParams(
+      const StringArray &variables, const StringArray &targets);
+   void ReadObjectOutput(GmatBase *object, const std::string &variable,
+      const std::string &target, std::vector<std::function<void()>> &assignments);
    void EvalMatlabString(const std::string &evalString);
    void ClearInputParameters();
    void ClearOutputParameters();

@@ -60,6 +60,7 @@ MessageWindow::MessageWindow(const MessageWindow &mw)
    //parameterCount = MessageWindowParamCount;
    dstream.precision(precision);
    dstream.setf(std::ios::fixed);
+   if (typeid(mw) == typeid(MessageWindow)) ReconnectSubscriberCopy(mw);
 }
 
 //------------------------------------------------------------------------------
@@ -141,7 +142,15 @@ bool MessageWindow::Distribute(const Real * dat, Integer len)
 //------------------------------------------------------------------------------
 GmatBase* MessageWindow::Clone() const
 {
-   return (new MessageWindow(*this));
+   if (typeid(*this) != typeid(MessageWindow))
+      throw GmatBaseException("A derived MessageWindow must provide its complete Clone.\n");
+   std::unique_ptr<MessageWindow> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new MessageWindow(*this));
+   }
+   value->ReconnectSubscriberCopy(*this);
+   return value.release();
 }
 
 
@@ -259,11 +268,24 @@ void MessageWindow::Copy(const GmatBase *original)
       throw GmatBaseException("Cannot copy incompatible object into MessageWindow");
    if (source == this)
       return;
-   Subscriber::operator=(*source);
-   precision = source->precision;
-   // Like the copy constructor, start with an empty transient output buffer.
-   dstream.str("");
-   dstream.clear();
-   dstream.precision(precision);
-   dstream.setf(std::ios::fixed);
+   const auto previousContext = GetFunctionValueContext();
+   auto transaction = BeginSubscriberValueCopy(*source);
+   {
+      FunctionValueCopyGuard nativeCopy;
+      Subscriber::operator=(*source);
+      precision = source->precision;
+      // Like the copy constructor, start with an empty transient output buffer.
+      dstream.str("");
+      dstream.clear();
+      dstream.precision(precision);
+      dstream.setf(std::ios::fixed);
+   }
+   CompleteSubscriberValueCopy(*source, transaction);
+}
+
+
+
+bool MessageWindow::HasSubscriberValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(MessageWindow);
 }

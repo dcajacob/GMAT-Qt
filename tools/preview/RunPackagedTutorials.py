@@ -1,0 +1,250 @@
+"""Build the GUI tutorial observer against an extracted release's native libraries."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import tarfile
+import tempfile
+import zipfile
+
+import BuildPreviewPackage as builder
+
+
+def windows_build_environment():
+    vswhere = Path(os.environ['ProgramFiles(x86)'])/'Microsoft Visual Studio/Installer/vswhere.exe'
+    installation = subprocess.check_output([str(vswhere), '-latest', '-products', '*',
+        '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
+        '-property', 'installationPath'], text=True).strip()
+    setup = Path(installation)/'VC/Auxiliary/Build/vcvars64.bat'
+    result = subprocess.check_output(f'"{setup}" >nul && set', shell=True, text=True)
+    environment = {name.upper(): value for name, value in os.environ.items()}
+    for line in result.splitlines():
+        if '=' in line and not line.startswith('='):
+            name, value = line.split('=', 1)
+            environment[name.upper()] = value
+    if not shutil.which('dumpbin.exe', path=environment['PATH']):
+        raise RuntimeError('The Visual C++ environment did not provide dumpbin.exe')
+    return environment
+
+
+def import_libraries(binary, plugins, output, environment):
+    output.mkdir()
+    for name in ['GmatBase', 'GmatUtil', 'GmatEstimation']:
+        dll = (plugins if name == 'GmatEstimation' else binary)/('lib'+name+'.dll')
+        exports = subprocess.check_output([shutil.which('dumpbin.exe', path=environment['PATH']), '/nologo', '/exports', str(dll)],
+                                          env=environment, text=True)
+        symbols = re.findall(r'^\s+\d+\s+[0-9A-F]+\s+[0-9A-F]+\s+(\S+)', exports, re.M)
+        assert symbols, dll
+        definition = output/(name+'.def')
+        definition.write_text('LIBRARY '+dll.name+'\nEXPORTS\n'+'\n'.join(symbols)+'\n')
+        subprocess.run([shutil.which('lib.exe', path=environment['PATH']), '/nologo', '/machine:x64', '/def:'+str(definition),
+                        '/out:'+str(output/(name+'.lib'))], env=environment, check=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--platform', required=True)
+    parser.add_argument('--archive', type=Path, required=True)
+    parser.add_argument('--tutorial', action='append')
+    parser.add_argument('--smoother-fix', action='store_true')
+    parser.add_argument('--event-results', action='store_true',
+                        help='Run the independent eclipse and contact result cases')
+    parser.add_argument('--output', type=Path, default=builder.REPO/'build/tutorial-release')
+    args = parser.parse_args()
+    output = args.output.resolve()
+    output.mkdir(parents=True, exist_ok=True)
+    builder.LOGS.mkdir(parents=True, exist_ok=True)
+    builder.DEPS.mkdir(parents=True, exist_ok=True)
+    workspace = Path(tempfile.mkdtemp(prefix='gmat-tutorial-release-'))
+    extracted = workspace/'extracted'
+    extracted.mkdir()
+    if args.platform.startswith('macos'):
+        subprocess.run(['ditto', '-x', '-k', str(args.archive.resolve()), str(extracted)], check=True)
+    elif args.platform.startswith('windows'):
+        with zipfile.ZipFile(args.archive) as archive:
+            archive.extractall(extracted)
+    else:
+        with tarfile.open(args.archive) as archive:
+            archive.extractall(extracted, filter='data')
+    payload = next(p for p in extracted.iterdir() if p.is_dir() and p.name.startswith('GMAT-Qt-'))
+    for name, digest in json.loads((payload/'PACKAGE-MANIFEST.json').read_text()).items():
+        assert hashlib.sha256((payload/name).read_bytes()).hexdigest() == digest, name
+    root = payload/'GMAT-Qt.app' if args.platform.startswith('macos') else payload
+    binary = root/'Contents/MacOS' if args.platform.startswith('macos') else root/'bin'
+    metadata_path = root/'Contents/Resources/PYTHON-API.json' if args.platform.startswith('macos') else root/'PYTHON-API.json'
+    metadata = json.loads(metadata_path.read_text())
+    qt, osg, prefix = builder.dependencies(args.platform)
+    environment = windows_build_environment() if os.name == 'nt' else dict(os.environ)
+    environment['GMAT_QT_TUTORIAL_RUNTIME'] = str(binary/('GmatQt.exe' if os.name == 'nt' else 'GmatQt'))
+    build = output/'probe-build'
+    options = ['-DCMAKE_BUILD_TYPE=Release', '-DGMAT_INSTALLATION='+str(root),
+               '-DCSPICE_DIR='+str(builder.DEPS/'cspice'),
+               '-DCMAKE_PREFIX_PATH='+str(qt)+';'+str(osg)+';'+str(prefix)]
+    if os.name == 'nt':
+        imports = output/'import-libraries'
+        import_libraries(binary, root/'plugins', imports, environment)
+        options += ['-G', 'Visual Studio 17 2022', '-A', 'x64', '-DGMAT_IMPORT_LIBRARIES='+str(imports)]
+        environment['PATH'] = os.pathsep.join([str(binary), str(root/'plugins'), str(qt/'bin'), str(osg/'bin'),
+                                              str(prefix/'bin'), environment['PATH']])
+        environment['QT_PLUGIN_PATH'] = str(qt/'plugins')
+    elif args.platform.startswith('macos'):
+        options += ['-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
+                    '-DCMAKE_OSX_ARCHITECTURES='+('arm64' if args.platform.endswith('arm64') else 'x86_64')]
+        environment.pop('DYLD_LIBRARY_PATH', None)
+    else:
+        environment['LD_LIBRARY_PATH'] = os.pathsep.join([str(binary), str(root/'lib'), str(qt/'lib')])
+        environment['QT_PLUGIN_PATH'] = str(qt/'plugins')
+        environment['GMAT_QT_TUTORIAL_PLUGIN_PATH'] = str(qt/'plugins')
+    if args.smoother_fix:
+        options += ['-DGMAT_TUTORIAL_BUILD_BASE=ON']
+        if not args.event_results:
+            options += ['-DGMAT_TUTORIAL_PATCH_SMOOTHER=ON']
+    targets = []
+    if args.event_results:
+        options += ['-DGMAT_EVENT_RESULT_TESTS=ON']
+        targets = ['--target', 'GmatQtNasaEclipseResultTests', 'GmatQtNasaContactResultTests']
+    builder.run(['cmake', '-S', builder.REPO/'tools/preview/tutorial-probe', '-B', build, *options],
+                'tutorial-probe-configure', env=environment)
+    builder.run(['cmake', '--build', build, '--config', 'Release', *targets, '--parallel', builder.BUILD_JOBS],
+                'tutorial-probe-build', env=environment)
+    patches = []
+    if args.smoother_fix:
+        suffix = '.dll' if os.name == 'nt' else '.dylib' if args.platform.startswith('macos') else '.so'
+        plugins = root/'Contents/PlugIns' if args.platform.startswith('macos') else root/'plugins'
+        replacements = [('GmatBase', binary)]
+        if not args.event_results:
+            replacements.append(('EKF', plugins))
+        if args.platform.startswith('macos'):
+            replacements.insert(0, ('GmatUtil', binary))
+        for name, directory in replacements:
+            repaired = next(build.rglob('lib'+name+suffix))
+            destinations = [directory/('lib'+name+suffix)]
+            if args.platform.startswith('macos'):
+                destinations = sorted({path.resolve() for path in root.rglob('lib'+name+'*.dylib')})
+            elif args.platform.startswith('linux'):
+                destinations = sorted({path.resolve() for path in root.rglob('lib'+name+'.so*')})
+            for destination in destinations:
+                original_hash = hashlib.sha256(destination.read_bytes()).hexdigest()
+                shutil.copyfile(repaired, destination.resolve())
+                if args.platform.startswith('macos'):
+                    libraries = subprocess.check_output(['otool', '-L', destination], text=True).splitlines()[1:]
+                    for line in libraries:
+                        old = line.strip().split(' (compatibility version', 1)[0]
+                        if old.startswith(('/System/', '/usr/lib/')):
+                            continue
+                        library = Path(old).name
+                        candidates = [root/'Contents/Frameworks'/library, binary/library, plugins/library]
+                        target = next((path for path in candidates if path.is_file()), None)
+                        if target and target.resolve() != destination.resolve():
+                            relative = os.path.relpath(target, destination.parent)
+                            subprocess.run(['install_name_tool', '-change', old, '@loader_path/'+relative, str(destination)], check=True)
+                    subprocess.run(['install_name_tool', '-id', '@rpath/'+destination.name, str(destination)], check=True)
+                    subprocess.run(['codesign', '--force', '--sign', '-', str(destination)], check=True)
+                patches.append({'file': str(destination.resolve().relative_to(root.resolve())),
+                                'original_sha256': original_hash,
+                                'patched_sha256': hashlib.sha256(destination.read_bytes()).hexdigest(),
+                                'reason': 'Tutorial regression repairs'})
+    suffix = '.exe' if os.name == 'nt' else ''
+    if args.event_results:
+        executables = [next(build.rglob('GmatQtNasa'+family+'ResultTests'+suffix))
+                       for family in ['Eclipse', 'Contact']]
+    else:
+        executables = [next(build.rglob('GmatQtTutorialProbe'+suffix))]
+    for executable in executables:
+        if args.platform.startswith('macos'):
+            libraries = subprocess.check_output(['otool', '-L', executable], text=True).splitlines()[1:]
+            for line in libraries:
+                old = line.strip().split(' (compatibility version', 1)[0]
+                if Path(old).name.startswith(('libGmatBase', 'libGmatUtil', 'libGmatEstimation')):
+                    target = root/'Contents/Frameworks'/Path(old).name
+                    if target.is_file():
+                        subprocess.run(['install_name_tool', '-change', old, str(target), str(executable)], check=True)
+            subprocess.run(['codesign', '--force', '--sign', '-', str(executable)], check=True)
+    if args.event_results:
+        from RunIndependentEvents import run_event_results
+        return run_event_results(args, payload, root, binary, executables, environment, patches)
+    probe = next(build.rglob('GmatQtTutorialProbe'+suffix))
+    driver = next(build.rglob('GmatQtTutorialDriverTests'+suffix))
+    if args.platform.startswith('macos'):
+        libraries = subprocess.check_output(['otool', '-L', probe], text=True).splitlines()[1:]
+        for line in libraries:
+            old = line.strip().split(' (compatibility version', 1)[0]
+            if Path(old).name.startswith(('libGmatBase', 'libGmatUtil', 'libGmatEstimation')):
+                target = root/'Contents/Frameworks'/Path(old).name
+                if target.is_file():
+                    subprocess.run(['install_name_tool', '-change', old, str(target), str(probe)], check=True)
+        subprocess.run(['codesign', '--force', '--sign', '-', str(probe)], check=True)
+    if os.name == 'nt':
+        # Use the same legacy loader policy as GMAT and retain the native
+        # import table if a repaired plugin cannot load on the target runner.
+        plugin = root/'plugins/libEKF.dll'
+        imports = subprocess.check_output([shutil.which('dumpbin.exe', path=environment['PATH']),
+                                           '/nologo', '/imports', str(plugin)], env=environment, text=True)
+        (output/'ekf-imports.txt').write_text(imports)
+        check = subprocess.run([sys.executable, '-c',
+            'import ctypes,sys; library=ctypes.WinDLL(sys.argv[1],winmode=0); print("EKF factories",library.GetFactoryCount())',
+            str(plugin)], env=environment, capture_output=True, text=True)
+        (output/'ekf-load.txt').write_text(check.stdout+check.stderr)
+        print(check.stdout+check.stderr, flush=True)
+        check.check_returncode()
+        software = qt/'bin/opengl32sw.dll'
+        if software.is_file():
+            shutil.copy2(software, probe.parent/'opengl32.dll')
+            environment['QT_OPENGL_DLL'] = str(probe.parent/'opengl32.dll')
+    driver_backend = 'windows' if os.name == 'nt' else 'offscreen'
+    builder.run([driver], 'tutorial-semantic-driver', env=dict(environment, QT_QPA_PLATFORM=driver_backend))
+    startup = payload/'gmat_startup_qt.txt' if args.platform.startswith('macos') else binary/'gmat_startup_qt.txt'
+    if args.platform.startswith('macos'):
+        text = startup.read_text()
+        def plugin_path(match):
+            name = Path(match[1].strip()).name
+            library = root/'Contents/Frameworks'/(name+'.R2026a.dylib')
+            return 'PLUGIN = '+str(library.with_suffix('')) if library.is_file() else match[0]
+        text = re.sub(r'^PLUGIN\s*=\s*(.+)$', plugin_path, text, flags=re.M)
+        startup = output/'canonical-macos-startup.txt'
+        startup.write_text(text)
+    desktop = 'isolated-x11' if args.platform.startswith('linux') else 'native'
+    command = [sys.executable, builder.REPO/'src/qtgui/tests/RunTutorials.py', '--desktop', desktop,
+        '--probe', probe, '--startup', startup, '--pause-ms', '0', '--input-delay-ms', '20',
+        '--output', output/'replay']
+    selected = args.tutorial or [str(number) for number in range(1, 19)]
+    unavailable = []
+    if not re.search(r'(?im)^PLUGIN\s*=.*VF13ad', startup.read_text()):
+        unavailable = [{'tutorial': '05-optimal-lunar-flyby', 'status': 'unavailable',
+                        'reason': 'The standard alpha.3 archive excludes the required VF13ad optimizer plugin.'}]
+        selected = [number for number in selected if number not in ['5', '05', '05-optimal-lunar-flyby']]
+    for tutorial in selected:
+        command += ['--tutorial', tutorial]
+    with (output/'replay.log').open('w') as log:
+        result = subprocess.Popen(list(map(str, command)), env=environment, stdout=log, stderr=subprocess.STDOUT)
+        while True:
+            try:
+                result.wait(timeout=45)
+                break
+            except subprocess.TimeoutExpired:
+                with (output/'replay.log').open('rb') as current:
+                    current.seek(0, 2)
+                    current.seek(max(0, current.tell()-2048))
+                    tail = current.read().decode('utf-8', errors='replace').splitlines()[-4:]
+                print('Tutorial replay progress\n'+'\n'.join(tail), flush=True)
+    receipt = {'platform': args.platform, 'archive': str(args.archive),
+        'archive_sha256': hashlib.sha256(args.archive.read_bytes()).hexdigest(),
+        'release_source': metadata['source_commit'],
+        'harness_source': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=builder.REPO, text=True).strip(),
+        'probe_sha256': hashlib.sha256(probe.read_bytes()).hexdigest(), 'exit_code': result.returncode,
+        'extracted_root': str(root), 'replay': str(output/'replay/results.json'),
+        'observer': 'Matching frontend source linked to the archived GMAT native libraries',
+        'desktop': desktop, 'unavailable_tutorials': unavailable, 'full_regression_run': False}
+    receipt['targeted_plugin_patches'] = patches
+    (output/'verification.json').write_text(json.dumps(receipt, indent=2)+'\n')
+    print(json.dumps(receipt))
+    return result.returncode
+
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -31,20 +31,21 @@
 #include "Save.hpp"
 #include "FileManager.hpp"      // for GetPathname()
 #include "MessageInterface.hpp"
+#include "FileUtil.hpp"
 #include "GmatGlobal.hpp"       // for GetDataPrecision()
 #include "CoordinateSystem.hpp"
 #include "PropSetup.hpp"
 #include "Propagator.hpp"
 #include "ODEModel.hpp"
+#include "ObjectScriptExportScope.hpp"
+#include "ScriptStringLiteral.hpp"
 #include <functional>
 #include <memory>
 #include <map>
 #include <set>
+#include <sstream>
 #include <vector>
 
-// for writing to single file per Save command, if not defined
-// it will create files per Save objects
-#define __USE_SINGLE_FILE__
 
 //#define DEBUG_SAVE_INIT
 //#define DEBUG_SAVE_EXEC
@@ -52,8 +53,8 @@
 
 namespace
 {
-// Save a self-contained tank/thruster graph, using attached runtime clones
-// rather than the configured prototypes that may still have initial fuel.
+// Export attached runtime clones rather than configured prototypes, whose fuel,
+// power, plate and sensor settings can differ from the running spacecraft.
 ObjectArray SaveObjectsWithAttachments(const ObjectArray &roots)
 {
    ObjectArray ordered;
@@ -83,10 +84,66 @@ ObjectArray SaveObjectsWithAttachments(const ObjectArray &roots)
       {
          for (auto *tank : object->GetRefObjectArray(Gmat::FUEL_TANK)) collect(tank);
          for (auto *thruster : object->GetRefObjectArray(Gmat::THRUSTER)) collect(thruster);
+         for (auto *power : object->GetRefObjectArray(Gmat::POWER_SYSTEM)) collect(power);
+         for (auto *plate : object->GetRefObjectArray(Gmat::PLATE)) collect(plate);
+         for (auto *hardware : object->GetRefObjectArray(Gmat::HARDWARE)) collect(hardware);
+      }
+      else if (object->IsOfType(Gmat::GROUND_STATION))
+      {
+         // Include authored station attachments without exporting its
+         // file-generated horizon-mask imager as a second resource.
+         for (const auto type : {Gmat::HARDWARE,Gmat::ERROR_MODEL})
+         {
+            const StringArray names=object->GetStringArrayParameter(
+                  type==Gmat::HARDWARE ? "AddHardware" : "ErrorModels");
+            for (const auto &name : names)
+            {
+               auto *attached=object->GetRefObject(type,name);
+               if (!attached)
+                  throw CommandException("Save cannot find station attachment \"" + name + "\" on " + object->GetName());
+               collect(attached);
+            }
+         }
       }
       else if (object->IsOfType(Gmat::THRUSTER))
       {
          for (auto *tank : object->GetRefObjectArray(Gmat::HARDWARE)) collect(tank);
+      }
+      else if (object->IsOfType(Gmat::HARDWARE))
+      {
+         // Use base interfaces so Save does not depend on optional hardware
+         // plugins. Follow device attachments, such as a primary antenna,
+         // modeled field of view or receiver error models, before the device.
+         const ObjectTypeArray types = object->GetRefObjectTypeArray();
+         for (const auto type : types)
+         {
+            if (type != Gmat::HARDWARE && type != Gmat::FIELD_OF_VIEW &&
+                  type != Gmat::ERROR_MODEL)
+               continue;
+            // Some implementations return shared scratch arrays. Recursion
+            // must not invalidate the names being traversed here.
+            StringArray names;
+            if (type == Gmat::HARDWARE && object->IsOfType(Gmat::RF_HARDWARE))
+            {
+               // RFHardware's reference-name getter also validates that an
+               // antenna was assigned. Save must be able to export an unused,
+               // partially configured RF resource without initializing it.
+               // A nonempty name still has to resolve to an attached object.
+               const std::string antenna = object->GetStringParameter("PrimaryAntenna");
+               if (!antenna.empty())
+                  names.push_back(antenna);
+            }
+            else
+               names = object->GetRefObjectNameArray(type);
+            for (const auto &attachedName : names)
+            {
+               GmatBase *attached = object->GetRefObject(type, attachedName);
+               if (!attached)
+                  throw CommandException("Save cannot find attachment \"" +
+                        attachedName + "\" on object \"" + name + "\"");
+               collect(attached);
+            }
+         }
       }
       else if (auto *prop = dynamic_cast<PropSetup*>(object))
       {
@@ -97,7 +154,7 @@ ObjectArray SaveObjectsWithAttachments(const ObjectArray &roots)
       active.erase(object);
       ordered.push_back(object);
    };
-   // Prefer spacecraft-owned runtime values if the same hardware is also
+   // Prefer spacecraft-owned runtime values if the same attachment is also
    // explicitly selected. Repeated references produce one definition.
    for (auto *object : roots)
       if (object && object->IsOfType(Gmat::SPACECRAFT)) collect(object);
@@ -118,12 +175,16 @@ const std::string
 Save::PARAMETER_TEXT[SaveParamCount - GmatCommandParamCount] = 
 {
    "ObjectNames",
+   "FilenameStyle",
+   "Filename",
 };
 
 const Gmat::ParameterType
 Save::PARAMETER_TYPE[SaveParamCount - GmatCommandParamCount] =
 {
    Gmat::STRINGARRAY_TYPE,   // "ObjectNames",
+   Gmat::ENUMERATION_TYPE,   // "FilenameStyle",
+   Gmat::FILENAME_TYPE,      // "Filename",
 };
 
 
@@ -141,6 +202,7 @@ Save::Save() :
    writeVerbose  (false)
 {
    fileArray = NULL;
+   parameterCount = SaveParamCount;
 }
 
 
@@ -178,6 +240,8 @@ Save::Save(const Save& sv) :
    objArray.clear();
    fileArray = NULL;
    fileNameArray.clear();
+   filenameStyle=sv.filenameStyle;
+   outputFilename=sv.outputFilename;
 }
 
 
@@ -205,6 +269,9 @@ Save& Save::operator=(const Save& sv)
    wasWritten    = sv.wasWritten;
    objNameArray  = sv.objNameArray;
    writeVerbose  = sv.writeVerbose;
+   filenameStyle = sv.filenameStyle;
+   outputFilename = sv.outputFilename;
+   combinedFile = false;
    objArray.clear();
    
    return *this;
@@ -278,8 +345,39 @@ std::string Save::GetParameterTypeString(const Integer id) const
  *
  */
 //------------------------------------------------------------------------------
+std::string Save::GetStringParameter(const Integer id) const
+{
+   if (id==FILENAME_STYLE) return filenameStyle;
+   if (id==OUTPUT_FILENAME) return outputFilename;
+   return GmatCommand::GetStringParameter(id);
+}
+
+std::string Save::GetStringParameter(const std::string &label) const
+{
+   return GetStringParameter(GetParameterID(label));
+}
+
+const StringArray& Save::GetPropertyEnumStrings(const Integer id) const
+{
+   static const StringArray styles={"Worksheet","LegacyData"};
+   if (id==FILENAME_STYLE) return styles;
+   return GmatCommand::GetPropertyEnumStrings(id);
+}
+
 bool Save::SetStringParameter(const Integer id, const std::string &value)
 {
+   if (id==FILENAME_STYLE)
+   {
+      if (value!="Worksheet" && value!="LegacyData")
+         throw CommandException("Save FilenameStyle must be Worksheet or LegacyData");
+      filenameStyle=value;return true;
+   }
+   if (id==OUTPUT_FILENAME)
+   {
+      for (unsigned char ch : value)
+         if (ch<32 || ch==127) throw CommandException("Save Filename cannot contain control characters");
+      outputFilename=value;return true;
+   }
    if (id == OBJECT_NAMES)
    {
       Integer sz = objNameArray.size();
@@ -465,107 +563,35 @@ bool Save::SetRefObjectName(const UnsignedInt type,
 //------------------------------------------------------------------------------
 bool Save::Initialize()
 {
-   bool retval = GmatCommand::Initialize();
-   
-   wasWritten = false;
-   appendData = false;
-   delete [] fileArray;
-   fileArray = NULL;
-   fileNameArray.clear();
-   objArray.clear();
-   
-   FileManager *fm = FileManager::Instance();
-   std::string outPath = fm->GetAbsPathname(FileManager::OUTPUT_PATH);
-   
-   Integer objCount = objNameArray.size();
-   
-   #ifdef DEBUG_SAVE_INIT
-   MessageInterface::ShowMessage
-      ("Save::Initialize() objCount=%d, outPath=%s\n", objCount, outPath.c_str());
-   #endif
-   
-   // throw an exception if no objects to save
-   if (objCount == 0)   
-      throw CommandException("Save command has no objects to save");
-   
-   #ifndef __USE_SINGLE_FILE__
-      for (Integer i=0; i<objCount; i++)
-         fileNameArray.push_back(outPath + objNameArray[i]);
-      fileArray = new std::ofstream[objCount];
-   #else
-      fileNameArray.push_back(outPath + objNameArray[0]);
-      fileArray = new std::ofstream[1];
-   #endif
-      
-   Integer index = 0;
-   
-   for (StringArray::iterator i = objNameArray.begin(); i != objNameArray.end(); ++i)
+   const bool retval=GmatCommand::Initialize();
+   wasWritten=false;appendData=false;
+   delete [] fileArray;fileArray=NULL;
+   fileNameArray.clear();objArray.clear();
+   if (objNameArray.empty()) throw CommandException("Save command has no objects to save");
+   for (const auto &name : objNameArray)
    {
-      #ifdef DEBUG_SAVE_INIT
-      MessageInterface::ShowMessage("   objName=%s\n", (*i).c_str());
-      #endif
-      
-      if (FindObject(*i) == NULL)
-      {
-         if (solarSys)
-         {
-            // Maybe it's a solar system object     
-            if ((*i) == "SolarSystem")
-            {
-               objArray.push_back(solarSys);
-               UpdateOutputFileNames(index, *i);
-               index++;
-               continue;
-            }
-            else if (solarSys)
-            {
-               // Maybe it's a solar system body object
-               GmatBase *body = solarSys->GetBody(*i);
-               if (body != NULL)
-               {
-                  objArray.push_back(body);
-                  UpdateOutputFileNames(index, *i);
-                  index++;
-                  continue;
-               }
-            }
-         }
-         
-         std::string errorString = "Save command cannot find object \"";
-         errorString += *i;
-         errorString += "\"";
-         throw CommandException(errorString);
-      }
-      else
-      {
-         objArray.push_back(FindObject(*i));
-      }
-      
-      UpdateOutputFileNames(index, *i);
-      index++;
+      auto *object=FindObject(name);
+      if (!object && solarSys)
+         object=name=="SolarSystem" ? static_cast<GmatBase *>(solarSys) : solarSys->GetBody(name);
+      if (!object) throw CommandException("Save command cannot find object \"" + name + "\"");
+      objArray.push_back(object);
    }
-   
-   #ifdef __USE_SINGLE_FILE__
-      if (objCount > 1)
-         fileNameArray[0] += ".data";
-      else if (index == objCount)
-         fileNameArray[0] += ("." + objArray[0]->GetTypeName() + ".data");
-      
-      #ifdef DEBUG_SAVE_INIT
-      MessageInterface::ShowMessage
-         ("Save::Initialize() fileNameArray[%d]=%s\n", 0,
-          fileNameArray[0].c_str());
-      #endif
-   #endif
-   
-   #ifdef DEBUG_SAVE_INIT
-   MessageInterface::ShowMessage
-      ("Save::Initialize() Saving %d object(s)\n", objArray.size());
-   #endif
-   
+   const std::string path=FileManager::Instance()->GetAbsPathname(FileManager::OUTPUT_PATH);
+   combinedFile=!outputFilename.empty() || filenameStyle=="LegacyData";
+   if (!outputFilename.empty())
+      fileNameArray.push_back(GmatFileUtil::IsPathRelative(outputFilename) ? path+outputFilename : outputFilename);
+   else if (combinedFile)
+   {
+      fileNameArray.push_back(path+objNameArray.front());
+      for (UnsignedInt i=1;i<objNameArray.size();++i) UpdateOutputFileNames(i,objNameArray[i]);
+      fileNameArray.front() += objArray.size()==1 ? "."+objArray.front()->GetTypeName()+".data" : ".data";
+   }
+   else
+      for (auto *object : objArray)
+         fileNameArray.push_back(path+object->GetName()+"."+object->GetTypeName());
+   fileArray=new std::ofstream[fileNameArray.size()];
    return retval;
 }
-
 
 //------------------------------------------------------------------------------
 // bool Execute()
@@ -591,33 +617,46 @@ bool Save::Execute()
    if (!objArray[0])
       throw CommandException("Object not set for Save command");
    
-   // Build and validate each export before opening/truncating any file.
-   std::vector<ObjectArray> exports;
-#ifdef __USE_SINGLE_FILE__
-   exports.push_back(SaveObjectsWithAttachments(objArray));
-#else
-   for (auto *object : objArray)
-      exports.push_back(SaveObjectsWithAttachments(ObjectArray(1, object)));
-#endif
+   // Build and render every export before opening/truncating any file. Native
+   // serializers can throw even after the attachment graph is valid.
+   std::vector<std::string> rendered;
+   {
+      // Save exports explicitly selected resources, including declarations in
+      // included/function files. Keep the request active for attachment-state
+      // comparisons and nested owned serializers, and restore it before I/O.
+      ObjectScriptExportScope exportScope;
+      std::vector<ObjectArray> exports;
+      if (combinedFile) exports.push_back(SaveObjectsWithAttachments(objArray));
+      else for (auto *object : objArray)
+         exports.push_back(SaveObjectsWithAttachments(ObjectArray(1, object)));
+
+      rendered.reserve(exports.size());
+      for (const auto &objects : exports)
+      {
+         std::ostringstream stream;
+         stream.precision(prec);
+         ObjectScriptExportScope::Prepare(stream);
+         for (auto *object : objects)
+            WriteObject(stream, object);
+         if (!stream)
+            throw CommandException("Save command failed preparing object output");
+         rendered.push_back(stream.str());
+      }
+   }
 
    try
    {
       for (UnsignedInt i = 0; i < fileNameArray.size(); ++i)
       {
          fileArray[i].clear();
-#ifdef __USE_SINGLE_FILE__
          const bool append = appendData || wasWritten;
-#else
-         const bool append = appendData && wasWritten;
-#endif
          fileArray[i].open(fileNameArray[i].c_str(), append ? std::ios::app : std::ios::out);
          if (!fileArray[i].is_open())
             throw CommandException("Save command cannot open output file \"" + fileNameArray[i] + "\"");
          fileArray[i].precision(prec);
       }
-      for (UnsignedInt i = 0; i < exports.size(); ++i)
-         for (auto *object : exports[i])
-            WriteObject(i, object);
+      for (UnsignedInt i = 0; i < rendered.size(); ++i)
+         fileArray[i] << rendered[i];
       for (UnsignedInt i = 0; i < fileNameArray.size(); ++i)
       {
          fileArray[i].flush();
@@ -698,6 +737,17 @@ const std::string& Save::GetGeneratingString(Gmat::WriteMode mode,
    generatingString = prefix + "Save";
    for (StringArray::iterator i = objNameArray.begin(); i != objNameArray.end(); ++i)
       generatingString += " " + *i;
+   if (filenameStyle!="Worksheet" || !outputFilename.empty())
+   {
+      generatingString += " {FilenameStyle = " + filenameStyle;
+      if (!outputFilename.empty())
+      {
+         std::string quoted;
+         for (char ch : outputFilename) {quoted+=ch;if (ch=='\'') quoted+='\'';}
+         generatingString += ", Filename = '" + quoted + "'";
+      }
+      generatingString += "}";
+   }
    generatingString += ";";
 
    // Then call the base class method
@@ -769,21 +819,7 @@ bool Save::RenameRefObject(const UnsignedInt type,
 //------------------------------------------------------------------------------
 void Save::UpdateOutputFileNames(Integer index, const std::string objName)
 {
-   // If saving multiple objects for single file,
-   // we want to append object names.
-   #ifdef __USE_SINGLE_FILE__
-      if (index > 0)
-         fileNameArray[0] = fileNameArray[0] + "_" + objName;
-      
-   #else
-      fileNameArray[index] += ("." + objArray[index]->GetTypeName() + ".data");
-      
-      #ifdef DEBUG_SAVE_OUTPUT
-      MessageInterface::ShowMessage
-         ("Save::UpdateOutputFileNames() fileNameArray[%d]=%s\n", index,
-          fileNameArray[index].c_str());
-      #endif
-   #endif
+   if (combinedFile && index>0) fileNameArray[0] += "_"+objName;
 }
 
 
@@ -794,7 +830,7 @@ void Save::UpdateOutputFileNames(Integer index, const std::string objName)
  * Writes out the script snippet that is needed to recreate an object.
  */
 //------------------------------------------------------------------------------
-void Save::WriteObject(UnsignedInt i, GmatBase *o)
+void Save::WriteObject(std::ostream &stream, GmatBase *o)
 {
    #ifdef DEBUG_SAVE_OUTPUT
       MessageInterface::ShowMessage("Save: %s <a %s> has %d parameters\n",
@@ -809,11 +845,7 @@ void Save::WriteObject(UnsignedInt i, GmatBase *o)
    auto *coordinate = dynamic_cast<CoordinateSystem*>(o);
    if (coordinate && coordinate->IsBuiltIn())
    {
-      #ifdef __USE_SINGLE_FILE__
-         fileArray[0] << "Create CoordinateSystem " << o->GetName() << ";\n";
-      #else
-         fileArray[i] << "Create CoordinateSystem " << o->GetName() << ";\n";
-      #endif
+      stream << "Create CoordinateSystem " << o->GetName() << ";\n";
       return;
    }
 
@@ -877,13 +909,39 @@ void Save::WriteObject(UnsignedInt i, GmatBase *o)
    o->SetShowPrefaceComment(false);
    o->SetShowInlineComment(false);
    
-   #ifdef __USE_SINGLE_FILE__
-   fileArray[0] << prefix << o->GetGeneratingString(Gmat::SCRIPTING, "", "");
-      fileArray[0] << std::endl;
-   #else
-      fileArray[i] << prefix << o->GetGeneratingString(Gmat::SCRIPTING, "", "");
-      fileArray[i] << std::endl;
-   #endif
+   // A runtime snapshot must include empty strings and zero variables too.
+   // Ordinary script serialization can omit defaults or retain cached text;
+   // an appended snapshot must explicitly replace the previous saved value.
+   const Gmat::WriteMode mode = (runtimeString || o->GetTypeName() == "Variable") ?
+      Gmat::SHOW_SCRIPT : Gmat::SCRIPTING;
+   stream << prefix << o->GetGeneratingString(mode, "", "");
+   // BodyName is normally supplied by the containing ForceModel. A named
+   // standalone contributor has no such owner when its Save file is rebuilt.
+   if (o->IsOfType(Gmat::PHYSICAL_MODEL) && !o->IsOfType(Gmat::ODE_MODEL) &&
+         o->IsParameterReadOnly(o->GetParameterID("BodyName")))
+   {
+      const auto body = o->GetStringParameter("BodyName");
+      if (!body.empty())
+         stream << objectname << ".BodyName = " << GmatScriptString::Quote(body) << ";\n";
+   }
+   if (o->GetTypeName() == "Array")
+   {
+      // The native Array serializer omits zero cells as defaults. Repeated
+      // Save output can already contain nonzero assignments for those cells,
+      // so the snapshot must explicitly reset them on reload.
+      const Rmatrix &matrix = o->GetRmatrixParameter("RmatValue");
+      const bool keyword = GmatGlobal::Instance()->IsWritingGmatKeyword();
+      for (Integer row = 0; row < matrix.GetNumRows(); ++row)
+         for (Integer col = 0; col < matrix.GetNumColumns(); ++col)
+            if (matrix(row, col) == 0.0)
+            {
+               if (keyword)
+                  stream << "GMAT ";
+               stream << o->GetName() << "(" << row + 1 << ", " << col + 1
+                      << ") = " << matrix(row, col) << ";\n";
+            }
+   }
+   stream << std::endl;
    
    // The guard restores the original comment settings.
       

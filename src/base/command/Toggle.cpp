@@ -641,3 +641,10 @@ void Toggle::BuildSubscriberList()
       MessageInterface::ShowMessage("Toggle::Initialize() leaving\n");
    #endif
 }
+
+void Toggle::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   subs.clear();
+   GmatCommand::RetireFunctionBindings(store);
+}

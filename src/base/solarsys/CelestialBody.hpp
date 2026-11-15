@@ -38,6 +38,7 @@
 #define CelestialBody_hpp
 
 #include <math.h>
+#include <cstdint>
 #include "gmatdefs.hpp"
 #include "GmatBase.hpp"
 #include "SpacePoint.hpp"
@@ -52,6 +53,7 @@
 #endif
 // forward reference for SolarSystem
 class SolarSystem;
+class SpiceOrbitKernelReader;
 
 // Add needed things to Gmat namespace
 namespace Gmat
@@ -59,23 +61,24 @@ namespace Gmat
    // possible sources of position and velocity data for celestial bodies
    enum PosVelSource
    {
-//      TWO_BODY_PROPAGATION = 0,	// 2012.01.24 - wcs - disallowed for now
       DE405 = 0,
       DE421,
       DE424,
 //      DE430,
-      SPICE,            // please leave this one at the end
+      SPICE,
+      GlobalPosVelSourceCount,  // Keep global DE/SPICE indices and arrays stable.
+      TWO_BODY_PROPAGATION = GlobalPosVelSourceCount,
       PosVelSourceCount
    };
 
    const std::string POS_VEL_SOURCE_STRINGS[PosVelSourceCount] =
    {
-//      "TwoBodyPropagation",
       "DE405",
       "DE421",
       "DE424",
 //      "DE430",
-      "SPICE"             // please leave this one at the end
+      "SPICE",
+      "TwoBodyPropagation"
    };
 
    // possible types of celestial bodies
@@ -152,7 +155,11 @@ namespace Gmat
 
 class GMAT_API CelestialBody : public SpacePoint
 {
+   friend class SolarSystemEphemerisTransaction;
+   friend class SpacePoint;
 public:
+   using SpacePoint::SetField;
+   void SetField(const Integer id, const StringArray &value) override;
    
    // additional constructor, specifying body type (as string) and name
    CelestialBody(std::string itsBodyType, std::string name);
@@ -228,6 +235,12 @@ public:
                                 GetRotationDataSource() const;
    virtual StringArray          GetRotationDataSourceList() const;
    virtual bool                 IsUserDefined() const;
+   // A copied default body's resource name is independent of its native
+   // ephemeris/orientation identity. Original bodies use their own name.
+   const std::string&           GetPhysicalBodyName() const;
+   bool                         UsesDefaultBodyModel() const;
+   // Call on the detached value before assigning its new resource name.
+   void                         MakeDefaultBodyCopy();
    virtual StringArray          GetEphemSourceList() const;
    virtual Rvector6             GetOrientationParameters() const;
    
@@ -240,6 +253,11 @@ public:
    virtual bool           SetFlattening(Real flat);
    virtual bool           SetSource(Gmat::PosVelSource pvSrc);
    virtual bool           SetSourceFile(PlanetaryEphem *src);
+   void SetSolarSystem(SolarSystem *ss) override;
+   void RemoveSpiceKernelName(const std::string &kernelType,
+                             const std::string &fileName) override;
+   // Own-state reset only; SolarSystem broadcasts to its actual members.
+   void InvalidateEphemerisState(bool resetSpice = false) noexcept;
    virtual bool           SetAllowSpice(const bool allow);
    virtual bool           SetUsePotentialFile(bool useIt);
    
@@ -276,14 +294,18 @@ public:
    virtual const Rvector6 GetMJ2000State(const A1Mjd &atTime);
    virtual const Rvector3 GetMJ2000Position(const A1Mjd &atTime);
    virtual const Rvector3 GetMJ2000Velocity(const A1Mjd &atTime);
+   const Rvector3 GetMJ2000Acceleration(const A1Mjd &atTime) override;
 
    virtual const Rvector6 GetMJ2000State(const Real atTime) { return GetMJ2000State(A1Mjd(atTime)); };
    virtual const Rvector3 GetMJ2000Position(const Real atTime) { return GetMJ2000Position(A1Mjd(atTime)); };
    virtual const Rvector3 GetMJ2000Velocity(const Real atTime) { return GetMJ2000Velocity(A1Mjd(atTime)); };
+   const Rvector3 GetMJ2000Acceleration(const Real atTime) override { return GetMJ2000Acceleration(A1Mjd(atTime)); }
 
    virtual const Rvector6 GetMJ2000State(const GmatTime &atTime);
+   const Rvector6 GetMJ2000PrecState(const GmatTime &atTime) override;
    virtual const Rvector3 GetMJ2000Position(const GmatTime &atTime);
    virtual const Rvector3 GetMJ2000Velocity(const GmatTime &atTime);
+   const Rvector3 GetMJ2000Acceleration(const GmatTime &atTime) override;
 
    // Inputs to SetOrientationParameters are in the order:
    // SpinAxisRAConstant
@@ -299,8 +321,8 @@ public:
    //   delta = SpinAxisDECConstant + SpinAxisDECRate * T
    //   W     = RotationConstant + RotationRate * d;
    //   Wdot  = RotationRate;
-   // where T = Julian Days from TCB epoch (NOTE: we use TT here)
-   //       d = Julian centuries from TCB epoch (NOTE: we use TT here)
+   // where d = elapsed TDB days (from OrientationEpoch for user-defined bodies)
+   //       T = d / 36525, the elapsed interval in Julian centuries
    //
    // @todo - we will need to use more terms for moons in the future
    //
@@ -336,6 +358,7 @@ public:
                                              const std::string &value); // const?
    virtual bool           SetStringParameter(const Integer id, const std::string &value,
                                              const Integer index);
+   bool IsParameterCommandModeSettable(const Integer id) const override;
    virtual bool           GetBooleanParameter(const Integer id) const; // const?
    virtual bool           SetBooleanParameter(const Integer id,
                                               const bool value); // const?
@@ -442,6 +465,7 @@ protected:
       VIEW_3D_MODEL_SCALE,
       // @todo - add Shape Models, etc.
       DSN_DIRECTORY,
+      PHYSICAL_BODY,
       CelestialBodyParamCount
    };
    static const std::string PARAMETER_TEXT[CelestialBodyParamCount - SpacePointParamCount];
@@ -490,6 +514,7 @@ protected:
    std::string              sourceFilename;
    /// the source file (DE)
    PlanetaryEphem           *theSourceFile;
+   std::string              physicalBodyName;
    #ifdef __USE_SPICE__
       /// the SPICE file (kernel) reader
       SpiceOrbitKernelReader      *kernelReader;
@@ -570,6 +595,10 @@ protected:
    /// last time that the state was calculated
    A1Mjd                  lastEphemTime;
    GmatTime               lastEphemTimeGT;
+   /// Raw ephemeris cache key, independent of public/frame query epochs.
+   bool                   ephemerisStateValid;
+   GmatTime               ephemerisStateEpoch;
+   std::uint64_t          ephemerisPoolRevision = 0;
 
    /// last state value calculated
    Rvector6               lastState;
@@ -643,6 +672,13 @@ protected:
    virtual Real     GetJulianDaysFromTDBEpoch(const A1Mjd &forTime) const;
    virtual Rvector6 ComputeTwoBody(const A1Mjd &forTime);
    virtual Rvector6 KeplersProblem(const A1Mjd &forTime);
+   Rvector6 ComputeTwoBody(const GmatTime &forTime);
+   Rvector6 PropagateTwoBody(const GmatTime &forTime) const;
+   void ValidateTwoBodyElements(const Rvector6 &elements) const;
+   void ValidateTwoBodyConfiguration();
+   void ResetTwoBodyCache();
+   void NotifyEphemerisChange(bool resetSpice = false) noexcept;
+   bool BindPhysicalBody(const std::string &name);
    virtual bool     NeedsOnlyMainSPK();
    
    bool IsRealParameterValid(Integer id, Real realval, bool throwError = true);

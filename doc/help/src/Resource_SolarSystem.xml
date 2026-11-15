@@ -34,6 +34,8 @@
     improve performance when medium fidelity modeling is acceptable for your
     application. This resource cannot be modified in the mission
     sequence.</para>
+    <para>An unsuccessful ephemeris-source or filename assignment retains the
+    previous native source, file settings and body bindings.</para>
 
     <note>
       <para>As of release R2015a, GMAT uses two separate solar system
@@ -199,7 +201,13 @@
             time t = 1210, the same ephemeris will be returned for the second
             call. This option is for high speed, low fidelity modeling or for
             use when modeling orbits far from third body perturbation
-            sources. </para> <variablelist>
+            sources. </para>
+            <para>Native source, reader, reference and time-setting changes
+            invalidate cached body ephemerides, including dependent analytic
+            bodies. The next query recomputes the state even at the previous
+            epoch. The interval applies only to a successfully calculated raw
+            ephemeris state; a zero state relative to the body's own origin is
+            not reused as its raw ephemeris state.</para> <variablelist>
                 <varlistentry>
                   <term>Data Type</term>
 

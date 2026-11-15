@@ -40,11 +40,15 @@
 
 class Subscriber;
 
+struct SolverCommandResources;
+
 class GMAT_API SolverBranchCommand : public BranchCommand
 {
 public:
         SolverBranchCommand(const std::string &typeStr);
         virtual ~SolverBranchCommand();
+   void RetireFunctionBindings(ObjectMap *store) override;
+   ObjectArray GetCommandOwnedObjects() const override;
    SolverBranchCommand(const SolverBranchCommand& sbc);
 
    SolverBranchCommand&    operator=(const SolverBranchCommand& sbc);
@@ -111,6 +115,10 @@ public:
          Integer updatedParameterId);
 
 protected:
+   std::shared_ptr<SolverCommandResources> solverResources;
+   void PrepareSolverResources();
+   Solver *PrepareLocalSolver(GmatBase *source);
+
    class PlotExecutionScope
    {
    public:
@@ -168,6 +176,21 @@ protected:
    virtual void        FreeLoopData();
    
    virtual void        ApplySolution();
+
+   /// Structural descendants belonging to this solver, excluding the contents
+   /// of nested solver sequences. Does not query execution-state GetNext().
+   std::vector<GmatCommand*> GetCommandsInSolverScope();
+
+   enum VaryRegistrationReset
+   {
+      VARY_RESET_NONE,
+      VARY_RESET_BEFORE,
+      VARY_RESET_AFTER
+   };
+   /// Register a fixed solver problem through ordinary control-flow branches.
+   /// Direct nested solvers retain the owner's native initialization dispatch.
+   void RegisterSolverControlData(const StringArray &controlTypes,
+         VaryRegistrationReset reset = VARY_RESET_NONE);
    
    virtual void        GetActiveSubscribers();
    virtual void        PenUpSubscribers();
@@ -176,6 +199,7 @@ protected:
    virtual void        LightenSubscribers(Integer denominator = 1);
    virtual void        SetSubscriberBreakpoint();
    virtual void        ApplySubscriberBreakpoint(Integer bp = -1);
+   void UpdateInitialGuessSubscriberBreakpoint(bool clear);
    virtual void        PrepareToPublish(bool publishAll = true);
    virtual void        PublishData();
 

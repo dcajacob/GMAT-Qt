@@ -30,6 +30,8 @@
 //------------------------------------------------------------------------------
 
 #include "NRLMsise00Atmosphere.hpp"
+#include <typeinfo>
+#include "AtmosphereException.hpp"
 #include "MessageInterface.hpp"
 #include "TimeSystemConverter.hpp"
 
@@ -101,7 +103,7 @@ NRLMsise00Atmosphere::~NRLMsise00Atmosphere()
 //------------------------------------------------------------------------------
 NRLMsise00Atmosphere::NRLMsise00Atmosphere(const NRLMsise00Atmosphere& msise) :
 AtmosphereModel     (msise),
-fileData            (false),  // is this correct?
+fileData            (msise.fileData),
 fluxfilename        (msise.fluxfilename),
 mass                (msise.mass)
 {
@@ -133,7 +135,7 @@ NRLMsise00Atmosphere& NRLMsise00Atmosphere::operator=(const NRLMsise00Atmosphere
 
    AtmosphereModel::operator=(msise);
 
-   fileData     = false;  // is this correct?
+   fileData     = msise.fileData;
    fluxfilename = msise.fluxfilename;
    mass         = msise.mass;
 
@@ -378,10 +380,13 @@ GmatBase* NRLMsise00Atmosphere::Clone() const
  * @param orig The original that is being copied.
  */
 //---------------------------------------------------------------------------
-void NRLMsise00Atmosphere::Copy(const GmatBase* orig)
+void NRLMsise00Atmosphere::Copy(const GmatBase* original)
 {
-//	MessageInterface::PopupMessage(Gmat::WARNING_, "Enter and Leave Copy()");
-   operator=(*((NRLMsise00Atmosphere *)(orig)));
+   const auto *source = dynamic_cast<const NRLMsise00Atmosphere*>(original);
+   if (!source || typeid(*source) != typeid(NRLMsise00Atmosphere) ||
+       typeid(*this) != typeid(NRLMsise00Atmosphere))
+      throw AtmosphereException("Cannot copy an incompatible NRLMSISE00 atmosphere.");
+   operator=(*source);
 }
 
 //------------------------------------------------------------------------------

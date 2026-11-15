@@ -32,6 +32,10 @@
 
 #include "Interpolator.hpp"
 #include "MessageInterface.hpp"
+#include <algorithm>
+#include <memory>
+#include <typeinfo>
+#include <vector>
 
 
 //------------------------------------------------------------------------------
@@ -117,11 +121,8 @@ Interpolator::Interpolator(const Interpolator &i) :
       dependent = NULL;
    }
 
-   if (rangeCalculated)
-   {
-      range[0] = i.range[0];
-      range[1] = i.range[1];
-   }
+   range[0] = i.range[0];
+   range[1] = i.range[1];
 }
 
 
@@ -160,11 +161,8 @@ Interpolator& Interpolator::operator=(const Interpolator &i)
       CopyArrays(i);
    
    rangeCalculated = i.rangeCalculated;
-   if (rangeCalculated)
-   {
-      range[0] = i.range[0];
-      range[1] = i.range[1];
-   }
+   range[0] = i.range[0];
+   range[1] = i.range[1];
    
    dataIncreases      = i.dataIncreases;
    inputDirection     = i.inputDirection;
@@ -174,6 +172,48 @@ Interpolator& Interpolator::operator=(const Interpolator &i)
    instanceName       = i.instanceName;
    
    return *this;
+}
+
+void Interpolator::ValidateTableRestoration(const Interpolator &source) const
+{
+   if (typeid(*this) != typeid(source) || dimension != source.dimension ||
+       bufferSize != source.bufferSize || dimension < 0 || bufferSize < 1)
+      throw InterpolatorException("Prepare interpolation dimensions before restoring a changed table.");
+   const auto check = [](const Interpolator &value)
+   {
+      if ((value.independent == nullptr) != (value.dependent == nullptr) ||
+          value.pointCount < 0 || value.latestPoint < -1 || value.latestPoint >= value.bufferSize ||
+          (value.pointCount > 0 && (!value.independent || value.latestPoint < 0)))
+         throw InterpolatorException("Inconsistent captured interpolation table storage.");
+      if (value.dependent)
+         for (Integer row = 0; row < value.bufferSize; ++row)
+            if (!value.dependent[row])
+               throw InterpolatorException("Incomplete interpolation table row storage.");
+   };
+   check(*this); check(source);
+   if (source.independent && !independent)
+      throw InterpolatorException("Prepare interpolation table storage before restoration.");
+}
+
+void Interpolator::RestoreTableValues(const Interpolator &source)
+{
+   ValidateTableRestoration(source);
+   if (independent)
+      for (Integer row = 0; row < bufferSize; ++row)
+      {
+         independent[row] = source.independent ? source.independent[row] : 0.0;
+         if (source.dependent) std::copy_n(source.dependent[row], dimension, dependent[row]);
+         else std::fill_n(dependent[row], dimension, 0.0);
+      }
+   requiredPoints = source.requiredPoints;
+   pointCount = source.pointCount; latestPoint = source.latestPoint;
+   previousX = source.previousX;
+   range[0] = source.range[0]; range[1] = source.range[1];
+   rangeCalculated = source.rangeCalculated;
+   dataIncreases = source.dataIncreases; inputDirection = source.inputDirection;
+   forceInterpolation = source.forceInterpolation;
+   allowExtrapolation = source.allowExtrapolation;
+   resetToBaseOrder = source.resetToBaseOrder;
 }
 
 
@@ -416,14 +456,18 @@ bool Interpolator::GetRange(Real &lower, Real &upper)
 //------------------------------------------------------------------------------
 void Interpolator::AllocateArrays()
 {
-   Integer i;
-
+   auto nextIndependent = std::make_unique<Real[]>(bufferSize);
+   auto nextDependent = std::make_unique<Real*[]>(bufferSize);
+   std::vector<std::unique_ptr<Real[]>> rows;
+   rows.reserve(bufferSize);
+   for (Integer i = 0; i < bufferSize; ++i)
+   {
+      rows.push_back(std::make_unique<Real[]>(dimension));
+      nextDependent[i] = rows.back().get();
+   }
    CleanupArrays();
-    
-   independent = new Real[bufferSize];
-   dependent = new Real*[bufferSize];
-   for (i = 0; i < bufferSize; ++i)
-      dependent[i] = new Real[dimension];
+   independent = nextIndependent.release(); dependent = nextDependent.release();
+   for (auto &row : rows) row.release();
    latestPoint = -1;
 }
 

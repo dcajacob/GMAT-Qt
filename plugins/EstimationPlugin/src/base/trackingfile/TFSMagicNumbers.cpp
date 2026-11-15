@@ -346,7 +346,7 @@ void TFSMagicNumbers::SetType(ObservationData* forData)
             if (forData->dataMap[i] == "TRANSMIT_BAND")
                forData->uplinkBand = (Integer)forData->value[i];
             if (forData->dataMap[i] == "RANGE_MODULUS")
-               forData->rangeModulo = (Integer)forData->value[i];
+               forData->rangeModulo = forData->value[i];
             if ((forData->dataMap[i] == "TRANSMIT_FREQ") ||
                 (forData->dataMap[i] == "TRANSMIT_FREQ_1"))
             {
@@ -354,12 +354,12 @@ void TFSMagicNumbers::SetType(ObservationData* forData)
                if (forData->value[i] > 1.0e6)
                {
                   //forData->uplinkFreq = (Integer)forData->value[i];                 // ObservationData.uplinkFreq is no longer in use
-                  forData->uplinkFreqAtRecei = (Integer)forData->value[i];            // use ObservationData.uplinkFreqAtRecei instead
+                  forData->uplinkFreqAtRecei = forData->value[i];            // use ObservationData.uplinkFreqAtRecei instead
                }
                else
                {
                   //forData->uplinkFreq = (Integer)forData->value[i] * 1.0e6;         // ObservationData.uplinkFreq is no longer in use
-                  forData->uplinkFreqAtRecei = (Integer)forData->value[i] * 1.0e6;    // use ObservationData.uplinkFreqAtRecei instead
+                  forData->uplinkFreqAtRecei = forData->value[i] * 1.0e6;    // use ObservationData.uplinkFreqAtRecei instead
                }
             }
          }
@@ -384,7 +384,7 @@ void TFSMagicNumbers::SetType(ObservationData* forData)
             }
 
             if (forData->dataMap[i] == "INTEGRATION_INTERVAL")
-               forData->dopplerCountInterval = (Integer)forData->value[i];
+               forData->dopplerCountInterval = forData->value[i];
 
 //            // CCSDS recommends using this for the transmit rather tahn a ramp
 //            // file, but GMAT doesn't currently work that way

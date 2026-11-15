@@ -30,11 +30,31 @@
 //------------------------------------------------------------------------------
 
 
+#include <memory>
+#include <algorithm>
 #include "FiniteBurn.hpp"
 #include "BurnException.hpp"
 #include "StringUtil.hpp"          // for ToString()
 #include "MessageInterface.hpp"
 #include "ElectricThruster.hpp"  // for Min/MaxUsablePower
+
+namespace
+{
+Thruster *FindBurnThruster(const ObjectArray &available, const std::string &name,
+      const std::string &owner)
+{
+   Thruster *thruster = NULL;
+   for (GmatBase *candidate : available)
+      if (candidate && candidate->GetName() == name)
+      {
+         auto *selected = dynamic_cast<Thruster*>(candidate);
+         if (!selected || (thruster && thruster != selected))
+            throw BurnException("Ambiguous or incompatible thruster " + name + " on spacecraft " + owner);
+         thruster = selected;
+      }
+   return thruster;
+}
+}
 
 //#define DEBUG_RENAME
 //#define DEBUG_BURN_ORIGIN
@@ -162,6 +182,7 @@ FiniteBurn& FiniteBurn::operator=(const FiniteBurn& fb)
    Burn::operator=(fb);
    
    thrusterNames          = fb.thrusterNames;
+   thrusterMap.clear();
    throttleLogicAlgorithm = fb.throttleLogicAlgorithm;
    isElectricBurn         = fb.isElectricBurn;
    burnEpoch              = -1;
@@ -274,6 +295,10 @@ bool FiniteBurn::Fire(Real *burnData, Real epoch, bool /*backwards*/)
    if (!spacecraft)
       throw BurnException("Maneuver initial state undefined (No spacecraft?)");
    
+   // The spacecraft root can be unchanged while a native Copy replaces its
+   // thrusters/tanks. Refresh type and references before electric throttling.
+   RefreshThrusterBindings(true);
+
    // Accumulate the individual accelerations from the thrusters
    Real dm = 0.0, tMass, tOverM, *dir, norm;
    deltaV[0] = deltaV[1] = deltaV[2] = 0.0;
@@ -317,7 +342,7 @@ bool FiniteBurn::Fire(Real *burnData, Real epoch, bool /*backwards*/)
              spacecraft, spacecraft->GetName().c_str());
       #endif
       
-      current = (Thruster *)spacecraft->GetRefObject(Gmat::THRUSTER, *i);
+      current = dynamic_cast<Thruster*>(spacecraft->GetRefObject(Gmat::THRUSTER, *i));
       if (!current)
          throw BurnException("FiniteBurn::Fire requires thruster named \"" +
             (*i) + "\" on spacecraft " + spacecraft->GetName());
@@ -425,6 +450,36 @@ bool FiniteBurn::Fire(Real *burnData, Real epoch, bool /*backwards*/)
 }
 
 //------------------------------------------------------------------------------
+// EvaluateForSpacecraft
+//------------------------------------------------------------------------------
+bool FiniteBurn::EvaluateForSpacecraft(Spacecraft *sample, Real *burnData, Real epoch) const
+{
+   if (!sample || !burnData)
+      throw BurnException("FiniteBurn sampling requires a scratch spacecraft and output buffer.");
+   std::unique_ptr<GmatBase> value(Clone());
+   if (value.get() == this)
+   {
+      value.release();
+      throw BurnException("FiniteBurn sampling Clone returned its source.");
+   }
+   auto *evaluation = dynamic_cast<FiniteBurn*>(value.get());
+   if (!evaluation || evaluation->GetTypeName() != GetTypeName())
+      throw BurnException("Incompatible FiniteBurn sampling clone.");
+
+   // The live burn keeps its target, reported vectors, last-fire markers and
+   // derivative overrides. Initialize only the private evaluation's binding.
+   evaluation->spacecraft = sample;
+   evaluation->thrusterMap.clear();
+   evaluation->isElectricBurn = false;
+   evaluation->isInitialized = false;
+   evaluation->burnEpoch = -1.0;
+   evaluation->burnState = NULL;
+   evaluation->burnMass = -1.0;
+   evaluation->burnOrigin = NULL;
+   return evaluation->Fire(burnData, epoch);
+}
+
+//------------------------------------------------------------------------------
 // bool IsFiring()
 //------------------------------------------------------------------------------
 /**
@@ -460,7 +515,7 @@ bool FiniteBurn::IsFiring()
           spacecraft, spacecraft->GetName().c_str());
       #endif
       
-      current = (Thruster *)spacecraft->GetRefObject(Gmat::THRUSTER, *i);
+      current = dynamic_cast<Thruster*>(spacecraft->GetRefObject(Gmat::THRUSTER, *i));
       if (!current)
          throw BurnException("FiniteBurn::Fire requires thruster named \"" +
             (*i) + "\" on spacecraft " + spacecraft->GetName());
@@ -781,12 +836,12 @@ bool FiniteBurn::SetStringParameter(const Integer id, const std::string &value,
    if (id == THRUSTER)
    {
       count = thrusterNames.size();
-      if (index > count)
+      if (index < 0 || index > count)
          throw BurnException("Attempting to write thruster " + value +
                   " past the allowed range for FiniteBurn " + instanceName);
       if (find(thrusterNames.begin(), thrusterNames.end(), value) != thrusterNames.end())
       {
-         if (thrusterNames[index] == value)
+         if (index < count && thrusterNames[index] == value)
             return true;
          throw BurnException("Thruster " + value +
                   " already set for FiniteBurn " + instanceName);
@@ -794,7 +849,11 @@ bool FiniteBurn::SetStringParameter(const Integer id, const std::string &value,
       if (index == count)
          thrusterNames.push_back(value);
       else
+      {
+         const std::string previous = thrusterNames[index];
          thrusterNames[index] = value;
+         thrusterMap.erase(previous);
+      }
 
       isInitialized = false;
       return true;
@@ -968,12 +1027,20 @@ GmatBase* FiniteBurn::GetRefObject(const UnsignedInt type,
 {
    if (type == Gmat::THRUSTER)
    {
-      if (thrusterMap.find(name) != thrusterMap.end())
-         return thrusterMap[name];
-      else
-         return NULL;
+      if (std::find(thrusterNames.begin(), thrusterNames.end(), name) == thrusterNames.end()) return NULL;
+      // A reporting/reference lookup is passive: no Fire, throttle evaluation
+      // or tank/name mutation. Prefer the current spacecraft-owned component.
+      if (spacecraft)
+      {
+         const ObjectArray available = spacecraft->GetRefObjectArray(Gmat::THRUSTER);
+         Thruster *current = FindBurnThruster(available, name, spacecraft->GetName());
+         if (current) thrusterMap[name] = current;
+         else thrusterMap.erase(name);
+         return current;
+      }
+      const auto found = thrusterMap.find(name);
+      return found == thrusterMap.end() ? NULL : found->second;
    }
-   
    return Burn::GetRefObject(type, name);
 }
 
@@ -991,12 +1058,15 @@ bool FiniteBurn::SetRefObject(GmatBase *obj, const UnsignedInt type,
 {
    if (type == Gmat::THRUSTER)
    {
-      if (thrusterMap.find(name) != thrusterMap.end())
-         thrusterMap[name] = obj;
-      
+      auto *thruster = dynamic_cast<Thruster*>(obj);
+      if (!thruster) return false;
+      const std::string key = name.empty() ? thruster->GetName() : name;
+      if (std::find(thrusterNames.begin(), thrusterNames.end(), key) == thrusterNames.end()) return false;
+      if (spacecraft) return GetRefObject(Gmat::THRUSTER, key) != NULL;
+      thrusterMap[key] = thruster; // unbound definition/prototype reference
       return true;
    }
-   
+
    return Burn::SetRefObject(obj, type, name);
 }
 
@@ -1012,7 +1082,9 @@ bool FiniteBurn::SetRefObject(GmatBase *obj, const UnsignedInt type,
 //------------------------------------------------------------------------------
 GmatBase* FiniteBurn::Clone() const
 {
-   return (new FiniteBurn(*this));
+   std::unique_ptr<FiniteBurn> value(new FiniteBurn(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -1027,7 +1099,12 @@ GmatBase* FiniteBurn::Clone() const
 //---------------------------------------------------------------------------
 void FiniteBurn::Copy(const GmatBase* orig)
 {
-   operator=(*((FiniteBurn *)(orig)));
+   const auto *source = dynamic_cast<const FiniteBurn*>(orig);
+   if (!source) throw BurnException("Incompatible FiniteBurn value copy.");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -1070,22 +1147,10 @@ bool FiniteBurn::DepletesMass()
 {
    bool retval = false;
 
-   ObjectArray thrusterArray = spacecraft->GetRefObjectArray(Gmat::THRUSTER);
-
-   // Check each the thruster
-   for (ObjectArray::iterator th = thrusterArray.begin();
-        th != thrusterArray.end(); ++th)
-   {
-      if ((*th)->GetBooleanParameter("DecrementMass"))
-      {
-         retval = true;
-         #ifdef DEBUG_MASS_FLOW
-            MessageInterface::ShowMessage("Thruster %s decrements mass\n",
-                  (*th)->GetName().c_str());
-         #endif
-         // Save the mass depleting thruster pointer(s) for later access?
-      }
-   }
+   if (!spacecraft) return false;
+   RefreshThrusterBindings(false);
+   for (const auto &entry : thrusterMap)
+      if (entry.second->GetBooleanParameter("DecrementMass")) retval = true;
 
    return retval;
 }
@@ -1136,6 +1201,9 @@ bool FiniteBurn::TakeAction(const std::string& action,
    if (action == "ClearThrusterList")
    {
       thrusterNames.clear();
+      thrusterMap.clear();
+      isElectricBurn = false;
+      isInitialized = false;
       retval = true;
    }
    else if (action == "SetData")
@@ -1195,87 +1263,37 @@ bool FiniteBurn::Initialize()
 //------------------------------------------------------------------------------
 bool FiniteBurn::SetThrustersFromSpacecraft()
 {
-   #ifdef DEBUG_FINITEBURN_SET
-   MessageInterface::ShowMessage
-      ("FiniteBurn::SetThrustersFromSpacecraft() entered, spacecraft=<%p>'%s'\n",
-       spacecraft, spacecraft ? spacecraft->GetName().c_str() : "NULL");
-   MessageInterface::ShowMessage("   thrusterNames.size()=%d\n", thrusterNames.size());
-   #endif
-   
-   // Get thrusters and tanks associated to spacecraft
-   ObjectArray thrusterArray = spacecraft->GetRefObjectArray(Gmat::THRUSTER);
-   ObjectArray tankArray     = spacecraft->GetRefObjectArray(Gmat::FUEL_TANK);
-   
-   isElectricBurn          = false;  // initially assume Chemical burn
-   bool thrusterTypeSet    = false;
-   bool isElectricThruster = false;
+   return RefreshThrusterBindings(true);
+}
 
-   // Look up the thruster(s)
-   for (ObjectArray::iterator th = thrusterArray.begin(); 
-        th != thrusterArray.end(); ++th)
+bool FiniteBurn::RefreshThrusterBindings(bool bindTanks)
+{
+   if (!spacecraft) throw BurnException("Cannot bind FiniteBurn " + instanceName + " without a spacecraft.");
+   const ObjectArray available = spacecraft->GetRefObjectArray(Gmat::THRUSTER);
+   ObjectMap current;
+   bool electric = false, typeSet = false;
+   for (const std::string &name : thrusterNames)
    {
-      for (StringArray::iterator thName = thrusterNames.begin();
-           thName != thrusterNames.end(); ++thName)
-      {
-         // Only act on thrusters assigned to this burn
-         if ((*th)->GetName() == *thName)
-         {
-            bool isElectricThruster = (*th)->IsOfType("ElectricThruster");
-            if (!thrusterTypeSet)
-            {
-               if (isElectricThruster)
-                  isElectricBurn = true;
-               thrusterTypeSet = true;
-            }
-            else
-            {
-               if ((isElectricBurn  && !isElectricThruster) ||
-                   (!isElectricBurn &&  isElectricThruster))
-               {
-                  std::string errmsg = "Finite Burn ";
-                  errmsg += instanceName + " has a mix of Chemical and ";
-                  errmsg += "Electric thrusters.  Thrusters specified for a ";
-                  errmsg += "finite burn must all be of the same type.\n";
-                  throw BurnException(errmsg);
-               }
-            }
-            Integer paramId = (*th)->GetParameterID("Tank");
-            StringArray tankNames = (*th)->GetStringArrayParameter(paramId);
-            // Setup the tankNames
-            (*th)->TakeAction("ClearTankNames");
-            // Loop through each tank for the burn
-            for (StringArray::iterator tankName = tankNames.begin();
-                 tankName != tankNames.end(); ++tankName)
-            {
-               ObjectArray::iterator tnk = tankArray.begin();
-               // Find the tank on the spacecraft
-               while (tnk != tankArray.end())
-               {
-                  if ((*tnk)->GetName() == *tankName)
-                  {
-                     // Make the assignment
-                     (*th)->SetStringParameter("Tank", *tankName);
-                     (*th)->SetRefObject(*tnk, (*tnk)->GetType(), 
-                                         (*tnk)->GetName());
-                     break;
-                  }
-                  // Not found; keep looking 
-                  ++tnk;
-                  if (tnk == tankArray.end())
-                     throw BurnException
-                        ("FiniteBurn::Initialize() cannot find tank " +
-                         (*tankName) + " for burn " + instanceName);
-               }
-            }
-         }
-      }
+      Thruster *thruster = FindBurnThruster(available, name, spacecraft->GetName());
+      if (!thruster)
+         throw BurnException("FiniteBurn " + instanceName + " requires thruster " + name + " on spacecraft " + spacecraft->GetName());
+      const bool isElectric = dynamic_cast<ElectricThruster*>(thruster) != NULL;
+      if (typeSet && electric != isElectric)
+         throw BurnException("Finite Burn " + instanceName + " has a mix of Chemical and Electric thrusters. "
+               "Thrusters specified for a finite burn must all be of the same type.\n");
+      electric = isElectric;
+      typeSet = true;
+      if (!current.emplace(name, thruster).second)
+         throw BurnException("Repeated thruster " + name + " in FiniteBurn " + instanceName);
    }
-   
-   #ifdef DEBUG_FINITEBURN_SET
-   MessageInterface::ShowMessage
-      ("FiniteBurn::SetThrustersFromSpacecraft() returning true\n");
-   #endif
-   
+   if (bindTanks)
+   {
+      const ObjectArray tanks = spacecraft->GetRefObjectArray(Gmat::FUEL_TANK);
+      for (const auto &entry : current)
+         static_cast<Thruster*>(entry.second)->BindTankReferences(tanks);
+   }
+   thrusterMap.swap(current);
+   isElectricBurn = electric;
    return true;
 }
 
@@ -1313,7 +1331,7 @@ bool FiniteBurn::ComputeThrottleLogic(Real powerAvailable)
          #endif
 
          // Check to make sure there is not an error accessing this thruster
-         current = (ElectricThruster *)spacecraft->GetRefObject(Gmat::THRUSTER, thrusterNames.at(ii));
+         current = dynamic_cast<ElectricThruster*>(spacecraft->GetRefObject(Gmat::THRUSTER, thrusterNames.at(ii)));
          if (!current)
             throw BurnException("FiniteBurn::Fire requires thruster named \"" +
                   thrusterNames.at(ii) + "\" on spacecraft " + spacecraft->GetName());
@@ -1383,4 +1401,34 @@ bool FiniteBurn::ComputeThrottleLogic(Real powerAvailable)
    }
 
    return true;
+}
+
+void FiniteBurn::RebindClonedReferences(const Burn &source, SolarSystem *system,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *burn = dynamic_cast<const FiniteBurn*>(&source);
+   if (!burn) throw BurnException("Incompatible retained FiniteBurn value.");
+   ObjectMap prototypes;
+   if (!burn->spacecraft)
+      for (const auto &entry : burn->thrusterMap)
+      {
+         if (std::find(burn->thrusterNames.begin(), burn->thrusterNames.end(), entry.first) == burn->thrusterNames.end()) continue;
+         auto *thruster = dynamic_cast<Thruster*>(resolve(entry.second));
+         if (!thruster) throw BurnException("Cannot retain FiniteBurn thruster " + entry.first);
+         prototypes.emplace(entry.first, thruster);
+      }
+   Burn::RebindClonedReferences(source, system, resolve);
+   thrusterMap.swap(prototypes);
+   isElectricBurn = false;
+   // Native burn copies retire integrator-owned override pointers and caches.
+   burnEpoch = -1;
+   burnState = nullptr;
+   burnMass = -1.0;
+   burnOrigin = nullptr;
+}
+
+bool FiniteBurn::InitializeClonedResource()
+{
+   if (!Burn::InitializeClonedResource()) return false;
+   return !isInitialized || RefreshThrusterBindings(true);
 }

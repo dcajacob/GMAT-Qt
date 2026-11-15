@@ -162,6 +162,19 @@ TimeData& TimeData::operator= (const TimeData &right)
 }
 
 
+// Map cached identities without evaluating or initializing a Parameter.
+void TimeData::RebindClonedParameterCaches(const RefData &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto &data = ClonedParameterData<TimeData>(source);
+   auto *bound_mSpacecraft = BindClonedParameterReference(data.mSpacecraft, resolve);
+   auto *bound_mSpacePoint = BindClonedParameterReference(data.mSpacePoint, resolve);
+   mSpacecraft = bound_mSpacecraft;
+   mSpacePoint = bound_mSpacePoint;
+}
+
+
+
 //------------------------------------------------------------------------------
 // ~TimeData()
 //------------------------------------------------------------------------------

@@ -166,7 +166,7 @@ GmatCoordinate::ParameterUsage TrueOfDateAxes::UsesItrfFile() const
 //---------------------------------------------------------------------------
 GmatCoordinate::ParameterUsage TrueOfDateAxes::UsesNutationUpdateInterval() const
 {
-   if (originName == GmatSolarSystemDefaults::EARTH_NAME)
+   if (GetOriginPhysicalName() == GmatSolarSystemDefaults::EARTH_NAME)
       return GmatCoordinate::REQUIRED;
    return DynamicAxes::UsesNutationUpdateInterval();
 }

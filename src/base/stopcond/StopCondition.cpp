@@ -30,6 +30,20 @@
 //------------------------------------------------------------------------------
 
 #include "StopCondition.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration stopConditionValueProvider({
+   StopCondition::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const StopCondition*>(object) != nullptr; },
+   [](const GmatBase *object) { return dynamic_cast<const StopCondition*>(object)->GetFunctionValueOwnedObjectsImpl(); },
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<StopCondition*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "GmatBaseException.hpp"
 #include <typeinfo>
 #include "StopConditionException.hpp"
@@ -42,6 +56,88 @@
 #include "MessageInterface.hpp"
 #include "GmatConstants.hpp"
 #include <stdlib.h>                    // for atof
+#include <cmath>
+#include <map>
+
+namespace
+{
+std::unique_ptr<Interpolator> CopyStopInterpolator(Interpolator *source,
+      Interpolator *previous = NULL)
+{
+   if (!source) return {};
+   std::unique_ptr<Interpolator> value(source->Clone());
+   if (value.get() == source || (previous && value.get() == previous))
+   {
+      value.release();
+      throw StopConditionException("Interpolator Clone returned an existing object.\n");
+   }
+   if (!value || typeid(*value) != typeid(*source))
+      throw StopConditionException("Cannot copy stopping interpolator with its native type.\n");
+   return value;
+}
+
+std::unique_ptr<Parameter> CopyStopParameter(Parameter *source, Parameter *peer,
+      Parameter *previous, Parameter *previousPeer)
+{
+   if (!source) return {};
+   std::unique_ptr<GmatBase> value(source->Clone());
+   if (value.get() == source || value.get() == peer || value.get() == previous || value.get() == previousPeer)
+   {
+      value.release();
+      throw StopConditionException("Parameter Clone returned an existing stopping component.\n");
+   }
+   auto *parameter = dynamic_cast<Parameter*>(value.get());
+   if (!parameter || typeid(*parameter) != typeid(*source))
+      throw StopConditionException("Cannot clone stopping parameter with its native type.\n");
+   value.release();
+   return std::unique_ptr<Parameter>(parameter);
+}
+
+struct StopWrapperCopies
+{
+   std::vector<std::unique_ptr<ElementWrapper>> values;
+   std::map<const ElementWrapper*, ElementWrapper*> copies;
+   ElementWrapper *lhs = NULL, *rhs = NULL;
+
+   ElementWrapper *Add(const ElementWrapper *source)
+   {
+      if (!source) return NULL;
+      const auto existing = copies.find(source);
+      if (existing != copies.end()) return existing->second;
+      auto value = ElementWrapper::CloneValue(source);
+      for (const auto &item : values)
+         if (item.get() == value.get())
+         {
+            value.release();
+            throw StopConditionException("Expression Clone reused a stopping wrapper.\n");
+         }
+      ElementWrapper *result = value.get();
+      values.push_back(std::move(value));
+      copies.emplace(source, result);
+      return result;
+   }
+};
+
+StopWrapperCopies CopyStopWrappers(
+      const std::vector<std::unique_ptr<ElementWrapper>> &owned,
+      ElementWrapper *lhs, ElementWrapper *rhs, bool captureBorrowed)
+{
+   StopWrapperCopies result;
+   // An older owned wrapper can still supply a bound stop/goal Parameter after
+   // a wrapper setter. Keep its value until the whole condition is rebound.
+   for (const auto &wrapper : owned) result.Add(wrapper.get());
+   auto copy = [&](ElementWrapper *wrapper)
+   {
+      const auto found = result.copies.find(wrapper);
+      if (found != result.copies.end()) return found->second;
+      return captureBorrowed ? result.Add(wrapper) : wrapper;
+   };
+   result.lhs = copy(lhs);
+   result.rhs = copy(rhs);
+   return result;
+}
+}
+
 
 
 //#define DEBUG_STOPCOND_INIT
@@ -122,6 +218,7 @@ StopCondition::StopCondition(const std::string &name, const std::string &desc,
      mRepeatCount         (repeatCount),
      mSolarSystem         (NULL),
      mInterpolator        (interp),
+     ownsInterpolator     (false),
      mDescription         (desc),
      mStopParamType       (""),
      mStopParamName       (""),
@@ -155,12 +252,14 @@ StopCondition::StopCondition(const std::string &name, const std::string &desc,
      isCyclicTimeCondition(false),
      startValue           (0.0),
      lhsCycleType         (GmatParam::NOT_CYCLIC),
-     rhsCycleType         (GmatParam::NOT_CYCLIC)
+     rhsCycleType         (GmatParam::NOT_CYCLIC),
+     stopParamTimeType    (NOT_TIME_PARAM)
 {
    objectTypeNames.push_back("StopCondition");
 
    objectTypes.push_back(Gmat::STOP_CONDITION);
    objectTypeNames.push_back("StopCondition");
+   parameterCount = StopConditionParamCount;
    
    if (mStopParam != NULL)
    {
@@ -175,6 +274,7 @@ StopCondition::StopCondition(const std::string &name, const std::string &desc,
    if (mInterpolator == NULL)
    {
       mInterpolator = new NotAKnotInterpolator("InternalInterpolator");
+      ownsInterpolator = true;
       #ifdef DEBUG_MEMORY
       MemoryTracker::Instance()->Add
          (mInterpolator, mInterpolator->GetName(), "StopCondition::StopCondition()",
@@ -201,12 +301,14 @@ StopCondition::StopCondition(const StopCondition &copy)
      mDescription         (copy.mDescription),
      mStopParamType       (copy.mStopParamType),
      mStopParamName       (copy.mStopParamName),
-     mEpochParamName      (""),
+     mEpochParamName      (copy.mEpochParamName),
      lhsString            (copy.lhsString),
      rhsString            (copy.rhsString),
      mStopParam           (copy.mStopParam),
      mGoalParam           (copy.mGoalParam),
      mEpochParam          (copy.mEpochParam),
+     mInterpolator        (NULL),
+     ownsInterpolator     (false),
      mEccParam            (NULL),
      mRmagParam           (NULL),
      lhsWrapper           (copy.lhsWrapper),
@@ -230,43 +332,26 @@ StopCondition::StopCondition(const StopCondition &copy)
      isApoapse            (copy.isApoapse),
      isCyclicTimeCondition(copy.isCyclicTimeCondition),
      initialGoalValue     (copy.initialGoalValue),
+     startValue           (copy.startValue),
      lhsCycleType         (copy.lhsCycleType),
-     rhsCycleType         (copy.rhsCycleType)
+     rhsCycleType         (copy.rhsCycleType),
+     stopParamTimeType    (copy.stopParamTimeType)
 {
-   mAllRefObjectNames = copy.mAllRefObjectNames;  // Is this correct?
-   
-   if (copy.mInterpolator != NULL)
-      if (copy.mInterpolator->GetName() == "InternalInterpolator")
-      {
-         mInterpolator = (Interpolator*)copy.mInterpolator->Clone();
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Add
-            (mInterpolator, mInterpolator->GetName(), "StopCondition::StopCondition(copy)",
-             "mInterpolator = (Interpolator*)copy.mInterpolator->Clone()");
-         #endif
-      }
-   
-   if (copy.mEccParam != NULL)
-   {
-      mEccParam = (Parameter*)copy.mEccParam->Clone();
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (mEccParam, mEccParam->GetName(), "StopCondition::StopCondition(copy)",
-          "mEccParam = (Parameter*)copy.mEccParam->Clone()");
-      #endif
-   }
-   
-   if (copy.mRmagParam != NULL)
-   {
-      mRmagParam = (Parameter*)copy.mRmagParam->Clone();
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (mRmagParam, mRmagParam->GetName(), "StopCondition::StopCondition(copy)",
-          "mRmagParam = (Parameter*)copy.mRmagParam->Clone()");
-      #endif
-   }
-   
+   GmatBase::FunctionValueCopyGuard copying;
+   auto interpolator = copy.ownsInterpolator ? CopyStopInterpolator(copy.mInterpolator) : nullptr;
+   auto eccentricity = CopyStopParameter(copy.mEccParam, copy.mRmagParam, NULL, NULL);
+   auto radius = copy.mRmagParam == copy.mEccParam ? nullptr :
+         CopyStopParameter(copy.mRmagParam, copy.mEccParam, eccentricity.get(), NULL);
+   auto wrappers = CopyStopWrappers(copy.ownedValueWrappers, copy.lhsWrapper, copy.rhsWrapper, false);
+   mAllRefObjectNames = copy.mAllRefObjectNames;
    CopyDynamicData(copy);
+   mInterpolator = copy.ownsInterpolator ? interpolator.release() : copy.mInterpolator;
+   ownsInterpolator = copy.ownsInterpolator;
+   mEccParam = eccentricity.release();
+   mRmagParam = copy.mRmagParam == copy.mEccParam ? mEccParam : radius.release();
+   lhsWrapper = wrappers.lhs;
+   rhsWrapper = wrappers.rhs;
+   ownedValueWrappers.swap(wrappers.values);
 }
 
 
@@ -277,121 +362,67 @@ StopCondition::StopCondition(const StopCondition &copy)
  * Assignment operator.
  */
 //------------------------------------------------------------------------------
-StopCondition& StopCondition::operator= (const StopCondition &right)
+StopCondition& StopCondition::operator=(const StopCondition &right)
 {
-   if (this != &right)
+   if (this == &right) return *this;
+   const auto previousContext = GetFunctionValueContext();
+   GmatBase::FunctionValueCopyGuard copying;
+   auto interpolator = right.ownsInterpolator ? CopyStopInterpolator(right.mInterpolator, mInterpolator) : nullptr;
+   auto eccentricity = CopyStopParameter(right.mEccParam, right.mRmagParam, mEccParam, mRmagParam);
+   auto radius = right.mRmagParam == right.mEccParam ? nullptr :
+         CopyStopParameter(right.mRmagParam, right.mEccParam, mEccParam, mRmagParam);
+   if (radius && radius.get() == eccentricity.get())
    {
-      GmatBase::operator=(right);
-      
-      mAllRefObjectNames = right.mAllRefObjectNames; // Is this correct?
-      
-      mBaseEpoch = right.mBaseEpoch;
-      internalEpoch = right.internalEpoch;
-      currentGoalValue = right.currentGoalValue;
-      initialGoalValue = right.initialGoalValue;
-      mRepeatCount = right.mRepeatCount;
-      
-      if (mInterpolator != NULL)
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (mInterpolator, mInterpolator->GetName(), "StopCondition::operator=",
-             "deleting mInterpolator");
-         #endif
-         delete mInterpolator;
-      }
-      
-      if (right.mInterpolator != NULL)
-         if (right.mInterpolator->GetName() == "InternalInterpolator")
-         {
-            mInterpolator = (Interpolator*)right.mInterpolator->Clone();
-            #ifdef DEBUG_MEMORY
-            MemoryTracker::Instance()->Add
-               (mInterpolator, mInterpolator->GetName(), "StopCondition::operator=",
-                "mInterpolator = (Interpolator*)right.mInterpolator->Clone()");
-            #endif
-         }
-      
-      mSolarSystem = right.mSolarSystem;
-      mDescription = right.mDescription;
-      mStopParamType = right.mStopParamType;
-      mStopParamName = right.mStopParamName;
-      lhsString = right.lhsString;
-      rhsString = right.rhsString;
-      
-      mStopEpoch = right.mStopEpoch;
-      mStopInterval = right.mStopInterval;
-      mStopParam = right.mStopParam;
-      mEpochParam = right.mEpochParam;
-      mGoalParam = right.mGoalParam;
-      lhsWrapper = right.lhsWrapper;
-      rhsWrapper = right.rhsWrapper;
-      
-      if (mEccParam != NULL)
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (mEccParam, mEccParam->GetName(), "StopCondition::operator=",
-             "deleting mEccParam");
-         #endif
-         delete mEccParam;
-      }
-      
-      if (right.mEccParam != NULL)
-      {
-         mEccParam = (Parameter*)right.mEccParam->Clone();
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Add
-            (mEccParam, mEccParam->GetName(), "StopCondition::operator=",
-             "mEccParam = (Parameter*)right.mEccParam->Clone()");
-         #endif
-      }
-      else
-         mEccParam = NULL;
-      
-      if (mRmagParam != NULL)
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (mRmagParam, mRmagParam->GetName(), "StopCondition::operator=",
-             "deleting mRmagParam");
-         #endif
-         delete mRmagParam;
-      }
-      
-      if (right.mRmagParam != NULL)
-      {
-         mRmagParam = (Parameter*)right.mRmagParam->Clone();
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Add
-            (mRmagParam, mRmagParam->GetName(), "StopCondition::operator=",
-             "mRmagParam = (Parameter*)right.mRmagParam->Clone()");
-         #endif
-      }
-      else
-         mRmagParam = NULL;
-      
-      mInitialized = right.mInitialized;
-      mUseInternalEpoch = right.mUseInternalEpoch;
-      mNeedInterpolator = right.mNeedInterpolator;
-      mAllowGoalParam = right.mAllowGoalParam;
-      mBackwardsProp = right.mBackwardsProp;
-      activated = right.activated;
-      
-      previousEpoch = -999999.999999;
-      previousAchievedValue = -999999.999999;
-      previousGoalValue = -999999.999999;
-      
-      isLhsCyclicCondition  = right.isLhsCyclicCondition;
-      isPeriapse            = right.isPeriapse;
-      isApoapse             = right.isApoapse;
-      isCyclicTimeCondition = right.isCyclicTimeCondition;
-      lhsCycleType          = right.lhsCycleType;
-      rhsCycleType          = right.rhsCycleType;
-      
-      CopyDynamicData(right);
+      radius.release();
+      throw StopConditionException("Stopping parameter Clone reused a new component.\n");
    }
-   
+   auto wrappers = CopyStopWrappers(right.ownedValueWrappers, right.lhsWrapper, right.rhsWrapper, false);
+   GmatBase::operator=(right);
+   mAllRefObjectNames = right.mAllRefObjectNames;
+   mBaseEpoch = right.mBaseEpoch;
+   internalEpoch = right.internalEpoch;
+   currentGoalValue = right.currentGoalValue;
+   initialGoalValue = right.initialGoalValue;
+   startValue = right.startValue;
+   mRepeatCount = right.mRepeatCount;
+   mSolarSystem = right.mSolarSystem;
+   mDescription = right.mDescription;
+   mStopParamType = right.mStopParamType;
+   mStopParamName = right.mStopParamName;
+   mEpochParamName = right.mEpochParamName;
+   lhsString = right.lhsString;
+   rhsString = right.rhsString;
+   mStopEpoch = right.mStopEpoch;
+   mStopInterval = right.mStopInterval;
+   mStopParam = right.mStopParam;
+   mEpochParam = right.mEpochParam;
+   mGoalParam = right.mGoalParam;
+   mInitialized = right.mInitialized;
+   mUseInternalEpoch = right.mUseInternalEpoch;
+   mNeedInterpolator = right.mNeedInterpolator;
+   mAllowGoalParam = right.mAllowGoalParam;
+   mBackwardsProp = right.mBackwardsProp;
+   activated = right.activated;
+   previousEpoch = previousAchievedValue = previousGoalValue = -999999.999999;
+   isLhsCyclicCondition = right.isLhsCyclicCondition;
+   isRhsCyclicCondition = right.isRhsCyclicCondition;
+   isPeriapse = right.isPeriapse;
+   isApoapse = right.isApoapse;
+   isCyclicTimeCondition = right.isCyclicTimeCondition;
+   lhsCycleType = right.lhsCycleType;
+   rhsCycleType = right.rhsCycleType;
+   stopParamTimeType = right.stopParamTimeType;
+   CopyDynamicData(right);
+   if (ownsInterpolator) delete mInterpolator;
+   delete mEccParam;
+   if (mRmagParam != mEccParam) delete mRmagParam;
+   mInterpolator = right.ownsInterpolator ? interpolator.release() : right.mInterpolator;
+   ownsInterpolator = right.ownsInterpolator;
+   mEccParam = eccentricity.release();
+   mRmagParam = right.mRmagParam == right.mEccParam ? mEccParam : radius.release();
+   lhsWrapper = wrappers.lhs;
+   rhsWrapper = wrappers.rhs;
+   ownedValueWrappers.swap(wrappers.values);
    return *this;
 }
 
@@ -405,47 +436,9 @@ StopCondition& StopCondition::operator= (const StopCondition &right)
 //------------------------------------------------------------------------------
 StopCondition::~StopCondition()
 {
-   #ifdef DEBUG_STOPCOND
-   MessageInterface::ShowMessage
-      ("StopCondition::~StopCondition() entered, lhsWrapper=<%p>, rhsWrapper=<%p>, "
-       "mEccParam=<%p>, mRmagParam=<%p>, mInterpolator=<%p>\n", lhsWrapper,
-       rhsWrapper, mEccParam, mRmagParam, mInterpolator);
-   #endif
-   
-   ///@note lhsWrapper and rhsWrapper are deleted from the Propagate command
-   
-   if (mEccParam != NULL)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (mEccParam, mEccParam->GetName(), "StopCondition::~StopCondition()",
-          "deleting mEccParam");
-      #endif
-      delete mEccParam;
-   }
-   
-   if (mRmagParam != NULL)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (mRmagParam, mRmagParam->GetName(), "StopCondition::~StopCondition()",
-          "deleting mRmagParam");
-      #endif
-      delete mRmagParam;
-   }
-   
-   if (mInterpolator != NULL)
-   {
-      if (mInterpolator->GetName() == "InternalInterpolator")
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (mInterpolator, mInterpolator->GetName(), "StopCondition::~StopCondition()",
-             "deleting mInterpolator");
-         #endif
-         delete mInterpolator;
-      }
-   }
+   if (ownsInterpolator) delete mInterpolator;
+   if (mRmagParam != mEccParam) delete mRmagParam;
+   delete mEccParam;
 }
 
 //------------------------------------------------------------------------------
@@ -488,12 +481,12 @@ bool StopCondition::Evaluate()
    {
       if (mAllowGoalParam)
       {
-         initialGoalValue = mGoalParam->EvaluateReal();
+         initialGoalValue = ElementWrapper::EvaluateParameterRealForCalculation(mGoalParam);
          currentGoalValue = initialGoalValue;
       }
       else
       {
-         initialGoalValue = rhsWrapper->EvaluateReal();
+         initialGoalValue = rhsWrapper->EvaluateRealForCalculation();
          currentGoalValue = initialGoalValue;
       }
       
@@ -505,10 +498,15 @@ bool StopCondition::Evaluate()
    if (mUseInternalEpoch)
       epoch = internalEpoch;
    else
-      epoch = mEpochParam->EvaluateReal();
+      epoch = ElementWrapper::EvaluateParameterRealForCalculation(mEpochParam);
+   if (!std::isfinite(epoch))
+      throw StopConditionException("Stopping epoch must be finite.");
    
+   if (!std::isfinite(currentGoalValue))
+      throw StopConditionException("Stopping goal must be finite.");
+
    // set current value
-   currentParmValue = mStopParam->EvaluateReal();
+   currentParmValue = EvaluateStopValue();
    
    #ifdef DEBUG_BUFFER_FILLING
    MessageInterface::ShowMessage
@@ -733,9 +731,9 @@ bool StopCondition::AddToBuffer(bool isInitialPoint)
    if ((mAllowGoalParam && mGoalParam != NULL) || rhsWrapper != NULL)
    {
       if (mAllowGoalParam)
-         initialGoalValue = mGoalParam->EvaluateReal();
+         initialGoalValue = ElementWrapper::EvaluateParameterRealForCalculation(mGoalParam);
       else
-         initialGoalValue = rhsWrapper->EvaluateReal();
+         initialGoalValue = rhsWrapper->EvaluateRealForCalculation();
       
       if (isCyclicTimeCondition)
          currentGoalValue = initialGoalValue + startValue;
@@ -748,21 +746,15 @@ bool StopCondition::AddToBuffer(bool isInitialPoint)
    if (mUseInternalEpoch)
       epoch = internalEpoch;
    else
-      epoch = mEpochParam->EvaluateReal();
+      epoch = ElementWrapper::EvaluateParameterRealForCalculation(mEpochParam);
+   if (!std::isfinite(epoch))
+      throw StopConditionException("Stopping epoch must be finite.");
    
-   // set current LHS value
-   try
-   {
-      currentParmValue = mStopParam->EvaluateReal();
-   }
-   catch (BaseException &)
-   {
-      // try with rhsWrapper
-      if (lhsWrapper != NULL)
-         currentParmValue = lhsWrapper->EvaluateReal();
-      else
-         throw;
-   }
+   if (!std::isfinite(currentGoalValue))
+      throw StopConditionException("Stopping goal must be finite.");
+
+   // All sampling/refinement paths use the same typed scalar value.
+   currentParmValue = EvaluateStopValue();
    
    if(isLhsCyclicCondition)
    {
@@ -946,7 +938,9 @@ Real StopCondition::GetStopEpoch()
 //------------------------------------------------------------------------------
 GmatBase* StopCondition::Clone() const
 {
-   return (new StopCondition(*this));
+   std::unique_ptr<StopCondition> value(new StopCondition(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -1083,6 +1077,8 @@ bool StopCondition::Initialize()
    mInitialized = false;
    isApoapse = false;
    isPeriapse = false;
+   isLhsCyclicCondition = false;
+   lhsCycleType = GmatParam::NOT_CYCLIC;
    mStopInterval = 0.0;
    
    // clear local parameters
@@ -1145,7 +1141,9 @@ bool StopCondition::Initialize()
             #endif
             if (refObj != NULL)
                mAllowGoalParam = false;
-            
+
+            // Metadata setup can precede the mission's propagation/maneuvers.
+            // The active stopping calculations check evaluation success later.
             initialGoalValue = rhsWrapper->EvaluateReal();
             currentGoalValue = initialGoalValue;
          }
@@ -1246,15 +1244,17 @@ bool StopCondition::Validate()
           "stopping condition (stop Parameter is NULL)");
    }
    
-   // check if stop parameter is a system Parameter such as Sat.X
-   if (mStopParam->GetKey() != GmatParam::SYSTEM_PARAM)
+   // Spacecraft Parameters retain native metadata. User scalar operands use
+   // their wrapper value and the propagated group's epoch clock.
+   if (mStopParam->GetKey() != GmatParam::SYSTEM_PARAM && !UsesUserScalar())
    {
       throw StopConditionException
-         ("Currently GMAT expects a Parameter of propagating Spacecraft to be on the LHS of "
-          "stopping condition (stop Parameter is not a predefined Parameter)");
+         ("The measured stopping value must be a scalar spacecraft Parameter, "
+          "user Variable or Array element");
    }
    
    isCyclicTimeCondition = false;
+   stopParamTimeType = NOT_TIME_PARAM;
    
    // check on interpolator
    if (mStopParam->IsTimeParameter())
@@ -1462,6 +1462,30 @@ Parameter* StopCondition::GetStopParameter()
    return mStopParam;
 }
 
+// Evaluate the scalar wrapper rather than its owning Array or Variable object.
+// Parameters constructed directly in C++ can still use the native pointer path.
+Real StopCondition::EvaluateStopValue()
+{
+   if (!lhsWrapper && !mStopParam)
+      throw StopConditionException("Stopping value has no bound scalar operand: " + mStopParamName);
+   if (lhsWrapper && lhsWrapper->GetDataType() != Gmat::REAL_TYPE)
+      throw StopConditionException("Stopping value must be a real scalar: " + mStopParamName);
+   const Real value = lhsWrapper ? lhsWrapper->EvaluateRealForCalculation() :
+         ElementWrapper::EvaluateParameterRealForCalculation(mStopParam);
+   if (!std::isfinite(value))
+      throw StopConditionException("Stopping value must be finite: " + mStopParamName);
+   return value;
+}
+
+bool StopCondition::UsesUserScalar() const
+{
+   if (!mStopParam) return false;
+   if (mStopParam->IsOfType(Gmat::VARIABLE))
+      return !lhsWrapper || lhsWrapper->GetWrapperType() == Gmat::VARIABLE_WT;
+   return mStopParam->IsOfType(Gmat::ARRAY) && lhsWrapper &&
+         lhsWrapper->GetWrapperType() == Gmat::ARRAY_ELEMENT_WT;
+}
+
 
 //------------------------------------------------------------------------------
 // Parameter* GetStopParameter()
@@ -1540,18 +1564,12 @@ void StopCondition::SetSolarSystem(SolarSystem *solarSystem)
 //------------------------------------------------------------------------------
 bool StopCondition::SetInterpolator(Interpolator *interp)
 {
-   if (interp != NULL)
-   {
-      if (mInterpolator->GetName() == "InternalInterpolator")
-         delete mInterpolator;
-      
-      mInterpolator = interp;
-      return true;
-   }
-   else
-   {
-      return false;
-   }
+   if (!interp) return false;
+   if (interp == mInterpolator) return true;
+   if (ownsInterpolator) delete mInterpolator;
+   mInterpolator = interp;
+   ownsInterpolator = false;
+   return true;
 }
 
 
@@ -1608,11 +1626,11 @@ bool StopCondition::SetStopParameter(Parameter *param)
       if (param->IsTimeParameter())
          mInitialized = true;
       
-      // Set ref object of lhsWrapper
-      // Currently lhsWrapper is not used but we may want to stop propagation 
-      // when stopVar = goalVar or stopVar = Sat.ElapsedDays in a future
-      //if (lhsWrapper != NULL)
-      //   lhsWrapper->SetRefObject(param);
+      // The sandbox can replace the configured Parameter during initialization.
+      // Keep scalar evaluation on that same instance while retaining the
+      // wrapper's Array-element selection or Variable semantics.
+      if (lhsWrapper != NULL)
+         lhsWrapper->SetRefObject(param);
       
       #ifdef DEBUG_STOP_PARAM
       MessageInterface::ShowMessage
@@ -1904,7 +1922,7 @@ bool StopCondition::SetSpacecrafts(const ObjectArray &propSats,
 
    //@todo - When spacecraft is added to formation in the sequence and then propagate
    // the formation, the formmation is not updated, so exclude it for checking for now.
-   if (!stopSatFound && !propFormationFound)
+   if (!stopSatFound && !propFormationFound && !UsesUserScalar())
    {
       #ifdef DEBUG_SET_SPACECRAFT
       MessageInterface::ShowMessage
@@ -2075,7 +2093,7 @@ StopCondition::GetRefObjectNameArray(const UnsignedInt type)
    
    if (type == Gmat::UNKNOWN_OBJECT || type == Gmat::PARAMETER)
    {
-      mAllRefObjectNames.push_back(mStopParamName);
+      if (!mStopParamName.empty()) mAllRefObjectNames.push_back(mStopParamName);
       if (mAllowGoalParam || (!GmatStringUtil::IsNumber(rhsString) && rhsWrapper != NULL))
          mAllRefObjectNames.push_back(rhsString);
    }
@@ -2089,6 +2107,13 @@ StopCondition::GetRefObjectNameArray(const UnsignedInt type)
          ("   mAllRefObjectNames[%d] = '%s'\n", i, mAllRefObjectNames[i].c_str());
    #endif
    
+   if ((type == Gmat::UNKNOWN_OBJECT || type == Gmat::PARAMETER) && !mUseInternalEpoch)
+   {
+      const std::string epochName = !mEpochParamName.empty() ? mEpochParamName :
+            (mEpochParam ? mEpochParam->GetName() : "");
+      if (!epochName.empty() && std::find(mAllRefObjectNames.begin(), mAllRefObjectNames.end(), epochName) == mAllRefObjectNames.end())
+         mAllRefObjectNames.push_back(epochName);
+   }
    return mAllRefObjectNames;
 }
 
@@ -2113,19 +2138,20 @@ bool StopCondition::SetRefObject(GmatBase *obj, const UnsignedInt type,
    
    if (type == Gmat::PARAMETER)
    {
+      if (!dynamic_cast<Parameter*>(obj)) return false;
+      bool matched = false, success = true;
       if (name == mStopParamName)
-         SetStopParameter((Parameter*)obj);
+      { matched = true; success = SetStopParameter(dynamic_cast<Parameter*>(obj)) && success; }
       if (name == rhsString)
-         SetGoalParameter((Parameter*)obj);
+      { matched = true; success = SetGoalParameter(dynamic_cast<Parameter*>(obj)) && success; }
       if (name == mEpochParamName)
-         SetEpochParameter((Parameter*)obj);
-      
-      return true;
+      { matched = true; success = SetEpochParameter(dynamic_cast<Parameter*>(obj)) && success; }
+
+      return matched && success;
    }
    else if (type == Gmat::INTERPOLATOR)
    {
-      SetInterpolator((Interpolator*)obj);
-      return true;
+      return SetInterpolator(dynamic_cast<Interpolator*>(obj));
    }
    
    return GmatBase::SetRefObject(obj, type, name);
@@ -2189,6 +2215,18 @@ std::string StopCondition::GetParameterTypeString(const Integer id) const
     
 }
 
+
+//------------------------------------------------------------------------------
+// bool IsParameterReadOnly(const Integer id) const
+//------------------------------------------------------------------------------
+bool StopCondition::IsParameterReadOnly(const Integer id) const
+{
+   // Runtime clocks are established by propagation. Restoring BaseEpoch on
+   // an unbound named stop condition would evaluate a missing operand.
+   if (id == BASE_EPOCH || id == EPOCH)
+      return true;
+   return GmatBase::IsParameterReadOnly(id);
+}
 
 //------------------------------------------------------------------------------
 // Integer GetIntegerParameter(const Integer id) const
@@ -2275,17 +2313,19 @@ Real StopCondition::SetRealParameter(const Integer id, const Real value)
    switch (id)
    {
    case BASE_EPOCH:
+      if (!std::isfinite(value))
+         throw StopConditionException("Stopping base epoch must be finite.");
       mBaseEpoch = value;
 
       if ((mAllowGoalParam && mGoalParam != NULL) || rhsWrapper != NULL)
       {
          if (mAllowGoalParam)
-            initialGoalValue = mGoalParam->EvaluateReal();
+            initialGoalValue = ElementWrapper::EvaluateParameterRealForCalculation(mGoalParam);
          else
-            initialGoalValue = rhsWrapper->EvaluateReal();
+            initialGoalValue = rhsWrapper->EvaluateRealForCalculation();
       }
       
-      startValue = mStopParam->EvaluateReal();
+      startValue = EvaluateStopValue();
       
       // Update target for cyclic time conditions
       if (isCyclicTimeCondition)
@@ -2432,9 +2472,9 @@ Real StopCondition::GetStopDifference()
    if ((mAllowGoalParam && mGoalParam != NULL) || rhsWrapper != NULL)
    {
       if (mAllowGoalParam)
-         goalValue = mGoalParam->EvaluateReal();
+         goalValue = ElementWrapper::EvaluateParameterRealForCalculation(mGoalParam);
       else
-         goalValue = rhsWrapper->EvaluateReal();
+         goalValue = rhsWrapper->EvaluateRealForCalculation();
       
       if (isCyclicTimeCondition)
          goalValue += startValue;
@@ -2442,14 +2482,17 @@ Real StopCondition::GetStopDifference()
    else
       goalValue = currentGoalValue;
    
+   if (!std::isfinite(goalValue))
+      throw StopConditionException("Stopping goal must be finite.");
+   achievedValue = EvaluateStopValue();
+
    #ifdef DEBUG_STOPCOND_EVAL
       MessageInterface::ShowMessage("%s goal (%s) = %16.9lf, value = %16.9lf\n", 
          instanceName.c_str(), 
          (mGoalParam ? mGoalParam->GetName().c_str() : "Fixed goal"), goalValue,
-         mStopParam->EvaluateReal());
+         achievedValue);
    #endif
-      
-   achievedValue = mStopParam->EvaluateReal();
+
    Real min, max, delta;
    GetRange(min, max);
    delta = (max - min) * 0.5;
@@ -2457,7 +2500,10 @@ Real StopCondition::GetStopDifference()
       achievedValue = PutInRange(achievedValue, goalValue-delta, 
             goalValue + delta);
    
-   return goalValue - achievedValue;
+   const Real difference = goalValue - achievedValue;
+   if (!std::isfinite(difference))
+      throw StopConditionException("Stopping difference is non-finite.");
+   return difference;
 }
 
 
@@ -2476,13 +2522,16 @@ Real StopCondition::GetStopGoal()
    if ((mAllowGoalParam && mGoalParam != NULL) || rhsWrapper != NULL)
    {
       if (mAllowGoalParam)
-         goalValue = mGoalParam->EvaluateReal();
+         goalValue = ElementWrapper::EvaluateParameterRealForCalculation(mGoalParam);
       else
-         goalValue = rhsWrapper->EvaluateReal();
+         goalValue = rhsWrapper->EvaluateRealForCalculation();
    }
    else
       goalValue = currentGoalValue;
    
+   if (!std::isfinite(goalValue))
+      throw StopConditionException("Stopping goal must be finite.");
+
    if (isLhsCyclicCondition)
    {
       #ifdef DEBUG_CYCLIC_PARAMETERS
@@ -2500,6 +2549,8 @@ Real StopCondition::GetStopGoal()
    if (isCyclicTimeCondition)
       goalValue += startValue;
 
+   if (!std::isfinite(goalValue))
+      throw StopConditionException("Stopping goal must be finite.");
    return goalValue;
 }
 
@@ -2702,15 +2753,15 @@ void StopCondition::SkipEvaluation(bool shouldSkip)
 //------------------------------------------------------------------------------
 void StopCondition::UpdateBuffer()
 {
-   previousAchievedValue = mStopParam->EvaluateReal();
+   previousAchievedValue = EvaluateStopValue();
 
    // evaluate goal in case needed for cyclics
    if ((mAllowGoalParam && mGoalParam != NULL) || rhsWrapper != NULL)
    {
       if (mAllowGoalParam)
-         initialGoalValue = mGoalParam->EvaluateReal();
+         initialGoalValue = ElementWrapper::EvaluateParameterRealForCalculation(mGoalParam);
       else
-         initialGoalValue = rhsWrapper->EvaluateReal();
+         initialGoalValue = rhsWrapper->EvaluateRealForCalculation();
       
       if (isCyclicTimeCondition)
          currentGoalValue = startValue + initialGoalValue;
@@ -2723,8 +2774,13 @@ void StopCondition::UpdateBuffer()
    if (mUseInternalEpoch)
       epoch = internalEpoch;
    else
-      epoch = mEpochParam->EvaluateReal();
+      epoch = ElementWrapper::EvaluateParameterRealForCalculation(mEpochParam);
+   if (!std::isfinite(epoch))
+      throw StopConditionException("Stopping epoch must be finite.");
    
+   if (!std::isfinite(currentGoalValue))
+      throw StopConditionException("Stopping goal must be finite.");
+
    if (isLhsCyclicCondition)
    {
       currentGoalValue = PutInRange(currentGoalValue, 0.0, GmatMathConstants::TWO_PI_DEG);
@@ -2750,24 +2806,14 @@ void StopCondition::UpdateBuffer()
 //------------------------------------------------------------------------------
 void StopCondition::CopyDynamicData(const StopCondition &stopCond)
 {
+   auto epochs = stopCond.mEpochBuffer;
+   auto lhs = stopCond.lhsValueBuffer;
+   auto rhs = stopCond.rhsValueBuffer;
+   mEpochBuffer.swap(epochs);
+   lhsValueBuffer.swap(lhs);
+   rhsValueBuffer.swap(rhs);
    mNumValidPoints = stopCond.mNumValidPoints;
    mBufferSize = stopCond.mBufferSize;
-
-   if ((Integer)mEpochBuffer.size() < mBufferSize)
-      mEpochBuffer.resize(mBufferSize);
-   
-   if ((Integer)lhsValueBuffer.size() < mBufferSize)
-      lhsValueBuffer.resize(mBufferSize);
-   
-   if ((Integer)rhsValueBuffer.size() < mBufferSize)
-      rhsValueBuffer.resize(mBufferSize);
-   
-   for (int i = 0; i < mBufferSize; ++i)
-   {
-      mEpochBuffer[i] = stopCond.mEpochBuffer[i];
-      lhsValueBuffer[i] = stopCond.lhsValueBuffer[i];
-      rhsValueBuffer[i] = stopCond.rhsValueBuffer[i];
-   }
 }
 
 // Reset/copy through the inherited polymorphic contract without slicing.
@@ -2779,5 +2825,131 @@ void StopCondition::Copy(const GmatBase *original)
       throw GmatBaseException("Cannot copy incompatible object into StopCondition");
    if (source == this)
       return;
+   const auto previous = GetFunctionValueContext();
    operator=(*source);
+   RebindFunctionValueContext(*source);
+}
+
+
+void StopCondition::PrepareClonedFunctionValue(const StopCondition &source)
+{
+   GmatBase::FunctionValueCopyGuard copying;
+   auto wrappers = CopyStopWrappers(source.ownedValueWrappers, source.lhsWrapper, source.rhsWrapper, true);
+   // Interpolator is a utility, not GmatBase. Snapshot external tables as an
+   // owned value rather than retain a pointer to the command/provider lifetime.
+   auto interpolator = source.ownsInterpolator ? nullptr : CopyStopInterpolator(source.mInterpolator, mInterpolator);
+   if (!source.ownsInterpolator)
+   {
+      if (ownsInterpolator) delete mInterpolator;
+      mInterpolator = interpolator.release();
+      ownsInterpolator = mInterpolator != NULL;
+   }
+   else if (source.mInterpolator && (!mInterpolator || mInterpolator == source.mInterpolator))
+      throw StopConditionException("Missing copied stopping interpolator.\n");
+   lhsWrapper = wrappers.lhs;
+   rhsWrapper = wrappers.rhs;
+   ownedValueWrappers.swap(wrappers.values);
+}
+
+ObjectArray StopCondition::GetFunctionValueOwnedObjectsImpl() const
+{
+   ObjectArray objects;
+   if (mEccParam) objects.push_back(mEccParam);
+   if (mRmagParam && mRmagParam != mEccParam) objects.push_back(mRmagParam);
+   for (const auto &wrapper : ownedValueWrappers) wrapper->CollectOwnedReferences(objects);
+   if (lhsWrapper) lhsWrapper->CollectOwnedReferences(objects);
+   if (rhsWrapper && rhsWrapper != lhsWrapper) rhsWrapper->CollectOwnedReferences(objects);
+   return objects;
+}
+
+void StopCondition::GetClonedOwnedObjects(const StopCondition &target,
+      ObjectArray &originals, ObjectArray &copies) const
+{
+   auto append = [&](GmatBase *source, GmatBase *copy)
+   {
+      if (!source && !copy) return;
+      if (!source || !copy || source == copy || source->GetTypeName() != copy->GetTypeName())
+         throw StopConditionException("Missing native stopping parameter copy.\n");
+      if (std::find(originals.begin(), originals.end(), source) == originals.end())
+      { originals.push_back(source); copies.push_back(copy); }
+   };
+   append(mEccParam, target.mEccParam);
+   append(mRmagParam, target.mRmagParam);
+   if (target.ownedValueWrappers.size() < ownedValueWrappers.size())
+      throw StopConditionException("Missing owned stopping expression copies.\n");
+   for (size_t i = 0; i < ownedValueWrappers.size(); ++i)
+      target.ownedValueWrappers[i]->CollectClonedOwnedReferences(*ownedValueWrappers[i], originals, copies);
+   auto collect = [&](ElementWrapper *source, ElementWrapper *copy)
+   {
+      if (!source && !copy) return;
+      if (!source || !copy || source == copy)
+         throw StopConditionException("Missing independently copied stopping expression.\n");
+      copy->CollectClonedOwnedReferences(*source, originals, copies);
+   };
+   collect(lhsWrapper, target.lhsWrapper);
+   if (rhsWrapper != lhsWrapper) collect(rhsWrapper, target.rhsWrapper);
+}
+
+bool StopCondition::RebindFunctionValueReferencesImpl(const GmatBase &source,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *condition = dynamic_cast<const StopCondition*>(&source);
+   if (!condition || condition->GetTypeName() != GetTypeName())
+      throw StopConditionException("Incompatible retained stopping condition.\n");
+   auto parameter = [&](Parameter *original)
+   {
+      if (!original) return static_cast<Parameter*>(NULL);
+      auto *value = dynamic_cast<Parameter*>(resolve(original));
+      if (!value) throw StopConditionException("Invalid retained stopping Parameter.\n");
+      return value;
+   };
+   auto *stop = parameter(condition->mStopParam);
+   auto *goal = parameter(condition->mGoalParam);
+   auto *epoch = parameter(condition->mEpochParam);
+   auto *system = condition->mSolarSystem ? dynamic_cast<SolarSystem*>(resolve(condition->mSolarSystem)) : NULL;
+   if (condition->mSolarSystem && !system)
+      throw StopConditionException("Invalid retained stopping SolarSystem.\n");
+   if (lhsWrapper) lhsWrapper->RebindClonedReferences(*condition->lhsWrapper, resolve);
+   if (rhsWrapper && (rhsWrapper != lhsWrapper || condition->rhsWrapper != condition->lhsWrapper))
+      rhsWrapper->RebindClonedReferences(*condition->rhsWrapper, resolve);
+   mStopParam = stop;
+   mGoalParam = goal;
+   mEpochParam = epoch;
+   mSolarSystem = system;
+   // Native command copies retain their cold-history policy. Explicit function
+   // values preserve the source's prepared stopping history without evaluation.
+   previousEpoch = condition->previousEpoch;
+   previousAchievedValue = condition->previousAchievedValue;
+   previousGoalValue = condition->previousGoalValue;
+   mStopInterval = condition->mStopInterval;
+   mInitialized = condition->mInitialized;
+   return true;
+}
+
+bool StopCondition::HasRefObjectTypeArray() { return true; }
+
+const ObjectTypeArray& StopCondition::GetRefObjectTypeArray()
+{
+   refObjectTypes.clear();
+   refObjectTypes.push_back(Gmat::PARAMETER);
+   return refObjectTypes;
+}
+
+GmatBase *StopCondition::GetRefObject(const UnsignedInt type, const std::string &name)
+{
+   if (type != Gmat::PARAMETER && type != Gmat::UNKNOWN_OBJECT)
+      return GmatBase::GetRefObject(type, name);
+   if (name.empty()) return NULL;
+   if (name == mStopParamName) return mStopParam;
+   if (name == rhsString) return mGoalParam;
+   if (name == mEpochParamName) return mEpochParam;
+   Parameter *found = NULL;
+   for (Parameter *parameter : {mStopParam, mGoalParam, mEpochParam})
+      if (parameter && parameter->GetName() == name)
+      {
+         if (found && found != parameter)
+            throw StopConditionException("Ambiguous stopping Parameter reference.\n");
+         found = parameter;
+      }
+   return found;
 }

@@ -39,3 +39,10 @@ SET(PLUGIN_SRCS
 # ====================================================================
 # Setup common plugin definitions, targets, etc.
 _SETUPPLUGIN(${TargetName} "${PLUGIN_DIRS}" "${PLUGIN_SRCS}" plugins)
+
+# The translated C model's COMMON blocks and helpers share names with MSISE90
+# in GmatBase, including globals with different layouts. Keep them private;
+# the plugin's public factory and atmosphere API are implemented in C++.
+if(UNIX AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+  target_compile_options(${TargetName} PRIVATE "$<$<COMPILE_LANGUAGE:C>:-fvisibility=hidden>")
+endif()

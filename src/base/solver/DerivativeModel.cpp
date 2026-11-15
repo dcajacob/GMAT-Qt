@@ -33,6 +33,7 @@
 
 #include "SolverException.hpp"
 #include "MessageInterface.hpp"
+#include <limits>
 
 
 //#define DEBUG_DERIVMODEL
@@ -149,11 +150,16 @@ void DerivativeModel::SetDifferenceMode(derivativeMode mode)
 bool DerivativeModel::Initialize(UnsignedInt varCount, 
                                  UnsignedInt componentCount)
 {
-   UnsignedInt elementCount = varCount * componentCount;
-   
-   if (elementCount == 0)
+   if (varCount == 0 || componentCount == 0)
       throw SolverException(
             "DerivativeModel cannot initialize because elementCount == 0");
+
+   // Component offsets and variableCount use Integer throughout this class.
+   // Check before multiplication, rather than allocating a wrapped buffer.
+   const auto maxIndex = static_cast<UnsignedInt>((std::numeric_limits<Integer>::max)());
+   if (varCount > maxIndex || componentCount > maxIndex / varCount)
+      throw SolverException("DerivativeModel dimensions exceed the supported index range");
+   const UnsignedInt elementCount = varCount * componentCount;
    
    variableCount = varCount;
    
@@ -212,9 +218,14 @@ void DerivativeModel::Achieved(Integer pertNumber, Integer componentId, Real dx,
          "method is not allowed.");
    else
    {
-      if (pertNumber >= (Integer)pert.size())
+      if (pertNumber < 0 || pertNumber >= (Integer)pert.size())
          throw SolverException(
                "Invalid pert element when setting an achieved value.");
+
+      if (componentId < 0 || variableCount <= 0 ||
+          static_cast<size_t>(componentId) >= plusPertEffect.size() / variableCount)
+         throw SolverException(
+               "Invalid component when setting an achieved derivative value.");
 
       #ifdef DEBUG_DERIVMODEL
          MessageInterface::ShowMessage(

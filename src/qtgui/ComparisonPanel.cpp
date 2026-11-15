@@ -57,7 +57,9 @@ ComparisonPanel::ComparisonPanel(const QString &baseline,QWidget *parent):QWidge
    connect(remove,&QPushButton::clicked,this,[this] { const int row=directories->currentRow(); if (row>=0 && directories->rowCount()>1) directories->removeRow(row); add->setEnabled(directories->rowCount()<3); remove->setEnabled(directories->rowCount()>1); });
    addDirectory(); form->addRow(directoryControls);
    mode=new QComboBox(setup); mode->setObjectName("comparisonMode"); mode->addItems({"Text lines","Numeric lines (ignore strings)","Numeric data columns"}); form->addRow("Mode",mode);
-   tolerance=new QLineEdit("1e-6",setup); tolerance->setObjectName("comparisonTolerance"); form->addRow("Absolute tolerance",tolerance);
+   tolerance=new QLineEdit("1e-6",setup); tolerance->setObjectName("comparisonTolerance");
+   auto *toleranceUnit=new QLabel("Absolute tolerance (column units)",setup);toleranceUnit->setObjectName("comparisonToleranceUnit");form->addRow(toleranceUnit,tolerance);
+   tolerance->setToolTip("Applied to each numeric value as stored. Convert or normalize differing units before comparing; no automatic unit conversion is performed.");
    skipBlank=new QCheckBox("Skip blank lines for text comparison",setup); skipBlank->setObjectName("comparisonSkipBlank"); form->addRow(skipBlank);
    auto *description=new QLabel("Directory comparison matches text/report files by replacing the baseline prefix with each candidate prefix. Missing matches also try .truth. Numeric columns skip initial headers and report the maximum difference in each column.",setup); description->setWordWrap(true); form->addRow(description);
    connect(scope,&QComboBox::currentIndexChanged,this,[this,form](int index) {

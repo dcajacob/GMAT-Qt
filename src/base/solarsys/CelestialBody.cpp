@@ -33,12 +33,18 @@
 
 
 #include <iostream>
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <cmath>
+#include <limits>
+#include <set>
 #include "gmatdefs.hpp"
 #include "SpacePoint.hpp"
 #include "CelestialBody.hpp"
+#include "EphemerisDerivative.hpp"
+#include <exception>
 #include "GravityField.hpp"
 #include "PlanetaryEphem.hpp"
 #include "SolarSystem.hpp"
@@ -51,6 +57,8 @@
 #include "Rmatrix.hpp"
 #include "RealUtilities.hpp"
 #include "AtmosphereModel.hpp"
+#include <array>
+#include <memory>
 #include "MessageInterface.hpp"
 #include "GmatConstants.hpp"
 #include "GmatDefaults.hpp"
@@ -156,6 +164,7 @@ CelestialBody::PARAMETER_TEXT[CelestialBodyParamCount - SpacePointParamCount] =
    "3DModelRotationZ",
    "3DModelScale",
    "DSNMediaFileDirectories",
+   "PhysicalBody",
 };
 
 const Gmat::ParameterType
@@ -210,7 +219,29 @@ CelestialBody::PARAMETER_TYPE[CelestialBodyParamCount - SpacePointParamCount] =
    Gmat::REAL_TYPE,     //"3DModelRotationZ"
    Gmat::REAL_TYPE,     //"3DModelScale"
    Gmat::STRINGARRAY_TYPE, //"DSNMediaFileDirectories"
+   Gmat::STRING_TYPE,      //"PhysicalBody"
 };
+
+namespace {
+// Bypass every celestial-body state cache on this query's call stack, including
+// reference/analytic-parent providers, without writing configuration settings.
+thread_local unsigned ephemerisDerivativeDepth = 0;
+}
+
+GmatEphemerisDetail::ScopedDerivativeQuery::ScopedDerivativeQuery()
+{
+   ++ephemerisDerivativeDepth;
+}
+
+GmatEphemerisDetail::ScopedDerivativeQuery::~ScopedDerivativeQuery()
+{
+   --ephemerisDerivativeDepth;
+}
+
+bool GmatEphemerisDetail::ScopedDerivativeQuery::IsActive()
+{
+   return ephemerisDerivativeDepth != 0;
+}
 
 const Real    CelestialBody::dDot                       = 1.0;
 const Real    CelestialBody::TDot                       = 1.0;
@@ -258,7 +289,7 @@ CelestialBody::CelestialBody(std::string itsBodyType, std::string name) :
    potentialFileRead  (false),
    order              (0),
    degree             (0),
-   twoBodyFormat      ("TAIModJulian"),
+   twoBodyFormat      ("A1ModJulian"),
    twoBodyStateType   ("Keplerian"),
    twoBodyEpoch       (GmatTimeConstants::MJD_OF_J2000),
    newTwoBody         (true),
@@ -266,6 +297,8 @@ CelestialBody::CelestialBody(std::string itsBodyType, std::string name) :
    ephemUpdateInterval (0.0),
    lastEphemTime      (0.0),
    lastEphemTimeGT    (GmatTime(0.0)),
+   ephemerisStateValid(false),
+   ephemerisStateEpoch(GmatTime(0.0)),
    rotationSrc        (Gmat::IAU_SIMPLIFIED),
    userDefined        (false),
    allowSpice         (false),
@@ -333,6 +366,7 @@ CelestialBody::CelestialBody(std::string itsBodyType, std::string name) :
    
    parameterCount = CelestialBodyParamCount;
    InitializeBody(itsBodyType);
+   parameterWriteOrder.insert(parameterWriteOrder.begin(), PHYSICAL_BODY);
    SaveAllAsDefault();
 
    // we want to cloak the DEFAULT Celestial Body data; i.e. we want to write only those
@@ -389,7 +423,7 @@ CelestialBody::CelestialBody(Gmat::BodyType itsBodyType, std::string name) :
    potentialFileRead  (false),
    order              (0),
    degree             (0),
-   twoBodyFormat      ("TAIModjulian"),
+   twoBodyFormat      ("A1ModJulian"),
    twoBodyStateType   ("Keplerian"),
    twoBodyEpoch       (GmatTimeConstants::MJD_OF_J2000),
    runEpoch           (0.0),
@@ -398,6 +432,8 @@ CelestialBody::CelestialBody(Gmat::BodyType itsBodyType, std::string name) :
    ephemUpdateInterval (0.0),
    lastEphemTime      (0.0),
    lastEphemTimeGT    (GmatTime(0.0)),
+   ephemerisStateValid(false),
+   ephemerisStateEpoch(GmatTime(0.0)),
    rotationSrc        (Gmat::IAU_SIMPLIFIED),
    userDefined        (false),
    allowSpice         (false),
@@ -466,6 +502,7 @@ CelestialBody::CelestialBody(Gmat::BodyType itsBodyType, std::string name) :
    parameterCount = CelestialBodyParamCount;
    
    InitializeBody(Gmat::BODY_TYPE_STRINGS[itsBodyType]);
+   parameterWriteOrder.insert(parameterWriteOrder.begin(), PHYSICAL_BODY);
    
    SaveAllAsDefault();
    
@@ -502,6 +539,7 @@ CelestialBody::CelestialBody(const CelestialBody &cBody) :
    referenceBodyNumber (cBody.referenceBodyNumber),
    sourceFilename      (cBody.sourceFilename),
    theSourceFile       (cBody.theSourceFile), // ????????????????
+   physicalBodyName    (cBody.physicalBodyName),
    usePotentialFile    (cBody.usePotentialFile),
    potentialFileName   (cBody.potentialFileName),
    potentialFileNameFullPath (cBody.potentialFileNameFullPath),
@@ -535,6 +573,8 @@ CelestialBody::CelestialBody(const CelestialBody &cBody) :
    ephemUpdateInterval (cBody.ephemUpdateInterval),
    lastEphemTime       (cBody.lastEphemTime),
    lastEphemTimeGT     (cBody.lastEphemTimeGT),
+   ephemerisStateValid (false),
+   ephemerisStateEpoch (cBody.ephemerisStateEpoch),
    lastState           (cBody.lastState),
    j2kState            (cBody.j2kState),
    rotationSrc         (cBody.rotationSrc),
@@ -625,6 +665,7 @@ CelestialBody& CelestialBody::operator=(const CelestialBody &cBody)
    if (&cBody == this)
       return *this;
 
+   NotifyEphemerisChange(true);
    SpacePoint::operator=(cBody);
    bodyType            = cBody.bodyType;
    mass                = cBody.mass;
@@ -643,6 +684,7 @@ CelestialBody& CelestialBody::operator=(const CelestialBody &cBody)
    referenceBodyNumber = cBody.referenceBodyNumber;
    sourceFilename      = cBody.sourceFilename;
    theSourceFile       = cBody.theSourceFile;
+   physicalBodyName    = cBody.physicalBodyName;
    runEpoch            = cBody.runEpoch;
    #ifdef __USE_SPICE__
    kernelReader        = cBody.kernelReader;
@@ -709,6 +751,8 @@ CelestialBody& CelestialBody::operator=(const CelestialBody &cBody)
    ephemUpdateInterval = cBody.ephemUpdateInterval;
    lastEphemTime       = cBody.lastEphemTime;
    lastEphemTimeGT     = cBody.lastEphemTimeGT;
+   ephemerisStateValid = false;
+   ephemerisStateEpoch = cBody.ephemerisStateEpoch;
    lastState           = cBody.lastState;
    j2kState            = cBody.j2kState;
    rotationSrc         = cBody.rotationSrc;
@@ -750,6 +794,7 @@ CelestialBody& CelestialBody::operator=(const CelestialBody &cBody)
    for (Integer i = 0; i < Gmat::ModelTypeCount; i++)
       models[i] = cBody.models[i];
 
+   NotifyEphemerisChange(true);
    return *this;
 }
 
@@ -831,12 +876,15 @@ bool CelestialBody::Initialize()
    //isFirstTimeMu = true;
    //isFirstTimeRadius = true;
    
+   NotifyEphemerisChange(true);
    lastEphemTime = 0.0;
    lastEphemTimeGT = 0.0;
 
    stateTime = 0.0;   
    stateTimeGT = 0.0;
    newTwoBody = true;
+
+   if (posVelSrc == Gmat::TWO_BODY_PROPAGATION) SetUpBody();
 
    if (!centralBodySet)
    {
@@ -850,7 +898,7 @@ bool CelestialBody::Initialize()
    // when running function (LOJ: 2010.05.17)
    naifIdSet = false;
    
-   if (userDefined)
+   if (!UsesDefaultBodyModel())
    {
       if (!defaultOrientationWarningMesssageSent)
       {
@@ -865,6 +913,8 @@ bool CelestialBody::Initialize()
          }
       }
    }
+
+   if (posVelSrc == Gmat::TWO_BODY_PROPAGATION) ValidateTwoBodyConfiguration();
 
    // Set up the kernel reader, if required
    SetUpSPICE();
@@ -1142,6 +1192,10 @@ Real CelestialBody::GetFirstStateTime()
 const Rvector6&  CelestialBody::GetState(A1Mjd atTime)
 {
    if (!theCentralBody) SetUpBody();
+   #ifdef __USE_SPICE__
+      if (ephemerisPoolRevision != SpiceInterface::GetKernelPoolRevision())
+         ephemerisStateValid = false;
+   #endif
 
    #ifdef DEBUG_GET_STATE
    MessageInterface::ShowMessage
@@ -1152,21 +1206,31 @@ const Rvector6&  CelestialBody::GetState(A1Mjd atTime)
    MessageInterface::ShowMessage("   lastEphemTime = %.17f\n",lastEphemTime.Get());
    #endif
    
-   Real dt = Abs(atTime.Subtract(lastEphemTime)) * GmatTimeConstants::SECS_PER_DAY;
-   if ( dt < ephemUpdateInterval)
+   Real dt = Abs(atTime.Get() - ephemerisStateEpoch.GetMjd()) * GmatTimeConstants::SECS_PER_DAY;
+   if (ephemerisStateValid && ephemerisDerivativeDepth == 0 && dt < ephemUpdateInterval &&
+       (posVelSrc != Gmat::SPICE || spiceSetupDone) &&
+       !(posVelSrc == Gmat::TWO_BODY_PROPAGATION && newTwoBody))
    {
       #ifdef DEBUG_GET_STATE
       MessageInterface::ShowMessage("   returning lastState %s\n", state.ToString().c_str());
       #endif
+      state = lastState;
+      stateTime = ephemerisStateEpoch.GetMjd();
+      stateTimeGT = ephemerisStateEpoch;
+      lastEphemTime = ephemerisStateEpoch.GetMjd();
+      lastEphemTimeGT = ephemerisStateEpoch;
       return lastState;
    }
    
    Real*     posVel = NULL;
+   InvalidateEphemerisState();
    switch (posVelSrc)
    {
-//      case Gmat::TWO_BODY_PROPAGATION :   // 2012.01.24 - wcs - disallow for now
-//         state = ComputeTwoBody(atTime);
-//         break;
+      case Gmat::TWO_BODY_PROPAGATION:
+         state = ComputeTwoBody(atTime);
+         stateTimeGT = atTime.Get();
+         lastEphemTimeGT = atTime.Get();
+         break;
       // DE405, DE421,DE424, and DE430 read data from theSourceFile
       case Gmat::DE405 :
       case Gmat::DE421 :
@@ -1221,8 +1285,15 @@ const Rvector6&  CelestialBody::GetState(A1Mjd atTime)
          break;
    }
    stateTime     = atTime;
+   stateTimeGT   = atTime.Get();
    lastEphemTime = atTime;
+   lastEphemTimeGT = atTime.Get();
    lastState     = state;
+   ephemerisStateEpoch = atTime.Get();
+   #ifdef __USE_SPICE__
+      ephemerisPoolRevision = SpiceInterface::GetKernelPoolRevision();
+   #endif
+   ephemerisStateValid = true;
    
    for (Integer i=0;i<6;i++)
       prevState[i] = lastState[i];
@@ -1253,6 +1324,10 @@ const Rvector6&  CelestialBody::GetState(A1Mjd atTime)
 const Rvector6&  CelestialBody::GetState(GmatTime atTime)
 {
    if (!theCentralBody) SetUpBody();
+   #ifdef __USE_SPICE__
+      if (ephemerisPoolRevision != SpiceInterface::GetKernelPoolRevision())
+         ephemerisStateValid = false;
+   #endif
 
 #ifdef DEBUG_GET_STATE
    MessageInterface::ShowMessage
@@ -1263,21 +1338,29 @@ const Rvector6&  CelestialBody::GetState(GmatTime atTime)
    MessageInterface::ShowMessage("   lastEphemTimeGT = %.17f\n", lastEphemTimeGT.GetMjd());
 #endif
 
-   Real dt = Abs((atTime - lastEphemTimeGT).GetMjd()) * GmatTimeConstants::SECS_PER_DAY;
-   if (dt < ephemUpdateInterval)
+   Real dt = Abs((atTime - ephemerisStateEpoch).GetMjd()) * GmatTimeConstants::SECS_PER_DAY;
+   if (ephemerisStateValid && ephemerisDerivativeDepth == 0 && dt < ephemUpdateInterval &&
+       (posVelSrc != Gmat::SPICE || spiceSetupDone) &&
+       !(posVelSrc == Gmat::TWO_BODY_PROPAGATION && newTwoBody))
    {
 #ifdef DEBUG_GET_STATE
       MessageInterface::ShowMessage("   returning lastState %s\n", state.ToString().c_str());
 #endif
+      state = lastState;
+      stateTime = ephemerisStateEpoch.GetMjd();
+      stateTimeGT = ephemerisStateEpoch;
+      lastEphemTime = ephemerisStateEpoch.GetMjd();
+      lastEphemTimeGT = ephemerisStateEpoch;
       return lastState;
    }
 
    //Real*     posVel = NULL;
+   InvalidateEphemerisState();
    switch (posVelSrc)
    {
-      //      case Gmat::TWO_BODY_PROPAGATION :   // 2012.01.24 - wcs - disallow for now
-      //         state = ComputeTwoBody(atTime);
-      //         break;
+   case Gmat::TWO_BODY_PROPAGATION:
+      state = ComputeTwoBody(atTime);
+      break;
       // DE405, DE421,DE424, and DE430 read data from theSourceFile
    case Gmat::DE405:
    case Gmat::DE421:
@@ -1343,6 +1426,11 @@ const Rvector6&  CelestialBody::GetState(GmatTime atTime)
    lastEphemTimeGT = atTime;
    lastEphemTime   = atTime.GetMjd();
    lastState = state;
+   ephemerisStateEpoch = atTime;
+   #ifdef __USE_SPICE__
+      ephemerisPoolRevision = SpiceInterface::GetKernelPoolRevision();
+   #endif
+   ephemerisStateValid = true;
 
    for (Integer i = 0; i<6; i++)
       prevState[i] = lastState[i];
@@ -1373,6 +1461,14 @@ const Rvector6&  CelestialBody::GetState(GmatTime atTime)
 //------------------------------------------------------------------------------
 const Rvector3  CelestialBody::GetPositionDelta(const GmatTime &atTime1, const GmatTime &atTime2)
 {
+   if (posVelSrc == Gmat::TWO_BODY_PROPAGATION)
+   {
+      const Rvector6 first = ComputeTwoBody(atTime1);
+      const Rvector6 second = ComputeTwoBody(atTime2);
+      Rvector3 delta = second.GetR() - first.GetR();
+      return delta;
+   }
+
    Rvector3 positionDelta;
 
    if (!theCentralBody) SetUpBody();
@@ -1466,6 +1562,18 @@ const Rvector3  CelestialBody::GetPositionDelta(const GmatTime &atTime1, const G
 //------------------------------------------------------------------------------
 const Rvector3  CelestialBody::GetPositionDeltaSSB(const GmatTime &atTime1, const GmatTime &atTime2)
 {
+   if (posVelSrc == Gmat::TWO_BODY_PROPAGATION)
+   {
+      const Rvector6 first = ComputeTwoBody(atTime1);
+      const Rvector6 second = ComputeTwoBody(atTime2);
+      Rvector3 delta = second.GetR() - first.GetR();
+      auto *reference = dynamic_cast<CelestialBody *>(j2000Body);
+      if (!reference || reference == this)
+         throw SolarSystemException("Invalid J2000 reference body for " + instanceName);
+      delta += reference->GetPositionDeltaSSB(atTime1, atTime2);
+      return delta;
+   }
+
    Rvector3 positionDelta, ssbDelta;
 
    if (!theCentralBody) SetUpBody();
@@ -1584,131 +1692,10 @@ const Rvector6&  CelestialBody::GetState(Real atTime)
 //------------------------------------------------------------------------------
 void CelestialBody::GetState(const A1Mjd &atTime, Real *outState)
 {
-   #ifdef DEBUG_GET_STATE
-      MessageInterface::ShowMessage("Entering GetState with time %.17f\n",
-      atTime.Get());
-   #endif
-      
-   if (!theCentralBody) SetUpBody();
-
-   Real dt = Abs(atTime.Subtract(lastEphemTime)) * GmatTimeConstants::SECS_PER_DAY;
-   if ( dt < ephemUpdateInterval)
-   {
-      for (Integer i=0;i<6;i++) outState[i] = prevState[i];
-   }
-   
-//   Rvector6 state;
-   switch (posVelSrc)
-   {
-//      case Gmat::TWO_BODY_PROPAGATION :  // 2012.01.24 - wcs - disallow for now
-//      {
-//         state = ComputeTwoBody(atTime);
-//         for (Integer i=0;i<6;i++) outState[i] = state[i];
-//         break;
-//      }
-      case Gmat::DE405 :
-      {
-         if (!theSourceFile)
-         {
-            throw PlanetaryEphemException(
-               "DE 405 file requested, but no file specified");
-         }
-         #ifdef DEBUG_GET_STATE
-         MessageInterface::ShowMessage
-         ("   In <%p> '%s', Calling theSourceFile(%s)->GetPosVel(%d, %f, %s)\n",
-            this, GetName().c_str(), (theSourceFile->GetName()).c_str(), bodyNumber, atTime.GetReal(),
-            overrideTime ? "true" : "false");
-         #endif
-         outState = theSourceFile->GetPosVel(bodyNumber, atTime, overrideTime);
-         break;
-      }
-      case Gmat::DE421 :
-      {
-         if (!theSourceFile)
-         {
-            throw PlanetaryEphemException(
-               "DE 421 file requested, but no file specified");
-         }
-         #ifdef DEBUG_GET_STATE
-         MessageInterface::ShowMessage
-         ("   In <%p> '%s', Calling theSourceFile(%s)->GetPosVel(%d, %f, %s)\n",
-            this, GetName().c_str(), (theSourceFile->GetName()).c_str(), bodyNumber, atTime.GetReal(),
-            overrideTime ? "true" : "false");
-         #endif
-         outState = theSourceFile->GetPosVel(bodyNumber, atTime, overrideTime);
-         break;
-      }
-      case Gmat::DE424 :
-      {
-         if (!theSourceFile)
-         {
-            throw PlanetaryEphemException(
-               "DE 424 file requested, but no file specified");
-         }
-         #ifdef DEBUG_GET_STATE
-         MessageInterface::ShowMessage
-         ("   In <%p> '%s', Calling theSourceFile(%s)->GetPosVel(%d, %f, %s)\n",
-            this, GetName().c_str(), (theSourceFile->GetName()).c_str(), bodyNumber, atTime.GetReal(),
-            overrideTime ? "true" : "false");
-         #endif
-         outState = theSourceFile->GetPosVel(bodyNumber, atTime, overrideTime);
-         break;
-      }
-//      case Gmat::DE430 :
-//          if (!theSourceFile)
-//          {
-//             throw PlanetaryEphemException(
-//                   "DE 430 file requested, but no file specified");
-//          }
-//          #ifdef DEBUG_GET_STATE
-//          MessageInterface::ShowMessage
-//             ("   In <%p> '%s', Calling theSourceFile(%s)->GetPosVel(%d, %f, %s)\n",
-//              this, GetName().c_str(), (theSourceFile->GetName()).c_str(), bodyNumber, atTime.GetReal(),
-//              overrideTime ? "true" : "false");
-//          #endif
-//          outState     = theSourceFile->GetPosVel(bodyNumber,atTime, overrideTime);
-//          break;
-//
-      case Gmat::SPICE :
-      {
-      #ifdef __USE_SPICE__
-         if (!spiceSetupDone) SetUpSPICE();
-         state = kernelReader->GetTargetState(naifName, naifId, atTime, j2000BodyName, naifIdObserver);
-         for (Integer i = 0; i < 6; i++) outState[i] = state[i];
-         #ifdef DEBUG_CB_SPICE_VS_DE
-         Real *deState;
-         //deState = (Real *)malloc(6);
-         deState = theSourceFile->GetPosVel(bodyNumber, atTime, overrideTime);
-         MessageInterface::ShowMessage("for body %s, for time: %12.10f:\n", instanceName.c_str(), atTime.Get());
-         MessageInterface::ShowMessage("     SPICE state is: %12.10f  %12.10f  %12.10f  %12.10f  %12.10f  %12.10f\n",
-            state[0], state[1], state[2], state[3], state[4], state[5]);
-         MessageInterface::ShowMessage("     DE state is:    %12.10f  %12.10f  %12.10f  %12.10f  %12.10f  %12.10f\n",
-            deState[0], deState[1], deState[2], deState[3], deState[4], deState[5]);
-
-         // This code will make it crash
-         //delete deState;
-         #endif
-
-      #endif
-         break;
-      }
-      default:
-         throw SolarSystemException("Invalid data source defined for body "
-                                    + instanceName);
-         break;
-   }
-   
-   stateTime     = atTime;
-   lastEphemTime = atTime;
-   state.Set(outState[0],outState[1],outState[2],outState[3],outState[4],outState[5]);
-   lastState.Set(outState[0],outState[1],outState[2],outState[3],outState[4],outState[5]);
-   
-   for (Integer i=0;i<6;i++)
-      prevState[i] = outState[i];
-   
-   #ifdef DEBUG_GET_STATE
-      MessageInterface::ShowMessage("Exiting GetState -------------f\n");
-   #endif
+   if (!outState)
+      throw SolarSystemException("CelestialBody state output buffer is NULL for " + instanceName);
+   const Rvector6 current = GetState(atTime);
+   for (Integer i = 0; i < 6; ++i) outState[i] = current[i];
 }
 
 
@@ -1728,134 +1715,10 @@ void CelestialBody::GetState(const A1Mjd &atTime, Real *outState)
 //------------------------------------------------------------------------------
 void CelestialBody::GetState(const GmatTime &atTime, Real *outState)
 {
-#ifdef DEBUG_GET_STATE
-   MessageInterface::ShowMessage("Entering GetState with time %.17f\n",
-      GmatTime(atTime).GetMjd());
-#endif
-
-   if (!theCentralBody) SetUpBody();
-
-   Real dt = Abs((atTime - lastEphemTimeGT).GetMjd()) * GmatTimeConstants::SECS_PER_DAY;
-   if (dt < ephemUpdateInterval)
-   {
-      for (Integer i = 0; i<6; i++) outState[i] = prevState[i];
-   }
-
-   //   Rvector6 state;
-   switch (posVelSrc)
-   {
-      //      case Gmat::TWO_BODY_PROPAGATION :  // 2012.01.24 - wcs - disallow for now
-      //      {
-      //         state = ComputeTwoBody(atTime);
-      //         for (Integer i=0;i<6;i++) outState[i] = state[i];
-      //         break;
-      //      }
-   case Gmat::DE405:
-   {
-      if (!theSourceFile)
-      {
-         throw PlanetaryEphemException(
-            "DE 405 file requested, but no file specified");
-      }
-#ifdef DEBUG_GET_STATE
-      MessageInterface::ShowMessage
-      ("   In <%p> '%s', Calling theSourceFile(%s)->GetPosVel(%d, %f, %s)\n",
-         this, GetName().c_str(), (theSourceFile->GetName()).c_str(), bodyNumber, GmatTime(atTime).GetMjd(),
-         overrideTime ? "true" : "false");
-#endif
-      outState = theSourceFile->GetPosVel(bodyNumber, atTime, overrideTime);
-      break;
-   }
-   case Gmat::DE421:
-   {
-      if (!theSourceFile)
-      {
-         throw PlanetaryEphemException(
-            "DE 421 file requested, but no file specified");
-      }
-#ifdef DEBUG_GET_STATE
-      MessageInterface::ShowMessage
-      ("   In <%p> '%s', Calling theSourceFile(%s)->GetPosVel(%d, %f, %s)\n",
-         this, GetName().c_str(), (theSourceFile->GetName()).c_str(), bodyNumber, GmatTime(atTime).GetMjd(),
-         overrideTime ? "true" : "false");
-#endif
-      outState = theSourceFile->GetPosVel(bodyNumber, atTime, overrideTime);
-      break;
-   }
-   case Gmat::DE424:
-   {
-      if (!theSourceFile)
-      {
-         throw PlanetaryEphemException(
-            "DE 424 file requested, but no file specified");
-      }
-#ifdef DEBUG_GET_STATE
-      MessageInterface::ShowMessage
-      ("   In <%p> '%s', Calling theSourceFile(%s)->GetPosVel(%d, %f, %s)\n",
-         this, GetName().c_str(), (theSourceFile->GetName()).c_str(), bodyNumber, GmatTime(atTime).GetMjd(),
-         overrideTime ? "true" : "false");
-#endif
-      outState = theSourceFile->GetPosVel(bodyNumber, atTime, overrideTime);
-      break;
-   }
-      //      case Gmat::DE430 :
-      //          if (!theSourceFile)
-      //          {
-      //             throw PlanetaryEphemException(
-      //                   "DE 430 file requested, but no file specified");
-      //          }
-      //          #ifdef DEBUG_GET_STATE
-      //          MessageInterface::ShowMessage
-      //             ("   In <%p> '%s', Calling theSourceFile(%s)->GetPosVel(%d, %f, %s)\n",
-      //              this, GetName().c_str(), (theSourceFile->GetName()).c_str(), bodyNumber, atTime.GetReal(),
-      //              overrideTime ? "true" : "false");
-      //          #endif
-      //          outState     = theSourceFile->GetPosVel(bodyNumber,atTime, overrideTime);
-      //          break;
-      //
-   case Gmat::SPICE:
-   {
-#ifdef __USE_SPICE__
-      if (!spiceSetupDone) SetUpSPICE();
-      state = kernelReader->GetTargetState(naifName, naifId, atTime, j2000BodyName, naifIdObserver);
-      for (Integer i = 0; i < 6; i++) outState[i] = state[i];
-#ifdef DEBUG_CB_SPICE_VS_DE
-      Real *deState;
-      //deState = (Real *)malloc(6);
-      deState = theSourceFile->GetPosVel(bodyNumber, atTime, overrideTime);
-      MessageInterface::ShowMessage("for body %s, for time: %12.10f:\n", instanceName.c_str(), GmatTime(atTime).GetMjd());
-      MessageInterface::ShowMessage("     SPICE state is: %12.10f  %12.10f  %12.10f  %12.10f  %12.10f  %12.10f\n",
-         state[0], state[1], state[2], state[3], state[4], state[5]);
-      MessageInterface::ShowMessage("     DE state is:    %12.10f  %12.10f  %12.10f  %12.10f  %12.10f  %12.10f\n",
-         deState[0], deState[1], deState[2], deState[3], deState[4], deState[5]);
-
-      // This code will make it crash.
-      //delete deState;
-#endif
-
-#endif
-      break;
-   }
-   default:
-      throw SolarSystemException("Invalid data source defined for body "
-         + instanceName);
-      break;
-   }
-
-   stateTimeGT     = atTime;
-   lastEphemTimeGT = atTime;
-   stateTime       = GmatTime(atTime).GetMjd();
-   lastEphemTime   = GmatTime(atTime).GetMjd();
-
-   state.Set(outState[0], outState[1], outState[2], outState[3], outState[4], outState[5]);
-   lastState.Set(outState[0], outState[1], outState[2], outState[3], outState[4], outState[5]);
-
-   for (Integer i = 0; i<6; i++)
-      prevState[i] = outState[i];
-
-#ifdef DEBUG_GET_STATE
-   MessageInterface::ShowMessage("Exiting GetState -------------\n");
-#endif
+   if (!outState)
+      throw SolarSystemException("CelestialBody state output buffer is NULL for " + instanceName);
+   const Rvector6 current = GetState(atTime);
+   for (Integer i = 0; i < 6; ++i) outState[i] = current[i];
 }
 
 
@@ -1944,7 +1807,7 @@ Real CelestialBody::GetGravitationalConstant()
    {
       if (isFirstTimeMu)
       {
-         if (userDefined)
+         if (!UsesDefaultBodyModel())
          {
             if (!userSetMu)
             {
@@ -2019,7 +1882,7 @@ Real CelestialBody::GetEquatorialRadius()
    {
       if (isFirstTimeRadius)
       {
-         if (userDefined)
+         if (!UsesDefaultBodyModel())
          {
             if (!userSetEquitorialRadius)
             {
@@ -2054,7 +1917,7 @@ Real CelestialBody::GetFlattening()
 {
    if (isFirstTimeFlattening)
    {
-      if (userDefined)
+      if (!UsesDefaultBodyModel())
       {
          if (!userSetFlattening)
          {
@@ -2127,6 +1990,7 @@ Gmat::PosVelSource  CelestialBody::GetPosVelSource() const
 //------------------------------------------------------------------------------
 std::string CelestialBody::GetSourceFileName() const
 {
+   if (posVelSrc == Gmat::TWO_BODY_PROPAGATION) return "";
    if (theSourceFile)
       return theSourceFile->GetName();
    return "";
@@ -2426,6 +2290,110 @@ bool CelestialBody::IsUserDefined() const
    return userDefined;
 }
 
+const std::string& CelestialBody::GetPhysicalBodyName() const
+{
+   return physicalBodyName.empty() ? instanceName : physicalBodyName;
+}
+
+bool CelestialBody::UsesDefaultBodyModel() const
+{
+   return !userDefined || !physicalBodyName.empty();
+}
+
+void CelestialBody::MakeDefaultBodyCopy()
+{
+   if (bodyType == Gmat::SPECIAL_CELESTIAL_POINT)
+      throw SolarSystemException("Use a calculated-point copy for a special ephemeris point.");
+   if (!UsesDefaultBodyModel())
+      throw SolarSystemException("This body has no default physical model to retain.");
+   std::string identity = GetPhysicalBodyName();
+   physicalBodyName.swap(identity);
+   userDefined = true;
+   cloaking = false;
+   isInitialized = false;
+   InvalidateEphemerisState(true); // This prepared copy is not registered yet.
+}
+
+bool CelestialBody::BindPhysicalBody(const std::string &name)
+{
+   if (name == physicalBodyName) return true;
+   if (!userDefined || !physicalBodyName.empty() || name.empty())
+      throw SolarSystemException("PhysicalBody can only be selected once for a new user-defined body.");
+   CelestialBody *model = theSolarSystem ? theSolarSystem->GetBody(name) : nullptr;
+   if (!model || model == this || model->IsUserDefined() ||
+         model->GetTypeName() != GetTypeName() || model->bodyType != bodyType)
+      throw SolarSystemException("PhysicalBody must name a default body of the same type for " + instanceName);
+   if ((name == GmatSolarSystemDefaults::EARTH_NAME ||
+         name == GmatSolarSystemDefaults::MOON_NAME) &&
+         naifId != UNDEFINED_NAIF_ID && naifId != model->naifId)
+      throw SolarSystemException("NAIF ID does not match the selected physical body " + name);
+
+   // Prepare owned configuration and provider descriptors before publishing
+   // an identity. The source's live reader and state caches are never adopted.
+   std::string identity = name;
+   std::string filename = model->sourceFilename;
+   std::string parent = model->theCentralBodyName;
+   std::string dateFormat = model->orientationDateFormat;
+   std::string potential = model->potentialFileName;
+   std::string potentialPath = model->potentialFileNameFullPath;
+   std::string atmosphereType = model->atmModelType;
+   std::unique_ptr<AtmosphereModel> atmosphere(model->atmModel ?
+      static_cast<AtmosphereModel *>(model->atmModel->Clone()) : nullptr);
+   if (model->atmModel && !atmosphere)
+      throw SolarSystemException("Cannot copy the physical body's atmosphere model for " + instanceName);
+   std::array<StringArray, Gmat::ModelTypeCount> modelLists;
+   for (Integer i = 0; i < Gmat::ModelTypeCount; ++i) modelLists[i] = model->models[i];
+   const Integer number = model->theSourceFile ?
+      model->theSourceFile->GetBodyID(identity) : model->bodyNumber;
+
+   physicalBodyName.swap(identity);
+   sourceFilename.swap(filename);
+   theSourceFile = model->theSourceFile;
+   bodyNumber = number;
+   referenceBodyNumber = model->referenceBodyNumber;
+   posVelSrc = model->posVelSrc;
+   allowSpice = model->allowSpice;
+   theCentralBodyName.swap(parent);
+   theCentralBody = model->theCentralBody;
+   centralBodySet = model->centralBodySet;
+   rotationSrc = model->rotationSrc;
+   default_rotationSrc = model->default_rotationSrc;
+   orientationDateFormat.swap(dateFormat);
+   orientationEpoch = model->orientationEpoch;
+   orientation = model->orientation;
+   default_orientationEpoch = model->default_orientationEpoch;
+   default_orientation = model->default_orientation;
+   if (!userSetMu) { mu = model->mu; default_mu = model->default_mu; }
+   if (!userSetEquitorialRadius)
+   {
+      equatorialRadius = model->equatorialRadius;
+      default_equatorialRadius = model->default_equatorialRadius;
+   }
+   if (!userSetFlattening) { flattening = model->flattening; default_flattening = model->default_flattening; }
+   polarRadius = (1.0 - flattening) * equatorialRadius;
+   mass = mu / GmatPhysicalConstants::UNIVERSAL_GRAVITATIONAL_CONSTANT;
+   if (naifId == UNDEFINED_NAIF_ID) naifId = model->naifId;
+   usePotentialFile = model->usePotentialFile;
+   potentialFileName.swap(potential);
+   potentialFileNameFullPath.swap(potentialPath);
+   potentialFileRead = false;
+   order = model->order; degree = model->degree;
+   atmModelType.swap(atmosphereType);
+   AtmosphereModel *previousAtmosphere = atmModel;
+   atmModel = atmosphere.release();
+   for (Integer i = 0; i < Gmat::ModelTypeCount; ++i) models[i].swap(modelLists[i]);
+   isInitialized = false;
+   NotifyEphemerisChange(true);
+   delete previousAtmosphere;
+   return true;
+}
+
+bool CelestialBody::IsParameterCommandModeSettable(const Integer id) const
+{
+   if (id == PHYSICAL_BODY) return false;
+   return SpacePoint::IsParameterCommandModeSettable(id);
+}
+
 
 //------------------------------------------------------------------------------
 // StringArray GetEphemSourceList() const
@@ -2442,8 +2410,13 @@ StringArray CelestialBody::GetEphemSourceList() const
    for (int jj = 0; jj < Gmat::PosVelSourceCount; jj++)
    {
       std::string src = Gmat::POS_VEL_SOURCE_STRINGS[jj];
+      if (jj == Gmat::TWO_BODY_PROPAGATION)
+      {
+         if (!UsesDefaultBodyModel()) srcList.push_back(src);
+         continue;
+      }
          
-      if (userDefined)
+      if (!UsesDefaultBodyModel())
       {
       #ifdef __USE_SPICE__
          if (!(GmatStringUtil::StartsWith(src, "DE")))
@@ -2526,7 +2499,15 @@ bool CelestialBody::SetBodyType(Gmat::BodyType bType)
 //------------------------------------------------------------------------------
 bool CelestialBody::SetCentralBody(const std::string &cBody)
 {
-   theCentralBodyName = cBody;
+   if (posVelSrc == Gmat::TWO_BODY_PROPAGATION && (cBody.empty() || cBody == instanceName))
+      throw SolarSystemException("A two-body orbit requires a distinct central body");
+   if (theCentralBodyName != cBody)
+   {
+      theCentralBodyName = cBody;
+      theCentralBody = NULL;
+      centralBodySet = false;
+      ResetTwoBodyCache();
+   }
    return true;
 }
 
@@ -2559,8 +2540,10 @@ bool CelestialBody::SetGravitationalConstant(Real newMu)
       throw sse;
    }
    
+   const bool changed = mu != newMu;
    mu                         = newMu;
    mass                       = mu / GmatPhysicalConstants::UNIVERSAL_GRAVITATIONAL_CONSTANT;
+   if (changed) ResetTwoBodyCache();
    return true;
 }
 
@@ -2644,6 +2627,10 @@ bool CelestialBody::SetFlattening(Real flat)
 //------------------------------------------------------------------------------
 bool CelestialBody::SetSource(Gmat::PosVelSource pvSrc)
 {
+   if (pvSrc < Gmat::DE405 || pvSrc >= Gmat::PosVelSourceCount ||
+         (pvSrc == Gmat::TWO_BODY_PROPAGATION && UsesDefaultBodyModel()))
+      throw SolarSystemException("TwoBodyPropagation is available only for user-defined bodies; "
+            "invalid ephemeris source for " + instanceName);
    #ifdef DEBUG_EPHEM_SOURCE
    MessageInterface::ShowMessage
       ("CelestialBody::SetSource() <%p> %s, Setting source to %d(%s)\n", this,
@@ -2654,7 +2641,7 @@ bool CelestialBody::SetSource(Gmat::PosVelSource pvSrc)
 
    if (pvSrc == Gmat::DE405)
    {
-      if (userDefined)
+      if (!UsesDefaultBodyModel())
       {
          std::string errmsg = "DE405 file option not available for user-defined body ";
          errmsg += instanceName + "\n";
@@ -2663,7 +2650,7 @@ bool CelestialBody::SetSource(Gmat::PosVelSource pvSrc)
    }
    if (pvSrc == Gmat::DE421)
    {
-      if (userDefined)
+      if (!UsesDefaultBodyModel())
       {
          std::string errmsg = "DE421 file option not available for user-defined body ";
          errmsg += instanceName + "\n";
@@ -2672,7 +2659,7 @@ bool CelestialBody::SetSource(Gmat::PosVelSource pvSrc)
    }
    if (pvSrc == Gmat::DE424)
    {
-      if (userDefined)
+      if (!UsesDefaultBodyModel())
       {
          std::string errmsg = "DE424 file option not available for user-defined body ";
          errmsg += instanceName + "\n";
@@ -2681,7 +2668,7 @@ bool CelestialBody::SetSource(Gmat::PosVelSource pvSrc)
    }
 //   if (pvSrc == Gmat::DE430)
 //   {
-//      if (userDefined)
+//      if (!UsesDefaultBodyModel())
 //      {
 //         std::string errmsg = "DE430 file option not available for user-defined body ";
 //         errmsg += instanceName + "\n";
@@ -2690,7 +2677,7 @@ bool CelestialBody::SetSource(Gmat::PosVelSource pvSrc)
 //   }
    if (pvSrc == Gmat::SPICE)
    {
-      if ((!userDefined) && (!allowSpice))
+      if ((UsesDefaultBodyModel()) && (!allowSpice))
       {
          std::string errmsg = "SPICE file option not available for default body ";
          errmsg += instanceName + "\n";
@@ -2699,6 +2686,7 @@ bool CelestialBody::SetSource(Gmat::PosVelSource pvSrc)
       spiceSetupDone = false;
    }
    posVelSrc           = pvSrc;
+   ResetTwoBodyCache();
    return true;
 }
 
@@ -2716,10 +2704,17 @@ bool CelestialBody::SetSource(Gmat::PosVelSource pvSrc)
 //------------------------------------------------------------------------------
 bool CelestialBody::SetSourceFile(PlanetaryEphem *src)
 {
-   // should I delete the old one here???
-   theSourceFile  = src;
-   sourceFilename = theSourceFile->GetName();
-   bodyNumber     = theSourceFile->GetBodyID(instanceName);
+   if (!src) return false;
+   // Validate/copy first; a provider lookup can throw without changing the
+   // previously bound reader or its descriptor values.
+   std::string nextFilename = src->GetName();
+   const Integer nextNumber = src->GetBodyID(GetPhysicalBodyName());
+   const bool changed = theSourceFile != src || sourceFilename != nextFilename ||
+                        bodyNumber != nextNumber;
+   sourceFilename.swap(nextFilename);
+   theSourceFile = src;
+   bodyNumber = nextNumber;
+   if (changed) NotifyEphemerisChange();
    #ifdef DEBUG_EPHEM_SOURCE
       MessageInterface::ShowMessage
          ("CelestialBody::SetSourceFile() <%p> %s, Setting source file to %p\n",
@@ -2742,14 +2737,14 @@ bool CelestialBody::SetSourceFile(PlanetaryEphem *src)
 bool CelestialBody::SetAllowSpice(const bool allow)
 {
    #ifdef DEBUG_CB_SPICE
-      if (userDefined)
+      if (!UsesDefaultBodyModel())
          MessageInterface::ShowMessage("Cannot set allowSpice flag for body %s - it is user-defined.\n",
                instanceName.c_str());
       else
          MessageInterface::ShowMessage("Setting allowSpice flag for body %s to %s\n",
                instanceName.c_str(), (allow? "true" : "false"));
    #endif
-   if (!userDefined) allowSpice = allow; // set for default bodies only
+   if (UsesDefaultBodyModel()) allowSpice = allow; // set for default bodies only
    if (allowSpice)   spiceSetupDone = false;
    return true;
 }
@@ -2793,7 +2788,8 @@ bool CelestialBody::SetUsePotentialFile(bool useIt)
       isFirstTimeRadius = true;
    }
    
-   usePotentialFile    = useIt;
+   if (usePotentialFile != useIt) NotifyEphemerisChange();
+   usePotentialFile = useIt;
    return true;
 }
 
@@ -2817,7 +2813,11 @@ bool CelestialBody::SetOverrideTimeSystem(bool overrideIt)
       ("CelestialBody::SetOverrideTimeSystem() <%p> '%s' entered, overrideIt=%d\n",
        this, GetName().c_str(), overrideIt);
    #endif
-   overrideTime        = overrideIt;
+   if (overrideTime != overrideIt)
+   {
+      overrideTime = overrideIt;
+      NotifyEphemerisChange();
+   }
    return true;
 }
 
@@ -2844,7 +2844,11 @@ bool CelestialBody::SetEphemUpdateInterval(Real intvl)
                      "Ephemeris Update Interval", "Real Number >= 0.0");
       throw sse;
    }
-   ephemUpdateInterval = intvl;
+   if (ephemUpdateInterval != intvl)
+   {
+      ephemUpdateInterval = intvl;
+      NotifyEphemerisChange();
+   }
    return true;
 }
 
@@ -3033,6 +3037,7 @@ bool CelestialBody::SetPotentialFilename(const std::string &fn)
 {
    if (potentialFileName != fn)
    {
+      NotifyEphemerisChange();
       potentialFileRead = false;
       isFirstTimeMu = true;
       isFirstTimeRadius = true;
@@ -3061,8 +3066,12 @@ bool CelestialBody::SetTwoBodyEpoch(const A1Mjd &toTime)
          "In CB::SetTwoBodyEpoch, setting epoch to %.12f\n", toTime.Get());
 //      "In CB::SetAnalyticEpoch, setting epoch to %.12f\n", toTime.Get());
    #endif
-   twoBodyEpoch        = toTime;
-   newTwoBody          = true;
+   if (!std::isfinite(toTime.Get()) || toTime.Get() < DateUtil::EARLIEST_VALID_MJD_VALUE ||
+         toTime.Get() > DateUtil::LATEST_VALID_MJD_VALUE)
+      throw SolarSystemException("Two-body epoch for " + instanceName +
+            " must be within the supported A1ModJulian date range");
+   twoBodyEpoch = toTime;
+   ResetTwoBodyCache();
    return true;
 }
 
@@ -3081,7 +3090,7 @@ bool CelestialBody::SetTwoBodyEpoch(const A1Mjd &toTime)
 //------------------------------------------------------------------------------
 bool CelestialBody::SetSMA(Real value)
 {
-   if (value == 0.0)
+   if (!std::isfinite(value) || value == 0.0)
    {
       SolarSystemException sse;
       sse.SetDetails(errorMessageFormat.c_str(),
@@ -3092,6 +3101,7 @@ bool CelestialBody::SetSMA(Real value)
    }
    
    twoBodyKepler[0]    = value;
+   ResetTwoBodyCache();
    return true;
 }
 
@@ -3110,17 +3120,18 @@ bool CelestialBody::SetSMA(Real value)
 //------------------------------------------------------------------------------
 bool CelestialBody::SetECC(Real value)
 {
-   if (value < 0.0)
+   if (!std::isfinite(value) || value < 0.0 || value == 1.0)
    {
       SolarSystemException sse;
       sse.SetDetails(errorMessageFormat.c_str(),
                      GmatStringUtil::ToString(value, GetDataPrecision()).c_str(),
                      PARAMETER_TEXT[TWO_BODY_ECC - SpacePointParamCount].c_str(),
-                     "Real Number >= 0.0");
+                     "Finite real number >= 0.0 and != 1.0");
       throw sse;
    }
    
    twoBodyKepler[1] = value;
+   ResetTwoBodyCache();
    return true;
 }
 
@@ -3147,13 +3158,9 @@ bool CelestialBody::SetTwoBodyElements(const Rvector6 &kepl)
 //      " %.12f %.12f\n", kepl[0],kepl[1],kepl[2],kepl[3],kepl[4],kepl[5]);
    #endif
       
-   SetSMA(kepl[0]);
-   SetECC(kepl[1]);
-   
-   /// @todo  Add validation as in StateConversionUtilities
-   
+   ValidateTwoBodyElements(kepl);
    twoBodyKepler       = kepl;
-   newTwoBody          = true;
+   ResetTwoBodyCache();
    return true;
 }
 
@@ -3191,7 +3198,7 @@ bool CelestialBody::SetRotationDataSource(Gmat::RotationDataSource src)
 bool CelestialBody::SetUserDefined(bool userDefinedBody)
 {
    // make sure source makes sense
-   if ((userDefinedBody) && ((posVelSrc == Gmat::DE405) ||(posVelSrc == Gmat::DE421) ||
+   if ((userDefinedBody) && physicalBodyName.empty() && ((posVelSrc == Gmat::DE405) ||(posVelSrc == Gmat::DE421) ||
 	    (posVelSrc == Gmat::DE424)))   //  || (posVelSrc == Gmat::DE430)))
 	{
       posVelSrc = Gmat::SPICE;
@@ -3212,7 +3219,7 @@ bool CelestialBody::SetUserDefined(bool userDefinedBody)
    }
 
    userDefined         = userDefinedBody;
-   if (userDefined) allowSpice = true;
+   if (!UsesDefaultBodyModel()) allowSpice = true;
    #ifdef DEBUG_CB_USER_DEFINED
       MessageInterface::ShowMessage(
             "In CB::SetUserDefined, body %s has been set to userDefined = %s and allowSpice = %s\n",
@@ -3288,8 +3295,9 @@ const Rvector6 CelestialBody::GetMJ2000State(const A1Mjd &atTime)
          ("CelestialBody::GetMJ2000State() j2000Body is NULL for " + instanceName);
    
    // If j2000Body is this body, return the zero state vector
-   if(j2000Body->GetName() == instanceName) 
+   if (j2000Body == this)
    {
+      InvalidateEphemerisState();
       state.Set(0.0,0.0,0.0,0.0,0.0,0.0);
       stateTime     = atTime;
       lastEphemTime = atTime;
@@ -3338,7 +3346,7 @@ const Rvector6 CelestialBody::GetMJ2000State(const A1Mjd &atTime)
    // the lastEphemTime will have been set when we called GetState
 
    // SPICE does the subtraction itself
-   if (posVelSrc == Gmat::SPICE)
+   if (posVelSrc == Gmat::SPICE || posVelSrc == Gmat::TWO_BODY_PROPAGATION)
    {
       j2kState = stateEphem;
 //      return stateEphem;
@@ -3415,8 +3423,9 @@ const Rvector6 CelestialBody::GetMJ2000State(const GmatTime &atTime)
       ("CelestialBody::GetMJ2000State() j2000Body is NULL for " + instanceName);
 
    // If j2000Body is this body, return the zero state vector
-   if (j2000Body->GetName() == instanceName)
+   if (j2000Body == this)
    {
+      InvalidateEphemerisState();
       state.Set(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
       stateTimeGT     = atTime;
       stateTime       = GmatTime(atTime).GetMjd();
@@ -3467,7 +3476,7 @@ const Rvector6 CelestialBody::GetMJ2000State(const GmatTime &atTime)
    // the lastEphemTime will have been set when we called GetState
 
    // SPICE does the subtraction itself
-   if (posVelSrc == Gmat::SPICE)
+   if (posVelSrc == Gmat::SPICE || posVelSrc == Gmat::TWO_BODY_PROPAGATION)
    {
       j2kState = stateEphem;
       //      return stateEphem;
@@ -3586,7 +3595,7 @@ Rvector CelestialBody::GetBodyCartographicCoordinates(const A1Mjd &forTime) cons
       #endif
 
       Real d;
-      if (userDefined)
+      if (!UsesDefaultBodyModel())
       {
          // Form the user-relative interval before introducing a large Julian
          // date offset. Adding/subtracting 2.4 million days first loses timing
@@ -3761,13 +3770,9 @@ Real CelestialBody::GetRealParameter(const Integer id) const
    // issues are updated in the Spacecraft/SpaceObject code.
    if (id == STATE_TIME)              return stateTime.Get();
    
-//   if (id == TWO_BODY_INITIAL_EPOCH)  return twoBodyEpoch.Get();  // 2012.01.24 - wcs - disallowed for now
-//   if (id == TWO_BODY_SMA)            return twoBodyKepler[0];
-//   if (id == TWO_BODY_ECC)            return twoBodyKepler[1];
-//   if (id == TWO_BODY_INC)            return twoBodyKepler[2];
-//   if (id == TWO_BODY_RAAN)           return twoBodyKepler[3];
-//   if (id == TWO_BODY_AOP)            return twoBodyKepler[4];
-//   if (id == TWO_BODY_TA)             return twoBodyKepler[5];
+   if (id == TWO_BODY_INITIAL_EPOCH) return twoBodyEpoch.Get();
+   if (id >= TWO_BODY_SMA && id <= TWO_BODY_TA)
+      return twoBodyKepler[id - TWO_BODY_SMA];
 
    if (id == ORIENTATION_EPOCH)       return orientationEpoch.Get();
    if (id == SPIN_AXIS_RA_CONSTANT)   return orientation[0];
@@ -3810,9 +3815,6 @@ Real CelestialBody::SetRealParameter(const Integer id, const Real value)
    #endif
 
 
-   // 2012.01.24 - wcs - two body propagation disallowed for now
-   std::string noTwoBody = "The two-body ephemeris model for a celestial body has been deprecated. The following setting is invalid \n";
-   // 2012.01.24 - wcs - two body propagation disallowed for now
 
    /// from SpacePoint - this should only be called from Parameters
    if (id == EPOCH_PARAM)
@@ -3918,87 +3920,29 @@ Real CelestialBody::SetRealParameter(const Integer id, const Real value)
       return false;
    }
    
-   // 2012.01/24 - wcs - two body propagation disallowed for now
    if ((id == TWO_BODY_INITIAL_EPOCH) || (id == TWO_BODY_SMA)  || (id == TWO_BODY_ECC) ||
        (id == TWO_BODY_INC)           || (id == TWO_BODY_RAAN) || (id == TWO_BODY_AOP) ||
        (id == TWO_BODY_TA))
    {
-      throw SolarSystemException(noTwoBody);
+      if (UsesDefaultBodyModel())
+         throw SolarSystemException("Two-body orbit settings are available only for user-defined bodies");
+      if (!std::isfinite(value))
+         throw SolarSystemException("Two-body orbit settings must be finite for " + instanceName);
+      if (id == TWO_BODY_INITIAL_EPOCH) SetTwoBodyEpoch(A1Mjd(value));
+      else if (id == TWO_BODY_SMA) SetSMA(value);
+      else if (id == TWO_BODY_ECC) SetECC(value);
+      else
+      {
+         if (id == TWO_BODY_INC && (value < 0.0 || value > 180.0))
+            throw SolarSystemException("Two-body inclination must be between 0 and 180 degrees");
+         twoBodyKepler[id - TWO_BODY_SMA] = value;
+         ResetTwoBodyCache();
+      }
+      return value;
    }
-   // 2012.01/24 - wcs - two body propagation disallowed for now
-
-//   if (id == TWO_BODY_INITIAL_EPOCH)
-//   {
-//      if (SetTwoBodyEpoch(A1Mjd(value)))
-//      {
-//         newTwoBody          = true;
-//         return true;
-//      }
-//      else return false;
-//   }
-//   if (id == TWO_BODY_SMA)
-//   {
-//      tmpKepl[0] = value;
-//      if (SetTwoBodyElements(tmpKepl))
-//      {
-//         newTwoBody          = true;
-//         return true;
-//      }
-//      else return false;
-//   }
-//   if (id == TWO_BODY_ECC)
-//   {
-//      tmpKepl[1] = value;
-//      if (SetTwoBodyElements(tmpKepl))
-//      {
-//         newTwoBody          = true;
-//         return true;
-//      }
-//      else return false;
-//   }
-//   if (id == TWO_BODY_INC)
-//   {
-//      tmpKepl[2] = value;
-//      if (SetTwoBodyElements(tmpKepl))
-//      {
-//         newTwoBody          = true;
-//         return true;
-//      }
-//      else return false;
-//   }
-//   if (id == TWO_BODY_RAAN)
-//   {
-//      tmpKepl[3] = value;
-//      if (SetTwoBodyElements(tmpKepl))
-//      {
-//         newTwoBody          = true;
-//         return true;
-//      }
-//      else return false;
-//   }
-//   if (id == TWO_BODY_AOP)
-//   {
-//      tmpKepl[4] = value;
-//      if (SetTwoBodyElements(tmpKepl))
-//      {
-//         newTwoBody          = true;
-//         return true;
-//      }
-//      else return false;
-//   }
-//   if (id == TWO_BODY_TA)
-//   {
-//      tmpKepl[5] = value;
-//      if (SetTwoBodyElements(tmpKepl))
-//      {
-//         newTwoBody          = true;
-//         return true;
-//      }
-//      else return false;
-//   }
 
    // for now, don't allow user to modify orientation parameters for default bodies
-   if (userDefined)
+   if (!UsesDefaultBodyModel())
    {
       if (id == ORIENTATION_EPOCH)
       {
@@ -4134,16 +4078,21 @@ Integer CelestialBody::SetIntegerParameter(const Integer id,
    }
    if (id == BODY_NUMBER)
    {
-      bodyNumber          = value;
+      if (bodyNumber != value) NotifyEphemerisChange();
+      bodyNumber = value;
       return bodyNumber;
    }
    if (id == REF_BODY_NUMBER)
    {
+      if (referenceBodyNumber != value) NotifyEphemerisChange();
       referenceBodyNumber = value;
       return referenceBodyNumber;
    }
    
-   return SpacePoint::SetIntegerParameter(id,value);  // add others in later
+   const Integer oldNaif = naifId, oldFrame = naifIdRefFrame;
+   const Integer result = SpacePoint::SetIntegerParameter(id, value);
+   if (oldNaif != naifId || oldFrame != naifIdRefFrame) NotifyEphemerisChange(true);
+   return result;
 }
 
 //------------------------------------------------------------------------------
@@ -4167,6 +4116,7 @@ std::string CelestialBody::GetStringParameter(const Integer id) const
        GetName().c_str(), id, textureMapFileName.c_str());
    #endif
    
+   if (id == PHYSICAL_BODY)         return physicalBodyName;
    if (id == BODY_TYPE)             return Gmat::BODY_TYPE_STRINGS[bodyType];
    if (id == POS_VEL_SOURCE)        return Gmat::POS_VEL_SOURCE_STRINGS[posVelSrc];
 
@@ -4177,8 +4127,8 @@ std::string CelestialBody::GetStringParameter(const Integer id) const
       return atmModel->GetTypeName();
    }
    if (id == CENTRAL_BODY)          return theCentralBodyName;
-//   if (id == TWO_BODY_DATE_FORMAT)  return twoBodyFormat; // 2012.01.24 - wcs - two body propagation disallowed for now
-//   if (id == TWO_BODY_STATE_TYPE)   return twoBodyStateType;
+   if (id == TWO_BODY_DATE_FORMAT) return twoBodyFormat;
+   if (id == TWO_BODY_STATE_TYPE) return twoBodyStateType;
    if (id == ROTATION_DATA_SRC)     return Gmat::ROTATION_DATA_SOURCE_STRINGS[rotationSrc];
 
    if (id == ORIENTATION_DATE_FORMAT)  return orientationDateFormat;
@@ -4231,6 +4181,7 @@ std::string CelestialBody::GetStringParameter(const Integer id,
 bool CelestialBody::SetStringParameter(const Integer id,
                                        const std::string &value)
 {
+   if (id == PHYSICAL_BODY) return BindPhysicalBody(value);
    #ifdef DEBUG_CB_SET_STRING
    std::string idString = GetParameterText(id);
    MessageInterface::ShowMessage
@@ -4238,9 +4189,6 @@ bool CelestialBody::SetStringParameter(const Integer id,
        id, idString.c_str(), value.c_str());
    #endif
 
-   // 2012.01/24 - wcs - two body propagation disallowed for now
-   std::string noTwoBody = "TwoBody propagation not currently allowed in GMAT.\n";
-   // 2012.01/24 - wcs - two body propagation disallowed for now
 
    // this is also handled in SpacePoint - we catch it here to tailor the warning message
    if (id == J2000_BODY_NAME)
@@ -4270,42 +4218,12 @@ bool CelestialBody::SetStringParameter(const Integer id,
    }
    if (id == POS_VEL_SOURCE)
    {
-      if (userDefined && (value == "DE405"))
-      {
-         std::string errmsg = "DE405 not allowed as ephemeris source for user-defined body \"";
-         errmsg += instanceName + "\"\n";
-         throw SolarSystemException(errmsg);
-      }
-      else if (userDefined && (value == "DE421"))
-      {
-         std::string errmsg = "DE421 not allowed as ephemeris source for user-defined body \"";
-         errmsg += instanceName + "\"\n";
-         throw SolarSystemException(errmsg);
-      }
-      else if (userDefined && (value == "DE424"))
-      {
-         std::string errmsg = "DE424 not allowed as ephemeris source for user-defined body \"";
-         errmsg += instanceName + "\"\n";
-         throw SolarSystemException(errmsg);
-      }
-//      else if (userDefined && (value == "DE430"))
-//      {
-//         std::string errmsg = "DE430 not allowed as ephemeris source for user-defined body \"";
-//         errmsg += instanceName + "\"\n";
-//         throw SolarSystemException(errmsg);
-//      }
-      else if ((!userDefined) && !allowSpice && (value == "SPICE"))
-      {
-         std::string errmsg = "SPICE not allowed as ephemeris source for default body \"";
-         errmsg += instanceName + "\"\n";
-         throw SolarSystemException(errmsg);
-      }
-      for (i=0;i<Gmat::PosVelSourceCount;i++)
+      const StringArray available = GetEphemSourceList();
+      if (std::find(available.begin(), available.end(), value) == available.end())
+         throw SolarSystemException("Ephemeris source " + value + " is unavailable for " + instanceName);
+      for (i = 0; i < Gmat::PosVelSourceCount; ++i)
          if (value == Gmat::POS_VEL_SOURCE_STRINGS[i])
-         {
-            posVelSrc = (Gmat::PosVelSource) i;
-            return true;
-         }
+            return SetSource(static_cast<Gmat::PosVelSource>(i));
       return false;
    }
    if (id == POTENTIAL_FILE_NAME)
@@ -4341,63 +4259,35 @@ bool CelestialBody::SetStringParameter(const Integer id,
    }
    if (id == CENTRAL_BODY)
    {
-      theCentralBodyName = value;
+      return SetCentralBody(value);
+   }
+
+   if ((id == TWO_BODY_DATE_FORMAT) || (id == TWO_BODY_STATE_TYPE))
+   {
+      const std::string expected = id == TWO_BODY_DATE_FORMAT ? "A1ModJulian" : "Keplerian";
+      if (value != expected)
+         throw SolarSystemException("Two-body " + GetParameterText(id) + " must be " + expected);
       return true;
    }
 
-   // 2012.01/24 - wcs - two body propagation disallowed for now
-   if ((id == TWO_BODY_DATE_FORMAT) || (id == TWO_BODY_STATE_TYPE))
-   {
-      throw SolarSystemException(noTwoBody);
-   }
-   // 2012.01/24 - wcs - two body propagation disallowed for now
-
-   //   if (id == TWO_BODY_DATE_FORMAT)
-//   {
-//      #ifdef DEBUG_TWO_BODY
-//         MessageInterface::ShowMessage(
-//         "In CB::SetString (TWO_BODY_DATE_FORMAT) with id = %d, and value = %s\n",
-//         id, value.c_str());
-//      #endif
-//      if (value != "TAIModJulian")
-//      {
-//         SolarSystemException sse;
-//         sse.SetDetails(errorMessageFormat.c_str(), value.c_str(),
-//                        PARAMETER_TEXT[TWO_BODY_DATE_FORMAT - SpacePointParamCount].c_str(),
-//                        "TAIModJulian");
-//         throw sse;
-//      }
-//      twoBodyFormat = value;
-//      return true;
-//   }
-//   if (id == TWO_BODY_STATE_TYPE)
-//   {
-//      #ifdef DEBUG_TWO_BODY
-//         MessageInterface::ShowMessage(
-//         "In CB::SetString (TWO_BODY_STATE_TYPE) with id = %d, and value = %s\n",
-//         id, value.c_str());
-//      #endif
-//      if (value != "Keplerian")
-//      {
-//         SolarSystemException sse;
-//         sse.SetDetails(errorMessageFormat.c_str(), value.c_str(),
-//                        PARAMETER_TEXT[TWO_BODY_STATE_TYPE - SpacePointParamCount].c_str(),
-//                        "Keplerian");
-//
-//         throw sse;
-//      }
-//      twoBodyStateType = value;
-//      return true;
-//   }
-   
    if (id == ROTATION_DATA_SRC)
    {
+      // A physical copy is reconstructed from a descriptor plus its own
+      // selected native source. Restore its factory model explicitly, even
+      // when the current canonical body uses a different supported source.
+      if (!physicalBodyName.empty() && value != "SPICE" &&
+            value == Gmat::ROTATION_DATA_SOURCE_STRINGS[default_rotationSrc])
+      {
+         SetRotationDataSource(default_rotationSrc);
+         NotifyEphemerisChange(true);
+         return true;
+      }
       // 2017.12.08 No longer allow the user to change this
       if (value == "SPICE")
       {
          for (int i = 0; i < GmatSolarSystemDefaults::PLANET_NAMES->size(); i++)
          {
-            if (GetName() == GmatSolarSystemDefaults::PLANET_NAMES[i] || GetName() == GmatSolarSystemDefaults::SUN_NAME)
+            if (GetPhysicalBodyName() == GmatSolarSystemDefaults::PLANET_NAMES[i] || GetPhysicalBodyName() == GmatSolarSystemDefaults::SUN_NAME)
             {
                throw SolarSystemException("Error: Setting the RotationDataSource to \"SPICE\" on a default planet or the Sun is not allowed. Found body: " + GetName() + "\n");
             }
@@ -4526,7 +4416,7 @@ bool CelestialBody::SetStringParameter(const Integer id,
          bool hasNoPath = GmatFileUtil::HasNoPath(value);
          if (!hasNoPath)
          {
-            if (this->GetFullName() == "Earth")
+            if (GetPhysicalBodyName() == GmatSolarSystemDefaults::EARTH_NAME)
             {
                DSNMediaFileDirectories.push_back(value);
                return true;
@@ -4548,6 +4438,10 @@ bool CelestialBody::SetStringParameter(const Integer id,
       return true;
    }
    
+   if (id == ORBIT_SPICE_KERNEL_NAME || id == ATTITUDE_SPICE_KERNEL_NAME ||
+       id == SC_CLOCK_SPICE_KERNEL_NAME || id == FRAME_SPICE_KERNEL_NAME ||
+       id == SPICE_FRAME_ID)
+      NotifyEphemerisChange(true);
    return SpacePoint::SetStringParameter(id, value);
 }
    
@@ -4567,9 +4461,36 @@ bool CelestialBody::SetStringParameter(const Integer id,
  *
  */
 //------------------------------------------------------------------------------
+void CelestialBody::SetField(const Integer id, const StringArray &value)
+{
+   if (id == DSN_DIRECTORY)
+   {
+      StringArray next(value);
+      if (!next.empty() && GetPhysicalBodyName() != GmatSolarSystemDefaults::EARTH_NAME)
+         throw SolarSystemException("DSNMediaFileDirectories must be assigned to Earth.");
+      for (size_t i = 0; i < next.size(); ++i)
+      {
+         if (GmatFileUtil::HasNoPath(next[i]))
+            throw SolarSystemException("Invalid DSN media directory: " + next[i]);
+         if (std::find(next.begin(), next.begin() + i, next[i]) != next.begin() + i)
+            throw SolarSystemException("Repeated DSN media directory: " + next[i]);
+      }
+      DSNMediaFileDirectories.swap(next);
+      return;
+   }
+   SpacePoint::SetField(id, value);
+   if (id == ORBIT_SPICE_KERNEL_NAME || id == ATTITUDE_SPICE_KERNEL_NAME ||
+       id == SC_CLOCK_SPICE_KERNEL_NAME || id == FRAME_SPICE_KERNEL_NAME)
+      NotifyEphemerisChange(true);
+}
+
 bool CelestialBody::SetStringParameter(const Integer id, const std::string &value,
                                        const Integer index)
 {
+   if (id == ORBIT_SPICE_KERNEL_NAME || id == ATTITUDE_SPICE_KERNEL_NAME ||
+       id == SC_CLOCK_SPICE_KERNEL_NAME || id == FRAME_SPICE_KERNEL_NAME ||
+       id == SPICE_FRAME_ID)
+      NotifyEphemerisChange(true);
    return SpacePoint::SetStringParameter(id, value, index);
 }
 
@@ -4863,8 +4784,13 @@ bool CelestialBody::SetRefObject(GmatBase *obj,
        this, GetName().c_str(), obj, name.c_str());
    #endif
    
+   if (!obj) return false;
    if (this == obj)
+   {
+      if (type == Gmat::SPACE_POINT) SetJ2000Body(this);
       return true;
+   }
+   SpacePoint *previousJ2000 = j2000Body;
    
    bool foundHere = false;
    bool trySP     = false;
@@ -4879,7 +4805,8 @@ bool CelestialBody::SetRefObject(GmatBase *obj,
                MessageInterface::ShowMessage("   Setting %s as central body for %s\n",
                                              name.c_str(), instanceName.c_str());
             #endif
-            theCentralBody  = cb;
+            NotifyEphemerisChange();
+            theCentralBody = cb;
             centralBodySet  = true;
             foundHere = true;
          }
@@ -4899,7 +4826,12 @@ bool CelestialBody::SetRefObject(GmatBase *obj,
       MessageInterface::ShowMessage(e.GetFullMessage() + "\n");
       #endif
    }
-   if (foundHere || trySP) 
+   if (previousJ2000 != j2000Body)
+   {
+      SetJ2000Body(j2000Body);
+      NotifyEphemerisChange(true);
+   }
+   if (foundHere || trySP)
    {
       return true;
    }
@@ -4916,6 +4848,7 @@ bool CelestialBody::SetRefObject(GmatBase *obj,
 //------------------------------------------------------------------------------
 bool CelestialBody::IsParameterReadOnly(const Integer id) const
 {
+   if (id == PHYSICAL_BODY) return !userDefined;
    // if we're not using an twoBody model, those parameters are read-only
 //   if (posVelSrc != Gmat::ANALYTIC)
 //   if (posVelSrc != Gmat::TWO_BODY_PROPAGATION)
@@ -4944,9 +4877,9 @@ bool CelestialBody::IsParameterReadOnly(const Integer id) const
        (id == ORIENTATION_DATE_FORMAT) || (id == USE_POTENTIAL_FILE_FLAG) || (id == POTENTIAL_FILE_NAME)  )
       return true;
    // the ephem source for default bodies is set on the Solar System 
-   if ((!userDefined) && (id == POS_VEL_SOURCE)) return true;
+   if (UsesDefaultBodyModel() && (id == POS_VEL_SOURCE)) return true;
    // for now, don't allow user to modify orientation parameters for default bodies
-   if (!userDefined && ((id == ORIENTATION_EPOCH)      || 
+   if (UsesDefaultBodyModel() && ((id == ORIENTATION_EPOCH)      ||
        (id == SPIN_AXIS_RA_CONSTANT)  || (id == SPIN_AXIS_RA_RATE) ||
        (id == SPIN_AXIS_DEC_CONSTANT) || (id == SPIN_AXIS_DEC_RATE) ||
        (id == ROTATION_CONSTANT)      || (id == ROTATION_RATE)))
@@ -4963,14 +4896,13 @@ bool CelestialBody::IsParameterReadOnly(const Integer id) const
 //   if (id == FRAME_SPICE_KERNEL_NAME)     return true;
    if (id == SC_CLOCK_SPICE_KERNEL_NAME)  return true;
 
-   // 2012.01.24 - wcs - disallow TWO_BODY_PROPAGATION for now
    if ((id == TWO_BODY_DATE_FORMAT)   || (id == TWO_BODY_STATE_TYPE) ||
        (id == TWO_BODY_INITIAL_EPOCH) || (id == TWO_BODY_SMA)        ||
        (id == TWO_BODY_ECC)           || (id == TWO_BODY_INC)        ||
        (id == TWO_BODY_RAAN)          || (id == TWO_BODY_AOP)        ||
        (id == TWO_BODY_TA) )
    {
-      return true;
+      return UsesDefaultBodyModel() || posVelSrc != Gmat::TWO_BODY_PROPAGATION;
    }
 
    if (id == TEXTURE_MAP_FULL_PATH || id == VIEW_3D_MODEL_FILE_FULL_PATH)
@@ -4989,6 +4921,7 @@ bool CelestialBody::IsParameterReadOnly(const Integer id) const
 //------------------------------------------------------------------------------
 bool CelestialBody::IsParameterCloaked(const Integer id) const
 {
+   if (id == PHYSICAL_BODY && physicalBodyName.empty()) return true;
    if (!cloaking) return false;
    // if it's read-only, we'll cloak it
    if (IsParameterReadOnly(id)) return true;
@@ -5026,7 +4959,7 @@ bool CelestialBody::IsParameterEqualToDefault(const Integer id) const
             MessageInterface::ShowMessage("In IsPEqual ... posVelSrc = %s & default = %s\n",
                   (Gmat::POS_VEL_SOURCE_STRINGS[posVelSrc]).c_str(), default_posVelSrc.c_str());
       #endif
-      if (userDefined)
+      if (!UsesDefaultBodyModel())
          return (default_posVelSrc == Gmat::POS_VEL_SOURCE_STRINGS[posVelSrc]);
       else  // for default, mods are made at the SolarSystem level
          return true;
@@ -5337,7 +5270,11 @@ bool CelestialBody::SaveParameterAsDefault(const Integer id)
  //---------------------------------------------------------------------------
 SpiceOrbitKernelReader* CelestialBody::GetSpiceKernelReader()
 {
+#ifdef __USE_SPICE__
    return kernelReader;
+#else
+   return nullptr;
+#endif
 }
 
 //---------------------------------------------------------------------------
@@ -5385,6 +5322,7 @@ void CelestialBody::InitializeBody(std::string withBodyType)
    potentialFileName = "";
    sourceFilename    = "";
    theSourceFile     = NULL;
+   InvalidateEphemerisState(true);
    stateTime         = 0.0;
    state             = Rvector6(0.0,0.0,0.0,0.0,0.0,0.0);
    angularVelocity   = Rvector3(0.0,0.0,7.29211585530e-5); // correct, for a default?
@@ -5573,252 +5511,265 @@ Real CelestialBody::GetJulianDaysFromTDBEpoch(const A1Mjd &forTime) const
  *
  */
 //------------------------------------------------------------------------------
-Rvector6 CelestialBody::ComputeTwoBody(const A1Mjd &forTime)
+void CelestialBody::InvalidateEphemerisState(bool resetSpice) noexcept
 {
-   #ifdef DEBUG_TWO_BODY
-
-   MessageInterface::ShowMessage
-      ("CelestialBody::ComputeTwoBody() this=<%p> %s, "
-       "theCentralBody=<%p> %s\n", this, GetName().c_str(), theCentralBody,
-       theCentralBodyName.c_str());
-   #endif
-   
-   // Since we want the state in MJ2000Eq Earth-centered
-   if (instanceName == GmatSolarSystemDefaults::EARTH_NAME) 
-      return Rvector6(0.0,0.0,0.0,0.0,0.0,0.0);
-   #ifdef DEBUG_TWO_BODY
-   MessageInterface::ShowMessage
-      ("CelestialBody::ComputeTwoBody() before call to centralBody->GetState()\n");
-   if (!theCentralBody) 
-      MessageInterface::ShowMessage("The central body (%s) for %s is NULL!!!!\n", 
-            theCentralBodyName.c_str(), instanceName.c_str());
-   #endif
-   
-   Rvector6 cbState = theCentralBody->GetState(forTime);
-   #ifdef DEBUG_TWO_BODY
-   MessageInterface::ShowMessage
-      ("CelestialBody::ComputeTwoBody() AFTER call to centralBody->GetState()\n");
-   #endif
-   
-   return (KeplersProblem(forTime) + cbState);    
+   ephemerisStateValid = false;
+   if (resetSpice)
+   {
+      spiceSetupDone = false;
+      naifIdSet = false;
+   }
 }
 
+void CelestialBody::NotifyEphemerisChange(bool resetSpice) noexcept
+{
+   InvalidateEphemerisState(resetSpice);
+   if (theSolarSystem) theSolarSystem->InvalidateEphemerisCaches(this, resetSpice);
+}
 
-//------------------------------------------------------------------------------
-//  Rvector6 KeplersProblem(const A1Mjd &forTime)
-//------------------------------------------------------------------------------
-/**
- * This method computes the position and velocity at time forTime
- *
- * @return body state (position, velocity) at time forTime, with respect to
- *         the central body.
- *
- * @note This is based on Algorithm 8 on pp. 101-2 (and algorithm 1 on
- *       p. 71) of "Fundamentals of Astrodynamics and Applications",
- *       Second Edition, by David A. Vallado.
- */
-//------------------------------------------------------------------------------
+void CelestialBody::SetSolarSystem(SolarSystem *ss)
+{
+   if (theSolarSystem == ss) return;
+   PlanetaryEphem *nextProvider = nullptr;
+   std::string nextFilename;
+   Integer nextNumber = bodyNumber;
+   Gmat::PosVelSource nextSource = posVelSrc;
+   bool nextAllowSpice = allowSpice;
+   if (!physicalBodyName.empty() && ss)
+   {
+      CelestialBody *model = ss->GetBody(physicalBodyName);
+      if (!model || model->IsUserDefined() || model->GetTypeName() != GetTypeName())
+         throw SolarSystemException("The new SolarSystem has no matching physical body " + physicalBodyName);
+      nextProvider = model->theSourceFile;
+      nextFilename = model->sourceFilename;
+      nextNumber = nextProvider ? nextProvider->GetBodyID(physicalBodyName) : model->bodyNumber;
+      nextSource = model->posVelSrc;
+      nextAllowSpice = model->allowSpice;
+   }
+   NotifyEphemerisChange(true);
+   SpacePoint::SetSolarSystem(ss);
+   if (!physicalBodyName.empty())
+   {
+      theSourceFile = nextProvider;
+      sourceFilename.swap(nextFilename);
+      bodyNumber = nextNumber;
+      posVelSrc = nextSource;
+      allowSpice = nextAllowSpice;
+      isInitialized = false;
+   }
+   #ifdef __USE_SPICE__
+      kernelReader = nullptr;
+   #endif
+   NotifyEphemerisChange(true);
+}
+
+void CelestialBody::RemoveSpiceKernelName(const std::string &kernelType,
+                                         const std::string &fileName)
+{
+   SpacePoint::RemoveSpiceKernelName(kernelType, fileName);
+   NotifyEphemerisChange(true);
+}
+
+void CelestialBody::ResetTwoBodyCache()
+{
+   NotifyEphemerisChange();
+   newTwoBody = true;
+   lastEphemTime = 0.0;
+   lastEphemTimeGT = 0.0;
+}
+
+void CelestialBody::ValidateTwoBodyElements(const Rvector6 &elements) const
+{
+   for (Integer i = 0; i < 6; ++i)
+      if (!std::isfinite(elements[i]))
+         throw SolarSystemException("Nonfinite two-body element on " + instanceName);
+   const Real a = elements[0], e = elements[1];
+   if (a == 0.0 || e < 0.0 || e == 1.0 ||
+         (e < 1.0 && a < 0.0) || (e > 1.0 && a > 0.0))
+      throw SolarSystemException("Two-body elements on " + instanceName +
+            " require positive SMA for an ellipse or negative SMA for a hyperbola; "
+            "a parabolic orbit cannot be specified by finite SMA");
+   if (elements[2] < 0.0 || elements[2] > 180.0)
+      throw SolarSystemException("Two-body inclination must be between 0 and 180 degrees");
+   const long double ta = std::remainder(static_cast<long double>(elements[5]), 360.0L) *
+         (std::acos(-1.0L) / 180.0L);
+   if (1.0L + static_cast<long double>(e) * std::cos(ta) <= 0.0L)
+      throw SolarSystemException("Two-body true anomaly is outside the physical conic on " + instanceName);
+}
+
+void CelestialBody::ValidateTwoBodyConfiguration()
+{
+   if (UsesDefaultBodyModel())
+      throw SolarSystemException("TwoBodyPropagation is available only for user-defined bodies");
+   ValidateTwoBodyElements(twoBodyKepler);
+   SetUpBody();
+   std::set<const CelestialBody *> visited;
+   CelestialBody *body = this;
+   while (body && body->posVelSrc == Gmat::TWO_BODY_PROPAGATION)
+   {
+      if (!visited.insert(body).second)
+         throw SolarSystemException("Cyclic two-body central-body references on " + instanceName);
+      body->SetUpBody();
+      body = body->theCentralBody;
+   }
+   if (!theCentralBody || theCentralBody == this)
+      throw SolarSystemException("Two-body central body is not resolved for " + instanceName);
+   const Real totalMu = theCentralBody->GetGravitationalConstant() + mu;
+   if (!std::isfinite(totalMu) || totalMu <= 0.0)
+      throw SolarSystemException("Two-body gravitational parameter must be finite and positive on " + instanceName);
+}
+
+Rvector6 CelestialBody::PropagateTwoBody(const GmatTime &forTime) const
+{
+   // Work in eccentric/hyperbolic anomaly rather than the dormant universal
+   // solver's fixed dimensional alpha threshold and hyperbolic period wrapping.
+   const long double pi = std::acos(-1.0L);
+   const long double rad = pi / 180.0L;
+   const long double a = twoBodyKepler[0], e = twoBodyKepler[1];
+   const long double totalMu = theCentralBody->GetGravitationalConstant() + mu;
+   const GmatTime epoch(twoBodyEpoch.Get());
+   const long double dt = (static_cast<long double>(forTime.GetDays()) - epoch.GetDays()) * 86400.0L +
+         (static_cast<long double>(forTime.GetSec()) - epoch.GetSec()) +
+         (static_cast<long double>(forTime.GetFracSec()) - epoch.GetFracSec());
+   const long double scale = std::abs(a);
+   const long double speed = std::sqrt(totalMu) / std::sqrt(scale);
+   const long double n = speed / scale;
+   const long double ta = std::remainder(static_cast<long double>(twoBodyKepler[5]), 360.0L) * rad;
+   const bool elliptic = e < 1.0L;
+   const long double root = elliptic ? std::sqrt((1.0L-e)*(1.0L+e)) : std::sqrt((e-1.0L)*(e+1.0L));
+   const long double initial = elliptic ? std::atan2(root*std::sin(ta), e+std::cos(ta)) :
+         std::asinh(root*std::sin(ta)/(1.0L+e*std::cos(ta)));
+   long double mean = (elliptic ? initial-e*std::sin(initial) : e*std::sinh(initial)-initial) + (dt == 0.0L ? 0.0L : n*dt);
+   if (!std::isfinite(mean))
+      throw SolarSystemException("Two-body elapsed anomaly overflow on " + instanceName);
+   if (elliptic) mean = std::remainder(mean, 2.0L*pi);
+   const long double sign = mean < 0.0L ? -1.0L : 1.0L;
+   const long double target = elliptic ? mean : std::abs(mean);
+   long double lo = elliptic ? -pi : 0.0L;
+   long double hi = elliptic ? pi : std::asinh(target/e)+1.0L;
+   if (!elliptic)
+      while (e*std::sinh(hi)-hi < target) hi *= 2.0L;
+   long double anomaly = elliptic ? mean : std::asinh(target/e);
+   bool converged = false;
+   const long double tolerance = 32.0L*std::numeric_limits<long double>::epsilon();
+   for (Integer iteration = 0; iteration < 160; ++iteration)
+   {
+      const long double f = elliptic ? anomaly-e*std::sin(anomaly)-target : e*std::sinh(anomaly)-anomaly-target;
+      if (f == 0.0L) { converged = true; break; }
+      if (f > 0.0L) hi = anomaly; else lo = anomaly;
+      const long double derivative = elliptic ? 1.0L-e*std::cos(anomaly) : e*std::cosh(anomaly)-1.0L;
+      long double next = anomaly-f/derivative;
+      if (!std::isfinite(next) || next <= lo || next >= hi) next = (lo+hi)*0.5L;
+      if (next == anomaly || hi-lo <= tolerance*(1.0L+std::abs(anomaly)))
+      {
+         anomaly = next;
+         converged = true;
+         break;
+      }
+      anomaly = next;
+   }
+   if (!converged)
+      throw SolarSystemException("Two-body anomaly did not converge for " + instanceName);
+   if (!elliptic) anomaly *= sign;
+   const long double c = elliptic ? std::cos(anomaly) : std::cosh(anomaly);
+   const long double s = elliptic ? std::sin(anomaly) : std::sinh(anomaly);
+   const long double denominator = elliptic ? 1.0L-e*c : e*c-1.0L;
+   const long double x = elliptic ? a*(c-e) : scale*(e-c);
+   const long double y = scale*root*s;
+   const long double vx = -speed*s/denominator;
+   const long double vy = speed*root*c/denominator;
+   const long double inc = std::remainder(static_cast<long double>(twoBodyKepler[2]),360.0L)*rad;
+   const long double node = std::remainder(static_cast<long double>(twoBodyKepler[3]),360.0L)*rad;
+   const long double peri = std::remainder(static_cast<long double>(twoBodyKepler[4]),360.0L)*rad;
+   const long double ci=std::cos(inc), si=std::sin(inc), cn=std::cos(node), sn=std::sin(node), cp=std::cos(peri), sp=std::sin(peri);
+   const long double p[3] = {cn*cp-sn*sp*ci, sn*cp+cn*sp*ci, sp*si};
+   const long double q[3] = {-cn*sp-sn*cp*ci, -sn*sp+cn*cp*ci, cp*si};
+   Rvector6 result;
+   for (Integer i = 0; i < 3; ++i)
+   {
+      result[i] = static_cast<Real>(p[i]*x+q[i]*y);
+      result[i+3] = static_cast<Real>(p[i]*vx+q[i]*vy);
+      if (!std::isfinite(result[i]) || !std::isfinite(result[i+3]))
+         throw SolarSystemException("Two-body Cartesian state overflow on " + instanceName);
+   }
+   return result;
+}
+
+Rvector6 CelestialBody::ComputeTwoBody(const A1Mjd &forTime)
+{
+   ValidateTwoBodyConfiguration();
+   const Rvector6 relative = PropagateTwoBody(GmatTime(forTime.Get()));
+   // Preserve the caller's parent-ephemeris time interface. Mixing a GmatTime
+   // parent here with an A1Mjd parent query leaves a spurious relative offset.
+   Rvector6 result = theCentralBody->GetMJ2000State(forTime) + relative;
+   newTwoBody = false;
+   return result;
+}
+
+Rvector6 CelestialBody::ComputeTwoBody(const GmatTime &forTime)
+{
+   ValidateTwoBodyConfiguration();
+   const Rvector6 relative = PropagateTwoBody(forTime);
+   // Like the SPICE provider, this result is already relative to the J2000
+   // reference body. A DE/SPICE/analytic parent can therefore be mixed safely.
+   Rvector6 result = theCentralBody->GetMJ2000State(forTime) + relative;
+   newTwoBody = false;
+   return result;
+}
+
+const Rvector3 CelestialBody::GetMJ2000Acceleration(const A1Mjd &atTime)
+{
+   return GetMJ2000Acceleration(GmatTime(atTime.Get()));
+}
+
+const Rvector3 CelestialBody::GetMJ2000Acceleration(const GmatTime &atTime)
+{
+   if (!j2000Body)
+      throw SolarSystemException("CelestialBody acceleration requires a J2000 reference body for " + instanceName);
+   if (j2000Body == this)
+      return Rvector3(0.0, 0.0, 0.0);
+
+   Rvector3 acceleration;
+   if (posVelSrc == Gmat::TWO_BODY_PROPAGATION)
+   {
+      ValidateTwoBodyConfiguration();
+      const Rvector3 position = PropagateTwoBody(atTime).GetR();
+      const Real radius = std::hypot(position[0], position[1], position[2]);
+      if (!std::isfinite(radius) || radius <= 0.0)
+         throw SolarSystemException("Two-body acceleration requires a finite nonzero radius for " + instanceName);
+      const Real scale = -(theCentralBody->GetGravitationalConstant() + mu) / radius / radius;
+      acceleration = theCentralBody->GetMJ2000Acceleration(atTime);
+      for (Integer i = 0; i < 3; ++i)
+         acceleration[i] += scale * (position[i] / radius);
+   }
+   else
+   {
+      // Differentiate native ephemeris velocity with the shared scoped cache
+      // bypass, fourth-order stencil and coverage-boundary handling.
+      acceleration = GmatEphemerisDetail::AccelerationFromVelocity(
+         [&](Real seconds)
+         {
+            GmatTime epoch = atTime;
+            epoch.AddSeconds(seconds);
+            return GetMJ2000Velocity(epoch);
+         }, instanceName);
+   }
+   for (Integer i = 0; i < 3; ++i)
+      if (!std::isfinite(acceleration[i]))
+         throw SolarSystemException("Nonfinite MJ2000 acceleration for " + instanceName);
+   return acceleration;
+}
+
 Rvector6 CelestialBody::KeplersProblem(const A1Mjd &forTime)
 {
-   #ifdef DEBUG_TWO_BODY
-         MessageInterface::ShowMessage
-            ("CelestialBody::KeplersProblem() this=<%p> %s, "
-             "theCentralBody=<%p> %s\n", this, GetName().c_str(), theCentralBody,
-             theCentralBodyName.c_str());
-         MessageInterface::ShowMessage("newTwoBody = %s\n", (newTwoBody? "TRUE" : "FALSE"));
-         MessageInterface::ShowMessage("keplerian elements = %12.10f   %12.10f   %12.10f   %12.10f   %12.10f   %12.10f\n",
-               twoBodyKepler[0],twoBodyKepler[1],twoBodyKepler[2],twoBodyKepler[3],twoBodyKepler[4],twoBodyKepler[5]); 
-         MessageInterface::ShowMessage("epoch = %12.10f\n",twoBodyEpoch.Get()); 
-         MessageInterface::ShowMessage("forTime = %12.10f\n",forTime.Get());         
-   #endif
+   ValidateTwoBodyConfiguration();
+   return PropagateTwoBody(GmatTime(forTime.Get()));
+}
 
-   Real     cbMu  = theCentralBody->GetGravitationalConstant() + mu;
-   Rvector6 cart;  // or MA???
-   Real     dTime;
-   
-   if ((!newTwoBody) && 
-       (Abs(forTime.Subtract(prevTwoBodyEpoch) * GmatTimeConstants::SECS_PER_DAY) <= KEPLER_TOL))
-      return prevTwoBodyState;
-   cart  = StateConversionUtil::KeplerianToCartesian(cbMu, twoBodyKepler, "TA");  // or MA???
-   dTime = forTime.Subtract(twoBodyEpoch) * GmatTimeConstants::SECS_PER_DAY;
-   #ifdef DEBUG_TWO_BODY
-      MessageInterface::ShowMessage("cbMu = %12.14f    dTime = %12.14f\n", cbMu, dTime);
-   #endif
-
-   //   // check for number of revs and reduce dTime if necessary (this does not work for the Sun)
-   if (instanceName != GmatSolarSystemDefaults::SUN_NAME)
-   {
-      Real sma = twoBodyKepler[0];   // SMA, which should be constant
-      Real T = 2 * GmatMathConstants::PI * Sqrt(Abs(sma)*Abs(sma)*Abs(sma)/cbMu);
-   
-      Real revs = dTime/T;
-      dTime = dTime - T * Fix(revs);
-      #ifdef DEBUG_TWO_BODY
-         MessageInterface::ShowMessage("After Fix, sma = %12.14f    T = %12.14f     revs = %12.14f    dTime = %12.14f\n", 
-               sma, T, revs, dTime);
-      #endif
-   }
-
-
-   #ifdef DEBUG_TWO_BODY
-      MessageInterface::ShowMessage("r0 = %12.16f   %12.16f   %12.16f  & v0 = %12.16f   %12.16f   %12.16f\n",
-            cart[0], cart[1], cart[2], cart[3], cart[4], cart[5]);
-   #endif
-   Rvector3 r0     = cart.GetR();
-   Rvector3 v0     = cart.GetV();
-
-   Real     rMag0  = r0.GetMagnitude();
-   Real     vMag0  = v0.GetMagnitude();
-   Real     alpha = (-(vMag0 * vMag0) / cbMu) + (2.0 / rMag0);
-   Real     x0    = -999.999;
-   Real     rDotv = r0 * v0;  // dot product
-   
-   #ifdef DEBUG_TWO_BODY
-      MessageInterface::ShowMessage("alpha = %12.14f    rDotv = %12.14f\n", alpha, rDotv);
-      MessageInterface::ShowMessage("KEPLER_TOL = %12.14f\n", KEPLER_TOL);
-   #endif
-   // Determine initial guess .......
-   // for a circle or ellipse
-   if (alpha > KEPLER_TOL)  
-   {
-      #ifdef DEBUG_TWO_BODY
-         MessageInterface::ShowMessage(" -------- circle or ellipse\n");
-      #endif
-      x0 = Sqrt(cbMu) * dTime * alpha;
-
-      if (Abs(alpha - 1.0) <= KEPLER_TOL)
-      {
-         // match Vallado matlab code 
-         x0 = x0 * 0.97;
-      }
-   }
-   // for a parabola
-   else if (Abs(alpha) < KEPLER_TOL)
-   {
-      #ifdef DEBUG_TWO_BODY
-         MessageInterface::ShowMessage(" -------- parabola\n");
-      #endif
-      Rvector3 h     = Cross(r0, v0);
-      Real     hMag0 = h.GetMagnitude();
-      Real     p     = (hMag0 * hMag0) / cbMu;
-      Real     s     = (1.0 / 2.0) * (GmatMathConstants::PI_OVER_TWO -
-                       ATan(3.0 * Sqrt(cbMu / (p * p * p)) * dTime));
-      Real     w     = ATan(Pow(Tan(s), (1.0 / 3.0)));
-      x0             = Sqrt(p) * 2.0 / Tan(2.0 * w);
-      alpha          = 0.0;   // per kepler function by Vallado
-   }
-   // for a hyperbola
-   else if (alpha < -KEPLER_TOL)
-   {
-      #ifdef DEBUG_TWO_BODY
-         MessageInterface::ShowMessage(" -------- hyperbola\n");
-      #endif
-      Real     a     = 1.0 / alpha;
-      Integer  signT = SignOf(dTime);
-      Real     num   = -2.0 * cbMu * alpha * dTime;
-      Real     den   = rDotv + signT * Sqrt(-cbMu * a) * 
-                       (1.0 - rMag0 * alpha);
-      x0             = signT * Sqrt(-a) * Ln(num / den);
-   }
-   #ifdef DEBUG_TWO_BODY
-      MessageInterface::ShowMessage("x0 = %12.14f\n", x0);
-   #endif
-   // Loop until difference falls within tolerance
-   Real    rVal    = 0.0;
-   Real    xNew    = 0.0;
-   Real    xn      = x0;
-   Real    psi     = xn * xn * alpha;
-   Real    sqrtPsi = 0.0;
-   bool    done    = false;
-   Real    c2      = -999.99;
-   Real    c3      = -999.99;
-   Integer counter = 0;
-
-   while (!done)
-   {
-      psi = xn * xn * alpha;
-      
-      // compute c2 and c3, per Algorithm 1, p. 71
-      if (psi > KEPLER_TOL)
-      {
-         sqrtPsi = Sqrt(psi);
-         c2      = (1.0 - Cos(sqrtPsi)) / psi;
-         c3      = (sqrtPsi - Sin(sqrtPsi)) / Sqrt(psi * psi * psi);
-      }
-      else if (psi < -KEPLER_TOL)
-      {
-         sqrtPsi = Sqrt(-psi);
-         c2      = (1.0 - Cosh(sqrtPsi)) / psi;
-         c3      = (Sinh(sqrtPsi) - sqrtPsi) / Sqrt((-psi) * (-psi) * (-psi));
-      }
-      else
-      {
-         c2      = 1.0 / 2.0;
-         c3      = 1.0 / 6.0;
-      }
-      rVal = (xn * xn * c2) + (rDotv / Sqrt(cbMu)) * xn * (1.0 - psi * c3) +
-              rMag0 * (1.0 - psi * c2);
-      #ifdef DEBUG_TWO_BODY
-         MessageInterface::ShowMessage(" at start of loop,xn = %12.14f and psi = %12.14f\n",  xn, psi);
-         MessageInterface::ShowMessage("                  c2 = %12.14f and c3 = %12.14f\n",  c2, c3);
-         MessageInterface::ShowMessage("                  rVal = %12.14ff\n",  rVal);
-      #endif
-                
-      xNew = xn + ((Sqrt(cbMu) * dTime) - (xn * xn * xn * c3) - 
-                   (rDotv / Sqrt(cbMu)) * (xn * xn * c2) -
-                   rMag0 * xn * (1.0 - psi *c3)) / rVal;
-      
-      if (Abs(xn - xNew) < KEPLER_TOL) done = true;
-      xn = xNew;
-      counter++;
-   }
-   #ifdef DEBUG_TWO_BODY
-      MessageInterface::ShowMessage(" after loop is done, xNew = %12.14f    xn = %12.14f\n", xNew, xn);
-   #endif
-
-   if (counter >= KEPLER_MAX_ITERATIONS)
-   {
-      std::stringstream ss("");
-      ss << "Kepler's Problem (TwoBodyPropagation) for Body \"" << instanceName <<
-            "\" is not converging after " << KEPLER_MAX_ITERATIONS << "iterations.";
-      throw SolarSystemException(ss.str());
-   }
-   
-   Real f     = 1.0 - ((xn * xn) / rMag0) * c2;
-   Real g     = dTime - ((xn * xn * xn) / Sqrt(cbMu)) * c3;
-   Rvector3 r = f * r0 + g * v0;
-   // recompute magnitude, etc. (per Vallado matlab code)
-   Real rMagNew = r.GetMagnitude();
-   // Mods to this computation per Vallado matlab code
-   Real gDot  = 1.0 - ((xn * xn) / rMagNew) * c2;
-   Real fDot  = (Sqrt(cbMu) / (rMagNew * rMag0)) * xn * (psi * c3 - 1.0);
-   Rvector3 v = fDot * r0 + gDot * v0;
-
-   
-   #ifdef DEBUG_TWO_BODY
-      MessageInterface::ShowMessage("f    = %12.14f, g    = %12.14f\n", f, g);
-      MessageInterface::ShowMessage("fDot = %12.14f, gDot = %12.14f\n", fDot, gDot);
-      MessageInterface::ShowMessage("Computed quantity (f*gDot - fDot * g) = %12.14f\n", (Abs(f * gDot - g * fDot)));
-   #endif
-
-   if (!IsEqual(Abs(f * gDot - g * fDot), 1.0, 1.0e-5))  // e-5 per S. Hughes 2009.02.19
-      throw SolarSystemException(
-            "Error performing two body propagation for body "
-            + instanceName);
-   
-   Rvector6 newState(r,v);
-   prevTwoBodyEpoch = forTime;
-   prevTwoBodyState = newState;
-   newTwoBody       = false;
-   // debug stuff
-   #ifdef DEBUG_TWO_BODY
-      MessageInterface::ShowMessage("At end of TwoBody computation, new r  = %12.14f    %12.14f    %12.14f\n",
-            newState[0], newState[1], newState[2]);
-      MessageInterface::ShowMessage("At end of TwoBody computation, new v  = %12.14f    %12.14f    %12.14f\n",
-            newState[3], newState[4], newState[5]);
-   #endif
-   
-   return newState;
+const Rvector6 CelestialBody::GetMJ2000PrecState(const GmatTime &atTime)
+{
+   if (posVelSrc == Gmat::TWO_BODY_PROPAGATION) return GetMJ2000State(atTime);
+   return SpacePoint::GetMJ2000PrecState(atTime);
 }
 
 //------------------------------------------------------------------------------
@@ -5833,6 +5784,8 @@ Rvector6 CelestialBody::KeplersProblem(const A1Mjd &forTime)
 //------------------------------------------------------------------------------
 bool CelestialBody::SetUpSPICE()
 {
+   if (posVelSrc == Gmat::TWO_BODY_PROPAGATION && rotationSrc != Gmat::SPICE_KERNEL)
+      return true;
 #ifdef __USE_SPICE__
    #ifdef DEBUG_CB_SPICE
       MessageInterface::ShowMessage(
@@ -5961,13 +5914,13 @@ bool CelestialBody::SetUpSPICE()
       {
       // SPICE calls Earth's moon "Moon" ; GMAT calls Earth's moon "Luna"
       Integer spiceNaifId; 
-      if (instanceName == GmatSolarSystemDefaults::MOON_NAME)
+      if (GetPhysicalBodyName() == GmatSolarSystemDefaults::MOON_NAME)
          spiceNaifId = kernelReader->GetNaifID("MOON"); 
-      else if (instanceName == GmatSolarSystemDefaults::SOLAR_SYSTEM_BARYCENTER_NAME)
+      else if (GetPhysicalBodyName() == GmatSolarSystemDefaults::SOLAR_SYSTEM_BARYCENTER_NAME)
          spiceNaifId = kernelReader->GetNaifID("SSB");
       else
       {
-            spiceNaifId = kernelReader->GetNaifID(instanceName, false);
+            spiceNaifId = kernelReader->GetNaifID(GetPhysicalBodyName(), false);
             // if not found with the instanceName, try using the NAIF ID
             if (spiceNaifId == 0)   // SSB is 0, but that's handled above
             {
@@ -5978,7 +5931,7 @@ bool CelestialBody::SetUpSPICE()
             }
             else
             {
-               naifName = instanceName;
+               naifName = GetPhysicalBodyName();
             }
       }
       

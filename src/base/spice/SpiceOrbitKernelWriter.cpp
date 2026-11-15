@@ -52,6 +52,7 @@
 #include "RealUtilities.hpp"
 #include "FileUtil.hpp"
 #include "ICRFFile.hpp"
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <vector>
@@ -154,6 +155,7 @@ SpiceOrbitKernelWriter::SpiceOrbitKernelWriter(const std::string      &objName, 
    else
    {
       fclose(tmpTxtFile);
+      tmpTxtFile = NULL;
       // remove the temporary text file
       remove(tmpTxtFileName.c_str());
       tmpFileOK = true;
@@ -290,18 +292,21 @@ SpiceOrbitKernelWriter::SpiceOrbitKernelWriter(const SpiceOrbitKernelWriter &cop
    objectNAIFId      (copy.objectNAIFId),
    centralBodyNAIFId (copy.centralBodyNAIFId),
    degree            (copy.degree),
-   handle            (copy.handle),
+   handle            (-999),
    basicMetaData     (copy.basicMetaData),
    addedMetaData     (copy.addedMetaData),
-   fileOpen          (copy.fileOpen),    // ??
+   fileOpen          (false),
    fileFinalized     (copy.fileFinalized),
    dataWritten       (copy.dataWritten),
-   tmpTxtFile        (copy.tmpTxtFile),
+   tmpTxtFileName    (copy.tmpTxtFileName),
+   tmpTxtFile        (NULL),
    tmpFileOK         (copy.tmpFileOK),
    appending         (copy.appending),
    fm                (copy.fm),
    renameSPK         (copy.renameSPK)
 {
+   if (copy.fileOpen)
+      throw UtilityException("Cannot copy an open SPK writer; finalize its native file first.");
    kernelNameSPICE  = kernelFileName.c_str();
    referenceFrame   = frameName.c_str();
 }
@@ -321,6 +326,8 @@ SpiceOrbitKernelWriter& SpiceOrbitKernelWriter::operator=(const SpiceOrbitKernel
 {
    if (&copy != this)
    {
+      if (fileOpen || copy.fileOpen)
+         throw UtilityException("Cannot assign an open SPK writer; finalize both native files first.");
       SpiceKernelWriter::operator=(copy);
       objectName        = copy.objectName;
       centralBodyName   = copy.centralBodyName;
@@ -329,13 +336,14 @@ SpiceOrbitKernelWriter& SpiceOrbitKernelWriter::operator=(const SpiceOrbitKernel
       objectNAIFId      = copy.objectNAIFId;
       centralBodyNAIFId = copy.centralBodyNAIFId;
       degree            = copy.degree;
-      handle            = copy.handle;
+      handle            = -999;
       basicMetaData     = copy.basicMetaData;
       addedMetaData     = copy.addedMetaData;
-      fileOpen          = copy.fileOpen; // ??
+      fileOpen          = false;
       fileFinalized     = copy.fileFinalized;
       dataWritten       = copy.dataWritten;
-      tmpTxtFile        = copy.tmpTxtFile; // ??
+      tmpTxtFileName    = copy.tmpTxtFileName;
+      tmpTxtFile        = NULL;
       tmpFileOK         = copy.tmpFileOK;
       appending         = copy.appending;
       fm                = copy.fm;
@@ -365,7 +373,28 @@ SpiceOrbitKernelWriter::~SpiceOrbitKernelWriter()
 //            "*** WARNING *** SPK kernel %s not written - no data provided\n",
 //            kernelFileName.c_str());
    }
-   FinalizeKernel();
+   try
+   {
+      FinalizeKernel();
+   }
+   catch (BaseException &e)
+   {
+      MessageInterface::ShowMessage("%s\n", e.GetFullMessage().c_str());
+   }
+   catch (...)
+   {
+      // Destruction must not replace an error already reported by an explicit
+      // write/finalize call. Release a remaining DAF handle below.
+   }
+   if (fileOpen)
+   {
+      reset_c();
+      dafcls_c(handle);
+      if (failed_c())
+         reset_c();
+      else
+         fileOpen = false;
+   }
 }
 
 
@@ -437,7 +466,7 @@ void SpiceOrbitKernelWriter::WriteSegmentImpl(const A1Mjd &start, const A1Mjd &e
        (preciseEpochs && (preciseEpochs->size() != epochs.size() ||
                          preciseFlags->size() != epochs.size())))
       throw UtilityException("SPK precise epoch metadata must align with its state records.");
-   if (degree < 1 || states.size() < (static_cast<size_t>(degree) + 1) / 2 ||
+   if (degree < 1 || states.size() < static_cast<size_t>(GetMinNumberOfStates()) ||
        states.size() > static_cast<size_t>((std::numeric_limits<SpiceInt>::max)()))
       throw UtilityException("SPK records must contain enough states for the interpolation degree.");
    if (!std::isfinite(start.Get()) || !std::isfinite(end.Get()))
@@ -683,21 +712,11 @@ void SpiceOrbitKernelWriter::FinalizeKernel(bool done, bool writeMetaData)
       spkcls_c(handle);
       if (failed_c())
       {
-         ConstSpiceChar option[] = "SHORT"; // retrieve short error message, for now
-         SpiceInt       numChar  = MAX_SHORT_MESSAGE;
-         //SpiceChar      err[MAX_SHORT_MESSAGE];
-         SpiceChar      *err = new SpiceChar[MAX_SHORT_MESSAGE];
-         getmsg_c(option, numChar, err);
-         // This should no longer occur as the method WriteDataToClose is called to
-         // write 'bogus' data to a segment, if no segment has been written before.
-         if (eqstr_c(err, "SPICE(NOSEGMENTSFOUND)"))
-         {
-            MessageInterface::ShowMessage(
-                  "SPICE cannot close a kernel (%s) with no segments.\n",
-                  kernelFileName.c_str());
-         }
+         SpiceChar err[MAX_LONG_MESSAGE_VALUE];
+         getmsg_c("LONG", MAX_LONG_MESSAGE_VALUE, err);
          reset_c();
-         delete [] err;
+         throw UtilityException("Unable to close SPK file \"" + kernelFileName +
+                                "\": " + std::string(err));
       }
    }
    else if (fileOpen)
@@ -710,8 +729,8 @@ void SpiceOrbitKernelWriter::FinalizeKernel(bool done, bool writeMetaData)
          SpiceChar err[MAX_LONG_MESSAGE_VALUE];
          getmsg_c("LONG", MAX_LONG_MESSAGE_VALUE, err);
          reset_c();
-         MessageInterface::ShowMessage("Unable to close empty SPK file %s: %s\n",
-                                       kernelFileName.c_str(), err);
+         throw UtilityException("Unable to close empty SPK file \"" + kernelFileName +
+                                "\": " + std::string(err));
       }
    }
    if (done)
@@ -739,7 +758,14 @@ void SpiceOrbitKernelWriter::FinalizeKernel(bool done, bool writeMetaData)
 //------------------------------------------------------------------------------
 Integer SpiceOrbitKernelWriter::GetMinNumberOfStates()
 {
-   return degree+1;
+   // Type 13 uses Hermite position/velocity pairs: each state supplies two
+   // constraints. The descriptor must also span a positive interval covered
+   // by the records, so a segment needs at least two distinct epochs.
+#ifdef _MSC_VER
+   return std::max<SpiceInt>(2, degree / 2 + 1);
+#else
+   return std::max(2, degree / 2 + 1);
+#endif
 }
 
 
@@ -753,56 +779,85 @@ Integer SpiceOrbitKernelWriter::GetMinNumberOfStates()
 //------------------------------------------------------------------------------
 void SpiceOrbitKernelWriter::WriteMetaData()
 {
-   // open the temporary file for writing the metadata
    tmpTxtFile = fopen(tmpTxtFileName.c_str(), "w");
-
-   // write the meta data to the temporary file (according to SPICE documentation, must use regular C routines)
-   // close the temporary file, when done
-   unsigned int basicSize = basicMetaData.size();
-   unsigned int addedSize = addedMetaData.size();
-   for (unsigned int ii = 0; ii < basicSize; ii++)
-      fprintf(tmpTxtFile, "%s", (basicMetaData[ii]).c_str());
-   fprintf(tmpTxtFile,"\n");
-   for (unsigned int ii = 0; ii < addedSize; ii++)
-      fprintf(tmpTxtFile, "%s", (addedMetaData[ii]).c_str());
-   fprintf(tmpTxtFile,"\n");
-   fflush(tmpTxtFile);
-   fclose(tmpTxtFile);
-
-   // write the meta data to the SPK file comment area by telling it to read the
-   // temporary text file
-   Integer     txtLength = tmpTxtFileName.length();
-//   char        tmpTxt[txtLength+1]; // MSVC doesn't like this allocation
-   char        *tmpTxt;    // (deleted at end of method)
-   tmpTxt = new char[txtLength + 1];
-   for (Integer jj = 0; jj < txtLength; jj++)
-      tmpTxt[jj] = tmpTxtFileName.at(jj);
-   tmpTxt[txtLength] = '\0';
-   integer     unit;
-   char        blank[2] = " ";
-   ftnlen      txtLen = txtLength + 1;
-   txtopr_(tmpTxt, &unit, txtLen);         // CSPICE method to open text file for reading
-   spcac_(&handle, &unit, blank, blank, 1, 1); // CSPICE method to write comments to kernel
-   if (failed_c())
+   if (!tmpTxtFile)
+      throw UtilityException("Cannot open temporary SPK metadata file \"" +
+                             tmpTxtFileName + "\".");
+   struct MetadataTextFile
    {
-      ConstSpiceChar option[]   = "LONG"; // retrieve long error message
-      SpiceInt       numErrChar = MAX_LONG_MESSAGE_VALUE;
-      //SpiceChar      err[MAX_LONG_MESSAGE_VALUE];
-      SpiceChar      *err = new SpiceChar[MAX_LONG_MESSAGE_VALUE];
-      getmsg_c(option, numErrChar, err);
-      std::string errStr(err);
-      std::string errmsg = "Error writing meta data to SPK file \"";
-      errmsg += kernelFileName + "\".  Message received from CSPICE is: ";
-      errmsg += errStr + "\n";
-      reset_c();
-      delete [] err;
-      throw UtilityException(errmsg);
-   }
-   // close the text file
-   ftncls_c(unit);                         // CSPICE method to close the text file
-   // remove the temporary text file
-   remove(tmpTxtFileName.c_str());
-   delete [] tmpTxt;
+      FILE *&file;
+      const std::string &name;
+      ~MetadataTextFile()
+      {
+         if (file)
+            fclose(file);
+         file = NULL;
+         remove(name.c_str());
+      }
+   } textFile{tmpTxtFile, tmpTxtFileName};
+
+   // Metadata is written with C stdio for the SPICE text reader. Check every
+   // stage before handing it a partial or still-open temporary text file.
+   auto writeText = [this](const std::string &text)
+   {
+      if (fprintf(tmpTxtFile, "%s", text.c_str()) < 0)
+         throw UtilityException("Cannot write temporary SPK metadata file \"" +
+                                tmpTxtFileName + "\".");
+   };
+   for (const auto &line : basicMetaData)
+      writeText(line);
+   writeText("\n");
+   for (const auto &line : addedMetaData)
+      writeText(line);
+   writeText("\n");
+   if (fflush(tmpTxtFile) != 0 || ferror(tmpTxtFile))
+      throw UtilityException("Cannot flush temporary SPK metadata file \"" +
+                             tmpTxtFileName + "\".");
+   FILE *completedText = tmpTxtFile;
+   tmpTxtFile = NULL;
+   if (fclose(completedText) != 0)
+      throw UtilityException("Cannot close temporary SPK metadata file \"" +
+                             tmpTxtFileName + "\".");
+
+   auto checkNative = [this]()
+   {
+      if (failed_c())
+      {
+         SpiceChar error[MAX_LONG_MESSAGE_VALUE];
+         getmsg_c("LONG", MAX_LONG_MESSAGE_VALUE, error);
+         reset_c();
+         throw UtilityException("Error writing metadata to SPK file \"" +
+                                kernelFileName + "\": " + std::string(error));
+      }
+   };
+   // Retain the existing Fortran filename length/terminator convention.
+   std::vector<char> filename(tmpTxtFileName.begin(), tmpTxtFileName.end());
+   filename.push_back('\0');
+   integer unit = 0;
+   char blank[2] = " ";
+   txtopr_(filename.data(), &unit, static_cast<ftnlen>(filename.size()));
+   checkNative();
+   struct MetadataInputUnit
+   {
+      integer unit;
+      bool open = true;
+      ~MetadataInputUnit()
+      {
+         if (open)
+         {
+            if (failed_c())
+               reset_c();
+            ftncls_c(unit);
+            if (failed_c())
+               reset_c();
+         }
+      }
+   } inputUnit{unit};
+   spcac_(&handle, &unit, blank, blank, 1, 1);
+   checkNative();
+   ftncls_c(unit);
+   checkNative();
+   inputUnit.open = false;
 }
 
 //------------------------------------------------------------------------------

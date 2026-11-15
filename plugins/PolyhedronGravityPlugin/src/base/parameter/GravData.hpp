@@ -60,6 +60,9 @@ public:
    const static Real GRAV_REAL_UNDEFINED;// = -9876543210.1234;
    
 protected:
+   void RebindClonedParameterCaches(const RefData &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
+
    
    enum ModelType
    {

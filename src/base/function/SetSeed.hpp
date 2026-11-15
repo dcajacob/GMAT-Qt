@@ -37,6 +37,8 @@
 class GMAT_API SetSeed : public BuiltinGmatFunction
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = BuiltinGmatFunction::NativeValueProviderDepth + 1;
+
    SetSeed(const std::string &typeStr, const std::string &name);
    virtual ~SetSeed();
    SetSeed(const SetSeed &f);
@@ -55,6 +57,11 @@ public:
    // inherited from GmatBase
    virtual GmatBase*    Clone() const;
    virtual void         Copy(const GmatBase* orig);
+   std::unique_ptr<FunctionInvocationState> SuspendInvocationState() override;
+   bool HasFunctionValueReferenceProvider() const override;
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
+
    
 protected:
 

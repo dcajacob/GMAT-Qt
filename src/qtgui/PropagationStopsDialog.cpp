@@ -1,6 +1,7 @@
 #include "PropagationStopsDialog.hpp"
 #include "PropagationOptions.hpp"
 #include "ReportParameterDialog.hpp"
+#include "ParameterReferences.hpp"
 #include "PropagationGroupsDialog.hpp"
 #include "TableColumns.hpp"
 #include <QVBoxLayout>
@@ -31,13 +32,13 @@ Stops parse(const QString &source)
    }
    if (depth!=0) return result; entries.append(body.mid(begin).trimmed());
    if (entries.size()>1 && entries.first().isEmpty()) {
-      for (int i=1;i<entries.size();++i) if (!QRegularExpression("^(?:StopTolerance|OrbitColor)\\s*=").match(entries[i]).hasMatch()) return result;
+      for (int i=1;i<entries.size();++i) if (!QRegularExpression("^(?:StopTolerance|OrbitColor|EphemerisPolicy)\\s*=").match(entries[i]).hasMatch()) return result;
       entries.removeFirst();
    }
    for (const auto &entry:entries) {
       const int equal=entry.indexOf('='); const auto name=(equal<0 ? entry : entry.left(equal)).trimmed();
       const auto value=equal<0 ? QString() : entry.mid(equal+1).trimmed();
-      if (name=="StopTolerance" || name=="OrbitColor") {
+      if (name=="StopTolerance" || name=="OrbitColor" || name=="EphemerisPolicy") {
          if (value.isEmpty()) return result; result.options.append(entry); continue;
       }
       if (!parameter(name) || (isApsisStop(name) ? equal>=0 : value.isEmpty())) return result;
@@ -66,12 +67,17 @@ PropagationStopsDialog::PropagationStopsDialog(const QString &source,QWidget *pa
    auto *add=button("Add","propagationStopAdd"),*remove=button("Remove","propagationStopRemove");
    auto *up=button("Up","propagationStopUp"),*down=button("Down","propagationStopDown");
    auto *choose=button("Choose parameter…","propagationStopChoose"),*goal=button("Choose goal…","propagationGoalChoose");
+   auto *unitNotice=new QLabel(this);unitNotice->setObjectName("propagationStopUnits");unitNotice->setWordWrap(true);layout->addWidget(unitNotice);
    auto *error=new QLabel(this); error->setObjectName("propagationStopsError"); error->setWordWrap(true); layout->addWidget(error);
    auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,this); layout->addWidget(buttons);
    auto refresh=[=] {
       const QSignalBlocker block(table); const int row=table->currentRow();
       remove->setEnabled(row>=0); up->setEnabled(row>0); down->setEnabled(row>=0 && row+1<table->rowCount()); choose->setEnabled(row>=0);
       goal->setEnabled(row>=0 && table->item(row,0) && !isApsisStop(table->item(row,0)->text().trimmed()));
+      if(row>=0 && table->item(row,0)) {
+         const auto name=table->item(row,0)->text().trimmed(),unit=parameterUnitDescription(name);
+         unitNotice->setText(isApsisStop(name) ? "Event residual units: "+unit+"; no goal" : "Goal and StopTolerance units: "+unit);
+      } else unitNotice->clear();
       bool valid=parsed.valid;
       for (int r=0;r<table->rowCount();++r) {
          if (!table->item(r,0) || !table->item(r,1)) { valid=false; continue; }
@@ -97,6 +103,7 @@ PropagationStopsDialog::PropagationStopsDialog(const QString &source,QWidget *pa
    auto pick=[=](int column) {
       const int row=table->currentRow(); if (row<0) return;
       ReportParameterDialog dialog({table->item(row,column)->text()},this,column==0 ? ReportParameterDialog::Mode::StopParameter : ReportParameterDialog::Mode::Single);
+      if(column==1)dialog.setProperty("unitContext",parameterUnitDescription(table->item(row,0)->text()));
       if (dialog.exec()==QDialog::Accepted && !dialog.selection().isEmpty()) table->item(row,column)->setText(dialog.selection().first());
    };
    connect(choose,&QPushButton::clicked,this,[=] { pick(0); }); connect(goal,&QPushButton::clicked,this,[=] { pick(1); });

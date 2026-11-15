@@ -95,6 +95,20 @@ public:
                                                 RealArray         &starts,
                                                 RealArray         &ends);
 
+   bool                 GetOccultationIntervals(const std::string &occType,
+                                                const std::string &frontBody,
+                                                const std::string &frontShape,
+                                                const std::string &frontFrame,
+                                                const std::string &backBody,
+                                                const std::string &backShape,
+                                                const std::string &backFrame,
+                                                const std::string &abCorrection,
+                                                Real s, Real e, bool useEntireIntvl,
+                                                Real stepSize, Integer &numIntervals,
+                                                RealArray &starts, RealArray &ends,
+                                                const std::string &rootMethod,
+                                                Real rootTolerance);
+
    bool                 GetContactIntervals(const std::string &observerID,
                                             Real              minElevation,
                                             const std::string &obsFrameName,
@@ -113,6 +127,15 @@ public:
                                             const std::string                      idForInstrument,
                                             RealArray		  &maxEl);
 
+   bool                 GetContactIntervals(const std::string &observerID,
+                            Real minElevation, const std::string &obsFrameName,
+                            StringArray &occultingBodyNames, const std::string &abCorrection,
+                            Real s, Real e, bool useEntireIntvl, bool useLightTime,
+                            bool transmit, Real stepSize, Integer &numIntervals,
+                            RealArray &starts, RealArray &ends, bool contactForImager,
+                            const std::string idForInstrument, RealArray &maxEl,
+                            const std::string &rootMethod, Real rootTolerance);
+
    // Isolated apparent elevation crossings, not clipped contact intervals.
    // The caller supplies a station frame and excludes its central body from
    // occultingBodies, as for GetContactIntervals. Occultation is evaluated at
@@ -125,6 +148,16 @@ public:
                             Real start, Real stop, bool useEntireInterval,
                             bool useLightTime, bool transmit, Real stepSize,
                             RealArray &rises, RealArray &sets);
+
+   bool                 GetStationElevationCrossings(
+                            const std::string &observerID, Real minElevation,
+                            const std::string &obsFrameName,
+                            const StringArray &occultingBodies,
+                            const std::string &abCorrection,
+                            Real start, Real stop, bool useEntireInterval,
+                            bool useLightTime, bool transmit, Real stepSize,
+                            RealArray &rises, RealArray &sets,
+                            const std::string &rootMethod, Real rootTolerance);
 
    bool                 GetIntrusionIntervals(const std::string &instName,
                                               const std::string &targetName,
@@ -143,6 +176,15 @@ public:
                                               StringArray       &intervalTypes,
                                               RealArray         &starts,
                                               RealArray         &ends);
+
+   bool                 GetIntrusionIntervals(const std::string &instName,
+                            const std::string &targetName, const std::string &targetShape,
+                            const std::string &targetFrame, Integer targetNaifId,
+                            const std::string &abCorrection, StringArray &occultingBodyNames,
+                            Real maxPhaseAngle, Real s, Real e, bool useEntireIntvl,
+                            bool useLightTime, Real stepSize, Integer &numIntervals,
+                            StringArray &intervalTypes, RealArray &starts, RealArray &ends,
+                            const std::string &rootMethod, Real rootTolerance);
 
    bool                 GetCoverage(Real s, Real e,
                                     bool useEntireIntvl,

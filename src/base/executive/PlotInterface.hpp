@@ -48,6 +48,9 @@ class GMAT_API PlotInterface
 public:
    
    static void SetPlotReceiver(PlotReceiver *pr);
+   static void SetPlotDisplayName(const std::string &backendName, const std::string &displayName);
+   static std::string GetPlotDisplayName(const std::string &backendName);
+   static void ForgetPlotDisplayName(const std::string &backendName) noexcept;
    
    // for OpenGL Plot
    static bool CreateGlPlotWindow(const std::string &plotName,

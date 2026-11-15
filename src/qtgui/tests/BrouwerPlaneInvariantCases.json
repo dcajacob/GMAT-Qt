@@ -1,0 +1,48 @@
+{
+  "cases": [
+    {
+      "key": "BrouwerMeanShortPlaneInvariant",
+      "setup": "Earth.Mu = 398600.4418;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = 7.5;\nSat.VZ = 1;\n",
+      "body_case": "Earth",
+      "origin": "Earth",
+      "parameter": "BrouwerMeanShort",
+      "orbital_case": false,
+      "destination": "R",
+      "before": "3.25",
+      "expression": "Sat.EarthMJ2000Ec.BrouwerShortSMA - Sat.EarthMJ2000Eq.BrouwerShortSMA",
+      "report": "R",
+      "expected": [
+        0.0
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 2e-12,
+      "scope": "One physical orbit and one Earth zonal model in two inertial bases: averaged SMA is a rotational scalar. GUI assignment/source transactions use the existing untouched worker. No broad frame credit."
+    },
+    {
+      "key": "BrouwerMeanLongPlaneInvariant",
+      "setup": "Earth.Mu = 398600.4418;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.DisplayStateType = Cartesian;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = 7.5;\nSat.VZ = 1;\n",
+      "body_case": "Earth",
+      "origin": "Earth",
+      "parameter": "BrouwerMeanLong",
+      "orbital_case": false,
+      "destination": "R",
+      "before": "3.25",
+      "expression": "Sat.EarthMJ2000Ec.BrouwerLongSMA - Sat.EarthMJ2000Eq.BrouwerLongSMA",
+      "report": "R",
+      "expected": [
+        0.0
+      ],
+      "invalid": [
+        "AbsentNASA + 1",
+        "1 +"
+      ],
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 2e-12,
+      "scope": "One physical orbit and one Earth zonal model in two inertial bases: averaged SMA is a rotational scalar. GUI assignment/source transactions use the existing untouched worker. No broad frame credit."
+    }
+  ]
+}

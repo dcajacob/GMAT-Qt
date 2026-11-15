@@ -35,6 +35,12 @@
     <guilabel>Barycenter</guilabel> such as the Earth-Moon barycenter. This
     resource cannot be modified in the Mission Sequence.</para>
 
+    <para>Native MJ2000 acceleration uses the same constant body-mass weights
+    as the barycenter state. All body references must be resolved, share the
+    J2000 reference body, and have finite nonnegative masses with a positive
+    total. The built-in SolarSystemBarycenter uses its planetary-ephemeris
+    acceleration provider.</para>
+
     <para><phrase role="ref_seealso">See Also</phrase>: <xref
     linkend="LibrationPoint"/>, <xref linkend="CoordinateSystem"/>, <xref
     linkend="CelestialBody"/>, <xref linkend="SolarSystem"/>, <xref
@@ -43,6 +49,21 @@
 
   <refsection xml:id="Barycenter_Resource_Fields">
     <title>Fields</title>
+
+    <para><guilabel>EphemerisSource</guilabel> selects
+    <literal>MassWeighted</literal> (the default) or
+    <literal>SolarSystemBarycenter</literal>. MassWeighted uses the configured
+    <guilabel>BodyNames</guilabel> and their masses. SolarSystemBarycenter uses
+    the same native ephemeris point as the built-in Solar System barycenter,
+    including the SolarSystem's selected ephemeris source. It does not
+    approximate that point by summing the configured planetary states.</para>
+
+    <para>The source can be configured before BeginMissionSequence. In
+    SolarSystemBarycenter mode, BodyNames is inactive and cannot be assigned.
+    Switching back to MassWeighted uses the normal Earth and Luna defaults
+    when no body list has been supplied. The protected built-in resource keeps
+    its native source. A copied resource has its own name and appearance
+    settings, and its source is retained when saving and reopening a script.</para>
 
     <informaltable colsep="0" frame="topbot">
       <tgroup cols="2">
@@ -80,7 +101,9 @@
                   <listitem>
                     <para>array of celestial bodies. You cannot add bodies to
                     the built-in <guilabel>SolarySystemBarycenter</guilabel>
-                    resource. A <guilabel>CelestialBody</guilabel> can only
+                    resource or a barycenter using the native
+                    <guilabel>SolarSystemBarycenter</guilabel> ephemeris source.
+                    A <guilabel>CelestialBody</guilabel> can only
                     appear once in the <guilabel>BodyNames</guilabel>
                     list.</para>
                   </listitem>

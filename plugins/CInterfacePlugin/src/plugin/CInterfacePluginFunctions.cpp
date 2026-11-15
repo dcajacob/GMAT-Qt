@@ -35,6 +35,7 @@
 #include "Moderator.hpp"
 #include "ODEModel.hpp"
 #include "Propagate.hpp"
+#include "Propagator.hpp"
 #include "Factory.hpp"
 #include "Spacecraft.hpp"
 #include "BaseException.hpp"
@@ -43,6 +44,10 @@
 #include <set>
 #include <vector>
 #include <cmath>
+#include <exception>
+#include <algorithm>
+#include <sstream>
+#include <stdexcept>
 
 //#define DEBUG_INTERFACE_FROM_MATLAB
 
@@ -61,9 +66,105 @@ std::map<std::string,Integer> odeNameTable;
 
 namespace
 {
-   // Only the new accessor uses this flag. Never expose a previous script's
-   // sandbox, or a partially initialized sandbox, after a load/run failure.
+   // Epoch/model discovery requires a usable run sandbox, rather than the
+   // previous script's objects or a partially initialized replacement.
    bool spacecraftEpochAvailable = false;
+   Integer propagatorSetupIndex = 0;
+   std::set<GmatCommand*> preparedLookupCommands;
+
+   // Command/model pointers belong to the current initialized run sandbox.
+   // InterpretScript and RunMission may replace it even when they fail.
+   void InvalidateRuntimeModels()
+   {
+      ode = NULL;
+      pSetup = NULL;
+      odeTable.clear();
+      setupTable.clear();
+      odeNameTable.clear();
+      nextOdeIndex = 1000;
+      propagatorSetupIndex = 0;
+      preparedLookupCommands.clear();
+   }
+
+   struct RuntimePropagator
+   {
+      GmatCommand *command;
+      Integer index;
+      PropSetup *setup;
+   };
+
+   std::vector<RuntimePropagator> RuntimePropagators(GmatCommand *root)
+   {
+      std::vector<RuntimePropagator> result;
+      std::vector<GmatCommand*> pending(1, root);
+      std::set<GmatCommand*> visited;
+      while (!pending.empty())
+      {
+         GmatCommand *command = pending.back();
+         pending.pop_back();
+         if (!command || !visited.insert(command).second)
+            continue;
+
+         // Branch-end commands point back to their owner. Visit each command
+         // once, with child branches before the owner's following command.
+         // Inspect links without invoking solver navigation or changing run state.
+         pending.push_back(command->GetNextWhileExecuting());
+         std::vector<GmatCommand*> children;
+         for (Integer i = 0; ; ++i)
+         {
+            GmatCommand *child = command->GetChildCommand(i);
+            if (!child)
+               break;
+            children.push_back(child);
+         }
+         for (auto child = children.rbegin(); child != children.rend(); ++child)
+            pending.push_back(*child);
+
+         if (command->GetTypeName() != "Propagate")
+            continue;
+         const StringArray names = command->GetRefObjectNameArray(Gmat::PROP_SETUP);
+         for (Integer i = 0; i < static_cast<Integer>(names.size()); ++i)
+         {
+            auto *setup = dynamic_cast<PropSetup*>(
+                  command->GetRefObject(Gmat::PROP_SETUP, "", i));
+            if (!setup)
+               throw std::runtime_error("C interface found an uninitialized Propagate setup");
+            result.push_back({command, i, setup});
+         }
+      }
+      return result;
+   }
+
+   void PrepareLookupCommand(GmatCommand *command)
+   {
+      if (preparedLookupCommands.count(command))
+         return;
+      bool needsPreparation = false;
+      const StringArray names = command->GetRefObjectNameArray(Gmat::PROP_SETUP);
+      for (Integer i = 0; i < static_cast<Integer>(names.size()); ++i)
+      {
+         auto *setup = dynamic_cast<PropSetup*>(
+               command->GetRefObject(Gmat::PROP_SETUP, "", i));
+         if (!setup || !setup->GetPropagator())
+            throw std::runtime_error("C interface found an incomplete propagator");
+         if (setup->GetPropagator()->UsesODEModel())
+         {
+            ODEModel *model = setup->GetODEModel();
+            if (!model)
+               throw std::runtime_error("C interface found an incomplete numerical model");
+            // Initialize can allocate state before an unexecuted branch's
+            // ODE model is assembled. A populated vector alone is not ready.
+            if (setup->GetPropStateManager()->GetState()->GetSize() == 0 ||
+                  model->GetPropStateManager() != setup->GetPropStateManager())
+               needsPreparation = true;
+         }
+      }
+      // Completed/stopped, bound propagators already own their current state.
+      // Do not rebuild it or resume a command just to find a model.
+      if (needsPreparation && !command->TakeAction("PrepareToPropagate"))
+         throw std::runtime_error("C interface could not prepare the propagation model");
+      preparedLookupCommands.insert(command);
+   }
 }
 
 #ifdef DEBUG_INTERFACE_FROM_MATLAB
@@ -175,11 +276,14 @@ extern "C"
    int StartGmat()
    {
       spacecraftEpochAvailable = false;
+      InvalidateRuntimeModels();
       #ifdef DEBUG_INTERFACE_FROM_MATLAB
          fp = fopen("CInterfaceDebug.txt", "w");
          fprintf(fp, "Starting GMAT\n");
       #endif
 
+      try
+      {
       Moderator *theModerator = Moderator::Instance();
       if (theModerator == NULL)
          return -1;
@@ -191,14 +295,22 @@ extern "C"
       }
 
       lastMsg = "The Moderator has been initialized";
-      ode     = NULL;
-      pSetup  = NULL;
-      nextOdeIndex = 1000;
-      odeTable.clear();
-      odeNameTable.clear();
-      setupTable.clear();
 
       return 0;
+      }
+      catch (BaseException &error)
+      {
+         lastMsg = "Error starting GMAT: " + error.GetFullMessage();
+      }
+      catch (const std::exception &error)
+      {
+         lastMsg = std::string("Error starting GMAT: ") + error.what();
+      }
+      catch (...)
+      {
+         lastMsg = "Unknown error starting GMAT";
+      }
+      return -3;
    }
 
    //---------------------------------------------------------------------------
@@ -221,7 +333,17 @@ extern "C"
    int LoadScript(const char* scriptName)
    {
       spacecraftEpochAvailable = false;
+      InvalidateRuntimeModels();
       int retval = -1;
+
+      if (scriptName == NULL || scriptName[0] == '\0')
+      {
+         lastMsg = "LoadScript requires a nonempty script filename";
+         return -1;
+      }
+
+      try
+      {
 
       Moderator *theModerator = Moderator::Instance();
       if (theModerator == NULL)
@@ -236,10 +358,6 @@ extern "C"
       {
          lastMsg = "Interpreted the script " + script + " successfully.";
          retval = 0;
-         nextOdeIndex = 1000;
-         odeTable.clear();
-         odeNameTable.clear();
-         setupTable.clear();
       }
       else
       {
@@ -251,6 +369,20 @@ extern "C"
       }
 
       return retval;
+      }
+      catch (BaseException &error)
+      {
+         lastMsg = "Error loading script: " + error.GetFullMessage();
+      }
+      catch (const std::exception &error)
+      {
+         lastMsg = std::string("Error loading script: ") + error.what();
+      }
+      catch (...)
+      {
+         lastMsg = "Unknown error loading script";
+      }
+      return -3;
    }
 
    //---------------------------------------------------------------------------
@@ -275,8 +407,11 @@ extern "C"
    int RunScript()
    {
       spacecraftEpochAvailable = false;
+      InvalidateRuntimeModels();
       int retval = -1;
 
+      try
+      {
       Moderator *theModerator = Moderator::Instance();
       if (theModerator == NULL)
       {
@@ -330,6 +465,21 @@ extern "C"
       }
 
       return retval;
+      }
+      catch (BaseException &error)
+      {
+         lastMsg = "Error running script: " + error.GetFullMessage();
+      }
+      catch (const std::exception &error)
+      {
+         lastMsg = std::string("Error running script: ") + error.what();
+      }
+      catch (...)
+      {
+         lastMsg = "Unknown error running script";
+      }
+      spacecraftEpochAvailable = false;
+      return -6;
    }
 
    int GetSpacecraftEpoch(const char *spacecraftName, double *epochA1Mjd)
@@ -402,26 +552,24 @@ extern "C"
     *
     * Before calling this function, the user should call StartGmat().
     *
-    * @note: This method is not yet tested, and should not be used
+    * Loading must succeed before any mission command can execute. Both steps
+    * use the same sandbox/model invalidation and diagnostics as the separate
+    * entry points. A PrepareMissionSequence script still prepares the sandbox
+    * without running its remaining commands.
     *
     * @param scriptName The file name of the script containing the configuration
     *
-    * @return A status flag indicating the status upon return; 0 means success
+    * @return The first failing operation's status, or 0 when both succeed.
+    *         getLastMessage() retains that operation's diagnostic.
     */
    //---------------------------------------------------------------------------
    int LoadAndRunScript(const char* scriptName)
    {
-      lastMsg = "LoadAndRunScript is not yet ready for use.";
-      return -1;
+      const int loadStatus = LoadScript(scriptName);
+      if (loadStatus != 0)
+         return loadStatus;
 
-      int retval = LoadScript(scriptName);
-
-      if (retval == 0)
-      {
-         retval = RunScript();
-      }
-
-      return retval;
+      return RunScript();
    }
 
    //---------------------------------------------------------------------------
@@ -445,6 +593,18 @@ extern "C"
    //---------------------------------------------------------------------------
    int FindOdeModel(const char* modelName)
    {
+      if (modelName == NULL)
+      {
+         lastMsg = "FindOdeModel requires a name; use an empty string for the first model";
+         return -1;
+      }
+      if (!spacecraftEpochAvailable)
+      {
+         lastMsg = "RunScript must initialize the sandbox before locating an ODE model";
+         return -1;
+      }
+      try
+      {
       #ifdef DEBUG_INTERFACE_FROM_MATLAB
          fprintf(fp, "Looking for ODE model '%s'\n", modelName);
       #endif
@@ -501,6 +661,22 @@ extern "C"
          retval = -2;
    
       return retval;
+      }
+      catch (BaseException &error)
+      {
+         lastMsg = "Error locating ODE model: " + error.GetFullMessage();
+      }
+      catch (const std::exception &error)
+      {
+         lastMsg = std::string("Error locating ODE model: ") + error.what();
+      }
+      catch (...)
+      {
+         lastMsg = "Unknown error locating ODE model";
+      }
+      ode = NULL;
+      pSetup = NULL;
+      return -2;
    }
 
    //---------------------------------------------------------------------------
@@ -556,10 +732,18 @@ extern "C"
    {
       int retval = -1;
 
+      if (modelName == NULL)
+      {
+         lastMsg = "SetModelByName requires a model name";
+         return retval;
+      }
+
       if (odeNameTable.find(modelName) != odeNameTable.end())
       {
          retval = SetModel(odeNameTable[modelName]);
       }
+      else
+         lastMsg = "The requested ODE model name is not in the table of models";
 
       return retval;
    }
@@ -631,12 +815,26 @@ extern "C"
    {
       int retval = -1;
 
+      if (!state || stateDim <= 0 || !std::isfinite(epoch))
+      {
+         lastMsg = "SetState requires a finite epoch and a nonempty state array";
+         return -1;
+      }
+
+      try
+      {
       if (pSetup != NULL)
       {
          GmatState *theState = pSetup->GetPropStateManager()->GetState();
 
          if (stateDim <= theState->GetSize())
          {
+            for (Integer i = 0; i < stateDim; ++i)
+               if (!std::isfinite(state[i]))
+               {
+                  lastMsg = "SetState requires finite state elements";
+                  return -1;
+               }
             // Do not report success or change the propagation vector when the
             // native model rejects the epoch.
             if (ode != NULL && !ode->SetEpoch(epoch))
@@ -664,13 +862,9 @@ extern "C"
          }
          else
          {
-            char msg[512];
-            sprintf(msg, "ERROR: Incoming state size (%d) is larger than the "
-                  "propagation state vector size (%d)!\n   Epoch: %lf\n   "
-                  "State = [%lf %lf %lf %lf %lf %lf]\n", stateDim,
-                  theState->GetSize(), epoch, state[0], state[1], state[2],
-                  state[3], state[4], state[5]);
-            lastMsg = msg;
+            lastMsg = "ERROR: Incoming state size (" + std::to_string(stateDim) +
+                  ") is larger than the propagation state vector size (" +
+                  std::to_string(theState->GetSize()) + ")!";
             retval = -2;
          }
       }
@@ -679,6 +873,20 @@ extern "C"
 
 
       return retval;
+      }
+      catch (BaseException &error)
+      {
+         lastMsg = "Error setting state: " + error.GetFullMessage();
+      }
+      catch (const std::exception &error)
+      {
+         lastMsg = std::string("Error setting state: ") + error.what();
+      }
+      catch (...)
+      {
+         lastMsg = "Unknown error setting state";
+      }
+      return -1;
    }
 
    //---------------------------------------------------------------------------
@@ -746,11 +954,25 @@ extern "C"
          int stateDim, double dt, int order, int *pdim)
    {
       double *retval = NULL;
-      static double *deriv = NULL;
+      static std::vector<double> deriv;
+      if (!pdim)
+      {
+         lastMsg = "GetDerivativesForState requires a dimension output pointer";
+         return NULL;
+      }
       int modelIndex = *pdim;
+      *pdim = 0;
+      if (!std::isfinite(dt) || (order != 1 && order != 2))
+      {
+         lastMsg = "GetDerivativesForState requires a finite time offset and derivative order 1 or 2";
+         return NULL;
+      }
+
+      try
+      {
 
       if (modelIndex > 0)
-         if (odeTable.find(*pdim) != odeTable.end())
+         if (odeTable.find(modelIndex) != odeTable.end())
          {
             ode = odeTable[modelIndex];
             pSetup = setupTable[modelIndex];
@@ -761,16 +983,36 @@ extern "C"
          if (SetState(epoch, state, stateDim) == 0)
          {
             double *dvState = GetState();
-            *pdim = GetStateSize();
-            if (deriv == NULL)
-               deriv = new double[*pdim];
-            ode->GetDerivatives(dvState, dt, order);
+            const int dim = GetStateSize();
+            if (!dvState || dim <= 0 || !ode->GetDerivatives(dvState, dt, order))
+            {
+               lastMsg = "The ODE model could not calculate state derivatives";
+               return NULL;
+            }
             const double *ddt = ode->GetDerivativeArray();
-            memcpy(deriv, ddt, *pdim * sizeof(double));
-            retval = deriv;
+            if (!ddt)
+               return NULL;
+            deriv.assign(ddt, ddt + dim);
+            *pdim = dim;
+            retval = deriv.data();
          }
       }
       return retval;
+      }
+      catch (BaseException &error)
+      {
+         lastMsg = "Error calculating state derivatives: " + error.GetFullMessage();
+      }
+      catch (const std::exception &error)
+      {
+         lastMsg = std::string("Error calculating state derivatives: ") + error.what();
+      }
+      catch (...)
+      {
+         lastMsg = "Unknown error calculating state derivatives";
+      }
+      *pdim = 0;
+      return NULL;
    }
 
    //---------------------------------------------------------------------------
@@ -801,15 +1043,27 @@ extern "C"
    double *GetDerivatives(double dt, int order, int *pdim)
    {
       double *retval = NULL;
-      static double *deriv = NULL;
+      static std::vector<double> deriv;
+      if (!pdim)
+      {
+         lastMsg = "GetDerivatives requires a dimension output pointer";
+         return NULL;
+      }
       int modelIndex = *pdim;
+      *pdim = 0;
+      if (!std::isfinite(dt) || (order != 1 && order != 2))
+      {
+         lastMsg = "GetDerivatives requires a finite time offset and derivative order 1 or 2";
+         return NULL;
+      }
 
-      char dvData[1024];
-      sprintf(dvData, "ODE Model index: %d\n", modelIndex);
-      lastMsg = dvData;
+      try
+      {
+
+      lastMsg = "ODE Model index: " + std::to_string(modelIndex) + "\n";
 
       if (modelIndex > 0)
-         if (odeTable.find(*pdim) != odeTable.end())
+         if (odeTable.find(modelIndex) != odeTable.end())
          {
             ode = odeTable[modelIndex];
             pSetup = setupTable[modelIndex];
@@ -819,25 +1073,45 @@ extern "C"
       {
          double *state = GetState();
          int dim = GetStateSize();
-         *pdim = dim;
-         if (deriv == NULL)
-            deriv = new double[dim];
-         ode->GetDerivatives(state, dt, order);
+         if (!state || dim <= 0 || !ode->GetDerivatives(state, dt, order))
+         {
+            lastMsg = "The ODE model could not calculate derivatives";
+            return NULL;
+         }
          const double *ddt = ode->GetDerivativeArray();
+         if (!ddt)
+            return NULL;
 
 
-         sprintf(dvData, "   %lf\n   %lf\n   %lf\n   %le\n   %le\n   %le\n   "
-               "%le\n   %le\n   %le\n   %le\n   %le\n   %le\n",
-               state[0], state[1], state[2], state[3], state[4], state[5],
-               ddt[0], ddt[1], ddt[2], ddt[3], ddt[4], ddt[5]);
-         lastMsg += dvData;
+         std::ostringstream details;
+         for (Integer i = 0; i < std::min(dim, 6); ++i)
+            details << "   " << (i < 3 ? std::fixed : std::scientific) << state[i] << "\n";
+         for (Integer i = 0; i < std::min(dim, 6); ++i)
+            details << "   " << std::scientific << ddt[i] << "\n";
+         lastMsg += details.str();
 
-         memcpy(deriv, ddt, dim * sizeof(double));
-         retval = deriv;
+         deriv.assign(ddt, ddt + dim);
+         *pdim = dim;
+         retval = deriv.data();
 
          lastMsg += ode->GetGeneratingString(Gmat::NO_COMMENTS);
       }
       return retval;
+      }
+      catch (BaseException &error)
+      {
+         lastMsg = "Error calculating derivatives: " + error.GetFullMessage();
+      }
+      catch (const std::exception &error)
+      {
+         lastMsg = std::string("Error calculating derivatives: ") + error.what();
+      }
+      catch (...)
+      {
+         lastMsg = "Unknown error calculating derivatives";
+      }
+      *pdim = 0;
+      return NULL;
    }
 
    //---------------------------------------------------------------------------
@@ -851,20 +1125,30 @@ extern "C"
    //---------------------------------------------------------------------------
    int CountObjects()
    {
-      int retval = -1;
-
-      Moderator *theModerator = Moderator::Instance();
-      if (theModerator == NULL)
+      try
       {
-         lastMsg = "Cannot find the Moderator";
-         return retval;
+         Moderator *theModerator = Moderator::Instance();
+         if (theModerator == NULL)
+         {
+            lastMsg = "Cannot find the Moderator";
+            return -1;
+         }
+         const StringArray objects = theModerator->GetListOfObjects(Gmat::UNKNOWN_OBJECT);
+         return static_cast<int>(objects.size());
       }
-
-      StringArray objects = theModerator->GetListOfObjects(
-            Gmat::UNKNOWN_OBJECT);
-      retval = objects.size();
-
-      return retval;
+      catch (BaseException &error)
+      {
+         lastMsg = "Error counting configured objects: " + error.GetFullMessage();
+      }
+      catch (const std::exception &error)
+      {
+         lastMsg = std::string("Error counting configured objects: ") + error.what();
+      }
+      catch (...)
+      {
+         lastMsg = "Unknown error counting configured objects";
+      }
+      return -1;
    }
 
    //---------------------------------------------------------------------------
@@ -880,18 +1164,38 @@ extern "C"
    //---------------------------------------------------------------------------
    const char *GetObjectName(int which)
    {
-      Moderator *theModerator = Moderator::Instance();
-      if ((theModerator == NULL) || (which < 0))
+      try
       {
-         lastMsg = "Cannot find the Moderator";
-         return "Error accessing the Moderator";
-      }
-
-      StringArray objects = theModerator->GetListOfObjects(
-            Gmat::UNKNOWN_OBJECT);
-      if ((int)objects.size() > which)
-      {
+         if (which < 0)
+         {
+            lastMsg = "Object index out of range";
+            return lastMsg.c_str();
+         }
+         Moderator *theModerator = Moderator::Instance();
+         if (theModerator == NULL)
+         {
+            lastMsg = "Cannot find the Moderator";
+            return "Error accessing the Moderator";
+         }
+         const StringArray objects = theModerator->GetListOfObjects(Gmat::UNKNOWN_OBJECT);
+         if (static_cast<size_t>(which) >= objects.size())
+         {
+            lastMsg = "Object index out of range";
+            return lastMsg.c_str();
+         }
          lastMsg = objects[which];
+      }
+      catch (BaseException &error)
+      {
+         lastMsg = "Error reading configured object name: " + error.GetFullMessage();
+      }
+      catch (const std::exception &error)
+      {
+         lastMsg = std::string("Error reading configured object name: ") + error.what();
+      }
+      catch (...)
+      {
+         lastMsg = "Unknown error reading configured object name";
       }
 
       return lastMsg.c_str();
@@ -908,6 +1212,8 @@ extern "C"
    //---------------------------------------------------------------------------
    const char *GetRunSummary()
    {
+      try
+      {
       Moderator *theModerator = Moderator::Instance();
       if (theModerator == NULL)
       {
@@ -960,6 +1266,20 @@ extern "C"
       }
 
       return lastMsg.c_str();
+      }
+      catch (BaseException &error)
+      {
+         lastMsg = "Error generating run summary: " + error.GetFullMessage();
+      }
+      catch (const std::exception &error)
+      {
+         lastMsg = std::string("Error generating run summary: ") + error.what();
+      }
+      catch (...)
+      {
+         lastMsg = "Unknown error generating run summary";
+      }
+      return lastMsg.c_str();
    }
 
    //---------------------------------------------------------------------------
@@ -974,8 +1294,38 @@ extern "C"
    //---------------------------------------------------------------------------
    void (*GetPluginFunction(const char* funName, const char* libraryName))()
    {
-      Moderator *theModerator = Moderator::Instance();
-      return theModerator->GetDynamicFunction(funName, libraryName);
+      if (!funName || !libraryName || !funName[0] || !libraryName[0])
+      {
+         lastMsg = "GetPluginFunction requires nonempty function and library names";
+         return NULL;
+      }
+      try
+      {
+         Moderator *theModerator = Moderator::Instance();
+         if (!theModerator)
+         {
+            lastMsg = "Cannot find the Moderator";
+            return NULL;
+         }
+         void (*function)() = theModerator->GetDynamicFunction(funName, libraryName);
+         if (!function)
+            lastMsg = "Cannot find plugin function \"" + std::string(funName) +
+                  "\" in loaded library \"" + libraryName + "\"";
+         return function;
+      }
+      catch (BaseException &error)
+      {
+         lastMsg = "Error locating plugin function: " + error.GetFullMessage();
+      }
+      catch (const std::exception &error)
+      {
+         lastMsg = std::string("Error locating plugin function: ") + error.what();
+      }
+      catch (...)
+      {
+         lastMsg = "Unknown error locating plugin function";
+      }
+      return NULL;
    }
 };  // End of extern "C"
 
@@ -997,131 +1347,55 @@ extern "C"
    * @param modelName The name of the model that is wanted.  An empty string
    *                  returns the first model
    *
-   * @return The ODEModel pointer, or NULL if it was not found
+   * @return The model index, zero for an unnamed first match, or a negative
+   *         value if no model was found
    *
-   * @note The current implementation returns the first ODEModel found.
+   * @note Named lookup uses the first matching numerical model in command
+   *       graph order. Lookup prepares an unbuilt model without executing it.
    */
 //------------------------------------------------------------------------------
 int GetODEModel(GmatCommand **cmd, const char *modelName)
 {
-   Integer retval = -1;
-
-   ODEModel* model = NULL;
    ode = NULL;
    pSetup = NULL;
-
-   char extraMsg[256] = "";
-
-//   // First see if it has been located before
-//   if (odeNameTable.find(modelName) != odeNameTable.end())
-//   {
-//      ode = odeTable[odeNameTable[modelName]];
-//      sprintf(extraMsg, "%s", ode->GetName().c_str());
-//      return odeNameTable[modelName];
-//   }
-//   else if ((odeTable.size() > 0) && (strcmp(modelName, "") == 0))
-//   {
-//      // If no name specified, return first one in table if there is an entry
-//      ode = odeTable.begin()->second;
-//      sprintf(extraMsg, "%s", ode->GetName().c_str());
-//      return 0;
-//   }
-
-   if (strcmp(modelName, "") == 0)
+   if (!cmd || !modelName)
    {
-      PropSetup *prop = GetFirstPropagator(*cmd);
-      if (prop != NULL)
-      {
-         model = prop->GetODEModel();
-         lastMsg = "In GetODEModel; found prop";
-         if (model != NULL)
-         {
-            #ifdef DEBUG_ODE_SEARCH
-               lastMsg += ", model != NULL\n";
-               lastMsg += ::extraMsg;
-            #else
-               lastMsg += " ";
-            #endif
-            lastMsg += model->GetName();
-            lastMsg += "\n";
-            pSetup = prop;
-            ode = model;
-
-            if (ode != NULL)
-            {
-               sprintf(extraMsg, "%s", ode->GetName().c_str());
-               odeNameTable[ode->GetName()] = nextOdeIndex++;
-               odeTable[odeNameTable[ode->GetName()]] = model;
-               setupTable[odeNameTable[ode->GetName()]] = pSetup;
-               retval = 0;
-            }
-         }
-         else
-            lastMsg += ", model == NULL\n";
-      }
-      else
-      {
-         lastMsg = "In GetODEModel; did not find prop\n";
-         lastMsg += ::extraMsg;
-      }
-   }
-   else // Find a named ODEModel
-   {
-      while ((*cmd) != NULL)
-      {
-         #ifdef DEBUG_INTERFACE_FROM_MATLAB
-            fprintf(fp, "Command: '%s', <%p>\n",
-                  (*cmd)->GetGeneratingString(Gmat::NO_COMMENTS).c_str(), (*cmd));
-         #endif
-         PropSetup *setup = GetPropagator(cmd);
-         #ifdef DEBUG_INTERFACE_FROM_MATLAB
-            fprintf(fp, "   setup <%p>: %s\n", setup,
-                  (setup != NULL ? setup->GetName().c_str() : "<undefined>"));
-         #endif
-         if (setup != NULL)
-         {
-            model = setup->GetODEModel();
-            #ifdef DEBUG_INTERFACE_FROM_MATLAB
-               fprintf(fp, "   model <%p>: %s\n", model,
-                     (model != NULL ? model->GetName().c_str() : "<undefined>"));
-            #endif
-            if (model != NULL)
-            {
-               if (strcmp(modelName, model->GetName().c_str()) == 0)
-               {
-                  ode = model;
-                  retval = nextOdeIndex++;
-                  odeNameTable[modelName] = retval;
-                  odeTable[retval] = model;
-                  setupTable[retval] = setup;
-                  pSetup = setup;
-                  break;
-               }
-            }
-         }
-         #ifdef DEBUG_INTERFACE_FROM_MATLAB
-            fprintf(fp, "On return, cmd is <%p>\n", (*cmd));
-         #endif
-      }
+      lastMsg = "ODE model lookup requires a command and model name";
+      return -1;
    }
 
-   if (ode != NULL)
+   const bool unnamed = modelName[0] == '\0';
+   for (const auto &reference : RuntimePropagators(*cmd))
    {
-      lastMsg = "ODE model is set to ";
-      lastMsg += ode->GetName();
-   }
-   else
-   {
-      if (strcmp(modelName, "") == 0)
-         lastMsg += "No ODE model found\n";
-      else
-      {
-         std::string notFoundName = modelName;
-         lastMsg += "The ODE model named \"" + notFoundName + "\" was not found\n";
-      }
+      PropSetup *setup = reference.setup;
+      if (!setup->GetPropagator() || !setup->GetPropagator()->UsesODEModel())
+         continue;
+      ODEModel *model = setup->GetODEModel();
+      if (!model || (!unnamed && model->GetName() != modelName))
+         continue;
+
+      PrepareLookupCommand(reference.command);
+      setup = dynamic_cast<PropSetup*>(reference.command->GetRefObject(
+            Gmat::PROP_SETUP, "", reference.index));
+      if (!setup || !setup->GetODEModel() ||
+            setup->GetPropStateManager()->GetState()->GetSize() <= 0)
+         throw std::runtime_error("C interface propagation model has no initialized state");
+      model = setup->GetODEModel();
+      const Integer id = nextOdeIndex++;
+      odeNameTable[model->GetName()] = id;
+      odeTable[id] = model;
+      setupTable[id] = setup;
+      ode = model;
+      pSetup = setup;
+      *cmd = reference.command;
+      lastMsg = "ODE model is set to " + model->GetName();
+      return unnamed ? 0 : id;
    }
 
-   return retval;
+   *cmd = NULL;
+   lastMsg = unnamed ? "No ODE model found\n" :
+         "The ODE model named \"" + std::string(modelName) + "\" was not found\n";
+   return -1;
 }
 
 //------------------------------------------------------------------------------
@@ -1137,54 +1411,12 @@ int GetODEModel(GmatCommand **cmd, const char *modelName)
 //------------------------------------------------------------------------------
 PropSetup *GetFirstPropagator(GmatCommand *cmd)
 {
-   static PropSetup *retval = NULL;
-   GmatCommand *current = cmd;
-
-   #ifdef DEBUG_ODE_SEARCH
-      extraMsg = "Commands checked:\n";
-   #endif
-   while (current != NULL)
-   {
-      #ifdef DEBUG_ODE_SEARCH
-            extraMsg += "   '" + current->GetTypeName() + "'\n";
-      #endif
-      if (current->GetTypeName() == "Propagate")
-      {
-         try
-         {
-            // Set all of the internal connections
-//               current->TakeAction("PrepareToPropagate");
-            current->Execute();
-         }
-         catch (BaseException &ex)
-         {
-            lastMsg = ex.GetFullMessage();
-         }
-         #ifdef DEBUG_ODE_SEARCH
-            extraMsg += "      Checking in this command\n";
-         #endif
-         GmatBase *obj = current->GetRefObject(Gmat::PROP_SETUP, "", 0);
-
-         #ifdef DEBUG_ODE_SEARCH
-            if (obj != NULL)
-               extraMsg += "      Found an object of type PROPSETUP\n";
-            else
-               extraMsg += "      Propagate command returns NULL PROPSETUP\n";
-         #endif
-
-         if (obj->IsOfType("PropSetup"))
-         {
-            retval = (PropSetup*)(obj);
-            break;
-         }
-      }
-
-      current = current->GetNext();
-   }
-
-   return retval;
+   const auto propagators = RuntimePropagators(cmd);
+   if (propagators.empty())
+      return NULL;
+   PrepareLookupCommand(propagators.front().command);
+   return propagators.front().setup;
 }
-
 
 //------------------------------------------------------------------------------
 // PropSetup *GetPropagator(GmatCommand **cmd)
@@ -1200,7 +1432,7 @@ PropSetup *GetFirstPropagator(GmatCommand *cmd)
 PropSetup *GetPropagator(GmatCommand **cmd)
 {
    PropSetup *retval = NULL;
-   static Integer setupIndex = 0;
+   Integer &setupIndex = propagatorSetupIndex;
 
    if ((*cmd) != NULL)
    {
@@ -1214,14 +1446,14 @@ PropSetup *GetPropagator(GmatCommand **cmd)
             if ((*cmd)->GetRefObject(Gmat::PROP_SETUP, "", setupIndex) == NULL)
             {
                findNextPropagate = true;
-               (*cmd) = (*cmd)->GetNext();
+               (*cmd) = (*cmd)->GetNextWhileExecuting();
                setupIndex = 0;
             }
          }
          catch (BaseException &)
          {
             findNextPropagate = true;
-            (*cmd) = (*cmd)->GetNext();
+            (*cmd) = (*cmd)->GetNextWhileExecuting();
          }
       }
       else
@@ -1235,7 +1467,7 @@ PropSetup *GetPropagator(GmatCommand **cmd)
          {
             while ((*cmd)->GetTypeName() != "Propagate")
             {
-               (*cmd) = (*cmd)->GetNext();
+               (*cmd) = (*cmd)->GetNextWhileExecuting();
                if ((*cmd) == NULL)
                   break;
             }
@@ -1258,7 +1490,7 @@ PropSetup *GetPropagator(GmatCommand **cmd)
                {
                   // Set all of the internal connections
       //               current->TakeAction("PrepareToPropagate");
-                  (*cmd)->Execute();
+                  PrepareLookupCommand(*cmd);
                }
                catch (BaseException &ex)
                {
@@ -1268,14 +1500,14 @@ PropSetup *GetPropagator(GmatCommand **cmd)
 
             obj = (*cmd)->GetRefObject(Gmat::PROP_SETUP, "", setupIndex);
          }
-         catch (BaseException *)
+         catch (BaseException &)
          {
             obj = NULL;
          }
 
          if (obj == NULL)
          {
-            (*cmd) = (*cmd)->GetNext();
+            (*cmd) = (*cmd)->GetNextWhileExecuting();
             #ifdef DEBUG_INTERFACE_FROM_MATLAB
                fprintf(fp, "obj was NULL; new command is <%p>: %s\n", (*cmd),
                      (*cmd)->GetGeneratingString(Gmat::NO_COMMENTS).c_str());

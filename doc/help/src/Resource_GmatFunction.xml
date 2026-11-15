@@ -39,8 +39,62 @@
     xrefstyle="select:title"/> sections for detailed discussion on GMAT
     functions and how to use them.</para>
 
+    <para>Changes to a hardware definition during a GMAT function notify
+    spacecraft attachments derived from that actual definition. Separate
+    resources with the same name remain independent. Function value copies map
+    attachment relationships into their copied resource graph, while explicit
+    globals retain shared relationships. Fresh local declaration graphs are
+    associated after their declaration values are complete.</para>
+
     <para><phrase role="ref_seealso">See Also</phrase>: <xref
     linkend="CallGmatFunction"/>, <xref linkend="Global"/></para>
+    <para>Simulator and TrackingFileSet values disclose their native owned
+    definitions to the function context. Copied tracking filters, participant
+    references and propagation assignments bind to their corresponding private
+    or caller objects. Binding does not start simulation or open data streams;
+    estimator and smoother values use the same owned-component binding contract.</para>
+
+    <para>BatchEstimator, ExtendedKalmanFilter and Smoother provide native
+    function-value bindings for their owned definitions, estimation-state
+    declarations and retained restoration snapshots. Values remain dormant
+    until native command preparation; copying does not resume a running
+    estimation session or open its observation files.</para>
+    <para>ContactLocator, EclipseLocator and IntrusionLocator values bind their
+    target, observer, occulting-body, sensor and other native references to the
+    corresponding caller objects or private function-value copies. Contact
+    additional-target workers retain their native owned results. Copying keeps
+    event results as values and leaves the locator dormant; the next native
+    search prepares its runtime. Open reports, active ephemeris-manager sessions
+    and generated instrument kernels are not transferred as running sessions.</para>
+    <para>PlanetographicRegion values copy their latitude/longitude definition,
+    input filename and calculated polygon vertices. Body references and frames
+    bind separately. Native initialization reuses a completed polygon; an
+    unprepared definition follows the ordinary polygon preparation path.</para>
+
+    <para>A retained resource graph can include a private EphemerisFile
+    dependency. Its spacecraft, frame, model and wrapper references bind in the
+    same graph. The private ephemeris refers back to that graph without owning
+    it; a detached native copy can retain the graph while its references are
+    rebound, including a reference back to the original public root. Detaching
+    an interior value requires that root to remain alive while it is captured;
+    incompatible native ownership layouts still report an error. Copying does
+    not transfer an open writer, accepted output history
+    or a running ephemeris session.</para>
+
+    <para>Captured estimation restoration destinations are rebound by actual
+    object identity when snapshot values move between scopes. Restoring values
+    preserves destination resource names and does not use an equal name to
+    substitute another resource. Capture restoration buffers through the native
+    estimation state manager before supplying them to a smoother.</para>
+
+    <para>Saved station values keep their hardware and error-model references
+    within the corresponding function or caller scope. Restoring those values
+    preserves the configured component names and references.</para>
+
+    <para>Spacecraft values disclose their owned components to the function
+    context. Saved estimation values keep the selected spacecraft components
+    and environment references when restored within a compatible run.</para>
+
   </refsection>
 
   <refsection>
@@ -126,6 +180,93 @@
     </informaltable>
   </refsection>
 
+  <refsection xml:id="GmatFunction_SourceFormat">
+    <title>Source format compatibility</title>
+
+    <para><literal>SourceFormat = Native</literal> is the default and retains
+    the native function parser's filename and encoding policy. The Qt file
+    editor uses UTF-8. Select <literal>SourceFormat = LegacyASCII</literal> to
+    require a resolved function filename ending in <literal>.gmf</literal> and
+    seven-bit ASCII bytes throughout its contents, including comments. Non-ASCII
+    bytes, including a UTF-8 byte order mark, produce an error with a byte offset.
+    Source fragments loaded with <literal>#Include</literal> must also end in
+    <literal>.gmf</literal> and pass the ASCII check. In
+    <literal>Native</literal> mode, include fragments can have other filenames.
+    Nested function resources select their own policy.</para>
+
+    <para>The SourceFormat field is available in the Qt resource editor and
+    in resource assignments before the mission sequence. It is not a mission
+    command setting. Rebuild a function before changing its policy after its
+    source has been interpreted. A compiled function must also be rebuilt before
+    changing its resolved <literal>FunctionPath</literal>; assigning a new path
+    cannot relabel its cached command sequence. Editing or saving a source file does not certify
+    that it satisfies the selected policy; the parser enforces the policy when
+    building the function.</para>
+
+    <para>Function-resource copies follow the same rebuild rule. Copying an
+    identical file/source/call policy into a compiled function retains its
+    compiled interface and current invocation state. Assigning a different
+    definition to that compiled resource requires rebuilding it first. An
+    uncompiled destination receives the definition with fresh execution state;
+    command sequences, local prototypes and runtime bindings are not borrowed
+    from the source function.</para>
+
+    <para><literal>FunctionPath</literal> accepts a function file or a directory.
+    Relative paths are resolved against the GMAT script working directory; an
+    existing match in the binary directory is used as a fallback. Existing
+    directories and paths ending in a path separator are treated as directories,
+    including directories whose names contain <literal>.gmf</literal>. A directory
+    receives the resource's function name and <literal>.gmf</literal> suffix.
+    Empty paths are rejected.</para>
+
+    <programlisting>Create GmatFunction MyFunction;
+GMAT MyFunction.FunctionPath = 'MyFunction.gmf';
+GMAT MyFunction.SourceFormat = LegacyASCII;</programlisting>
+
+    <para>A <literal>GroundStation</literal> passed as an input is a local value,
+    including its station-owned hardware and error models. Include the formal
+    argument in the output list to copy its changed value back to the caller.
+    Objects explicitly accessed as <literal>Global</literal> retain their shared
+    identity.</para>
+
+    <para>Estimator and simulator resource copies retain separate owned
+    propagation definitions and their actual source relationships. Their
+    measurement managers use the copied resource's propagation list. This
+    commands stage related propagation, tracking and filter definition changes
+    and rebuild their native engines when execution next reaches the command.
+    Measurement managers own tracking/filter copies and rebuild generated
+    adapters. Independent participant, hardware and navigation-state value
+    graphs retain their separate resource-specific requirements.</para>
+
+    <para>Native propagation commands and Target/Optimize solver commands also
+    track their actual engine definitions for clone updates. Nested propagator
+    and force-model changes reach the containing propagation command. Copied
+    snapshots remain inactive, and commands release their update subscriptions
+    when their function bindings are retired. Estimator and simulator commands
+    apply related definition updates at their next execution boundary, preserving
+    delayed observation initialization.</para>
+
+    <para><literal>RequireOutputBrackets = false</literal> (default) retains
+    the native single-output shorthand for standalone function-call commands.
+    Select <literal>RequireOutputBrackets = true</literal> to require square
+    brackets around the output list, including one output:
+    <literal>[result] = MyFunction(input);</literal>. The native parser and
+    initialized call commands enforce this setting using the original call
+    syntax, even if serialization has subsequently added brackets. A scalar
+    assignment whose entire right-hand side is a GMAT function call is also
+    subject to this rule. Set this
+    resource field before the mission sequence; it is also available in the
+    Qt resource editor. A call that assigns no outputs retains its existing
+    syntax, such as <literal>MyFunction(input);</literal> or
+    <literal>MyFunction();</literal> for a function with no inputs. It does not
+    need an output list, and normal argument-count validation still applies.
+    Conversion of single-output shorthand into a call command preserves the
+    authored bracket choice for validation; canonical serialization does not
+    make an unbracketed call satisfy the strict setting.
+    Expressions that combine a function result with other
+    calculations retain native expression syntax.</para>
+  </refsection>
+
   <refsection>
     <title>GUI</title>
 
@@ -175,6 +316,31 @@
 
   <refsection xml:id="GmatFunction_Remarks">
     <title>Remarks</title>
+
+    <para>Spacecraft and error-model value copies retain complete covariance values independently of their configured sigma priors. Restoring an unchanged layout retains destination matrix storage and owner bindings. Parameter-block covariance results remain temporary and may be replaced by the next block request.</para>
+
+    <para>Force-model native copies disclose their force children and map force-owned solve-for references into the copied components. Detached acceleration-reporting copies continue to exclude transient forces and use their existing reporting policy. Restoration within the same prepared graph retains current force identities and bindings.</para>
+
+    <para>Native drag copies own independent numerical buffers and internal atmosphere values. Exponential atmosphere tables and loaded solar-flux data copy as values. Shared external atmospheres remain bound through their owning body; changing a shared atmosphere is distinct from restoring a drag value.</para>
+
+    <para>Compatible restoration keeps spacecraft mass-property interpolators and file-thrust interpolation tables in their current storage. Ring-buffer counters, direction and supported scratch values are restored with the data. Their native owners also prepare private caches when presence or supported storage layouts differ from capture, including a spline first created during execution. Other changed resource bindings and Hermite derivative/cache layouts still require native preparation. Ordinary Hermite value copies retain their derivative and polynomial data.</para>
+
+    <para>Native physical-model value copies own their state, derivative and optional Jacobian arrays. A separate translated state remains separate in the copy. Restoring values within an unchanged layout retains the destination storage and selected environment bindings; changed force configuration requires preparation.</para>
+
+    <para>GMAT function calls inside an optimization sequence continue to execute as GMAT commands. MATLAB optimizer callbacks select the active optimizer service; a Function resource is not a callback service. This routing rule does not change the normal GMAT-to-MATLAB function interface.</para>
+
+    <para>A MATLAB function called by GMAT inside a Qt optimizer callback uses the waiting MATLAB client's base workspace. Numeric column order, character data and the existing supported structure/cell representations are retained. Per-callback output buffers and calling names do not replace the outer C Engine call's state. The optimizer protocol continues to accept fixed evaluation requests, rather than a general MATLAB-to-GMAT function-call interface.</para>
+
+    <para>Linux Qt MAT-file writers retain independent numeric and string buffers when copied. Diagnostic output inside a function or optimizer callback uses completed file operations rather than sharing a live MATLAB file handle with the enclosing command.</para>
+
+    <para>When a GMAT-called MATLAB function is evaluating, external script edits, mission execution and callback execution are rejected. Native GMAT argument evaluation and native function commands retain their normal execution path. After a clear, script edit or failed build/update, the external controller must successfully build the current script before running it.</para>
+
+    <para>Object and parameter replies through the MATLAB interface retain complete serialized strings. A sandbox object with the requested name takes precedence over a configured object; a non-Parameter cannot be read through the parameter interface by treating it as a Parameter. Owned string replies and legacy borrowed character adapters have distinct storage lifetimes.</para>
+
+    <para>Qt callback workspace scopes preserve known optimizer-driver variables separately from unrelated user variables. They retain whether a base name existed and whether it referred to the global workspace. Restoring a compatible global keeps an existing global binding; a child's newly introduced private bindings are removed. MATLAB handle values retain MATLAB assignment semantics.</para>
+
+    <para>If a function call fails, expression evaluation reports an error.
+    It does not substitute the result of an earlier call.</para>
 
     <refsection>
       <title>Input and Output Arguments</title>

@@ -59,6 +59,16 @@ public:
    // Methods used to define the estimation state vector
    virtual const StringArray& GetObjectList(std::string ofType = "");
    virtual bool               SetObject(GmatBase* obj);
+   // Configuration edits detach prepared object/state roles before retiring
+   // measurement definitions. Declared solve-for/consider names are retained.
+   void InvalidateObjectBindings();
+   void ClearSolveForProperties();
+   void RebindMeasurementReferences(const EstimationStateManager &source,
+         MeasurementManager &manager);
+   ObjectArray GetFunctionValueOwnedObjects() const;
+   void RebindFunctionValueReferences(const EstimationStateManager &source,
+         MeasurementManager &manager, const std::function<GmatBase*(GmatBase*)> &resolve,
+         const std::function<std::string(const std::string&)> &mapName);
    virtual bool               CheckObjects();
    virtual bool               SetProperty(std::string prop);
    virtual bool               SetProperty(std::string, Integer);
@@ -222,6 +232,9 @@ protected:
    Integer                    SortVector();
 
 private:
+   void StoreSolveForRole(const std::string &property, const std::string &objectName,
+         const std::string &idName, GmatBase *object, Integer position = -1);
+
    StringArray                GetSolveForList(GmatBase* obj);
 
    /// Get participant's state in its own coordinate system and in a specify state type

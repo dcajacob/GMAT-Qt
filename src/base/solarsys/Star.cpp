@@ -35,6 +35,7 @@
 #include "MessageInterface.hpp"
 #include "A1Mjd.hpp"
 #include "AngleUtil.hpp"
+#include "GmatDefaults.hpp"
 
 //------------------------------------------------------------------------------
 // static data
@@ -70,7 +71,10 @@ Star::PARAMETER_TYPE[StarParamCount - CelestialBodyParamCount] =
  */
 //------------------------------------------------------------------------------
 Star::Star(std::string name) :
-   CelestialBody       ("Star",name)
+   CelestialBody       ("Star",name),
+   radiantPower       (GmatSolarSystemDefaults::STAR_RADIANT_POWER),
+   referenceDistance  (GmatSolarSystemDefaults::STAR_REFERENCE_DISTANCE),
+   photosphereRadius  (GmatSolarSystemDefaults::STAR_PHOTOSPHERE_RADIUS)
 {
    objectTypeNames.push_back("Star");
    parameterCount = StarParamCount;
@@ -79,6 +83,9 @@ Star::Star(std::string name) :
    bodyNumber          = 3;
    referenceBodyNumber = 3;
    rotationSrc         = Gmat::IAU_SIMPLIFIED;  // ??
+   // A named Sun copy must pass the factory's SetUpBody before PhysicalBody
+   // and the remaining saved settings are parsed. Use the Sun's reference.
+   theCentralBodyName  = GmatSolarSystemDefaults::EARTH_NAME;
    
 
    SaveAllAsDefault();
@@ -223,10 +230,11 @@ bool Star::SetPhotosphereRadius(Real rad)
 //------------------------------------------------------------------------------
 bool Star::IsParameterReadOnly(const Integer id) const
 {
-   // do not write out these items
+   // Physical copies retain their own saved stellar values. Keep the default
+   // Sun and ordinary user stars under the existing read-only policy.
    if ((id == RADIANT_POWER) || (id == REFERENCE_DISTANCE) ||
        (id == PHOTOSPHERE_RADIUS))
-      return true;
+      return !(IsUserDefined() && UsesDefaultBodyModel());
    
    return CelestialBody::IsParameterReadOnly(id);
 }
@@ -275,7 +283,7 @@ void Star::Copy(const GmatBase* orig)
 //---------------------------------------------------------------------------
 bool Star::NeedsOnlyMainSPK()
 {
-   if (instanceName == GmatSolarSystemDefaults::SUN_NAME)  return true;
+   if (GetPhysicalBodyName() == GmatSolarSystemDefaults::SUN_NAME)  return true;
    return false;
 }
 

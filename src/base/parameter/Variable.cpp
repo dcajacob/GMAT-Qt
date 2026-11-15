@@ -30,6 +30,7 @@
 //------------------------------------------------------------------------------
 
 #include "Variable.hpp"
+#include "ObjectScriptExportScope.hpp"
 #include "ParameterException.hpp"
 #include "ExpressionParser.hpp"
 #include "MessageInterface.hpp"
@@ -255,16 +256,16 @@ Real Variable::EvaluateReal()
 //------------------------------------------------------------------------------
 GmatBase* Variable::Clone() const
 {
-   return new Variable(*this);
+   return CompleteParameterClone(new Variable(*this));
 }
 
 
 //------------------------------------------------------------------------------
 // void Copy(const GmatBase* orig)
 //------------------------------------------------------------------------------
-void Variable::Copy(const GmatBase* orig)
+void Variable::Copy(const GmatBase *source)
 {
-   operator=(*((Variable *)(orig)));
+   CopyParameterValue<Variable>(source);
 }
 
 
@@ -631,11 +632,14 @@ const std::string& Variable::GetGeneratingString(Gmat::WriteMode mode,
       //generatingString = "GMAT " + GetName() + " = " + mExpr + ";";
       //generatingString = "GMAT " + GetName() + " = " + mInitialValue + ";";
       bool writeGmatKeyword = GmatGlobal::Instance()->IsWritingGmatKeyword();
+      const std::string literal = ObjectScriptExportScope::IsActive() ?
+            ObjectScriptExportScope::RealLiteral(mRealValue) :
+            GmatStringUtil::ToString(mRealValue, 16, false, 1);
       // We now write out GMAT prefix on option from the startup file (see GMT-3233)
       if (writeGmatKeyword)
-         generatingString = "GMAT " + GetName() + " = " + GmatStringUtil::ToString(mRealValue, 16, false, 1) + ";";
+         generatingString = "GMAT " + GetName() + " = " + literal + ";";
       else
-         generatingString = GetName() + " = " + GmatStringUtil::ToString(mRealValue, 16, false, 1) + ";";
+         generatingString = GetName() + " = " + literal + ";";
       
       if ((mode != Gmat::OBJECT_EXPORT) && (mode != Gmat::NO_COMMENTS))
          generatingString = generatingString + inlineComment + "\n";

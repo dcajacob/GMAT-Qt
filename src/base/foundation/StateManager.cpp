@@ -31,10 +31,38 @@
 //------------------------------------------------------------------------------
 
 #include "StateManager.hpp"
+#include <set>
 #include "MessageInterface.hpp"
 #include "GmatBase.hpp"
 #include "Spacecraft.hpp"
 #include <sstream>
+#include <memory>
+#include "GmatBaseException.hpp"
+
+namespace
+{
+struct StagedStateMap
+{
+   std::vector<std::unique_ptr<ListItem>> owners;
+   std::vector<ListItem*> entries;
+   explicit StagedStateMap(const std::vector<ListItem*> &source)
+   {
+      owners.reserve(source.size());
+      entries.reserve(source.size());
+      for (const ListItem *item : source)
+      {
+         owners.emplace_back(item ? new ListItem(*item) : nullptr);
+         entries.push_back(owners.back().get());
+      }
+   }
+   void Adopt(std::vector<ListItem*> &target)
+   {
+      target.swap(entries);
+      for (auto &owner : owners) owner.release();
+   }
+};
+}
+
 
 //#define DEBUG_STATE_ACCESS
 //#define DEBUG_PUBLISHED_INFO
@@ -67,13 +95,20 @@ StateManager::StateManager(Integer size) :
 //------------------------------------------------------------------------------
 StateManager::~StateManager()
 {
-   // Delete the string arrays in elements
-   for (std::map<GmatBase*, StringArray*>::iterator i = elements.begin();
-         i != elements.end(); ++i)
-      delete i->second;
+   ClearOwnedLists();
+}
 
-   for (UnsignedInt i = 0; i < stateMap.size(); ++i)
-      delete stateMap[i];
+void StateManager::ClearStateMap()
+{
+   for (ListItem *item : stateMap) delete item;
+   stateMap.clear();
+}
+
+void StateManager::ClearOwnedLists()
+{
+   for (const auto &entry : elements) delete entry.second;
+   elements.clear();
+   ClearStateMap();
 }
 
 //------------------------------------------------------------------------------
@@ -86,9 +121,10 @@ StateManager::StateManager(const StateManager& sm) :
    stateSize   (sm.stateSize),
    state       (sm.state),
    objectNames (sm.objectNames),
-   current     (NULL),
-   stateMap    (sm.stateMap)
+   current     (NULL)
 {
+   StagedStateMap copied(sm.stateMap);
+   copied.Adopt(stateMap);
    objects.clear();
    epochIDs.clear();
    elements.clear();
@@ -104,22 +140,65 @@ StateManager& StateManager::operator=(const StateManager& sm)
 {
    if (this != &sm)
    {
-      stateSize = sm.stateSize;
-      state = sm.state;
-      
-      // For now, copies start empty.  This may change later.
+      StagedStateMap copied(sm.stateMap);
+      GmatState copiedState(sm.state);
+      StringArray copiedNames(sm.objectNames);
+      state = copiedState;
+      ClearOwnedLists();
+      // Preserve the native copy-start-empty object-registration policy.
       objects.clear();
       epochIDs.clear();
-      elements.clear();
-
-      current     = NULL;
-      objectNames = sm.objectNames;
-      stateMap    = sm.stateMap;
+      current = NULL;
+      stateSize = sm.stateSize;
+      objectNames.swap(copiedNames);
+      copied.Adopt(stateMap);
    }
-   
    return *this;
 }
 
+void StateManager::RebindClonedObjectReferences(const StateManager &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   if (&source == this) return;
+   if (source.objects.size() != source.epochIDs.size())
+      throw GmatBaseException("Inconsistent retained state-manager epoch registrations.");
+   GmatState copiedState(source.state);
+   StringArray names(source.objectNames);
+   IntegerArray epochs(source.epochIDs);
+   ObjectArray mappedObjects;
+   std::map<GmatBase*, StringArray*> mappedProperties;
+   std::map<GmatBase*, std::unique_ptr<StringArray>> owners;
+   GmatBase *mappedCurrent = NULL;
+   for (GmatBase *original : source.objects)
+   {
+      if (!original) throw GmatBaseException("Cannot retain a null propagation object.");
+      GmatBase *object = resolve(original);
+      if (!object || object->GetTypeName() != original->GetTypeName())
+         throw GmatBaseException("Incompatible retained propagation object.");
+      const auto properties = source.elements.find(original);
+      if (properties == source.elements.end() || !properties->second)
+         throw GmatBaseException("Missing retained propagation-property declaration.");
+      auto value = std::make_unique<StringArray>(*properties->second);
+      if (!owners.emplace(object, std::move(value)).second)
+         throw GmatBaseException("Distinct propagation objects map to one retained target.");
+      mappedObjects.push_back(object);
+      mappedProperties.emplace(object, owners.at(object).get());
+      if (original == source.current) mappedCurrent = object;
+   }
+   if (source.current && !mappedCurrent)
+      throw GmatBaseException("Unregistered current object in retained state manager.");
+   state = copiedState;
+   ClearOwnedLists();
+   // Prepared maps carry parameter/index/cache associations from the previous
+   // engine frame. Keep numeric state and declarations; rebuild maps natively.
+   objects.swap(mappedObjects);
+   elements.swap(mappedProperties);
+   objectNames.swap(names);
+   epochIDs.swap(epochs);
+   current = mappedCurrent;
+   stateSize = source.stateSize;
+   for (auto &owner : owners) owner.second.release();
+}
 
 //------------------------------------------------------------------------------
 // Integer GetCount(Gmat::StateElementId elementType)
@@ -326,86 +405,52 @@ Integer StateManager::PrepareStateInfoToPublish(StringArray &ownerNames, StringA
 
 
 
+std::vector<StateManager::PublishedSpacecraft> StateManager::GetPublishedSpacecraft() const
+{
+   std::vector<PublishedSpacecraft> result;
+   std::set<const GmatBase*> seen, formations;
+   auto add = [&](GmatBase *object, const std::string &role)
+   {
+      if (!object || !object->IsOfType(Gmat::SPACECRAFT))
+         throw GmatBaseException("Published spacecraft layout has an invalid member.\n");
+      if (seen.insert(object).second) result.push_back({object, role});
+   };
+   for (const auto *item : stateMap)
+   {
+      if (!item || !item->object)
+         throw GmatBaseException("Published state layout has a NULL object.\n");
+      if (item->object->IsOfType(Gmat::SPACECRAFT)) add(item->object, item->objectName);
+      else if (item->object->IsOfType(Gmat::FORMATION) && formations.insert(item->object).second)
+      {
+         // Copy native static-return storage before inspecting other references.
+         const ObjectArray members = item->object->GetRefObjectArray(Gmat::SPACECRAFT);
+         const StringArray roles = item->object->GetStringArrayParameter("Add");
+         if (members.size() != roles.size())
+            throw GmatBaseException("Published Formation member roles and references differ.\n");
+         for (size_t i = 0; i < members.size(); ++i) add(members[i], roles[i]);
+      }
+   }
+   return result;
+}
+
 Integer StateManager::PrepareCovAndAccelerationInfoToPublish(StringArray &ownerNames, StringArray &elementNames)
 {
-   StringArray stateElementNames;
-   stateElementNames.push_back("X"); stateElementNames.push_back("Y"); stateElementNames.push_back("Z");
-   stateElementNames.push_back("Vx"); stateElementNames.push_back("Vy"); stateElementNames.push_back("Vz");
-
-   // 1. Get a list of propagation spacecrafts from propagation state manager
-   // Note that: each PropSetup propapagtor[i] has its own propagation state manager
-   StringArray scNames;
-   for (Integer i = 0; i < stateMap.size(); ++i)
-   {
-      if (stateMap[i]->object->IsOfType(Gmat::SPACECRAFT))
-      {
-         bool found = false;
-         for (Integer index = 0; index < scNames.size(); ++index)
-         {
-            if (stateMap[i]->objectName == scNames[index])
-            {
-               found = true;
-               break;
-            }
-         }
-         if (!found)
-            scNames.push_back(stateMap[i]->objectName);
-      }
-      else if (stateMap[i]->object->IsOfType(Gmat::FORMATION))
-      {
-         bool found = false;
-         for (Integer index = 0; index < scNames.size(); ++index)
-         {
-            if (ownerNames[i] == scNames[index])
-            {
-               found = true;
-               break;
-            }
-         }
-         if (!found)
-            scNames.push_back(ownerNames[i]);
-      }
-   }
-
-   // 2. Add 21 elements of lower left matrix of spacecarft's covariance for each spacecraft
-   for (Integer i = 0; i < scNames.size(); ++i)
-   {
+   const auto spacecraft = GetPublishedSpacecraft();
+   const char *components[] = {"X", "Y", "Z", "Vx", "Vy", "Vz"};
+   for (const auto &entry : spacecraft)
       for (Integer row = 0; row < 6; ++row)
-      {
-         for (Integer col = 0; col < 6; ++col)
+         for (Integer col = 0; col <= row; ++col)
          {
-            if (row < col)
-               continue;
-
-            std::stringstream ss;
-            ss << scNames[i] << ".C" << stateElementNames[row] << stateElementNames[col];
-            ownerNames.push_back(scNames[i]);
-            elementNames.push_back(ss.str());
+            ownerNames.push_back(entry.role);
+            elementNames.push_back(entry.role + ".C" + components[row] + components[col]);
          }
+   for (const auto &entry : spacecraft)
+      for (const auto *component : {"AccelerationX", "AccelerationY", "AccelerationZ"})
+      {
+         ownerNames.push_back(entry.role);
+         elementNames.push_back(entry.role + "." + component);
       }
-   }
-
-   // 3. Add 3 elements of spacecraft's acceleration for each spacecraft
-   for (Integer i = 0; i < scNames.size(); ++i)
-   {
-      ownerNames.push_back(scNames[i]);
-      elementNames.push_back(scNames[i] + ".AccelerationX");
-      ownerNames.push_back(scNames[i]);
-      elementNames.push_back(scNames[i] + ".AccelerationY");
-      ownerNames.push_back(scNames[i]);
-      elementNames.push_back(scNames[i] + ".AccelerationZ");
-   }
-
-   Integer numOfElements = elementNames.size();
-   
-   #ifdef DEBUG_PUBLISHED_INFO
-      MessageInterface::ShowMessage("\n");
-      for (Integer i = 0; i < numOfElements; ++i)
-         MessageInterface::ShowMessage("ownerNames[%d] = <%s>   elementNames[%d] = <%s>\n", 
-            i, ownerNames[i].c_str(), i, elementNames[i].c_str());
-   #endif
-   
-   return numOfElements;
+   return elementNames.size();
 }
 
 //------------------------------------------------------------------------------
@@ -425,57 +470,13 @@ Integer StateManager::PrepareCovAndAccelerationInfoToPublish(StringArray &ownerN
 Integer StateManager::PrepareAttitudeInfoToPublish(StringArray& ownerNames,
                                                    StringArray& elementNames)
 {
-   // 1. Get a list of propagation spacecrafts from propagation state manager
-   // Note that: each PropSetup propapagtor[i] has its own propagation state manager
-   StringArray scNames;
-   for (Integer i = 0; i < stateMap.size(); ++i)
-   {
-      if (stateMap[i]->object->IsOfType(Gmat::SPACECRAFT))
+   for (const auto &entry : GetPublishedSpacecraft())
+      for (Integer i = 1; i <= 4; ++i)
       {
-         bool found = false;
-         for (Integer index = 0; index < scNames.size(); ++index)
-         {
-            if (stateMap[i]->objectName == scNames[index])
-            {
-               found = true;
-               break;
-            }
-         }
-         if (!found)
-            scNames.push_back(stateMap[i]->objectName);
+         ownerNames.push_back(entry.role);
+         elementNames.push_back(entry.role + ".Q" + std::to_string(i));
       }
-      else if (stateMap[i]->object->IsOfType(Gmat::FORMATION))
-      {
-         bool found = false;
-         for (Integer index = 0; index < scNames.size(); ++index)
-         {
-            if (ownerNames[i] == scNames[index])
-            {
-               found = true;
-               break;
-            }
-         }
-         if (!found)
-            scNames.push_back(ownerNames[i]);
-      }
-   }
-
-   // 2. Add 4 quaternion elements of spacecraft's attitude
-   for (Integer i = 0; i < scNames.size(); ++i)
-   {
-      ownerNames.push_back(scNames[i]);
-      elementNames.push_back(scNames[i] + ".Q1");
-      ownerNames.push_back(scNames[i]);
-      elementNames.push_back(scNames[i] + ".Q2");
-      ownerNames.push_back(scNames[i]);
-      elementNames.push_back(scNames[i] + ".Q3");
-      ownerNames.push_back(scNames[i]);
-      elementNames.push_back(scNames[i] + ".Q4");
-   }
-
-   Integer numOfElements = elementNames.size();
-
-   return numOfElements;
+   return elementNames.size();
 }
 
 
@@ -560,136 +561,37 @@ bool StateManager::PrepareStateDataToPublish(Real* publishData, Integer publishD
 
 
 
-bool StateManager::PrepareCovAndAccelerationDataToPublish(Real* publishData, Integer publishDataSize, 
+bool StateManager::PrepareCovAndAccelerationDataToPublish(Real* publishData, Integer publishDataSize,
    StringArray& elementNames, Integer covStartIndex, bool hasPrecisionTime)
 {
-   Integer index = covStartIndex;
-
-   // 1. Specify all object in state map
-   ObjectArray objs;
-   for (Integer j = 0; j < stateMap.size(); ++j)
+   const auto spacecraft = GetPublishedSpacecraft();
+   if (!publishData || covStartIndex < 0 || publishDataSize < covStartIndex ||
+       spacecraft.size() > static_cast<size_t>(publishDataSize - covStartIndex) / 24)
+      throw GmatBaseException("Published covariance/acceleration storage is incomplete.\n");
+   // The declaration layout is all 21-element covariance blocks, followed by
+   // all three-element acceleration blocks. Keep values in that exact order.
+   const size_t accelerationStart = static_cast<size_t>(covStartIndex) + 21 * spacecraft.size();
+   for (size_t i = 0; i < spacecraft.size(); ++i)
    {
-      GmatBase* obj = stateMap[j]->object;
-      bool found = false;
-      for (Integer k = 0; k < objs.size(); ++k)
-      {
-         if (obj == objs[k])
-         {
-            found = true;
-            break;
-         }
-      }
-      if (found)
-         continue;
-      else
-         objs.push_back(obj);
-
-      if (obj->IsOfType(Gmat::FORMATION) && !found)
-      {
-         if (obj);
-         ObjectArray fromationComponents = obj->GetRefObjectArray("Spacecraft");
-         for (Integer k = 0; k < fromationComponents.size(); k++)
-         {
-            objs.push_back(fromationComponents[k]);
-         }
-      }
+      auto *sc = static_cast<Spacecraft*>(spacecraft[i].object);
+      const Rmatrix phi = sc->GetRmatrixParameter("FullSTM");
+      const Rmatrix covt0 = sc->GetRmatrixParameter("OrbitErrorCovariance");
+      Rmatrix Pt0;
+      Pt0.SetSize(phi.GetNumRows(), phi.GetNumColumns(), true);
+      if (Pt0.GetNumRows() < 6 || Pt0.GetNumColumns() < 6)
+         throw GmatBaseException("Published spacecraft covariance has fewer than six Cartesian components.\n");
+      for (Integer row = 0; row < phi.GetNumRows(); ++row)
+         for (Integer col = 0; col < phi.GetNumColumns(); ++col)
+            if (row < covt0.GetNumRows() && col < covt0.GetNumColumns()) Pt0(row, col) = covt0(row, col);
+      // Preserve the native covariance value policy: Pt0 already contains P(t).
+      // This layout repair adds no STM multiplication or covariance transform.
+      size_t index = static_cast<size_t>(covStartIndex) + 21 * i;
+      for (Integer row = 0; row < 6; ++row)
+         for (Integer col = 0; col <= row; ++col) publishData[index++] = Pt0(row, col);
+      const Rvector3 acceleration = hasPrecisionTime ? sc->GetMJ2000Acceleration(state.GetEpochGT()) :
+         sc->GetMJ2000Acceleration(state.GetEpoch());
+      for (Integer j = 0; j < 3; ++j) publishData[accelerationStart + 3*i + j] = acceleration[j];
    }
-
-   // 2. For each spacecraft, publish covariance and acceleration
-   for (Integer j = 0; j < objs.size(); ++j)
-   {
-      if (objs[j]->IsOfType(Gmat::SPACECRAFT))
-      {
-         Spacecraft *sc = (Spacecraft*)objs[j];
-
-         // 2.1. Specify covariance and publish it
-         // Specify object's State Transition Mamtrix STM(t0,t)
-         Rmatrix phi = sc->GetRmatrixParameter("FullSTM");
-
-         // Specify object's covariance cov(t0) at time t0
-         Rmatrix covt0 = sc->GetRmatrixParameter("OrbitErrorCovariance");
-         Rmatrix Pt0;
-         Pt0.SetSize(phi.GetNumRows(), phi.GetNumColumns(), true);
-         for (Integer row = 0; row < phi.GetNumRows(); ++row)
-         {
-            for (Integer col = 0; col < phi.GetNumColumns(); ++col)
-            {
-               if ((row < covt0.GetNumRows()) && (col < covt0.GetNumColumns()))
-                  Pt0(row, col) = covt0(row, col);
-               else
-                  continue;
-            }
-         }
-
-         // Specify object's covariance P(t) at time t in MJ2000Eq axis: 
-         // P(t) = STM(t,t0) * P(t0) * STM(t,t0).Transpose
-         //Rmatrix Pt = phi * Pt0 * phi.Transpose();
-         // At here, matrix Pt0 is matrix P(t).
-         Rmatrix Pt = Pt0;
-
-         // @todo: if wanted P(t) in other axis, it needs to have 6x6 rotation matrix R = [Rot     0  ]
-         //                                                                               [RotDot  Rot]
-         //        and apply equation: Pnew(t) = R * P(t)
-
-         // Publish P(t). Only 21 covariance elements for state (x,y,z,vx,vy,vz) in lower left triangular matrix are extracted and published. 
-         for (Integer row = 0; row < 6; ++row)
-         {
-            for (Integer col = 0; col < 6; ++col)
-            {
-               if (row < col)
-                  continue;
-
-               if (index >= publishDataSize)
-               {
-                  std::stringstream ss;
-                  ss << "Error: Data is overflowed in StateManger::PrepareCovAndAccelerationDataToPublish()"
-                     << " function when data are filled publishData array: publishDataSize = "
-                     << publishDataSize << "\n";
-                  throw GmatBaseException(ss.str());
-               }
-
-               publishData[index] = Pt(row, col);
-               ++index;
-            }
-         }
-
-         // 2.2. Publish acceleration
-         // Specify acceleration in spacecraft's coordinate origin MJ2000Eq coordinate system
-         Rvector3 accel;
-         if (hasPrecisionTime)
-         {
-            GmatTime epochGT = state.GetEpochGT();
-            accel = sc->GetMJ2000Acceleration(epochGT);
-         }
-         else
-         {
-            GmatEpoch epoch = state.GetEpoch();
-            accel = sc->GetMJ2000Acceleration(epoch);
-         }
-
-         // Publish 
-         for (Integer k = 0; k < 3; ++k)
-         {
-            if (index >= publishDataSize)
-            {
-               std::stringstream ss;
-               ss << "Error: Data is overflowed in StateManger::PrepareCovAndAccelerationDataToPublish()"
-                  << " function when data are filled publishData array: publishDataSize = "
-                  << publishDataSize << "\n";
-               throw GmatBaseException(ss.str());
-            }
-
-            publishData[index] = accel[k];
-            ++index;
-         }
-      }
-   }
-
-   #ifdef DEBUG_PUBLISHED_DATA
-      for (Integer i = covStartIndex; i < index; ++i)
-         MessageInterface::ShowMessage("publishData[%d] = %.12lf\n", i, publishData[i]);
-   #endif
-
    return true;
 }
 
@@ -720,74 +622,18 @@ bool StateManager::PrepareAttitudeDataToPublish(Real* publishData,
                                                 Integer attStartIndex,
                                                 bool hasPrecisionTime)
 {
-   Integer index = attStartIndex;
-
-   // 1. Specify all object in state map
-   ObjectArray objs;
-   for (Integer j = 0; j < stateMap.size(); ++j)
+   const auto spacecraft = GetPublishedSpacecraft();
+   if (!publishData || attStartIndex < 0 || publishDataSize < attStartIndex ||
+       spacecraft.size() > static_cast<size_t>(publishDataSize - attStartIndex) / 4)
+      throw GmatBaseException("Published attitude storage is incomplete.\n");
+   for (size_t i = 0; i < spacecraft.size(); ++i)
    {
-      GmatBase* obj = stateMap[j]->object;
-      bool found = false;
-      for (Integer k = 0; k < objs.size(); ++k)
-      {
-         if (obj == objs[k])
-         {
-            found = true;
-            break;
-         }
-      }
-      if (found)
-         continue;
-      else
-         objs.push_back(obj);
-
-      if (obj->IsOfType(Gmat::FORMATION) && !found)
-      {
-         if (obj);
-         ObjectArray fromationComponents = obj->GetRefObjectArray("Spacecraft");
-         for (Integer k = 0; k < fromationComponents.size(); k++)
-         {
-            objs.push_back(fromationComponents[k]);
-         }
-      }
+      auto *sc = static_cast<Spacecraft*>(spacecraft[i].object);
+      auto *attitude = dynamic_cast<Attitude*>(sc->GetRefObject(Gmat::ATTITUDE, "Attitude"));
+      if (!attitude) throw GmatBaseException("Published spacecraft has no attitude.\n");
+      const Rvector quaternion = attitude->GetQuaternion(hasPrecisionTime ? state.GetEpochGT().GetMjd() : state.GetEpoch());
+      if (quaternion.GetSize() < 4) throw GmatBaseException("Published attitude quaternion is incomplete.\n");
+      for (Integer j = 0; j < 4; ++j) publishData[static_cast<size_t>(attStartIndex) + 4*i + j] = quaternion[j];
    }
-
-   // 2. For each spacecraft, publish quaternions
-   for (Integer j = 0; j < objs.size(); ++j)
-   {
-      if (objs[j]->IsOfType(Gmat::SPACECRAFT))
-      {
-         Spacecraft* sc = (Spacecraft*)objs[j];
-         Attitude *att = (Attitude*)sc->GetRefObject(Gmat::ATTITUDE, "Attitude");
-         Rvector quat;
-         if (hasPrecisionTime)
-         {
-            GmatTime epochGT = state.GetEpochGT();
-            quat = att->GetQuaternion(epochGT.GetMjd());
-         }
-         else
-         {
-            GmatEpoch epoch = state.GetEpoch();
-            quat = att->GetQuaternion(epoch);
-         }
-
-         // Publish 
-         for (Integer k = 0; k < 4; ++k)
-         {
-            if (index >= publishDataSize)
-            {
-               std::stringstream ss;
-               ss << "Error: Data is overflowed in StateManger::PrepareCovAndAccelerationDataToPublish()"
-                  << " function when data are filled publishData array: publishDataSize = "
-                  << publishDataSize << "\n";
-               throw GmatBaseException(ss.str());
-            }
-
-            publishData[index] = quat[k];
-            ++index;
-         }
-      }
-   }
-
    return true;
 }

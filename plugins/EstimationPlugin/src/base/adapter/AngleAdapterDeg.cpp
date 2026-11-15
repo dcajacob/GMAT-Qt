@@ -723,9 +723,15 @@ const MeasurementData& AngleAdapterDeg::CalculateMeasurement(bool withEvents,
 
 
          // Get measurement epoch in the first signal path. It will apply for all other paths
-         receiveEpoch = current->rPrecTime + current->rDelay / GmatTimeConstants::SECS_PER_DAY;   // TBD
-         cMeasurement.epochGT = receiveEpoch;
-         cMeasurement.epoch = receiveEpoch.GetMjd();
+         if (i == 0)
+         {
+            receiveEpoch = current->rPrecTime;
+            receiveEpoch.AddSeconds(current->rDelay);
+            transmitEpoch = first->tPrecTime;
+            transmitEpoch.SubtractSeconds(first->tDelay);
+            cMeasurement.epochGT = calcData->GetTimeTagFlag() ? receiveEpoch : transmitEpoch;
+            cMeasurement.epoch = cMeasurement.epochGT.GetMjd();
+         }
 
 #ifdef DEBUG_ADAPTER_EXECUTION
          MessageInterface::ShowMessage("epochGT = %s, epoch = %.14lg\n",

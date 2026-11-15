@@ -1,0 +1,214 @@
+{
+  "scope": "Missing physical time, angle, station and radio input units. Observation only; source/native/history/file isolation; no mission execution or whole-row credit.",
+  "cases": [
+    {
+      "key": "ContactLocator",
+      "group": "TimingHardware",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create ContactLocator Probe;\n",
+      "units": {
+        "StepSize": "s",
+        "IntervalStepSize": "s"
+      }
+    },
+    {
+      "key": "EclipseLocator",
+      "group": "TimingHardware",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create EclipseLocator Probe;\n",
+      "units": {
+        "StepSize": "s"
+      }
+    },
+    {
+      "key": "IntrusionLocator",
+      "group": "TimingHardware",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create IntrusionLocator Probe;\n",
+      "units": {
+        "StepSize": "s"
+      }
+    },
+    {
+      "key": "EstimatedParameter",
+      "group": "TimingHardware",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create EstimatedParameter Probe;\n",
+      "units": {
+        "HalfLife": "s"
+      }
+    },
+    {
+      "key": "ExtendedKalmanFilter",
+      "group": "TimingHardware",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create ExtendedKalmanFilter Probe;\n",
+      "units": {
+        "DelayRectifyTimeSpan": "s",
+        "PredictTimeSpan": "s"
+      }
+    },
+    {
+      "key": "Smoother",
+      "group": "TimingHardware",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Smoother Probe;\n",
+      "units": {
+        "DelayRectifyTimeSpan": "s",
+        "PredictTimeSpan": "s"
+      }
+    },
+    {
+      "key": "ProcessNoiseModel",
+      "group": "TimingHardware",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create ProcessNoiseModel Probe;\n",
+      "units": {
+        "UpdateTimeStep": "s",
+        "AccelNoiseSigma": "km/s^(3/2)"
+      }
+    },
+    {
+      "key": "Simulator",
+      "group": "TimingHardware",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Simulator Probe;\n",
+      "units": {
+        "MeasurementTimeStep": "s"
+      }
+    },
+    {
+      "key": "Transponder",
+      "group": "TimingHardware",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Transponder Probe;\n",
+      "units": {
+        "HardwareDelay": "s"
+      }
+    },
+    {
+      "key": "TrackingFileSet",
+      "group": "TimingHardware",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create TrackingFileSet Probe;\n",
+      "units": {
+        "TimeGapForPassBreak": "s",
+        "SimDopplerCountInterval": "sec",
+        "MinHeightOfRayPath": "km",
+        "MaxCentralAngleOfRayPath": "deg",
+        "SimRangeModuloConstant": "RU"
+      }
+    },
+    {
+      "key": "Conical",
+      "group": "FovGeometry",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create ConicalFOV Probe;\n",
+      "units": {
+        "FieldOfViewAngle": "deg"
+      }
+    },
+    {
+      "key": "Rectangular",
+      "group": "FovGeometry",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create RectangularFOV Probe;\n",
+      "units": {
+        "AngleHeight": "deg",
+        "AngleWidth": "deg"
+      }
+    },
+    {
+      "key": "StationAmbient",
+      "group": "StationAmbient",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create GroundStation Probe;\n",
+      "units": {
+        "Humidity": "percent",
+        "Pressure": "hPa",
+        "Temperature": "K"
+      }
+    },
+    {
+      "key": "StationElevation",
+      "group": "StationGeometry",
+      "object": "Probe",
+      "route": "primary",
+      "fixture": "Create GroundStation Probe;\n",
+      "units": {
+        "MinimumElevationAngle": "deg"
+      }
+    },
+    {
+      "key": "StationCartesianSphere",
+      "group": "StationGeometry",
+      "object": "Probe",
+      "route": "primary",
+      "fixture": "Create GroundStation Probe;\nProbe.StateType = Cartesian;\nProbe.HorizonReference = Sphere;\nProbe.Location1 = 6378.1363;\nProbe.Location2 = 0;\nProbe.Location3 = 0;\n",
+      "units": {
+        "Location1": "km",
+        "Location2": "km",
+        "Location3": "km"
+      }
+    },
+    {
+      "key": "StationCartesianEllipsoid",
+      "group": "StationGeometry",
+      "object": "Probe",
+      "route": "primary",
+      "fixture": "Create GroundStation Probe;\nProbe.StateType = Cartesian;\nProbe.HorizonReference = Ellipsoid;\nProbe.Location1 = 6378.1363;\nProbe.Location2 = 0;\nProbe.Location3 = 0;\n",
+      "units": {
+        "Location1": "km",
+        "Location2": "km",
+        "Location3": "km"
+      }
+    },
+    {
+      "key": "StationSphericalSphere",
+      "group": "StationGeometry",
+      "object": "Probe",
+      "route": "primary",
+      "fixture": "Create GroundStation Probe;\nProbe.StateType = Spherical;\nProbe.HorizonReference = Sphere;\n",
+      "units": {
+        "Location1": "deg",
+        "Location2": "deg",
+        "Location3": "km"
+      }
+    },
+    {
+      "key": "StationSphericalEllipsoid",
+      "group": "StationGeometry",
+      "object": "Probe",
+      "route": "primary",
+      "fixture": "Create GroundStation Probe;\nProbe.StateType = Spherical;\nProbe.HorizonReference = Ellipsoid;\n",
+      "units": {
+        "Location1": "deg",
+        "Location2": "deg",
+        "Location3": "km"
+      }
+    },
+    {
+      "key": "RadioFrequency",
+      "group": "RadioFrequency",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Transmitter Probe;\n",
+      "units": {
+        "Frequency": "MHz"
+      }
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "scope": "Supplementary spacecraft input-unit display for missing physical fields. Original source, native state, history and file preserved; no missions; no whole-row credit.",
+  "cases": [
+    {
+      "key": "BrouwerMeanShort",
+      "group": "SpacecraftOrbitMissing",
+      "object": "Probe",
+      "route": "primary",
+      "fixture": "Create Spacecraft Probe;\nProbe.NAIFId = -10000911;\nProbe.NAIFIdReferenceFrame = -9000911;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = '21545';\nProbe.DisplayStateType = Keplerian;\nProbe.SMA = 9000;\nProbe.ECC = 0.2;\nProbe.INC = 30;\nProbe.RAAN = 40;\nProbe.AOP = 50;\nProbe.TA = 60;\nProbe.DisplayStateType = BrouwerMeanShort;\n",
+      "units": {
+        "BrouwerShortSMA": "km",
+        "BrouwerShortINC": "deg",
+        "BrouwerShortRAAN": "deg",
+        "BrouwerShortAOP": "deg",
+        "BrouwerShortMA": "deg"
+      }
+    },
+    {
+      "key": "BrouwerMeanLong",
+      "group": "SpacecraftOrbitMissing",
+      "object": "Probe",
+      "route": "primary",
+      "fixture": "Create Spacecraft Probe;\nProbe.NAIFId = -10000911;\nProbe.NAIFIdReferenceFrame = -9000911;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = '21545';\nProbe.DisplayStateType = Keplerian;\nProbe.SMA = 9000;\nProbe.ECC = 0.2;\nProbe.INC = 30;\nProbe.RAAN = 40;\nProbe.AOP = 50;\nProbe.TA = 60;\nProbe.DisplayStateType = BrouwerMeanLong;\n",
+      "units": {
+        "BrouwerLongSMA": "km",
+        "BrouwerLongINC": "deg",
+        "BrouwerLongRAAN": "deg",
+        "BrouwerLongAOP": "deg",
+        "BrouwerLongMA": "deg"
+      }
+    },
+    {
+      "key": "IncomingAsymptote",
+      "group": "SpacecraftOrbitMissing",
+      "object": "Probe",
+      "route": "primary",
+      "fixture": "Create Spacecraft Probe;\nProbe.NAIFId = -10000911;\nProbe.NAIFIdReferenceFrame = -9000911;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = '21545';\nProbe.X = 7000;\nProbe.Y = 0;\nProbe.Z = 0;\nProbe.VX = 1;\nProbe.VY = 12;\nProbe.VZ = 2;\nProbe.DisplayStateType = IncomingAsymptote;\n",
+      "units": {
+        "IncomingRadPer": "km",
+        "IncomingC3Energy": "km^2/sec^2",
+        "IncomingRHA": "deg",
+        "IncomingDHA": "deg",
+        "IncomingBVAZI": "deg"
+      }
+    },
+    {
+      "key": "OutgoingAsymptote",
+      "group": "SpacecraftOrbitMissing",
+      "object": "Probe",
+      "route": "primary",
+      "fixture": "Create Spacecraft Probe;\nProbe.NAIFId = -10000911;\nProbe.NAIFIdReferenceFrame = -9000911;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = '21545';\nProbe.X = 7000;\nProbe.Y = 0;\nProbe.Z = 0;\nProbe.VX = 1;\nProbe.VY = 12;\nProbe.VZ = 2;\nProbe.DisplayStateType = OutgoingAsymptote;\n",
+      "units": {
+        "OutgoingRadPer": "km",
+        "OutgoingC3Energy": "km^2/sec^2",
+        "OutgoingRHA": "deg",
+        "OutgoingDHA": "deg",
+        "OutgoingBVAZI": "deg"
+      }
+    },
+    {
+      "key": "Delaunay",
+      "group": "SpacecraftOrbitVisible",
+      "object": "Probe",
+      "route": "primary",
+      "fixture": "Create Spacecraft Probe;\nProbe.NAIFId = -10000911;\nProbe.NAIFIdReferenceFrame = -9000911;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = '21545';\nProbe.DisplayStateType = Keplerian;\nProbe.SMA = 9000;\nProbe.ECC = 0.2;\nProbe.INC = 30;\nProbe.RAAN = 40;\nProbe.AOP = 50;\nProbe.TA = 60;\nProbe.DisplayStateType = Delaunay;\n",
+      "units": {
+        "Delaunayl": "deg",
+        "Delaunayg": "deg",
+        "Delaunayh": "deg",
+        "DelaunayL": "km^2/sec",
+        "DelaunayG": "km^2/sec",
+        "DelaunayH": "km^2/sec"
+      }
+    },
+    {
+      "key": "ModifiedEquinoctial",
+      "group": "SpacecraftOrbitVisible",
+      "object": "Probe",
+      "route": "primary",
+      "fixture": "Create Spacecraft Probe;\nProbe.NAIFId = -10000911;\nProbe.NAIFIdReferenceFrame = -9000911;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = '21545';\nProbe.DisplayStateType = Keplerian;\nProbe.SMA = 9000;\nProbe.ECC = 0.2;\nProbe.INC = 30;\nProbe.RAAN = 40;\nProbe.AOP = 50;\nProbe.TA = 60;\nProbe.DisplayStateType = ModifiedEquinoctial;\n",
+      "units": {
+        "SemilatusRectum": "km",
+        "TLONG": "deg"
+      }
+    },
+    {
+      "key": "MassAndRotation",
+      "group": "SpacecraftMassRotation",
+      "object": "Probe",
+      "route": "primary",
+      "fixture": "Create Spacecraft Probe;\nProbe.NAIFId = -10000911;\nProbe.NAIFIdReferenceFrame = -9000911;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = '21545';\nProbe.DisplayStateType = Keplerian;\nProbe.SMA = 9000;\nProbe.ECC = 0.2;\nProbe.INC = 30;\nProbe.RAAN = 40;\nProbe.AOP = 50;\nProbe.TA = 60;\nProbe.ModelFile = '@DATA@/graphics/models/Comet_Hartley_Green.3ds';\n",
+      "units": {
+        "DryMass": "kg",
+        "DragArea": "m\u00b2",
+        "SRPArea": "m\u00b2",
+        "ModelRotationX": "deg",
+        "ModelRotationY": "deg",
+        "ModelRotationZ": "deg"
+      }
+    },
+    {
+      "key": "LocalModelOffsets",
+      "group": "SpacecraftLocalOffsets",
+      "object": "Probe",
+      "route": "primary",
+      "fixture": "Create Spacecraft Probe;\nProbe.NAIFId = -10000911;\nProbe.NAIFIdReferenceFrame = -9000911;\nProbe.CoordinateSystem = EarthMJ2000Eq;\nProbe.DateFormat = A1ModJulian;\nProbe.Epoch = '21545';\nProbe.DisplayStateType = Keplerian;\nProbe.SMA = 9000;\nProbe.ECC = 0.2;\nProbe.INC = 30;\nProbe.RAAN = 40;\nProbe.AOP = 50;\nProbe.TA = 60;\nProbe.ModelFile = '@DATA@/graphics/models/Comet_Hartley_Green.3ds';\n",
+      "units": {
+        "ModelOffsetX": "model units",
+        "ModelOffsetY": "model units",
+        "ModelOffsetZ": "model units"
+      }
+    }
+  ]
+}

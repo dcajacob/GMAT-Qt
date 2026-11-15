@@ -37,7 +37,26 @@
 #include <iomanip>
 #include <locale>
 #include <algorithm>
+#include <limits>
 #include "FminconOptimizer.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration fminconOptimizerValueProvider({
+   FminconOptimizer::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const FminconOptimizer*>(object) != nullptr; },
+   nullptr,
+   nullptr,
+   nullptr,
+   [](const GmatBase *object) { return dynamic_cast<const FminconOptimizer*>(object)->HasSolverValueReferenceProviderImpl(); },
+   [](GmatBase *object, const Solver &source) { dynamic_cast<FminconOptimizer*>(object)->PrepareClonedSolverValueImpl(source); }
+});
+}
+#include "MatlabCallbackBridge.hpp"
+#include "ObjectMatlabExportScope.hpp"
+#include <memory>
+#include <typeinfo>
 #include "SolverException.hpp"
 #include "StringUtil.hpp"
 #include "FileManager.hpp"         // for GetAllMatlabFunctionPaths()
@@ -47,6 +66,48 @@
 #include "GmatGlobal.hpp"          // for IsMatlabDebugOn()
 #include "FileUtil.hpp"            // for GetPathName()
 #include "InterfaceException.hpp"
+
+namespace {
+std::string matlabCharacterLiteral(const std::string &value)
+{
+   std::string literal = "'";
+   for (char ch : value)
+   {
+      literal += ch;
+      if (ch == '\'') literal += '\'';
+   }
+   return literal + "'";
+}
+
+// A nested solve and its preparation each preserve the waiting parent's
+// workspace. The MATLAB callback owns fallback unwinding after an ambiguous
+// push/pop acknowledgment, so native cleanup never replays external work.
+class NestedMatlabOptimizerScope
+{
+public:
+   NestedMatlabOptimizerScope()
+   {
+      if (!MatlabCallbackBridge::IsActive()) return;
+      MatlabCallbackRequest request; request.operation = MatlabCallbackRequest::Operation::PUSH_OPTIMIZER;
+      identity = MatlabCallbackBridge::Execute(request).output;
+      if (identity.empty()) throw SolverException("The nested optimizer workspace was not captured");
+      active = true;
+   }
+   void Complete()
+   {
+      if (!active) return;
+      active = false;
+      MatlabCallbackRequest request; request.operation = MatlabCallbackRequest::Operation::POP_OPTIMIZER;
+      request.name = identity; MatlabCallbackBridge::Execute(request);
+   }
+   ~NestedMatlabOptimizerScope() noexcept { if (active) try { Complete(); } catch (...) {} }
+   NestedMatlabOptimizerScope(const NestedMatlabOptimizerScope&) = delete;
+   NestedMatlabOptimizerScope& operator=(const NestedMatlabOptimizerScope&) = delete;
+private:
+   std::string identity;
+   bool active = false;
+};
+}
 
 //#define DEBUG_STATE_MACHINE
 //#define DEBUG_ML_CONNECTIONS
@@ -165,7 +226,8 @@ FminconOptimizer::~FminconOptimizer()
 //------------------------------------------------------------------------------
 FminconOptimizer::FminconOptimizer(const FminconOptimizer &opt) :
    ExternalOptimizer       (opt),
-   fminconExitFlag         (-999)
+   fminconExitFlag         (-999),
+   matlabIf               (nullptr)
 {
    #ifdef DEBUG_FMINCON_OPTIONS // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ debug ~~~~
       MessageInterface::ShowMessage(
@@ -182,6 +244,9 @@ FminconOptimizer::FminconOptimizer(const FminconOptimizer &opt) :
       (Integer) optionValues.size());
    #endif // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ end debug ~~~~
    parameterCount   = opt.parameterCount;
+   // Native construction copies a cold definition. Completed Clone/Copy
+   // restores a retained value only after all derived data is available.
+   SetFunctionValueContext({});
 }
 
 
@@ -194,7 +259,9 @@ FminconOptimizer::operator=(const FminconOptimizer& opt)
    if (&opt == this)
       return *this;
 
+   const auto previousContext = GetFunctionValueContext();
    ExternalOptimizer::operator=(opt);
+   matlabIf = nullptr;
    options.clear();
    optionValues.clear();
    options          = opt.options;
@@ -203,6 +270,7 @@ FminconOptimizer::operator=(const FminconOptimizer& opt)
    iterationFunctionCount = -1;
    iterationPhase.clear();
 
+   SetFunctionValueContext({});
    return *this;
 }
 
@@ -212,6 +280,11 @@ FminconOptimizer::operator=(const FminconOptimizer& opt)
 //------------------------------------------------------------------------------
 bool FminconOptimizer::Initialize()
 {
+   bool complete = false;
+   const auto onFailure = [&](void*) { if (!complete) isInitialized = false; };
+   const std::unique_ptr<void,decltype(onFailure)> resultState(this,onFailure);
+   converged = false;
+   fminconExitFlag = -999;
    ExternalOptimizer::Initialize();
    iterationFunctionCount = -1;
    iterationPhase.clear();
@@ -223,7 +296,10 @@ bool FminconOptimizer::Initialize()
 
    // Open Matlab engine and find fmincon related files
    if (OpenConnection())
+   {
+      complete = true;
       return true;
+   }
    else
       return false;
 }
@@ -404,16 +480,27 @@ StringArray FminconOptimizer::AdvanceNestedState(std::vector<Real> vars)
 //------------------------------------------------------------------------------
 bool FminconOptimizer::Optimize()
 {
+   bool complete = false;
+   const auto onFailure = [&](void*) { if(!complete) isInitialized=false; };
+   const std::unique_ptr<void,decltype(onFailure)> resultState(this,onFailure);
+
    bool retval = false;
+   // Optimize can be reentered by a loop without rebuilding the resource.
+   // Start every solve with fresh outcome and callback-order state.
+   converged = false;
+   physicalTolerancesMet = false;
+   fminconExitFlag = -999;
+   iterationsTaken = 0;
+   iterationFunctionCount = -1;
+   iterationPhase.clear();
+   NestedMatlabOptimizerScope callbackWorkspace;
 
    #ifdef DEBUG_ML_CONNECTIONS
    MessageInterface::ShowMessage("Entering Optimize method ....\n");
    #endif
 
    // set format long so that we don't lose precision between string transmission
-   matlabIf->EvalString("format long");
-   // clear last errormsg
-   matlabIf->EvalString("clear errormsg");
+   EvalMatlabString("format long; clear errormsg exitFlag;");
 
    // set up options/values list for OPTIMSET call
    bool allEmpty = true;
@@ -515,7 +602,7 @@ bool FminconOptimizer::Optimize()
    EvalMatlabString(inParm);
 
    // clear last errormsg
-   matlabIf->EvalString("clear errormsg");
+   EvalMatlabString("clear errormsg;");
    //std::string runString =
    //   "[X] = GmatFminconOptimizationDriver(X0,Lower,Upper);";
    // wcs - made it into an m-file instead of a function
@@ -536,25 +623,31 @@ bool FminconOptimizer::Optimize()
    catch (...)
    {
 #ifdef GMAT_QT_FMINCON_CALLBACK
-      try { matlabIf->EvalString("clear global GMAT_QT_CALLBACK;"); } catch (...) {}
+      if(!MatlabCallbackBridge::IsActive()) try { matlabIf->EvalString("clear global GMAT_QT_CALLBACK;"); } catch (...) {}
 #endif
       throw;
    }
 #ifdef GMAT_QT_FMINCON_CALLBACK
-   matlabIf->EvalString("clear global GMAT_QT_CALLBACK;");
+   if(!MatlabCallbackBridge::IsActive()) matlabIf->EvalString("clear global GMAT_QT_CALLBACK;");
 #endif
    // ask MATLAB for the value of exitFlag here and evaluate
-   double      outArr[1];
+   double      outArr[1] = {0.0};
    int         OKint = 0;
    std::string resStr    = "exitFlag";
    Integer numRowsReceived = 0;
    Integer numColsReceived = 0;
    OKint = matlabIf->GetRealArray(resStr, 1, outArr, numRowsReceived, numColsReceived);
    
-   if (!OKint)
+   if (OKint != 1 || numRowsReceived != 1 || numColsReceived != 1 ||
+       !std::isfinite(outArr[0]) || std::trunc(outArr[0]) != outArr[0] ||
+       outArr[0] < (std::numeric_limits<Integer>::min)() ||
+       outArr[0] > (std::numeric_limits<Integer>::max)())
       throw SolverException("Error determining exitFlag from fmincon");
    fminconExitFlag = (Integer) outArr[0];
 
+   // Retain the child's result natively before restoring the parent's base
+   // exitFlag. A restoration failure must not publish a converged solve.
+   callbackWorkspace.Complete();
    if (fminconExitFlag > 0)
    {
       retval = true;
@@ -562,6 +655,7 @@ bool FminconOptimizer::Optimize()
    }
 
    // need to ask for fVal as well?
+   complete=true;
    return retval;
 }
 
@@ -577,7 +671,15 @@ bool FminconOptimizer::Optimize()
 //------------------------------------------------------------------------------
 GmatBase* FminconOptimizer::Clone() const
 {
-   return (new FminconOptimizer(*this));
+   std::unique_ptr<FminconOptimizer> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new FminconOptimizer(*this));
+   }
+   if (typeid(*this) != typeid(FminconOptimizer))
+      throw SolverException("A derived FminconOptimizer must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -590,9 +692,18 @@ GmatBase* FminconOptimizer::Clone() const
  * @param orig The original that is being copied.
  */
 //---------------------------------------------------------------------------
-void FminconOptimizer::Copy(const GmatBase* orig)
+void FminconOptimizer::Copy(const GmatBase *original)
 {
-   operator=(*((FminconOptimizer *)(orig)));
+   const auto *source = dynamic_cast<const FminconOptimizer*>(original);
+   if (!source || typeid(*this) != typeid(FminconOptimizer) || typeid(*source) != typeid(FminconOptimizer))
+      throw SolverException("Incompatible FminconOptimizer Copy or missing derived provider.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
 }
 
 
@@ -1027,6 +1138,11 @@ void FminconOptimizer::RunExternal()
    Optimize();
    currentState = FINISHED;
    nestedState  = INITIALIZING;
+   // Publish the result before Optimize replays the final branch. In the
+   // callback build, GetProgressString deliberately has no state side effects.
+   status = converged ? Gmat::CONVERGED :
+         (fminconExitFlag == 0 ? Gmat::EXCEEDED_ITERATIONS : Gmat::FAILED);
+   GmatGlobal::Instance()->SetSolverStatus(instanceName, status);
 }
 
 
@@ -1057,7 +1173,10 @@ void FminconOptimizer::CalculateParameters()
 void FminconOptimizer::RunComplete()
 {
    ExternalOptimizer::RunComplete();
-   status = Gmat::RUN;  // Enables "Apply corrections"
+   // Keep the terminal result available to subscribers and caller queries.
+   // Nonconverged results still support the existing Apply corrections action.
+   status = converged ? Gmat::CONVERGED :
+         (fminconExitFlag == 0 ? Gmat::EXCEEDED_ITERATIONS : Gmat::FAILED);
    GmatGlobal::Instance()->SetSolverStatus(instanceName, status);
    hasFired = true;
 
@@ -1535,6 +1654,7 @@ void FminconOptimizer::WriteToTextFile(SolverState stateToUse)
 //------------------------------------------------------------------------------
 bool FminconOptimizer::OpenConnection()
 {
+   NestedMatlabOptimizerScope callbackWorkspace;
    bool debugMatlabIF = GmatGlobal::Instance()->IsMatlabDebugOn();
 
    if (debugMatlabIF) // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ debug ~~~~
@@ -1590,8 +1710,8 @@ bool FminconOptimizer::OpenConnection()
             MessageInterface::ShowMessage
                ("Adding matlab path '%s' to the top\n", pathName.c_str());
          }
-         std::string addPath = "path('" + pathName + "', path)";
-         matlabIf->EvalString(addPath);
+         std::string addPath = "path(" + matlabCharacterLiteral(pathName) + ", path);";
+         EvalMatlabString(addPath);
       }
       rpos++;
    }
@@ -1599,7 +1719,7 @@ bool FminconOptimizer::OpenConnection()
    // Now add the function path to the top using path('newpath', path)
    if (functionPath != "")
    {
-      std::string setPath = "path('" + functionPath + "', path)";
+      std::string setPath = "path(" + matlabCharacterLiteral(functionPath) + ", path);";
       EvalMatlabString(setPath);
       if (debugMatlabIF) // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ debug ~~~~
       {
@@ -1611,19 +1731,21 @@ bool FminconOptimizer::OpenConnection()
    // check for availability of Optimization Toolbox (well, really
    // just fmincon, but of course, its existence implies the existence of
    // the entire toolbox) here
-   double      outArr[1], outArr2[1];
-   double      out1[1], out2[1], out3[1], out4[1];
-   int         OKint = 0;
+   double      outArr[1] = {}, outArr2[1] = {};
+   double      out1[1] = {}, out2[1] = {}, out3[1] = {}, out4[1] = {};
+   auto readExistence = [this](const std::string &name, Real *result,
+                              const std::string &description)
+   {
+      Integer rows = 0, columns = 0;
+      if (matlabIf->GetRealArray(name, 1, result, rows, columns) != 1 ||
+          rows != 1 || columns != 1 || !std::isfinite(result[0]) ||
+          result[0] < 0 || std::trunc(result[0]) != result[0])
+         throw SolverException("Error determining existence of " + description);
+   };
    evalStr   = "fminconexist = exist(\'fmincon\');";
    resStr    = "fminconexist";
    EvalMatlabString(evalStr);
-   Integer numRowsReceived = 0;
-   Integer numColsReceived = 0;
-   OKint = matlabIf->GetRealArray(resStr, 1, outArr, numRowsReceived, numColsReceived);
-
-   if (!OKint)
-      throw SolverException(
-            "Error determining existence of Optimization Toolbox");
+   readExistence(resStr, outArr, "Optimization Toolbox");
 
    if (outArr[0] > 0.0) // 2 means it is in the MATLAB path
    {
@@ -1634,10 +1756,7 @@ bool FminconOptimizer::OpenConnection()
       evalStr   = "startupexist = exist(\'gmat_startup\');";
       resStr    = "startupexist";
       EvalMatlabString(evalStr);
-      OKint     = matlabIf->GetRealArray(resStr, 1, outArr2, numRowsReceived, numColsReceived);
-      if (!OKint)
-         throw SolverException(
-               "Error determining existence of MATLAB gmat_startup");
+      readExistence(resStr, outArr2, "MATLAB gmat_startup");
 
       if (outArr2[0] > 0.0) // 2 means it is in the MATLAB path
       {
@@ -1665,8 +1784,7 @@ bool FminconOptimizer::OpenConnection()
          }
          else
          {
-            MessageInterface::ShowMessage
-               ("Unable to get whichStr from MATLAB workspace.\n");
+            throw SolverException("Error determining path of MATLAB gmat_startup");
          }
 
          // run the startup file to add to the MATLAB path correctly
@@ -1676,19 +1794,19 @@ bool FminconOptimizer::OpenConnection()
          evalStr = "driverexist = exist(\'GmatFminconOptimizationDriver\');";
          resStr  = "driverexist";
          EvalMatlabString(evalStr);
-         OKint   = matlabIf->GetRealArray(resStr, 1, out1, numRowsReceived, numColsReceived);
+         readExistence(resStr, out1, "MATLAB GmatFminconOptimizationDriver");
          evalStr = "objectiveexist = exist(\'EvaluateGMATObjective\');";
          resStr  = "objectiveexist";
          EvalMatlabString(evalStr);
-         OKint   = matlabIf->GetRealArray(resStr, 1, out2, numRowsReceived, numColsReceived);
+         readExistence(resStr, out2, "MATLAB EvaluateGMATObjective");
          evalStr = "constraintexist = exist(\'EvaluateGMATConstraints\');";
          resStr  = "constraintexist";
          EvalMatlabString(evalStr);
-         OKint   = matlabIf->GetRealArray(resStr, 1, out3, numRowsReceived, numColsReceived);
+         readExistence(resStr, out3, "MATLAB EvaluateGMATConstraints");
          evalStr = "callbackexist = exist(\'CallGMATfminconSolver\');";
          resStr  = "callbackexist";
          EvalMatlabString(evalStr);
-         OKint   = matlabIf->GetRealArray(resStr, 1, out4, numRowsReceived, numColsReceived);
+         readExistence(resStr, out4, "MATLAB CallGMATfminconSolver");
          if (debugMatlabIF) // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ debug ~~~~
          {
             MessageInterface::ShowMessage(
@@ -1752,6 +1870,7 @@ bool FminconOptimizer::OpenConnection()
    if (debugMatlabIF)
       MessageInterface::ShowMessage("FminconOptimizer::OpenConnection() leaving\n\n");
 
+   callbackWorkspace.Complete();
    return true;
 }
 
@@ -1761,7 +1880,7 @@ bool FminconOptimizer::OpenConnection()
 //------------------------------------------------------------------------------
 void FminconOptimizer::CloseConnection()
 {
-   matlabIf->Close();   // but wait!  what if someone else is still using it??
+   matlabIf->Close("GmatMatlab");
    // no need to close anything when running the server??
 }
 
@@ -1783,6 +1902,7 @@ void FminconOptimizer::WriteParameters(Gmat::WriteMode mode, std::string &prefix
    Gmat::ParameterType parmType;
    std::stringstream value;
    value.precision(GetDataPrecision());
+   ObjectMatlabExportScope::Prepare(value);
    for (id = 0; id < parameterCount; ++id)
    {
       if (IsParameterReadOnly(id) == false)
@@ -1804,7 +1924,7 @@ void FminconOptimizer::WriteParameters(Gmat::WriteMode mode, std::string &prefix
                WriteParameterValue(id, value);
                if (value.str() != "")
                {
-                    std::string attCmtLn = GetAttributeCommentLine(id);
+                    std::string attCmtLn = (ObjectMatlabExportScope::Applies(mode) ? "" : GetAttributeCommentLine(id));
 
                     if ((attCmtLn != "") && ((mode == Gmat::SCRIPTING) ||
                      (mode == Gmat::OWNED_OBJECT) || (mode == Gmat::SHOW_SCRIPT)))
@@ -1814,7 +1934,7 @@ void FminconOptimizer::WriteParameters(Gmat::WriteMode mode, std::string &prefix
                          << " = " << value.str() << ";";
 
                   // overwrite tmp variable for attribute cmt line
-                  attCmtLn = GetInlineAttributeComment(id);
+                  attCmtLn = (ObjectMatlabExportScope::Applies(mode) ? "" : GetInlineAttributeComment(id));
                   if ((attCmtLn != "") && ((mode == Gmat::SCRIPTING) ||
                       (mode == Gmat::OWNED_OBJECT) || (mode == Gmat::SHOW_SCRIPT)))
                      stream << attCmtLn << "\n";
@@ -1828,10 +1948,16 @@ void FminconOptimizer::WriteParameters(Gmat::WriteMode mode, std::string &prefix
             // Handle StringArrays
             if ((id != OPTIONS) && (id != OPTION_VALUES))
             {
+               if (ObjectMatlabExportScope::Applies(mode))
+               {
+                  WriteStringArrayValue(mode, prefix, id, true, stream);
+                  continue;
+               }
+
                StringArray sar = GetStringArrayParameter(id);
                if (sar.size() > 0)
                {
-                  std::string attCmtLn = GetAttributeCommentLine(id);
+                  std::string attCmtLn = (ObjectMatlabExportScope::Applies(mode) ? "" : GetAttributeCommentLine(id));
 
                   if ((attCmtLn != "") && ((mode == Gmat::SCRIPTING) ||
                      (mode == Gmat::OWNED_OBJECT) || (mode == Gmat::SHOW_SCRIPT)))
@@ -1852,7 +1978,7 @@ void FminconOptimizer::WriteParameters(Gmat::WriteMode mode, std::string &prefix
                         stream << "'";
                   }
 
-                  attCmtLn  = GetInlineAttributeComment(id);
+                  attCmtLn  = (ObjectMatlabExportScope::Applies(mode) ? "" : GetInlineAttributeComment(id));
 
                   if ((attCmtLn != "") && ((mode == Gmat::SCRIPTING) ||
                      (mode == Gmat::OWNED_OBJECT) || (mode == Gmat::SHOW_SCRIPT)))
@@ -1872,7 +1998,7 @@ void FminconOptimizer::WriteParameters(Gmat::WriteMode mode, std::string &prefix
                   WriteParameterValue((ii + MATLAB_OPTIONS_OFFSET), value);
                   if (value.str() != "")
                   {
-                       std::string attCmtLn = GetAttributeCommentLine(id);
+                       std::string attCmtLn = (ObjectMatlabExportScope::Applies(mode) ? "" : GetAttributeCommentLine(id));
 
                        if ((attCmtLn != "") && ((mode == Gmat::SCRIPTING) ||
                         (mode == Gmat::OWNED_OBJECT) || (mode == Gmat::SHOW_SCRIPT)))
@@ -1882,7 +2008,7 @@ void FminconOptimizer::WriteParameters(Gmat::WriteMode mode, std::string &prefix
                             << " = " << value.str() << ";";
 
                      // overwrite tmp variable for attribute cmt line
-                     attCmtLn = GetInlineAttributeComment(id);
+                     attCmtLn = (ObjectMatlabExportScope::Applies(mode) ? "" : GetInlineAttributeComment(id));
                      if ((attCmtLn != "") && ((mode == Gmat::SCRIPTING) ||
                          (mode == Gmat::OWNED_OBJECT) || (mode == Gmat::SHOW_SCRIPT)))
                         stream << attCmtLn << "\n";
@@ -1951,8 +2077,7 @@ void FminconOptimizer::RunCdCommand(const std::string &pathName)
    std::string evalStr, resStr;
    bool debugMatlabIF = GmatGlobal::Instance()->IsMatlabDebugOn();
 
-   evalStr = "cd ",
-   evalStr = evalStr + pathName;
+   evalStr = "cd(" + matlabCharacterLiteral(pathName) + ");";
    EvalMatlabString(evalStr);
 
    if (debugMatlabIF)
@@ -2011,25 +2136,45 @@ void FminconOptimizer::EvalMatlabString(const std::string &evalString)
    }
    catch (InterfaceException &ie)
    {
-      bool rethrowException = true;
       std::string errMsg = ie.GetFullMessage();
       #ifdef DEBUG_MATLAB_EVAL
       MessageInterface::ShowMessage(errMsg + "\n");
       #endif
       
-      // If error from evaluating string but not from opening matlab engine or
-      // not from undefined function, or error from MATLAB, close and re-initialize
-      // and re-execute as user may have manually closed it.
-      if (errMsg.find("engEvalString") != errMsg.npos)
+      // A transport failure invalidates this solve. Reopening and continuing
+      // would discard the failed operation and could reuse old workspace data.
+      // Retire only fmincon's named connection in single-use mode; preserve the
+      // evaluation error even if closing an already-terminated engine fails.
+      if (dynamic_cast<const MatlabEngineConnectionException*>(&ie) && !MatlabCallbackBridge::IsActive())
       {
-         rethrowException = false;
-         MessageInterface::ShowMessage("Trying to close and reopen MATLAB engine...\n");
-         matlabIf->Close();
-         Initialize();
+         try { matlabIf->Close("GmatMatlab"); } catch (...) {}
       }
-      
-      if (rethrowException)
-         throw;
+      isInitialized = false;
+      throw;
    }
 }
 
+
+bool FminconOptimizer::HasSolverValueReferenceProviderImpl() const
+{
+   return typeid(*this) == typeid(FminconOptimizer);
+}
+
+void FminconOptimizer::PrepareClonedSolverValueImpl(const Solver &original)
+{
+   CheckSolverValueType(original);
+   const auto &source = dynamic_cast<const FminconOptimizer&>(original);
+   CopyOptimizerValueData(source);
+   functionPath = source.functionPath;
+   options = source.options;
+   optionValues = source.optionValues;
+   fminconExitFlag = source.fminconExitFlag;
+   iterationFunctionCount = source.iterationFunctionCount;
+   iterationPhase = source.iterationPhase;
+   // These are borrowed execution services. A retained value never closes or
+   // reconnects the source engine; native initialization binds its own session.
+   sourceReady = false;
+   inSource = NULL;
+   inSourceServer = NULL;
+   matlabIf = NULL;
+}

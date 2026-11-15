@@ -118,8 +118,9 @@ Minimize::Minimize(const Minimize& m) :
    optimizer               (NULL),
    optimizerDataFinalized  (false),
    //isMinimizeParm          (m.isMinimizeParm),
-   objId                   (m.objId),
-   interpreted             (false)
+   objId                   (-1),
+   interpreted             (false),
+   worksheetSpelling       (m.worksheetSpelling)
 {
    #ifdef DEBUG_MINIMIZE // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ debug ~~~~
       MessageInterface::ShowMessage("Creating (copying) Minimize command ...\n");
@@ -144,6 +145,7 @@ Minimize& Minimize::operator=(const Minimize& m)
    if (this == &m)
       return *this;
     
+   ClearWrappers();
    SolverSequenceCommand::operator=(m);
    optimizerName          = m.optimizerName;
    objectiveName          = m.objectiveName;
@@ -152,11 +154,10 @@ Minimize& Minimize::operator=(const Minimize& m)
    optimizer              = NULL;
    optimizerDataFinalized = false;
    //isMinimizeParm         = m.isMinimizeParm;
-   objId                  = m.objId;
+   objId                  = -1;
    interpreted            = false;
+   worksheetSpelling      = m.worksheetSpelling;
 
-   // Initialize wrappers to NULL
-   ClearWrappers();
 
    return *this;
 }
@@ -601,7 +602,19 @@ bool Minimize::InterpretAction()
    wrapperObjectNames.clear();
    ClearWrappers();
 
-   StringArray chunks = InterpretPreface();
+   StringArray chunks;
+   if (worksheetSpelling)
+   {
+      parser.Initialize(StringArray{"Minimize","NonlinearConstraint"});
+      parser.EvaluateBlock(generatingString);
+      parser.DecomposeBlock(generatingString);
+      chunks=parser.ChunkLine();
+      if (chunks.empty() || (chunks[0]!="NonlinearConstraint" && chunks[0]!="Minimize"))
+         throw CommandException("An objective command must begin with Minimize or the NonlinearConstraint cost form.");
+      worksheetSpelling=chunks[0]=="NonlinearConstraint";
+   }
+   else
+      chunks=InterpretPreface();
 
    #ifdef DEBUG_MINIMIZE_PARSING
       MessageInterface::ShowMessage("Preface chunks as\n");
@@ -824,6 +837,9 @@ bool Minimize::Initialize()
          "Optimizer not initialized for Minimize command\n  \""
          + generatingString + "\"\n");
 
+   if (!objective)
+      throw CommandException("Minimize requires an objective wrapper.");
+
    //Integer id = optimizer->GetParameterID("Goals");  // no clue
    //optimizer->SetStringParameter(id, goalName);
 
@@ -880,6 +896,9 @@ bool Minimize::Execute()
       MessageInterface::ShowMessage("   objective=%s\n", objective->GetDescription().c_str());
    #endif // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ end debug ~~~~
    
+   if (!optimizer || !objective)
+      throw CommandException("Minimize requires a bound optimizer and objective wrapper.");
+
    bool retval = true;
    if (!optimizerDataFinalized) 
    {
@@ -893,30 +912,14 @@ bool Minimize::Execute()
       return retval;
    }
    
-   Real val = -999.999;
-   // Evaluate variable and pass it to the optimizer
-   if (objective != NULL)
-   {
-      val = objective->EvaluateReal();
-      #ifdef DEBUG_MINIMIZE_EXEC // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ debug ~~~~
-         MessageInterface::ShowMessage
-            ("   objective=%s, %p\n", objective->GetDescription().c_str(), objective);
-         MessageInterface::ShowMessage("   Parameter target: %s val = %lf\n",
-            objective->GetDescription().c_str(), val);
-      #endif // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ end debug ~~~~
-      optimizer->SetResultValue(objId, val, "Objective");
-   }
-   else 
-   {  // ERROR ERROR - should I throw an exception here? *********** TBD **************
-      MessageInterface::ShowMessage(
-         "Minimize: Warning - objective function is NULL\n"); 
-      val = -999.999;
-      //val = goalObject->GetRealParameter(parmId);  // again,no clue
-      optimizer->SetResultValue(objId, val, "Objective");
-      #ifdef DEBUG_MINIMIZE_EXEC // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ debug ~~~~
-         MessageInterface::ShowMessage("   Object target: val = %lf\n", val);
-      #endif // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ end debug ~~~~
-   }
+   const Real val = objective->EvaluateRealForCalculation();
+   #ifdef DEBUG_MINIMIZE_EXEC // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ debug ~~~~
+      MessageInterface::ShowMessage
+         ("   objective=%s, %p\n", objective->GetDescription().c_str(), objective);
+      MessageInterface::ShowMessage("   Parameter target: %s val = %lf\n",
+         objective->GetDescription().c_str(), val);
+   #endif // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ end debug ~~~~
+   optimizer->SetResultValue(objId, val, "Objective");
 
    //targeter->SetResultValue(goalId, val);
    BuildCommandSummary(true);
@@ -960,11 +963,37 @@ const std::string& Minimize::GetGeneratingString(Gmat::WriteMode mode,
    // Build the local string
    std::stringstream tol;
    //tol << tolerance;
-   std::string gen = prefix + "Minimize " + optimizerName + "(" + objectiveName;
+   std::string gen = prefix + (worksheetSpelling ? "NonlinearConstraint " : "Minimize ") +
+         optimizerName + "(" + objectiveName;
 
    generatingString = gen + ");";
    // Then call the base class method
    return SolverSequenceCommand::GetGeneratingString(mode, prefix, useName);
 }
 
+void Minimize::InsertCommandName(std::string &genString)
+{
+   if (!worksheetSpelling)
+   {
+      SolverSequenceCommand::InsertCommandName(genString);
+      return;
+   }
+   const std::string keyword = "NonlinearConstraint";
+   const std::string::size_type first = genString.find_first_not_of(" \t\r\n");
+   if (!instanceName.empty() && first != genString.npos &&
+       genString.compare(first, keyword.size(), keyword) == 0)
+      genString.insert(first + keyword.size(), " '" + instanceName + "'");
+}
 
+
+
+void Minimize::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   ClearWrappers();
+   optimizer = nullptr;
+   objId = -1;
+   optimizerDataFinalized = false;
+   interpreted = false;
+   SolverSequenceCommand::RetireFunctionBindings(store);
+}

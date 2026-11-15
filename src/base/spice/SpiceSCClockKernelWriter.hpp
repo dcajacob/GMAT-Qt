@@ -100,6 +100,7 @@ protected:
    void     WriteSCLKInputVariables();
 
 private:
+   void SwapValue(SpiceSCClockKernelWriter &other) noexcept;
    // default constructor
    SpiceSCClockKernelWriter();
 

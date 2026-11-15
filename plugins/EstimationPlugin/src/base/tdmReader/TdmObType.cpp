@@ -29,6 +29,7 @@
 //------------------------------------------------------------------------------
 
 #include "TdmObType.hpp"
+#include <memory>
 // Classes needed to configure the test cases
 #include "MessageInterface.hpp"
 
@@ -106,9 +107,11 @@ TdmObType& TdmObType::operator =(const TdmObType& tot)
 {
    if (this != &tot)
    {
+      std::unique_ptr<TdmReadWriter> reader(new TdmReadWriter());
       ObType::operator =(tot);
 
-      theReadWriter  = new TdmReadWriter();
+      delete theReadWriter;
+      theReadWriter  = reader.release();
       theTemplate    = NULL;
       isFirstRead    = true;
       tdmPassedValidation = false;
@@ -171,6 +174,9 @@ bool TdmObType::Initialize()
 //------------------------------------------------------------------------------
 bool TdmObType::Open(bool forRead, bool forWrite, bool append)
 {
+   tdmPassedValidation = false;
+   isFirstRead = true;
+   theTemplate = NULL;
    #ifdef DEBUG_FILE_ACCESS
       MessageInterface::ShowMessage("GmatObType::Open(%s, %s, %s) Executing\n",
             (forRead ? "true" : "false"),
@@ -270,8 +276,7 @@ bool TdmObType::IsOpen()
 //------------------------------------------------------------------------------
 bool TdmObType::Close()
 {
-   isFirstRead = true;
-   return true;
+   return Finalize();
 }
 
 
@@ -292,6 +297,8 @@ bool TdmObType::Close()
 bool TdmObType::Finalize()
 {
    isFirstRead = true;
+   tdmPassedValidation = false;
+   theTemplate = NULL;
    return (theReadWriter->Finalize());
 }
 
@@ -317,32 +324,28 @@ ObservationData *TdmObType::ReadObservation()
    // Is it the first time XML open?
    if (isFirstRead)
    {
-      isFirstRead = false;
-
       // open the XML file to validate and set the Body element.
-      Open();
+      if (!tdmPassedValidation && !Open())
+         return NULL;
       theReadWriter->SetBody();
       // Read in the Metadata from the first Segment in Body element
       theTemplate = theReadWriter->ProcessMetadata();
 
       if (typeIdentifier == NULL)
          typeIdentifier = TFSMagicNumbers::Instance();
+      isFirstRead = false;
    }
+
+   if (theTemplate == NULL)
+      return NULL;
     
 //   ObsData *newData = new ObsData(*theTemplate);
-   ObservationData *newData = new ObservationData(*theTemplate);
-   theTemplate = theReadWriter->LoadRecord(newData);
-
-   // we are at the end of file
-   if (!theTemplate)
-   {
-      delete newData;
-      newData = NULL;
-   }
-   else
-      typeIdentifier->FillMagicNumber(newData);
-      
-   return newData;
+   std::unique_ptr<ObservationData> newData(new ObservationData(*theTemplate));
+   theTemplate = theReadWriter->LoadRecord(newData.get());
+   // LoadRecord can fill the final epoch while advancing the next template to
+   // EOF. Return that filled record; the following call reports EOF above.
+   typeIdentifier->FillMagicNumber(newData.get());
+   return newData.release();
 }
 
 

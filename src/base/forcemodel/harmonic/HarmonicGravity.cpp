@@ -38,6 +38,7 @@
 #include "TimeSystemConverter.hpp"
 #include "SolarSystem.hpp"
 #include <cmath>
+#include <filesystem>
 //------------------------------------------------------------------------------
 using namespace GmatMathUtil;
 //------------------------------------------------------------------------------
@@ -731,9 +732,8 @@ void HarmonicGravity::LM_Load (const bool& loadcoefficients)
 void HarmonicGravity::LM_Load (std::string& filename, const bool& loadcoefficients)
    {
    std::ifstream instream (filename.c_str());
-   // DoesDirectoryExist inspects the directory portion of a path. Append a
-   // separator to test this input itself, rather than its valid parent folder.
-   if (GmatFileUtil::DoesDirectoryExist(filename + GmatFileUtil::GetPathSeparator(), false) || !instream.good())
+   std::error_code pathError;
+   if (std::filesystem::is_directory(std::filesystem::u8path(filename), pathError) || !instream.good())
       {
       MessageInterface::ShowMessage("Cannot open gravity file \"" + filename + "\"");
       throw GravityFileException("Cannot open gravity file \"" + filename + "\"");
@@ -1031,7 +1031,8 @@ void HarmonicGravity::LM_LoadTab (std::ifstream& instream, const bool& loadcoeff
 void HarmonicGravity::LM_LoadTide(std::string& filename, const bool& loadcoefficients)
    {
    std::ifstream instream (filename.c_str());
-   if (GmatFileUtil::DoesDirectoryExist(filename + GmatFileUtil::GetPathSeparator(), false) || !instream.good())
+   std::error_code pathError;
+   if (std::filesystem::is_directory(std::filesystem::u8path(filename), pathError) || !instream.good())
    {
       MessageInterface::ShowMessage("Cannot open tide file \"" + filename + "\"");
       throw GravityFileException("Cannot open tide file \"" + filename + "\"");

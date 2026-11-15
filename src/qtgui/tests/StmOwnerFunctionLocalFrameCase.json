@@ -1,0 +1,25 @@
+{
+  "status": "frozen-before-execution",
+  "key": "OwnerLocalFrame",
+  "frame_mode": "local",
+  "mu": 398600.4418,
+  "radius": 7000.0,
+  "reference_radius": 8000.0,
+  "epoch_mjd": 21545.125,
+  "caller_seconds": 60.0,
+  "function_seconds": 30.0,
+  "expected_function_calls": 3,
+  "expected_nested_calls": 1,
+  "expected_live_samples": 6,
+  "expected_parameter_reads": 30,
+  "expected_reported_matrix_entries": 504,
+  "matrix_block_tolerances": [
+    2e-08,
+    2e-06,
+    2e-11,
+    2e-08
+  ],
+  "position_tolerance_km": 2e-05,
+  "velocity_tolerance_km_s": 2e-08,
+  "scope": "Missing owner-dependent frame counterpart of the saved function scope proof. Selected RTN axes use the private guide as primary and the measured private spacecraft as secondary. Six native samples, all five matrix Parameters and actual Reports; captured initial force gradients must survive two direct and one nested value call. No whole-row qualification."
+}

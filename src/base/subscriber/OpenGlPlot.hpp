@@ -39,6 +39,7 @@
 class GMAT_API OpenGlPlot : public Subscriber
 {
 public:
+   std::unique_ptr<FunctionInvocationState> SuspendFunctionBindings() override;
    OpenGlPlot(const std::string &name);
    OpenGlPlot(const OpenGlPlot &ogl);
    OpenGlPlot& operator=(const OpenGlPlot&);

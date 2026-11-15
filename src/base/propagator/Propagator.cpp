@@ -81,6 +81,7 @@
 
 #include <sstream>
 #include "Propagator.hpp"
+#include "PropagatorException.hpp"
 #include "gmatdefs.hpp"
 #include "GmatBase.hpp"
 #include "PhysicalModel.hpp"
@@ -1620,4 +1621,22 @@ bool Propagator::SetNoiseStep()
    MessageInterface::ShowMessage("Noise update step size = %f\n", noiseStepSize);
 #endif
    return true;
+}
+void Propagator::RebindClonedReferences(const Propagator &source, SolarSystem *,
+      const std::function<GmatBase*(GmatBase*)> &resolve, bool bindObjects)
+{
+   auto *body = bindObjects ? dynamic_cast<CelestialBody*>(resolve(source.j2kBody)) : NULL;
+   auto *origin = bindObjects ? dynamic_cast<SpacePoint*>(resolve(source.propOrigin)) : NULL;
+   if (bindObjects && ((source.j2kBody && !body) || (source.propOrigin && !origin)))
+      throw PropagatorException("Incompatible retained propagator body/origin.");
+   j2kBody = body;
+   propOrigin = origin;
+   // The owner attaches its actual cloned model, not an old prepared pointer
+   // that can differ after a component replacement in the source PropSetup.
+   physicalModel = NULL;
+   inState = outState = NULL;
+   dimension = 0;
+   resetInitialData = true;
+   hasFiniteBurn = burning = lastBurn = finalStep = followUpStep = false;
+   isInitialized = false;
 }

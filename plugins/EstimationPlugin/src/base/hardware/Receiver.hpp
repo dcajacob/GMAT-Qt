@@ -35,6 +35,8 @@
 class ESTIMATION_API Receiver: public RFHardware
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = RFHardware::NativeValueProviderDepth + 1;
+
    Receiver(const std::string &ofType, const std::string &name);
    virtual ~Receiver();
    Receiver(const Receiver& recei);
@@ -42,6 +44,7 @@ public:
 
    virtual GmatBase* Clone() const;
    virtual void      Copy(const GmatBase* recei);
+   ObjectArray GetFunctionValueOwnedObjectsImpl() const;
 
    // Access methods derived classes can override
    virtual std::string  GetParameterText(const Integer id) const;

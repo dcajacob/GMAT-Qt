@@ -32,6 +32,18 @@
     environment, allowing GMAT to run MATLAB functions as if they were native
     functions in the GMAT script language.</para>
 
+    <para>The Qt optimizer callback connection evaluates the active GMAT optimization sequence and returns numerical results. Callback requests retain that sequence through input transfer, evaluation and result transfer. Function resources cannot be registered as callback services; the connection does not expose a general GMAT function-call operation.</para>
+
+    <para>The current Qt MATLAB callback helpers support MATLAB commands inside an optimizer evaluation. GMAT sends that work to the waiting MATLAB callback client, using the same MATLAB base workspace. Typed matrices, logical values, character data, scalar structures and cells keep the interface's existing conversion rules. The C Engine itself is not reentered. Nested work requires the current callback helpers; older clients retain their original evaluation protocol.</para>
+
+    <para>Linux Qt MAT-file output assembles independent values before writing and closes its native file handle after each operation. Output produced inside a current MATLAB optimizer callback uses the waiting MATLAB client, so a file can receive data before, during and after that callback. Numeric matrices, jagged cells, string cells and arrays of output records retain their shapes. Version 4 cannot store the writer's structured records and reports an error.</para>
+
+    <para>A MATLAB function called by GMAT cannot use legacy script controls or callback commands to start GMAT execution. The restriction applies while MATLAB is evaluating that function or its workspace expressions. Read requests remain available. Independent MATLAB mission controls can build and run scripts while GMAT is idle; they do not provide a direct GMAT-function-call interface.</para>
+
+    <para>The shared MATLAB reply API returns owned object and parameter strings without the old fixed-size character limits. Legacy character adapters borrow thread-local storage until their next call and reject embedded NUL data. The modern wx interface owns its encoded reply until the next request and includes the correct text terminator in its byte count. Command data is decoded using the declared text format and size.</para>
+
+    <para>Nested Qt optimizer initialization and execution preserve the parent driver's base-workspace values, global values and base/global bindings. Driver inputs, outputs, options and private diagnostics are restored after the child finishes. Callback cleanup also unwinds unfinished child workspace scopes after an error. Unrelated MATLAB variables retain their normal shared-workspace behavior.</para>
+
     <para>The interface cannot be controlled directly through the script
     language, though it can be in the GMAT GUI. Instead, GMAT starts the
     interface automatically when it calls a MATLAB function.</para>
@@ -61,18 +73,70 @@
 
     <para>The MATLAB interface provides an icon in the
     <guilabel>Interfaces</guilabel> folder in the Resources tree that can be
-    used to control the interface. Right-clicking the icon shows two options:
-    <guilabel>Open</guilabel> and <guilabel>Close</guilabel>.</para>
+    used to control the interface. Right-clicking the icon shows
+    <guilabel>Open</guilabel>, <guilabel>Close</guilabel>, and
+    <guilabel>Engine mode</guilabel>.</para>
+
+    <para><guilabel>Engine mode</guilabel> selects the mode for this GMAT
+    session. On Windows, <guilabel>Shared session</guilabel> uses
+    <literal>engOpen</literal> and can share a MATLAB engine with other GMAT
+    processes; <guilabel>Private session</guilabel> uses
+    <literal>engOpenSingleUse</literal> and belongs to this GMAT process.
+    Ordinary function calls and workspace output reuse the same default engine.
+    On Linux and macOS, <guilabel>Session for this GMAT process</guilabel> uses
+    <literal>engOpen</literal> to start a process-local engine; the C Engine does
+    not attach to an existing session on these platforms. Windows private-session
+    mode is unavailable there. Close active engines before changing the mode;
+    Cancel leaves the current mode unchanged. The startup file's
+    <literal>MATLAB_MODE</literal> setting still sets the initial mode.</para>
 
     <para>The <guilabel>Open</guilabel> menu item causes GMAT to open a
     connection to the MATLAB Engine, which in turns displays a MATLAB command
     window in the background. This connection is then used for all
     communication between GMAT and MATLAB until the connection is closed. Only
-    one connection can be open at a time.</para>
+    one default connection is selected by the GUI. Explicitly named private
+    engines remain available to native API callers on Windows.</para>
 
     <para>The <guilabel>Close</guilabel> menu item causes GMAT to close any
     open connection to the MATLAB Engine. If no connection is open, it has no
     effect.</para>
+  </refsection>
+
+  <refsection>
+    <title>Native object transfer</title>
+    <para>Native whole-object inputs keep the native serializer's selected
+    properties and owned-object paths. Supported property values travel through
+    typed Engine arrays and cells, including full character data; they are not
+    inserted into MATLAB source as quoted text. A fresh structure is completed
+    before replacing the logical input binding, so fields from previous calls
+    cannot remain as stale input. Function-local declarations participate in
+    this explicit data export. Nested serializers restore their previous mode
+    on completion or error.</para>
+    <para>Native whole-object MATLAB calls read scalar structure results through
+    the Engine data API. Returned property values retain their numeric precision,
+    dimensions and character data independently of the MATLAB display format or
+    command-window buffer size. Values are captured before GMAT properties are
+    assigned. Unknown and read-only fields are ignored with warnings; invalid
+    writable field types or dimensions cause an error.</para>
+    <para>Spacecraft tank and thruster lists are prepared together. Omitted lists
+    retain their current attachments, and unchanged names preserve the existing
+    owned components. New attachments are cloned from actual resources resolved
+    in the active scope. Tank links, mass properties and internal estimation
+    references are prepared before the packet replaces displaced hardware.
+    Remove active finite burns before replacing or removing a firing thruster.
+    This grouping does not make other returned properties or objects part of the
+    same transaction.</para>
+    <para>Nested structures can update existing native owned components.
+    Vectors, matrices and indexed integer lists retain their configured native
+    dimensions. String/reference lists use the native typed list setter:
+    kernel lists, DSN media directories and Formation members support complete
+    replacement, while other providers retain their supported native sizes.
+    Known reference properties bind actual objects; unchanged names preserve
+    existing private bindings. Boolean arrays and Generic values use their
+    native whole-value setters. Native property validation still applies, and a
+    setter error can leave preceding property assignments applied. Main-script
+    parsing and GMAT-function formal argument restrictions retain their existing
+    rules.</para>
   </refsection>
 
   <refsection>

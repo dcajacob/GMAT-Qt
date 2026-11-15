@@ -39,6 +39,8 @@
 class GMAT_API TextEphemFile : public ReportFile
 {
 public:
+   void Copy(const GmatBase *source) override;
+   bool HasSubscriberValueReferenceProvider() const override;
    TextEphemFile(const std::string &type, const std::string &name,
                  const std::string &fname = "", 
                  Parameter *firstVarParam = NULL);

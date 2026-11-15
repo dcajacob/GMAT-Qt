@@ -33,6 +33,7 @@
 #include "RealUtilities.hpp"         // for IsEven()
 #include "MessageInterface.hpp"
 #include <sstream>                   // for <<, std::endl
+#include <memory>
 
 #ifdef __USE_SPICE__
 #include "SpiceOrbitKernelWriter.hpp"
@@ -71,7 +72,7 @@
  */
 //------------------------------------------------------------------------------
 EphemWriterSPK::EphemWriterSPK(const std::string &name, const std::string &type) :
-   EphemerisWriter       (type, name),
+   EphemerisWriter       (name, type),
    spkWriter             (NULL),
    spkWriteFailed        (false),
    numSPKSegmentsWritten (0)
@@ -106,8 +107,22 @@ EphemWriterSPK::~EphemWriterSPK()
    #endif
    if (spkWriter != NULL)
    {
-      if (!spkWriteFailed)
-         FinalizeSpkFile();
+      // Explicit completion reports errors. Destruction must still release
+      // the native writer while an earlier mission error is unwinding.
+      try
+      {
+         if (!spkWriteFailed)
+            FinalizeSpkFile();
+      }
+      catch (BaseException &e)
+      {
+         spkWriteFailed = true;
+         MessageInterface::ShowMessage("%s\n", e.GetFullMessage().c_str());
+      }
+      catch (...)
+      {
+         spkWriteFailed = true;
+      }
       
       #ifdef DEBUG_MEMORY
       MemoryTracker::Instance()->Remove
@@ -780,11 +795,13 @@ void EphemWriterSPK::FinishUpWritingSPK()
    }
    catch (BaseException &ex)
    {
-      // Catch and ignore exceptions thrown from util, since we manage them later
+      // The segment writer has already marked the output failed. Forward its
+      // error; closing the writer later does not report the lost segment.
       #ifdef DEBUG_EPHEMFILE_WRITE
       MessageInterface::ShowMessage
          ("Caught the exception %s\n", ex.GetFullMessage().c_str());
       #endif
+      throw;
    }
    
    #ifdef DEBUG_EPHEMFILE_FINISH
@@ -1066,10 +1083,20 @@ void EphemWriterSPK::FinalizeSpkFile(bool done, bool writeMetaData)
             #endif
             // Save last data to become first data of next segment - since we may start up
             // a new SPK file after this one
-            A1Mjd *a1mjd  = new A1Mjd(*a1MjdArray.back());
-            Rvector6 *rv6 = new Rvector6(*stateArray.back());
-            const GmatTime preciseLast = preciseEpochArray.back();
-            const bool preciseLastValid = preciseEpochFlags.back();
+            std::unique_ptr<A1Mjd> a1mjd;
+            std::unique_ptr<Rvector6> rv6;
+            GmatTime preciseLast;
+            bool preciseLastValid = false;
+            if (!done)
+            {
+               if (preciseEpochArray.size() != a1MjdArray.size() ||
+                   preciseEpochFlags.size() != a1MjdArray.size())
+                  throw SubscriberException("SPK precise epoch records are misaligned during finalization.");
+               a1mjd.reset(new A1Mjd(*a1MjdArray.back()));
+               rv6.reset(new Rvector6(*stateArray.back()));
+               preciseLast = preciseEpochArray.back();
+               preciseLastValid = preciseEpochFlags.back();
+            }
 
             // Write a segment and delete data array pointers
             WriteSpkOrbitDataSegment();
@@ -1077,10 +1104,12 @@ void EphemWriterSPK::FinalizeSpkFile(bool done, bool writeMetaData)
             // Add saved data to arrays if we are not done yet
             if (!done)
             {
-               a1MjdArray.push_back(a1mjd);
-               stateArray.push_back(rv6);
+               a1MjdArray.push_back(a1mjd.get());
+               stateArray.push_back(rv6.get());
                preciseEpochArray.push_back(preciseLast);
                preciseEpochFlags.push_back(preciseLastValid);
+               a1mjd.release();
+               rv6.release();
             }
             insufficientDataPoints = false;
             #ifdef DEBUG_EPHEMFILE_SPICE

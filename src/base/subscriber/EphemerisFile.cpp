@@ -29,7 +29,9 @@
 //------------------------------------------------------------------------------
 
 #include "EphemerisFile.hpp"
+#include "SubscriberBindingState.hpp"
 #include "SolverBranchCommand.hpp"
+#include "EphemerisIterationScope.hpp"
 #include "CelestialBody.hpp"
 #include "Publisher.hpp"             // for Instance()
 //#include "FileManager.hpp"           // for GetPathname()
@@ -48,6 +50,107 @@
 #include "EphemWriterSTK.hpp"
 #include "Propagate.hpp"
 #include <sstream>                   // for <<, std::endl
+#include <memory>
+#include <cerrno>
+#include <utility>
+#ifdef _WIN32
+   #ifndef NOMINMAX
+      #define NOMINMAX
+   #endif
+   #include <windows.h>
+#else
+   #include <sys/stat.h>
+#endif
+
+namespace
+{
+std::shared_ptr<const ObjectArray> RetainEphemerisFrameOwners(
+      const std::shared_ptr<const ObjectArray> &first,
+      const std::shared_ptr<const ObjectArray> &second)
+{
+   if (!first) return second;
+   if (!second || first == second) return first;
+   struct Owners
+   {
+      std::shared_ptr<const ObjectArray> first, second;
+      ObjectArray objects;
+   };
+   auto owners = std::make_shared<Owners>();
+   owners->first = first;
+   owners->second = second;
+   owners->objects = *first;
+   owners->objects.insert(owners->objects.end(), second->begin(), second->end());
+   return std::shared_ptr<const ObjectArray>(owners, &owners->objects);
+}
+
+std::string EphemerisOutputExtension(const std::string &format)
+{
+   return format=="SPK" ? ".bsp" : format=="CCSDS-OEM" ? ".oem" :
+         format=="CCSDS-AEM" ? ".aem" : format=="STK-TimePosVel" ? ".e" : ".eph";
+}
+
+std::string EphemerisOutputName(const std::string &name,const std::string &format,
+      bool preserveCustomExtension)
+{
+   const std::string extension=EphemerisOutputExtension(format);
+   const auto separator=name.find_last_of("/\\");
+   const auto dot=name.find_last_of('.');
+   const bool hasExtension=dot!=std::string::npos && dot+1<name.size() &&
+         (separator==std::string::npos || dot>separator);
+   if (!hasExtension) return name+extension;
+   if (!preserveCustomExtension || format=="SPK") return name.substr(0,dot)+extension;
+   return name;
+}
+
+void ValidateEphemerisOutputPath(const std::string &path)
+{
+   if (path.empty()) throw SubscriberException("Cannot resolve the ephemeris output path.");
+   if (GmatFileUtil::DoesDirectoryExist(path+"/",false))
+      throw SubscriberException("Ephemeris output path is a directory: "+path);
+   const std::string directory=GmatFileUtil::ParsePathName(path);
+   if (!directory.empty() && !GmatFileUtil::DoesDirectoryExist(directory))
+      throw SubscriberException("Cannot create an EphemerisFile with non-existing directory '"+directory+"'");
+}
+
+bool SameEphemerisOutput(const std::string &a,const std::string &b)
+{
+   if (GmatFileUtil::IsSameFileName(a,b)) return true;
+   // An alternate spelling, symlink or hard link to the open output must not
+   // turn a repeated Filename assignment into truncation of the same file.
+#ifdef _WIN32
+   auto identity=[](const std::string &path,bool allowMissing,BY_HANDLE_FILE_INFORMATION &info) {
+      const HANDLE file=CreateFileA(path.c_str(),FILE_READ_ATTRIBUTES,
+            FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,NULL,OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,NULL);
+      if (file==INVALID_HANDLE_VALUE)
+      {
+         const DWORD error=GetLastError();
+         if (allowMissing && (error==ERROR_FILE_NOT_FOUND || error==ERROR_PATH_NOT_FOUND)) return false;
+         throw SubscriberException("Cannot inspect ephemeris output identity: "+path);
+      }
+      const bool found=GetFileInformationByHandle(file,&info)!=0;
+      CloseHandle(file);
+      if (!found) throw SubscriberException("Cannot inspect ephemeris output identity: "+path);
+      return true;
+   };
+   BY_HANDLE_FILE_INFORMATION first{},second{};
+   if (!identity(b,true,second)) return false;
+   return identity(a,false,first) &&
+         first.dwVolumeSerialNumber==second.dwVolumeSerialNumber &&
+         first.nFileIndexHigh==second.nFileIndexHigh && first.nFileIndexLow==second.nFileIndexLow;
+#else
+   struct stat first{},second{};
+   if (stat(b.c_str(),&second)!=0)
+   {
+      if (errno==ENOENT || errno==ENOTDIR) return false;
+      throw SubscriberException("Cannot inspect ephemeris output identity: "+b);
+   }
+   if (stat(a.c_str(),&first)!=0)
+      throw SubscriberException("Cannot inspect ephemeris output identity: "+a);
+   return first.st_dev==second.st_dev && first.st_ino==second.st_ino;
+#endif
+}
+}
 
 
 //#define DEBUG_EPHEMFILE_INSTANCE
@@ -120,7 +223,8 @@ EphemerisFile::PARAMETER_TEXT[EphemerisFileParamCount - SubscriberParamCount] =
    "IncludeEventBoundaries", // INCLUDE_EVENT_BOUNDARIES
    "FormatVersion",          // FORMAT_VERSION
    "AccelerationModel",      // ACCELERATION_MODEL
-   "OutputTimeSystem"        // OUTPUT_TIME_SYSTEM
+   "OutputTimeSystem",       // OUTPUT_TIME_SYSTEM
+   "InsufficientDataAction"  // INSUFFICIENT_DATA_ACTION
 };
 
 const Gmat::ParameterType
@@ -147,14 +251,35 @@ EphemerisFile::PARAMETER_TYPE[EphemerisFileParamCount - SubscriberParamCount] =
    Gmat::STRING_TYPE,       // FORMAT_VERSION
    Gmat::OBJECT_TYPE,       // ACCELERATION_MODEL
    Gmat::ENUMERATION_TYPE,  // OUTPUT_TIME_SYSTEM
+   Gmat::ENUMERATION_TYPE,  // INSUFFICIENT_DATA_ACTION
 };
 
+
+// Solver trials are excluded from user ephemeris output. The internal
+// EphemManager recorders supply event-search geometry and must retain trial
+// data, including maneuvers, segment boundaries and recording-file rollovers.
+bool EphemerisFile::ShouldSuppressTrialOutput(Gmat::RunState state) const
+{
+   return !generateInBackground &&
+         (SolverBranchCommand::GetSubscriberRunState(state) == Gmat::SOLVING ||
+          !EphemerisIterationScope::Accepted());
+}
 
 // An inner solution remains a trial while an enclosing solver is iterating.
 // Keep the publisher's state intact for reports and numerical execution.
 void EphemerisFile::SetRunState(Gmat::RunState state)
 {
-   Subscriber::SetRunState(SolverBranchCommand::GetSubscriberRunState(state));
+   const Gmat::RunState effective=SolverBranchCommand::GetSubscriberRunState(state);
+   const bool suppress=ShouldSuppressTrialOutput(effective);
+   if (suppress && !trialEntryConfiguration)
+      trialEntryConfiguration.reset(new EphemerisFile(*this));
+   else if (!suppress && trialEntryConfiguration)
+   {
+      // A trial toggle must not become the starting state of the accepted
+      // replay (or survive Stop). Its commands will apply accepted toggles.
+      RestoreTrialOutputState();
+   }
+   Subscriber::SetRunState(effective);
 }
 
 //------------------------------------------------------------------------------
@@ -188,6 +313,7 @@ EphemerisFile::EphemerisFile(const std::string &name, const std::string &type) :
    formatVersion           (""),
    accelModelName          (""),
    outputTimeSystem        ("UTC"),
+   insufficientDataAction  ("ReduceOrder"),
    writeEphemeris          (true),
    usingDefaultFileName    (true),
    generateInBackground    (false),
@@ -364,35 +490,47 @@ EphemerisFile::EphemerisFile(const EphemerisFile &ef) :
    formatVersion           (ef.formatVersion),
    accelModelName          (ef.accelModelName),
    outputTimeSystem        (ef.outputTimeSystem),
+   insufficientDataAction  (ef.insufficientDataAction),
    writeEphemeris          (ef.writeEphemeris),
    usingDefaultFileName    (ef.usingDefaultFileName),
    generateInBackground    (ef.generateInBackground),
    allowMultipleSegments   (ef.allowMultipleSegments),
-   prevPropName            (ef.prevPropName),
-   currPropName            (ef.currPropName),
+   prevPropName            (""),
+   currPropName            (""),
    interpolationOrder      (ef.interpolationOrder),
    toggleStatus            (ef.toggleStatus),
-   propIndicator           (ef.propIndicator),
-   prevPropDirection       (ef.prevPropDirection),
-   currPropDirection       (ef.currPropDirection),
+   propIndicator           (0),
+   prevPropDirection       (0.0),
+   currPropDirection       (0.0),
    initialEpochA1Mjd       (ef.initialEpochA1Mjd),
    finalEpochA1Mjd         (ef.finalEpochA1Mjd),
    blockBeginA1Mjd         (ef.blockBeginA1Mjd),
    currEpochInDays         (ef.currEpochInDays),
    currEpochInSecs         (ef.currEpochInSecs),
    prevEpochInSecs         (ef.prevEpochInSecs),
-   maneuverEpochInDays     (ef.maneuverEpochInDays),
+   maneuverEpochInDays     (-999.999),
    eventEpochInSecs        (ef.eventEpochInSecs),
    stepSizeInSecs          (ef.stepSizeInSecs),
-   firstTimeWriting        (ef.firstTimeWriting),
+   firstTimeWriting        (true),
    useFixedStepSize        (ef.useFixedStepSize),
-   checkForLargeTimeGap    (ef.checkForLargeTimeGap),
-   isEphemFileOpened       (ef.isEphemFileOpened),
-   canFinalize             (ef.canFinalize),
+   checkForLargeTimeGap    (false),
+   isEphemFileOpened       (false),
+   canFinalize             (false),
+   functionCoordinateSystemOwners(ef.GetFunctionCoordinateSystemOwners()),
+   fileType                (ef.fileType),
    distanceUnit            (ef.distanceUnit),
    includeEventBoundaries  (ef.includeEventBoundaries),
    transients              (ef.transients)
 {
+   // The writer is deliberately detached. Never inherit execution flags that
+   // would skip initialization or claim an output file belongs to this copy.
+   isInitialized = isFinalized = false;
+   isEndOfReceive = isEndOfDataBlock = isEndOfRun = false;
+   currentProvider = NULL;
+   currProviderId = 0;
+   data = NULL;
+   isDataStateChanged = false;
+   InitializeData(false);
    #ifdef DEBUG_EPHEMFILE_INSTANCE
    MessageInterface::ShowMessage
       ("EphemerisFile::EphemerisFile() copy constructor <%p>'%s' entered\n",
@@ -410,6 +548,27 @@ EphemerisFile::EphemerisFile(const EphemerisFile &ef) :
 //------------------------------------------------------------------------------
 EphemerisFile& EphemerisFile::operator=(const EphemerisFile& ef)
 {
+   if (this==&ef) return *this;
+   const bool trial=ShouldSuppressTrialOutput(runstate);
+   bool preserveOutput=ephemWriter && !isEndOfRun && !isFinalized;
+   if (trial && !preserveOutput)
+      for (auto *subscriber:Publisher::Instance()->GetSubscriberList())
+         if (subscriber==this) {preserveOutput=true;break;}
+   // Formal inputs are refreshed before their subscriber is reinitialized/
+   // resubscribed. A detached value must take the ordinary fresh-copy path,
+   // including when its cached state came from the preceding trial call.
+   if (trial && preserveOutput)
+   {
+      if (!trialEntryConfiguration)
+         trialEntryConfiguration.reset(new EphemerisFile(*this));
+      ApplyConfigurationPreservingOutput(ef);
+      return *this;
+   }
+   return AssignResourceState(ef);
+}
+
+EphemerisFile& EphemerisFile::AssignResourceState(const EphemerisFile& ef)
+{
    #ifdef DEBUG_EPHEMFILE_INSTANCE
    MessageInterface::ShowMessage
       ("EphemerisFile::operator=() <%p>'%s' entered\n", this, GetName().c_str());
@@ -417,8 +576,33 @@ EphemerisFile& EphemerisFile::operator=(const EphemerisFile& ef)
    
    if (this == &ef)
       return *this;
-   
+
+   // Retain both graphs until every borrowed reference has been copied. If a
+   // later configuration copy throws, either side of a partial copy stays live.
+   const auto incomingOwners = ef.GetFunctionCoordinateSystemOwners();
+   const auto copyOwners = RetainEphemerisFrameOwners(
+         GetFunctionCoordinateSystemOwners(), incomingOwners);
+
+   // Retire the destination's output through the same terminal path as a run.
+   // If flushing fails, retain ownership and report the error before copying
+   // any source configuration. The source writer is never touched.
+   if (ephemWriter)
+   {
+      ephemWriter->SetRunFlags(true, true, isFinalized);
+      ephemWriter->HandleEndOfRun();
+      delete ephemWriter;
+      ephemWriter = NULL;
+   }
+   if (dstream.is_open())
+      dstream.close();
+   dstream.clear();
+
+   functionCoordinateSystemOwners = copyOwners;
+
+   // Creation scope belongs to the destination object, not its assigned value.
+   const bool destinationIsLocal=IsLocal();
    Subscriber::operator=(ef);
+   SetIsLocal(destinationIsLocal);
    
    spacecraft           = ef.spacecraft;
    outCoordSystem       = ef.outCoordSystem;
@@ -442,35 +626,129 @@ EphemerisFile& EphemerisFile::operator=(const EphemerisFile& ef)
    formatVersion        = ef.formatVersion;
    accelModelName       = ef.accelModelName;
    outputTimeSystem     = ef.outputTimeSystem;
+   insufficientDataAction = ef.insufficientDataAction;
    writeEphemeris       = ef.writeEphemeris;
+   trialEntryConfiguration.reset();
    usingDefaultFileName = ef.usingDefaultFileName;
    generateInBackground = ef.generateInBackground;
    allowMultipleSegments= ef.allowMultipleSegments;
-   prevPropName         = ef.prevPropName;
-   currPropName         = ef.currPropName;
+   prevPropName.clear();
+   previousPropagatorIdentity.reset();
+   previousPropagatorIdentified = false;
+   currPropName.clear();
    interpolationOrder   = ef.interpolationOrder;
    toggleStatus         = ef.toggleStatus;
-   propIndicator        = ef.propIndicator;
-   prevPropDirection    = ef.prevPropDirection;
-   currPropDirection    = ef.currPropDirection;
+   propIndicator        = 0;
+   prevPropDirection    = 0.0;
+   currPropDirection    = 0.0;
    initialEpochA1Mjd    = ef.initialEpochA1Mjd;
    finalEpochA1Mjd      = ef.finalEpochA1Mjd;
    blockBeginA1Mjd      = ef.blockBeginA1Mjd;
    currEpochInDays      = ef.currEpochInDays;
    currEpochInSecs      = ef.currEpochInSecs;
    prevEpochInSecs      = ef.prevEpochInSecs;
-   maneuverEpochInDays  = ef.maneuverEpochInDays;
+   maneuverEpochInDays  = -999.999;
    eventEpochInSecs     = ef.eventEpochInSecs;
    stepSizeInSecs       = ef.stepSizeInSecs;
-   firstTimeWriting     = ef.firstTimeWriting;
+   firstTimeWriting     = true;
    useFixedStepSize     = ef.useFixedStepSize;
-   checkForLargeTimeGap = ef.checkForLargeTimeGap;
-   isEphemFileOpened    = ef.isEphemFileOpened;
-   canFinalize          = ef.canFinalize;
+   checkForLargeTimeGap = false;
+   isEphemFileOpened    = false;
+   canFinalize          = false;
+   fileType             = ef.fileType;
    distanceUnit         = ef.distanceUnit;
    includeEventBoundaries = ef.includeEventBoundaries;
    transients           = ef.transients;
+   isInitialized = isFinalized = false;
+   isEndOfReceive = isEndOfDataBlock = isEndOfRun = false;
+   currentProvider = NULL;
+   currProviderId = 0;
+   data = NULL;
+   isDataStateChanged = false;
+   maneuversHandled.clear();
+   InitializeData(false);
+   functionCoordinateSystemOwners = incomingOwners;
    return *this;
+}
+
+std::shared_ptr<const ObjectArray>
+EphemerisFile::GetFunctionCoordinateSystemOwners() const
+{
+   // A trial has command-visible configuration and accepted output bindings.
+   // A detached copy can inherit references to both, without the live writer.
+   return RetainEphemerisFrameOwners(functionCoordinateSystemOwners,
+         trialEntryConfiguration ?
+            trialEntryConfiguration->GetFunctionCoordinateSystemOwners() :
+            std::shared_ptr<const ObjectArray>());
+}
+
+void EphemerisFile::RetainFunctionCoordinateSystems(
+      const std::function<CoordinateSystem*(CoordinateSystem*)> &resolve,
+      const std::shared_ptr<const ObjectArray> &owners)
+{
+   if (ephemWriter || trialEntryConfiguration)
+      throw SubscriberException("Function frame binding requires a detached EphemerisFile value.\n");
+   // Resolve the whole closure before changing this value. The three roles can
+   // share one frame; the resolver preserves that identity in its snapshot.
+   CoordinateSystem *output = resolve(outCoordSystem);
+   CoordinateSystem *input = resolve(theDataCoordSystem);
+   CoordinateSystem *internal = resolve(theInternalCoordSystem);
+   if ((outCoordSystem && !output) || (theDataCoordSystem && !input) ||
+       (theInternalCoordSystem && !internal))
+      throw SubscriberException("Cannot retain returned ephemeris coordinate systems.\n");
+   if (output && output->GetName() != outCoordSystemName &&
+       !RenameRefObject(Gmat::COORDINATE_SYSTEM, outCoordSystemName, output->GetName()))
+      throw SubscriberException("Cannot rename returned ephemeris coordinate system reference.\n");
+   outCoordSystem = output;
+   theDataCoordSystem = input;
+   theInternalCoordSystem = internal;
+   // An empty lease is deliberate for an ephemeris owned by an enclosing
+   // function-value graph. Its base context supplies a weak back reference.
+   functionCoordinateSystemOwners = owners;
+}
+
+void EphemerisFile::RetainFunctionSpacecraft(
+      const std::function<GmatBase*(GmatBase*)> &resolve,
+      const std::shared_ptr<const ObjectArray> &owners)
+{
+   if (ephemWriter || trialEntryConfiguration)
+      throw SubscriberException("Function spacecraft binding requires a detached EphemerisFile value.\n");
+   auto *value = dynamic_cast<Spacecraft*>(resolve(spacecraft));
+   if (spacecraft && !value)
+      throw SubscriberException("Cannot retain returned ephemeris spacecraft.\n");
+   if (value)
+   {
+      if (value->GetName() != spacecraftName &&
+          !RenameRefObject(Gmat::SPACECRAFT, spacecraftName, value->GetName()))
+         throw SubscriberException("Cannot rename returned ephemeris spacecraft reference.\n");
+      if (!SetRefObject(value, Gmat::SPACECRAFT, spacecraftName))
+         throw SubscriberException("Cannot bind returned ephemeris spacecraft.\n");
+   }
+   functionCoordinateSystemOwners = owners;
+}
+
+void EphemerisFile::RetainFunctionDynamics(
+      const std::function<GmatBase*(GmatBase*)> &resolve,
+      std::vector<PhysicalModel*> *runtimeForces,
+      const std::shared_ptr<const ObjectArray> &owners)
+{
+   if (ephemWriter || trialEntryConfiguration)
+      throw SubscriberException("Function dynamics binding requires a detached EphemerisFile value.\n");
+   auto *value = dynamic_cast<ODEModel*>(resolve(accelModel));
+   if (accelModel && !value)
+      throw SubscriberException("Cannot retain returned ephemeris acceleration model.\n");
+   if (value)
+   {
+      if (value->GetName() != accelModelName &&
+          !RenameRefObject(Gmat::ODE_MODEL, accelModelName, value->GetName()))
+         throw SubscriberException("Cannot rename returned ephemeris acceleration model.\n");
+      if (!SetRefObject(value, Gmat::ODE_MODEL, accelModelName))
+         throw SubscriberException("Cannot bind returned ephemeris acceleration model.\n");
+   }
+   // This is caller execution context, supplied by Sandbox/FunctionManager.
+   // It must continue to observe subsequent BeginFiniteBurn/EndFiniteBurn.
+   SetTransientForces(runtimeForces);
+   functionCoordinateSystemOwners = owners;
 }
 
 //---------------------------------
@@ -484,76 +762,18 @@ std::string EphemerisFile::GetProperFileName(const std::string &fName,
                                              const std::string &fType,
                                              bool saveFileName)
 {
-   #ifdef DEBUG_EPHEMFILE_EXTENSION
-   MessageInterface::ShowMessage
-      ("EphemerisFile::GetProperFileName() entered, fName='%s', fType='%s', "
-       "saveFileName=%d\n", fName.c_str(), fType.c_str(), saveFileName);
-   #endif
-   
-   std::string expFileName = fName;
-   std::string defaultExt = ".eph";
-   if (fType == "SPK")
-      defaultExt = ".bsp";
-   else if (fType == "CCSDS-OEM")
-      defaultExt = ".oem";
-   else if (fType == "CCSDS-AEM")
-      defaultExt = ".aem";
-   else if (fType == "STK-TimePosVel")
-      defaultExt = ".e";
-   
-   std::string parsedExt = GmatFileUtil::ParseFileExtension(fName, true);
-   if (parsedExt != "" && parsedExt != defaultExt)
+   const std::string result=EphemerisOutputName(fName,fType,saveFileName);
+   if (saveFileName && result!=fName)
    {
-      // Replace file extension only for SPK ephem type
-      if (fType == "SPK")
-      {
-         std::string ofname = expFileName;
-         expFileName = GmatStringUtil::Replace(expFileName, parsedExt, defaultExt);
-         if (saveFileName)
-         {
-            MessageInterface::ShowMessage
-               ("*** WARNING *** %s file extension should be \"%s\", so "
-                "file name '%s' changed to '%s'\n", fType.c_str(), defaultExt.c_str(),
-                ofname.c_str(), expFileName.c_str());
-            
-            // Set filename and full path filename
-            fileName = expFileName;
-            fullPathFileName = GmatStringUtil::Replace(fullPathFileName, parsedExt, defaultExt);
-         }
-      }
-      else
-      {
-         // We don't want to change the extension for other format such as Code-500
-         // but we want to change it if creating new from the GUI. If saveFileName
-         // is set to false, this method is called from the GUI.
-         if (!saveFileName)
-         {
-            expFileName = GmatStringUtil::Replace(expFileName, parsedExt, defaultExt);
-         }
-      }
+      MessageInterface::ShowMessage("*** WARNING *** %s file extension should be \"%s\", so "
+            "file name '%s' changed to '%s'\n",fType.c_str(),
+            EphemerisOutputExtension(fType).c_str(),fName.c_str(),result.c_str());
+      fileName=result;
+      // Change only the basename suffix; a directory containing .oem/.eph is
+      // not part of the output extension and must never be rewritten.
+      fullPathFileName=EphemerisOutputName(fullPathFileName,fType,true);
    }
-   else if (parsedExt == "")
-   {
-      std::string ofname = expFileName;
-      expFileName = expFileName + defaultExt;
-      if (saveFileName)
-      {
-         MessageInterface::ShowMessage
-            ("*** WARNING *** %s file extension should be \"%s\", so "
-             "file name '%s' changed to '%s'\n", fType.c_str(), defaultExt.c_str(),
-             ofname.c_str(), expFileName.c_str());
-         
-         // Set filename and full path filename
-         fileName = expFileName;
-         fullPathFileName = fullPathFileName + defaultExt;
-      }
-   }
-   
-   #ifdef DEBUG_EPHEMFILE_EXTENSION
-   MessageInterface::ShowMessage
-      ("EphemerisFile::GetProperFileName() returning '%s'\n", expFileName.c_str());
-   #endif
-   return expFileName;
+   return result;
 }
 
 
@@ -562,6 +782,7 @@ std::string EphemerisFile::GetProperFileName(const std::string &fName,
 //------------------------------------------------------------------------------
 void EphemerisFile::SetBackgroundGeneration(bool inBackground)
 {
+   generateInBackground=inBackground;
    #ifdef DEBUG_EPHEMFILE_INIT
       MessageInterface::ShowMessage
       ("EphemerisFile::SetBackgroundGeneration() entered, inBackground='%s', ephemWriter=<%p>\n",
@@ -707,6 +928,9 @@ bool EphemerisFile::Initialize()
      
    firstTimeWriting  = true;
    prevPropName = "";
+   currPropName.clear();
+   previousPropagatorIdentity.reset();
+   previousPropagatorIdentified = false;
    
    #ifdef DEBUG_EPHEMFILE_INIT
    MessageInterface::ShowMessage("   useFixedStepSize=%d\n", useFixedStepSize);
@@ -722,7 +946,8 @@ bool EphemerisFile::Initialize()
    if (!fullPathFileName.empty() &&
        GmatFileUtil::DoesDirectoryExist(fullPathFileName + "/", false))
       throw SubscriberException("Ephemeris output path is a directory: " + fullPathFileName);
-   if (GmatFileUtil::DoesFileExist(fullPathFileName))
+   if (!ShouldSuppressTrialOutput(runstate) &&
+       GmatFileUtil::DoesFileExist(fullPathFileName))
    {
       #ifdef DEBUG_EPHEMFILE_INIT
       MessageInterface::ShowMessage
@@ -758,7 +983,9 @@ bool EphemerisFile::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* EphemerisFile::Clone(void) const
 {
-   return (new EphemerisFile(*this));
+   std::unique_ptr<EphemerisFile> value(new EphemerisFile(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -773,7 +1000,16 @@ GmatBase* EphemerisFile::Clone(void) const
 //---------------------------------------------------------------------------
 void EphemerisFile::Copy(const GmatBase* orig)
 {
-   operator=(*((EphemerisFile *)(orig)));
+   const EphemerisFile *source = dynamic_cast<const EphemerisFile *>(orig);
+   if (!source)
+      throw SubscriberException("EphemerisFile Copy requires an EphemerisFile source");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   // Trial assignment intentionally preserves its existing writer/bindings.
+   // Reconnect only a completed detached value, as Clone does above.
+   if (!ephemWriter && !trialEntryConfiguration)
+      RebindFunctionValueContext(*source);
 }
 
 
@@ -801,6 +1037,15 @@ bool EphemerisFile::TakeAction(const std::string &action,
    #endif
    
    bool retval = false;
+   if ((action == "ToggleOn" || action == "ToggleOff") &&
+       ShouldSuppressTrialOutput(runstate))
+   {
+      // Toggle still changes the command-visible flag during a trial, but
+      // must not create a writer, reset interpolation or mark accepted data
+      // as a gap. The final replay performs its own output transitions.
+      writeEphemeris = action == "ToggleOn";
+      return true;
+   }
    if (action == "Clear")
    {
       retval = true;
@@ -809,10 +1054,12 @@ bool EphemerisFile::TakeAction(const std::string &action,
    {
       // Finish up writing if action is finalize. Finalize action is usually
       // set when function run completes (LOJ: 2015.07.02)
-      if (writeEphemeris && isInitialized)
+      if (isInitialized)
       {
          isEndOfRun = true;
-         FinishUpWriting();
+         // Toggling off stops collection, not finalization of data that was
+         // already accepted. Use the terminal path for flag/name restoration.
+         HandleEndOfRun();
       }
       retval = true;
    }
@@ -874,7 +1121,8 @@ bool EphemerisFile::RenameRefObject(const UnsignedInt type,
                                     const std::string &oldName,
                                     const std::string &newName)
 {
-   if (type != Gmat::SPACECRAFT && type != Gmat::COORDINATE_SYSTEM)
+   if (type != Gmat::SPACECRAFT && type != Gmat::COORDINATE_SYSTEM &&
+       type != Gmat::ODE_MODEL)
       return true;
    
    if (type == Gmat::SPACECRAFT)
@@ -965,6 +1213,8 @@ std::string EphemerisFile::GetParameterTypeString(const Integer id) const
 //---------------------------------------------------------------------------
 bool EphemerisFile::IsParameterReadOnly(const Integer id) const
 {
+   if (id == INSUFFICIENT_DATA_ACTION)
+      return fileFormat != "CCSDS-OEM" && fileFormat != "STK-TimePosVel" && fileFormat != "Code-500";
    if (id == OUTPUT_TIME_SYSTEM)
       return fileFormat != "CCSDS-OEM";
    if (id == SOLVER_ITERATIONS)
@@ -1000,6 +1250,7 @@ bool EphemerisFile::IsParameterReadOnly(const Integer id) const
 //------------------------------------------------------------------------------
 bool EphemerisFile::IsParameterCommandModeSettable(const Integer id) const
 {
+   if (id == INSUFFICIENT_DATA_ACTION) return false;
    // Override this one from the parent class
    // STEP_SIZE turned off for GMT-8111
    if (id == FILENAME || id == WRITE_EPHEMERIS)
@@ -1056,6 +1307,8 @@ UnsignedInt EphemerisFile::GetPropertyObjectType(const Integer id) const
 //---------------------------------------------------------------------------
 const StringArray& EphemerisFile::GetPropertyEnumStrings(const Integer id) const
 {
+   static const StringArray actions={"ReduceOrder","Error"};
+   if (id == INSUFFICIENT_DATA_ACTION) return actions;
    switch (id)
    {
    case FILE_FORMAT:
@@ -1214,6 +1467,8 @@ std::string EphemerisFile::GetStringParameter(const Integer id) const
       return fileFormat;
    case EPOCH_FORMAT:
       return epochFormat;
+   case INSUFFICIENT_DATA_ACTION:
+      return insufficientDataAction;
    case OUTPUT_TIME_SYSTEM:
       return outputTimeSystem;
    case INITIAL_EPOCH:
@@ -1280,93 +1535,57 @@ bool EphemerisFile::SetStringParameter(const Integer id, const std::string &valu
       return true;
    case FILENAME:
    {
-      #ifdef DEBUG_EPHEMFILE_SET
-      MessageInterface::ShowMessage
-         ("EphemerisFile::SetStringParameter() Setting Filename '%s' to "
-          "EphemerisFile '%s', isInitialized=%d\n", value.c_str(), instanceName.c_str(),
-          isInitialized);
-      #endif
-      
-      // Validate filename
-      if (!GmatFileUtil::IsValidFileName(value, true))
+      if (value.find('\0')!=std::string::npos)
+         throw SubscriberException("Filename cannot contain a null character.");
+      if (!GmatFileUtil::IsValidFileName(value,true))
       {
-         std::string msg = GmatFileUtil::GetInvalidFileNameMessage(1);
-         SubscriberException se;
-         se.SetDetails(errorMessageFormat.c_str(), value.c_str(), "Filename", msg.c_str());
-         throw se;
+         const std::string message=GmatFileUtil::GetInvalidFileNameMessage(1);
+         SubscriberException error;
+         error.SetDetails(errorMessageFormat.c_str(),value.c_str(),"Filename",message.c_str());
+         throw error;
       }
-      
-      // If already initialized, close ephemeris file first
-      if (isInitialized)
-      {
-         #ifdef DEBUG_EPHEMFILE_INIT
-         MessageInterface::ShowMessage
-            ("EphemerisFile::SetStringParameter() <%p>'%s' is already initialized "
-             "so finish it first, if ephemeris file is opened, ephemWriter=<%p>\n", this,
-             GetName().c_str(), ephemWriter);
-         #endif
-         // if (isEphemFileOpened)
-         if (ephemWriter)
-         {
-            isEphemFileOpened = ephemWriter->IsEphemFileOpened();
-            #ifdef DEBUG_EPHEMFILE_INIT
-            MessageInterface::ShowMessage
-               ("ephemWriter->IsEphemFileOpened()=%d\n", isEphemFileOpened);
-            #endif
-            if (isEphemFileOpened)
-            {
-               #ifdef DEBUG_EPHEMFILE_INIT
-               MessageInterface::ShowMessage
-                  ("EphemerisFile::SetStringParameter() calling FinishUpWriting()\n");
-               #endif
-               FinishUpWriting();
-            }
-         }
-      }
-      
-      prevFileName = fileName;
-      fileName = value;
-      fullPathFileName =
-         GmatBase::GetFullPathFileName(fileName, GetName(), fileName, "EPHEM_OUTPUT_FILE",
-                                       false, ".eph", false, true);
 
-      if (fullPathFileName.empty())
-         throw SubscriberException("Cannot resolve ephemeris output path '" + value +
-            "'. Select a filename in an existing directory.");
-      
-      // Check for directory name - MUST check for full path directory
-      std::string dirName = GmatFileUtil::ParsePathName(fullPathFileName);
-      #ifdef DEBUG_EPHEMFILE_SET
-      MessageInterface::ShowMessage("   dirName = '%s'\n", dirName.c_str());
-      #endif
-      
-      if (dirName != "")
+      // Resolve/validate into temporaries before finalizing the old output or
+      // changing any configuration. Validate the format's actual destination
+      // too, while retaining the native requested spelling until creation.
+      std::string proposedName=value;
+      const std::string proposedPath=GmatBase::GetFullPathFileName(proposedName,
+            GetName(),value,"EPHEM_OUTPUT_FILE",false,".eph",false,true);
+      ValidateEphemerisOutputPath(proposedPath);
+      const std::string destination=EphemerisOutputName(proposedPath,fileFormat,true);
+      ValidateEphemerisOutputPath(destination);
+      const bool trial=ShouldSuppressTrialOutput(runstate);
+      const std::string currentDestination=EphemerisOutputName(fullPathFileName,fileFormat,true);
+      const bool same=GmatFileUtil::IsSameFileName(currentDestination,destination) ||
+            (!trial && ephemWriter && SameEphemerisOutput(currentDestination,destination));
+      // EphemManager closes each background CK segment before assigning the
+      // next filename. Its event searches still read the completed segments,
+      // whose ticks require the same live, cumulative spacecraft clock.
+      // AttitudeWriterCK already supports this continuation through SetCKFile.
+      const bool continueBackgroundCK = generateInBackground && fileFormat=="CK" &&
+            ephemWriter && !trial && !same;
+      if (!trial && !same && !continueBackgroundCK) RetireEphemerisWriter();
+
+      prevFileName=(!isInitialized || same) ? proposedName : fileName;
+      fileName=proposedName;
+      fullPathFileName=proposedPath;
+      usingDefaultFileName=false;
+      if (continueBackgroundCK)
       {
-         if (!GmatFileUtil::DoesDirectoryExist(dirName))
-         {
-            SubscriberException se;
-            se.SetDetails("Cannot create an EphemerisFile with non-existing directory '%s'",
-                          dirName.c_str());
-            throw se;
-         }
+         SetFileName();
+         isEphemFileOpened=false;
       }
-      
-      // If filename is set in resource mode, set prevFileName
-      if (!isInitialized)
-         prevFileName = fileName;
-      
-      // Set new name to EphemerisWriter
-      SetFileName();
-      
-      usingDefaultFileName = false;
-      #ifdef DEBUG_EPHEMFILE_SET
-      MessageInterface::ShowMessage
-         ("       prevFileName='%s'\n           fileName='%s'\n   fullPathFileName='%s'\n",
-          prevFileName.c_str(), fileName.c_str(), fullPathFileName.c_str());
-      MessageInterface::ShowMessage
-         ("EphemerisFile::SetStringParameter() this=<%p>'%s' returning true\n",
-          this, GetName().c_str());
-      #endif
+      // Event searches close one recording before assigning its next filename.
+      // A solver can then rewind the spacecraft for another pass. Its first
+      // sample belongs to this new file, so the preceding file's epoch and
+      // interpolation history must not trigger the within-file reversal guard.
+      // Keep the CK writer itself: completed kernels share its cumulative SCLK.
+      if (generateInBackground && !trial && !same)
+         InitializeData(false);
+      // During trials these remain command-visible configuration only. The
+      // entry names are restored before final replay. A repeated assignment
+      // to the same physical file leaves its live writer/buffers untouched.
+      // A real rollover creates a fresh writer on the next accepted packet.
       return true;
    }
    // Interpolator is now set along with file format (bug 2219)
@@ -1563,6 +1782,11 @@ bool EphemerisFile::SetStringParameter(const Integer id, const std::string &valu
    case ACCELERATION_MODEL:
       accelModelName = value;
       return true;
+   case INSUFFICIENT_DATA_ACTION:
+      if (value!="ReduceOrder" && value!="Error")
+         throw SubscriberException("InsufficientDataAction must be ReduceOrder or Error");
+      insufficientDataAction=value;
+      return true;
    case OUTPUT_TIME_SYSTEM:
       if (find(outputTimeSystemList.begin(), outputTimeSystemList.end(), value) == outputTimeSystemList.end())
          HandleError(OUTPUT_TIME_SYSTEM, value, outputTimeSystemList);
@@ -1615,38 +1839,49 @@ bool EphemerisFile::SetRefObject(GmatBase *obj, const UnsignedInt type,
    #ifdef DEBUG_EPHEMFILE_REF_OBJ
    MessageInterface::ShowMessage
       ("EphemerisFile::SetRefObject() <%p>'%s' entered, obj=%p, name=%s, objtype=%s, "
-       "objname=%s\n", this, GetName().c_str(), obj, name.c_str(), obj->GetTypeName().c_str(),
-       obj->GetName().c_str());
+       "objname=%s\n", this, GetName().c_str(), obj, name.c_str(),
+       obj ? obj->GetTypeName().c_str() : "NULL",
+       obj ? obj->GetName().c_str() : "NULL");
    #endif
    
    if (obj == NULL)
       return false;
+
+   // Function/local-object initialization also reaches this setter while an
+   // enclosing solver is iterating. Keep those bindings command-visible, but
+   // retain the accepted writer's dependencies until final replay. Restoring
+   // the trial configuration must not leave the writer pointing into a callee.
+   const bool updateWriter = ephemWriter &&
+         !ShouldSuppressTrialOutput(runstate);
    
    if (type == Gmat::SPACECRAFT && name == spacecraftName)
    {
-      spacecraft = (Spacecraft*)obj;
-      if (spacecraft)
-      {
-         spacecraftId = spacecraft->GetStringParameter("Id");
-         if (ephemWriter)
-            ephemWriter->SetSpacecraft(spacecraft);
-      }
+      auto *bound = dynamic_cast<Spacecraft*>(obj);
+      if (!bound) return false;
+      const std::string id = bound->GetStringParameter("Id");
+      spacecraft = bound;
+      spacecraftId = id;
+      if (updateWriter)
+         ephemWriter->SetSpacecraft(spacecraft);
       return true;
    }
    else if (type == Gmat::COORDINATE_SYSTEM && name == outCoordSystemName)
    {
-      outCoordSystem = (CoordinateSystem*)obj;
-      if (outCoordSystem)
-         if (ephemWriter)
-            ephemWriter->SetOutCoordSystem(outCoordSystem);
+      auto *bound = dynamic_cast<CoordinateSystem*>(obj);
+      if (!bound) return false;
+      outCoordSystem = bound;
+      if (updateWriter)
+         ephemWriter->SetOutCoordSystem(outCoordSystem);
       
       return true;
    }
    else if (type == Gmat::ODE_MODEL && name == accelModelName)
    {
-      accelModel = (ODEModel*)obj;
-      if (accelModel && ephemWriter)
-          ephemWriter->SetAccelModel(accelModel);
+      auto *bound = dynamic_cast<ODEModel*>(obj);
+      if (!bound) return false;
+      accelModel = bound;
+      if (updateWriter)
+         ephemWriter->SetAccelModel(accelModel);
 
       return true;
    }
@@ -1668,7 +1903,8 @@ const StringArray& EphemerisFile::GetRefObjectNameArray(const UnsignedInt type)
    if (type == Gmat::COORDINATE_SYSTEM || type == Gmat::UNKNOWN_OBJECT)
       refObjectNames.push_back(outCoordSystemName);
 
-   if (type == Gmat::PHYSICAL_MODEL || type == Gmat::UNKNOWN_OBJECT)
+   if (type == Gmat::ODE_MODEL || type == Gmat::PHYSICAL_MODEL ||
+       type == Gmat::UNKNOWN_OBJECT)
       refObjectNames.push_back(accelModelName);
    
    return refObjectNames;
@@ -1687,6 +1923,8 @@ const StringArray& EphemerisFile::GetRefObjectNameArray(const UnsignedInt type)
 //---------------------------------------------------------------------------
 bool EphemerisFile::IsParameterCloaked(const Integer id) const
 {
+   if (id == INSUFFICIENT_DATA_ACTION)
+      return IsParameterReadOnly(id) || insufficientDataAction=="ReduceOrder";
    switch (id)
    {
    case OUTPUT_TIME_SYSTEM:
@@ -1868,6 +2106,10 @@ void EphemerisFile::ValidateParameters(bool forInitialization)
       throw SubscriberException
          ("The CoordinateSystem \"" + outCoordSystemName + "\" has not been set for "
           "the EphemerisFile \"" + GetName() + "\"");
+
+   if (accelModelName != "" && !outCoordSystem->IsInertial())
+      throw SubscriberException("EphemerisFile \"" + GetName() +
+         "\" acceleration output requires fixed inertial axes; moving axes need a second rotation derivative.");
    
    // Do some validation
    if (fileFormat == "SPK")
@@ -1997,6 +2239,126 @@ void EphemerisFile::SetFileName()
       ephemWriter->SetFileName(fileName, fullPathFileName, prevFileName);
 }
 
+void EphemerisFile::RestoreTrialOutputState()
+{
+   if (!trialEntryConfiguration) return;
+   auto entry=std::move(trialEntryConfiguration);
+   try {ApplyConfigurationPreservingOutput(*entry);}
+   catch (...)
+   {
+      trialEntryConfiguration=std::move(entry);
+      throw;
+   }
+}
+
+void EphemerisFile::ApplyConfigurationPreservingOutput(const EphemerisFile &source)
+{
+   // The detached value copy owns no writer. Swap the destination's live
+   // publication/output state into it before using ordinary resource copying.
+   // On either path, restore that state before the temporary is destroyed.
+   EphemerisFile outputState(*this);
+   SwapOutputState(outputState);
+   try {AssignResourceState(source);}
+   catch (...)
+   {
+      SwapOutputState(outputState);
+      throw;
+   }
+   SwapOutputState(outputState);
+}
+
+void EphemerisFile::SwapOutputState(EphemerisFile &other)
+{
+   using std::swap;
+   swap(ephemWriter,other.ephemWriter);
+   swap(data,other.data);
+   swap(next,other.next);
+   swap(theInternalCoordSystem,other.theInternalCoordSystem);
+   swap(theDataCoordSystem,other.theDataCoordSystem);
+   swap(theDataMJ2000EqOrigin,other.theDataMJ2000EqOrigin);
+   swap(theSolarSystem,other.theSolarSystem);
+   swap(currentProvider,other.currentProvider);
+   swap(isManeuvering,other.isManeuvering);
+   swap(isEndOfReceive,other.isEndOfReceive);
+   swap(isEndOfDataBlock,other.isEndOfDataBlock);
+   swap(isEndOfRun,other.isEndOfRun);
+   swap(isInitialized,other.isInitialized);
+   swap(isFinalized,other.isFinalized);
+   swap(isDataOn,other.isDataOn);
+   swap(isDataStateChanged,other.isDataStateChanged);
+   swap(runstate,other.runstate);
+   swap(prevRunState,other.prevRunState);
+   swap(currProviderId,other.currProviderId);
+   swap(propDirection,other.propDirection);
+   swap(toggleStatus,other.toggleStatus);
+   swap(propIndicator,other.propIndicator);
+   swap(prevPropDirection,other.prevPropDirection);
+   swap(currPropDirection,other.currPropDirection);
+   swap(blockBeginA1Mjd,other.blockBeginA1Mjd);
+   swap(currEpochInDays,other.currEpochInDays);
+   swap(currEpochInSecs,other.currEpochInSecs);
+   swap(prevEpochInSecs,other.prevEpochInSecs);
+   swap(maneuverEpochInDays,other.maneuverEpochInDays);
+   swap(eventEpochInSecs,other.eventEpochInSecs);
+   swap(firstTimeWriting,other.firstTimeWriting);
+   swap(checkForLargeTimeGap,other.checkForLargeTimeGap);
+   swap(isEphemFileOpened,other.isEphemFileOpened);
+   swap(canFinalize,other.canFinalize);
+   swap(transients,other.transients);
+   swap(GmatBase::isInitialized,other.GmatBase::isInitialized);
+   swap(callbackExecuting,other.callbackExecuting);
+   swap(hasPrecisionTime,other.hasPrecisionTime);
+   theDataLabels.swap(other.theDataLabels);
+   prevPropName.swap(other.prevPropName);
+   currPropName.swap(other.currPropName);
+   previousPropagatorIdentity.swap(other.previousPropagatorIdentity);
+   swap(previousPropagatorIdentified,other.previousPropagatorIdentified);
+   maneuversHandled.swap(other.maneuversHandled);
+   dstream.swap(other.dstream);
+   trialEntryConfiguration.swap(other.trialEntryConfiguration);
+   // AssignResourceState never changes the current state/covariance/
+   // quaternion/acceleration arrays or published precise-epoch/sample views;
+   // they remain in place, including before their first data packet.
+}
+
+void EphemerisFile::RetireEphemerisWriter()
+{
+   if (ephemWriter)
+   {
+      try
+      {
+         // A file boundary does not end the mission. Flush its accepted data
+         // and close the concrete stream/kernel without a false end-of-run
+         // warning for a configured FinalEpoch still ahead of this rename.
+         ephemWriter->SetRunFlags(true,false,isFinalized);
+         if (!ephemWriter->IsFirstTimeWriting()) ephemWriter->FinishUpWriting();
+         ephemWriter->CloseEphemerisFile();
+      }
+      catch (...)
+      {
+         ephemWriter->SetRunFlags(canFinalize,isEndOfRun,isFinalized);
+         throw; // Retain ownership and the original destination on failure.
+      }
+      delete ephemWriter;
+      ephemWriter=NULL;
+   }
+   if (dstream.is_open()) dstream.close();
+   dstream.clear();
+   isEphemFileOpened=false;
+   isFinalized=false;
+   canFinalize=false;
+   firstTimeWriting=true;
+   checkForLargeTimeGap=false;
+   toggleStatus=0;
+   maneuverEpochInDays=-999.999;
+   prevPropDirection=currPropDirection=0;
+   prevPropName.clear();
+   previousPropagatorIdentity.reset();
+   previousPropagatorIdentified = false;currPropName.clear();maneuversHandled.clear();
+   InitializeData();
+}
+
+
 //------------------------------------------------------------------------------
 // void CreateEphemerisFile()
 //------------------------------------------------------------------------------
@@ -2027,75 +2389,47 @@ void EphemerisFile::CreateEphemerisFile()
 //------------------------------------------------------------------------------
 void EphemerisFile::CreateEphemerisWriter()
 {
-   #ifdef DEBUG_EPHEMFILE_INIT
-   MessageInterface::ShowMessage
-      ("EphemerisFile::CreateEphemerisWriter() <%p>'%s' entered, ephemWriter=<%p>, "
-       "fileFormat='%s',\n   fileName='%s'\n   fullPathFileName='%s'\n", this,
-       GetName().c_str(), ephemWriter, fileFormat.c_str(), fileName.c_str(),
-       fullPathFileName.c_str());
-   #endif
-   
-   if (ephemWriter)
-   {
-      #ifdef DEBUG_EPHEMFILE_INIT
-      MessageInterface::ShowMessage
-         ("EphemerisFile::CreateEphemerisWriter() '%s' just leaving, ephemWriter=<%p>, "
-          "fileFormat='%s'\n", GetName().c_str(), ephemWriter, fileFormat.c_str());
-      #endif
-      return;
-   }
-   
-   // Create appropriate EphemerisFile writer
-   if (fileFormat == "CCSDS-OEM")
-   {
-      auto *writer = new EphemWriterCCSDS(GetName(), fileFormat, formatVersion);
-      ephemWriter = writer;
-      writer->SetOutputTimeSystem(outputTimeSystem);
-   }
-   else if (fileFormat == "SPK")
-      ephemWriter = new EphemWriterSPK(GetName(), fileFormat);
-   else if (fileFormat == "CK")
-      ephemWriter = new AttitudeWriterCK(GetName(), fileFormat);
-   else if (fileFormat == "Code-500")
-      ephemWriter = new EphemWriterCode500(GetName(), fileFormat);
-   else if (fileFormat == "STK-TimePosVel")
-   {
-      ephemWriter = new EphemWriterSTK(GetName(), fileFormat, formatVersion);
-      ((EphemWriterSTK*)ephemWriter)->SetDistanceUnit(distanceUnit);
-      ((EphemWriterSTK*)ephemWriter)->SetIncludeEventBoundaries(includeEventBoundaries);
-   }
-   else
-   {
-      SubscriberException se;
-      se.SetDetails("Cannot create an EphemerisFile with unknown file format of '%s'\n",
-                    fileFormat.c_str());
-      throw se;
-   }
+   if (ephemWriter) return;
+   GetProperFileName(fileName,fileFormat,true);
+   ValidateEphemerisOutputPath(fullPathFileName);
 
-   #ifdef DEBUG_EPHEMFILE_INIT
-   MessageInterface::ShowMessage("   ephemWriter<%p> created\n", ephemWriter);
-   MessageInterface::ShowMessage
-      ("   Calling ephemWriter to set objects, create EphemerisFile, and to initialize\n");
-   #endif
-   GetProperFileName(fileName, fileFormat, true);
-   SetFileName();
-   ephemWriter->SetSpacecraft(spacecraft);
-   ephemWriter->SetDataCoordSystem(theDataCoordSystem);
-   ephemWriter->SetOutCoordSystem(outCoordSystem);
-   ephemWriter->SetAccelModel(accelModel);
-   ephemWriter->SetInitialData(initialEpochStr, finalEpochStr, stepSize, stepSizeInSecs,
-                               useFixedStepSize, interpolatorName, interpolationOrder);
-   ephemWriter->SetInitialTime(initialEpochA1Mjd, finalEpochA1Mjd);
-   ephemWriter->SetIsEphemGlobal(IsGlobal());
-   ephemWriter->Initialize();
-   CreateEphemerisFile();
-   
-   #ifdef DEBUG_EPHEMFILE_INIT
-   MessageInterface::ShowMessage
-      ("EphemerisFile::CreateEphemerisWriter() <%p>'%s' leaving, ephemWriter=<%p>, "
-       "fileFormat='%s',\n   fileName='%s'\n", this, GetName().c_str(), ephemWriter,
-       fileFormat.c_str(), fileName.c_str());
-   #endif
+   // A failed setup/open must not leave a half-configured member that causes
+   // the next call to bypass initialization. Commit ownership after opening.
+   std::unique_ptr<EphemerisWriter> candidate;
+   if (fileFormat=="CCSDS-OEM")
+   {
+      auto *writer=new EphemWriterCCSDS(GetName(),fileFormat,formatVersion);
+      candidate.reset(writer);writer->SetOutputTimeSystem(outputTimeSystem);
+   }
+   else if (fileFormat=="SPK") candidate.reset(new EphemWriterSPK(GetName(),fileFormat));
+   else if (fileFormat=="CK") candidate.reset(new AttitudeWriterCK(GetName(),fileFormat));
+   else if (fileFormat=="Code-500") candidate.reset(new EphemWriterCode500(GetName(),fileFormat));
+   else if (fileFormat=="STK-TimePosVel")
+   {
+      auto *writer=new EphemWriterSTK(GetName(),fileFormat,formatVersion);
+      candidate.reset(writer);writer->SetDistanceUnit(distanceUnit);
+      writer->SetIncludeEventBoundaries(includeEventBoundaries);
+   }
+   else throw SubscriberException("Cannot create an EphemerisFile with unknown file format '"+fileFormat+"'");
+
+   candidate->SetFileName(fileName,fullPathFileName,prevFileName);
+   candidate->SetSpacecraft(spacecraft);
+   candidate->SetDataCoordSystem(theDataCoordSystem);
+   candidate->SetOutCoordSystem(outCoordSystem);
+   candidate->SetAccelModel(accelModel);
+   candidate->SetInitialData(initialEpochStr,finalEpochStr,stepSize,stepSizeInSecs,
+         useFixedStepSize,interpolatorName,interpolationOrder);
+   if (auto *writer=dynamic_cast<EphemWriterWithInterpolator *>(candidate.get()))
+      writer->SetOrderReductionAllowed(insufficientDataAction=="ReduceOrder");
+   candidate->SetInitialTime(initialEpochA1Mjd,finalEpochA1Mjd);
+   candidate->SetIsEphemGlobal(IsGlobal());
+   candidate->SetIsEphemLocal(IsLocal());
+   candidate->SetBackgroundGeneration(generateInBackground);
+   if (!candidate->Initialize())
+      throw SubscriberException("Cannot initialize the ephemeris writer for '"+fullPathFileName+"'");
+   candidate->CreateEphemerisFile(usingDefaultFileName,stateType,outputFormat,covFormat);
+   isEphemFileOpened=candidate->IsEphemFileOpened();
+   ephemWriter=candidate.release();
 }
 
 
@@ -2224,6 +2558,8 @@ void EphemerisFile::FinishUpWriting()
 //------------------------------------------------------------------------------
 bool EphemerisFile::HandleEndOfRun()
 {
+   // Error cleanup may arrive before the publisher's IDLE notification.
+   RestoreTrialOutputState();
    // End of run, blank out the last comment if needed
    #ifdef DEBUG_EPHEMFILE_FINISH
    MessageInterface::ShowMessage("=====> End of run\n");
@@ -2293,6 +2629,7 @@ bool EphemerisFile::SkipFunctionData()
 //------------------------------------------------------------------------------
 bool EphemerisFile::RetrieveData(const Real *dat, Integer len)
 {
+   if (!dat || len <= 0 || theDataLabels.empty()) return false;
    StringArray dataLabels = theDataLabels[0];
    
    #ifdef DEBUG_EPHEMFILE_DATA_LABELS
@@ -2305,37 +2642,44 @@ bool EphemerisFile::RetrieveData(const Real *dat, Integer len)
    MessageInterface::ShowMessage("\n");
    #endif
 
-   std::string names[6] = { "X", "Y", "Z", "Vx", "Vy", "Vz" };
-   
-   Integer idX, idY, idZ;
-   Integer idVx, idVy, idVz;
-   Integer idQ1, idQ2, idQ3, idQ4;
-   
-   idX  = FindIndexOfElement(dataLabels, spacecraftName + ".X");
-   idY  = FindIndexOfElement(dataLabels, spacecraftName + ".Y");
-   idZ  = FindIndexOfElement(dataLabels, spacecraftName + ".Z");
-   idVx = FindIndexOfElement(dataLabels, spacecraftName + ".Vx");
-   idVy = FindIndexOfElement(dataLabels, spacecraftName + ".Vy");
-   idVz = FindIndexOfElement(dataLabels, spacecraftName + ".Vz");
-
+   Integer idX = -1, idY = -1, idZ = -1, idVx = -1, idVy = -1, idVz = -1;
+   Integer idQ1 = -1, idQ2 = -1, idQ3 = -1, idQ4 = -1;
    Integer idCov[21];
-   UnsignedInt idx = 0;
-
-   for (UnsignedInt ii = 0; ii < 6; ii++)
+   std::fill(idCov, idCov + 21, -1);
+   const auto *columns = Publisher::GetPublishedCartesianColumns(dat, len);
+   if (columns)
    {
-      for (UnsignedInt jj = 0; jj <= ii; jj++)
-      {
-         std::string elementName = spacecraftName + ".C" + names[ii] + names[jj];
-         idCov[idx] = FindIndexOfElement(dataLabels, elementName);
-         idx++;
-      }
+      const Publisher::CartesianColumns *binding = NULL;
+      for (const auto &column : *columns)
+         if (column.object == spacecraft) { binding = &column; break; }
+      // A same-name object in another scope cannot supply this writer's data.
+      if (!binding) return false;
+      idX = binding->indices[0]; idY = binding->indices[1]; idZ = binding->indices[2];
+      idVx = binding->indices[3]; idVy = binding->indices[4]; idVz = binding->indices[5];
+      for (size_t i = 0; i < 21; ++i) idCov[i] = binding->covariance[i] > 0 ? binding->covariance[i] : -1;
+      idQ1 = binding->quaternion[0]; idQ2 = binding->quaternion[1];
+      idQ3 = binding->quaternion[2]; idQ4 = binding->quaternion[3];
+   }
+   else
+   {
+      const std::string name = spacecraft ? spacecraft->GetName() : spacecraftName;
+      idX = FindIndexOfElement(dataLabels, name + ".X");
+      idY = FindIndexOfElement(dataLabels, name + ".Y");
+      idZ = FindIndexOfElement(dataLabels, name + ".Z");
+      idVx = FindIndexOfElement(dataLabels, name + ".Vx");
+      idVy = FindIndexOfElement(dataLabels, name + ".Vy");
+      idVz = FindIndexOfElement(dataLabels, name + ".Vz");
+      const char *components[] = {"X", "Y", "Z", "Vx", "Vy", "Vz"};
+      size_t index = 0;
+      for (size_t row = 0; row < 6; ++row)
+         for (size_t col = 0; col <= row; ++col)
+            idCov[index++] = FindIndexOfElement(dataLabels, name + ".C" + components[row] + components[col]);
+      idQ1 = FindIndexOfElement(dataLabels, name + ".Q1");
+      idQ2 = FindIndexOfElement(dataLabels, name + ".Q2");
+      idQ3 = FindIndexOfElement(dataLabels, name + ".Q3");
+      idQ4 = FindIndexOfElement(dataLabels, name + ".Q4");
    }
 
-   idQ1 = FindIndexOfElement(dataLabels, spacecraftName + ".Q1");
-   idQ2 = FindIndexOfElement(dataLabels, spacecraftName + ".Q2");
-   idQ3 = FindIndexOfElement(dataLabels, spacecraftName + ".Q3");
-   idQ4 = FindIndexOfElement(dataLabels, spacecraftName + ".Q4");
-   
    #ifdef DEBUG_EPHEMFILE_DATA_LABELS
    MessageInterface::ShowMessage
       ("   spacecraft='%s', idX=%d, idY=%d, idZ=%d, idVx=%d, idVy=%d, idVz=%d\n",
@@ -2350,10 +2694,8 @@ bool EphemerisFile::RetrieveData(const Real *dat, Integer len)
    #endif
    
    // if any of index not found, just return true
-   if (idX  == -1 || idY  == -1 || idZ  == -1 ||
-       idVx == -1 || idVy == -1 || idVz == -1 ||
-       idQ1 == -1 || idQ2 == -1 || idQ3 == -1 ||
-       idQ4 == -1)
+   const Integer required[] = {idX, idY, idZ, idVx, idVy, idVz, idQ1, idQ2, idQ3, idQ4};
+   if (std::any_of(std::begin(required), std::end(required), [len](Integer index) {return index <= 0 || index >= len;}))
    {
       #ifdef DEBUG_EPHEMFILE_DATA
       MessageInterface::ShowMessage
@@ -2376,7 +2718,7 @@ bool EphemerisFile::RetrieveData(const Real *dat, Integer len)
          if (row < col)
             continue;
 
-         MessageInterface::ShowMessage("%.15le  ", dat[idCov[index]]);
+         MessageInterface::ShowMessage("%.15le  ", idCov[index] > 0 && idCov[index] < len ? dat[idCov[index]] : 0.0);
          ++index;
       }
       MessageInterface::ShowMessage("\n");
@@ -2387,7 +2729,9 @@ bool EphemerisFile::RetrieveData(const Real *dat, Integer len)
    #endif
    
    // Now copy distributed data to data member
-   currEpochInDays = dat[0];
+   GmatTime objectEpoch;
+   currEpochInDays = Publisher::GetPublishedSpacecraftEpoch(dat, len, spacecraft, objectEpoch) ?
+      objectEpoch.GetMjd() : dat[0];
    currState[0] = dat[idX];
    currState[1] = dat[idY];
    currState[2] = dat[idZ];
@@ -2397,7 +2741,7 @@ bool EphemerisFile::RetrieveData(const Real *dat, Integer len)
 
    for (Integer ii = 0; ii < 21; ii++)
    {
-      if (idCov[ii] != -1 && idCov[ii] < len)
+      if (idCov[ii] > 0 && idCov[ii] < len)
          currCov[ii] = dat[idCov[ii]];
       else
          currCov[ii] = 0.0;
@@ -2413,17 +2757,52 @@ bool EphemerisFile::RetrieveData(const Real *dat, Integer len)
       ("EphemerisFile::RetrieveData() returning true for '%s'\n", GetName().c_str());
    #endif
    
-   std::vector<PhysicalModel*> forcesAdded;
    if (accelModel)
    {
+      struct TemporaryForces
+      {
+         ODEModel *model;
+         std::vector<PhysicalModel*> added;
+         void Remove()
+         {
+            while (!added.empty())
+            {
+               model->DeleteForce(added.back());
+               added.pop_back();
+            }
+         }
+         ~TemporaryForces()
+         {
+            // Preserve the original sampling error during stack unwinding.
+            for (auto force = added.rbegin(); force != added.rend(); ++force)
+               try {model->DeleteForce(*force);} catch (...) {}
+         }
+      } temporary{accelModel, {}};
       if (transients != NULL)
          for (auto force : *transients)
          {
-            StringArray sats = force->GetRefObjectNameArray(Gmat::SPACECRAFT);
-            if (find(sats.begin(), sats.end(), spacecraft->GetName()) != sats.end())
+            if (!force || !force->IsTransient())
+               throw SubscriberException("Invalid transient force in ephemeris acceleration data.\n");
+            if (force->TargetsSpacecraft(spacecraft))
             {
+               bool present = false;
+               for (Integer i = 0; i < accelModel->GetNumForces(); ++i)
+                  if (accelModel->GetForce(i) == force) present = true;
+               if (present) continue;
+               // AddForce replaces unique components. A temporary attachment
+               // must not delete a persistent model component behind its owner.
+               if (force->IsUnique(force->GetBodyName()))
+                  for (Integer i = 0; i < accelModel->GetNumForces(); ++i)
+                  {
+                     PhysicalModel *existing = accelModel->GetForce(i);
+                     if (existing->GetTypeName() == force->GetTypeName() &&
+                         existing->IsUnique(force->GetBodyName()))
+                        throw SubscriberException("Ephemeris acceleration transient would replace an existing force.\n");
+                  }
+               // Record first: AddForce can throw after insertion. Removing
+               // an entry that was never inserted is already a native no-op.
+               temporary.added.push_back(force);
                accelModel->AddForce(force);
-               forcesAdded.push_back(force);
             }
          }
 
@@ -2431,13 +2810,10 @@ bool EphemerisFile::RetrieveData(const Real *dat, Integer len)
       currAccel[0] = deriv[3];
       currAccel[1] = deriv[4];
       currAccel[2] = deriv[5];
+      temporary.Remove();
    }
    else
       currAccel[0] = currAccel[1] = currAccel[2] = 0.0;
-
-   // Remove any transient forces that were added
-   for (auto force : forcesAdded)
-      accelModel->DeleteForce(force);
 
    return true;
 }
@@ -2674,12 +3050,13 @@ bool EphemerisFile::SetStepSize(Integer id, const std::string &value,
 
    Real rval = -999.999;
    bool isReal = GmatStringUtil::ToReal(value, rval);
-   if (!isReal || rval <= 0.0)
+   if (!isReal || !std::isfinite(rval) || rval <= 0.0)
    {
       HandleError(id, value, allowedValues, " or Real Number > 0.0");
    }
    
-   if (ephemWriter)
+   if (ephemWriter &&
+       !ShouldSuppressTrialOutput(runstate))
       ephemWriter->SetStepSize(rval);
    
    stepSize = value;
@@ -2778,6 +3155,11 @@ std::string EphemerisFile::GetBackwardPropWarning()
 //------------------------------------------------------------------------------
 bool EphemerisFile::IsEventFeasible(bool checkForNoData)
 {
+   // A trial assignment can arrive from any command, not only Vary. Check
+   // the live enclosing contexts before event epochs, segments or comments
+   // can alter a writer containing previously accepted trajectory data.
+   if (ShouldSuppressTrialOutput(runstate))
+      return false;
    #ifdef DEBUG_EPHEMFILE_EVENTS
    MessageInterface::ShowMessage
       ("EphemerisFile::IsEventFeasible() '%s' entered, checkForNoData=%d, active=%d, "
@@ -3038,7 +3420,21 @@ bool EphemerisFile::Distribute(const Real *dat, Integer len)
    // If end of run received, finishup writing
    if (isEndOfRun)
       return HandleEndOfRun();
+
+   // Trial packets, including buffer flushes, have no output side effects.
+   // End-of-run above must still close already accepted data on Stop/error.
+   if (ShouldSuppressTrialOutput(runstate))
+      return true;
    
+   // A typed publication belongs to its actual spacecraft, including formal
+   // arguments and same-name resources. An unrelated packet must not create a
+   // file, mark a gap or alter the accepted writer's interpolation history.
+   if (spacecraft && dat && len > 0)
+      if (const auto *columns = Publisher::GetPublishedCartesianColumns(dat,len))
+         if (std::none_of(columns->begin(),columns->end(),
+               [this](const Publisher::CartesianColumns &column) { return column.object == spacecraft; }))
+            return true;
+
    // If EphemerisFile was toggled off, start new segment (LOJ: 2010.09.30)
    if (!active)
    {
@@ -3078,19 +3474,6 @@ bool EphemerisFile::Distribute(const Real *dat, Integer len)
    }
    
    isFinalized = false;
-   
-   //------------------------------------------------------------
-   // if solver is running, just return
-   //------------------------------------------------------------
-   if (runstate == Gmat::SOLVING)
-   {
-      #ifdef DEBUG_EPHEMFILE_SOLVER_DATA
-      MessageInterface::ShowMessage
-         ("EphemerisFile::Distribute() Just returning true; solver is running\n");
-      #endif
-      
-      return true;
-   }
    
    // Skip data if data publishing command such as Propagate is inside a function
    // and this EphemerisFile is not a global nor a local object (i.e declared in the main script)
@@ -3141,12 +3524,16 @@ bool EphemerisFile::Distribute(const Real *dat, Integer len)
       for (Integer i = 0; i < 6; ++i)
          currState[i] = sampledState[i];
    }
+   // Rebase before buffering; previous samples retain the writer's input frame.
+   ephemWriter->RebaseOrbitData(Publisher::GetPublishedSpacecraftFrame(dat, len, spacecraft),
+      currEpochInDays, currState, currCov, currAccel);
    // Set data to EphemerisWriter
    ephemWriter->SetOrbitData(currEpochInDays, currState, currCov, currQuat, currAccel);
    if (auto *spk = dynamic_cast<EphemWriterSPK *>(ephemWriter))
    {
       GmatTime epoch;
-      const bool precise = sampledSpk || Publisher::GetPublishedEpoch(dat, len, epoch);
+      const bool precise = sampledSpk || Publisher::GetPublishedSpacecraftEpoch(dat, len, spacecraft, epoch) ||
+         Publisher::GetPublishedEpoch(dat, len, epoch);
       if (sampledSpk)
          epoch = sampledEpoch;
       spk->SetPublishedEpoch(precise ? &epoch : NULL);
@@ -3325,8 +3712,10 @@ void EphemerisFile::HandleManeuvering(GmatBase *originator, bool maneuvering,
       throw SubscriberException
          ("Cannot continue with ephemeris file writing, the maneuvering burn object is NULL");
    
-   // Check spacecraft name first   
-   if (find(satNames.begin(), satNames.end(), spacecraftName) == satNames.end())
+   bool identified = false;
+   const bool subject = Publisher::IsPublishedEventSubject(Publisher::ObjectEvent::Maneuver,
+      originator, spacecraft, identified);
+   if (identified ? !subject : find(satNames.begin(), satNames.end(), spacecraftName) == satNames.end())
    {
       #ifdef DEBUG_EPHEMFILE_MANEUVER_MORE
       MessageInterface::ShowMessage
@@ -3468,130 +3857,58 @@ void EphemerisFile::HandleManeuvering(GmatBase *originator, bool maneuvering,
 //------------------------------------------------------------------------------
 void EphemerisFile::HandlePropagatorChange(GmatBase *provider, Real epochInMjd)
 {
-   #ifdef DEBUG_EPHEMFILE_PROPAGATOR_CHANGE
-   MessageInterface::ShowMessage
-      ("\n==================================================\n"
-       "EphemerisFile::HandlePropagatorChange() '%s' entered, provider=<%p><%s>, "
-       "epochInMjd=%f, active=%d, isEndOfRun=%d\n", GetName().c_str(), provider,
-       provider->GetTypeName().c_str(), epochInMjd, active, isEndOfRun);
-   #endif
-   
-   if (!IsEventFeasible())
+   if (!IsEventFeasible()) return;
+   if (!provider) throw SubscriberException("Cannot process an ephemeris propagator change without a provider.");
+   if ((runstate != Gmat::RUNNING && runstate != Gmat::SOLVEDPASS) || provider->GetTypeName() != "Propagate") return;
+   if (const auto *columns = Publisher::GetPublishedCartesianColumns(provider))
    {
-      #ifdef DEBUG_EPHEMFILE_PROPAGATOR_CHANGE
-      MessageInterface::ShowMessage
-         ("EphemerisFile::HandlePropagatorChange() '%s' leaving, the propagator "
-          "change is not feasible at this time\n", GetName().c_str());
-      #endif
+      for (const auto &column : *columns)
+         if (column.object == spacecraft)
+         {
+            HandlePropagatorIdentity(column.propagatorName, column.hasEpoch ? column.epoch.GetMjd() : epochInMjd,
+               column.propagatorIdentity, true);
+            return;
+         }
+      return; // Authoritative absence, even if another object's name matches.
+   }
+   // Legacy providers keep the declared-name protocol.
+   const StringArray propagators = provider->GetRefObjectNameArray(Gmat::PROP_SETUP);
+   const Integer spacecraftId = provider->GetParameterID("Spacecraft");
+   for (size_t group = 0; group < propagators.size(); ++group)
+   {
+      const StringArray names = provider->GetStringArrayParameter(spacecraftId, group);
+      if (std::find(names.begin(), names.end(), spacecraftName) != names.end())
+         HandlePropagatorIdentity(propagators[group], epochInMjd, {}, false);
+   }
+}
+
+void EphemerisFile::HandlePropagatorIdentity(const std::string &name, Real epochInMjd,
+      const std::weak_ptr<const void> &identity, bool identified)
+{
+   if (name.empty()) return;
+   const bool identityChanged = identified && previousPropagatorIdentified &&
+         previousPropagatorIdentity.lock() != identity.lock();
+   const bool changed = currPropName != name || identityChanged;
+   if (!changed)
+   {
+      previousPropagatorIdentity = identity;
+      previousPropagatorIdentified = identified;
       return;
    }
-   
-   if (provider == NULL)
-      throw SubscriberException
-         ("Cannot continue with ephemeris file writing, the provider command is NULL");
-   
-   if (runstate == Gmat::RUNNING || runstate == Gmat::SOLVEDPASS)
+   currPropName = name;
+   if (!prevPropName.empty() && allowMultipleSegments)
    {
-      #ifdef DEBUG_EPHEMFILE_PROPAGATOR_CHANGE_MORE
-      MessageInterface::ShowMessage
-         ("EphemerisFile::HandlePropagatorChange() GMAT is not solving or solver has finished\n");
-      #endif
-      
-      // Check if propagator name changed on ephemeris file spacecraft
-      if (provider->GetTypeName() == "Propagate")
-      {
-         // Go through propagator list and check if spacecraft found
-         StringArray propNames = provider->GetRefObjectNameArray(Gmat::PROP_SETUP);
-         Integer scId = provider->GetParameterID("Spacecraft");
-         for (UnsignedInt prop = 0; prop < propNames.size(); prop++)
-         {
-            StringArray satNames = provider->GetStringArrayParameter(scId, prop);
-            for (UnsignedInt sat = 0; sat < satNames.size(); sat++)
-            {
-               if (spacecraftName == satNames[sat])
-               {
-                  if (currPropName != propNames[prop])
-                  {
-                     currPropName = propNames[prop];
-                     
-                     #ifdef DEBUG_EPHEMFILE_PROPAGATOR_CHANGE
-                     MessageInterface::ShowMessage
-                        ("The propagator changed from '%s' to '%s'\n", prevPropName.c_str(),
-                         currPropName.c_str());
-                     #endif
-                     
-                     if (prevPropName != "")
-                     {
-                        #ifdef DEBUG_EPHEMFILE_RESTART
-                        MessageInterface::ShowMessage
-                           ("EphemerisFile::HandlePropagatorChange() Calling FinishUpWriting()\n   "
-                            "The propagator changed from '%s' to '%s'\n", prevPropName.c_str(),
-                            currPropName.c_str());
-                        #endif
-                        
-                        // Write any data in the buffer (fixes missing lines for GMT-3745)
-                        //LOJ: Write continuous ephemeris if CODE500_EPHEM or STK_TIMEPOSVEL
-                        //if (fileType != CODE500_EPHEM && fileType != STK_TIMEPOSVEL)
-                        if (allowMultipleSegments)
-                        {
-                           FinishUpWriting();
-                           
-                           #ifdef DEBUG_EPHEMFILE_PROPAGATOR_CHANGE
-                           MessageInterface::ShowMessage
-                              ("=====> Propagator change, Restarting the interpolation\n");
-                           #endif
-                           
-                           // Convert current epoch to gregorian format
-                           std::string epochStr;
-                           if (epochInMjd != -999.999)
-                           {
-                              epochStr = ToUtcGregorian(epochInMjd, true, 2);
-                              epochStr = " at " + epochStr;
-                           }
-                           
-                           // Restart interpolation
-                           std::string comment = "This block begins after propagator change from " +
-                              prevPropName + " to " + currPropName + epochStr;
-                           
-                           StartNewSegment(comment, false, true, true);
-                        }
-                     }
-                     else
-                     {
-                        #ifdef DEBUG_EPHEMFILE_PROPAGATOR_CHANGE
-                        MessageInterface::ShowMessage
-                           ("The previous propagator name is blank, so nothing needs to be done\n");
-                        #endif
-                     }
-                     
-                     prevPropName = currPropName;
-                     
-                  }
-                  else
-                  {
-                     #ifdef DEBUG_EPHEMFILE_PROPAGATOR_CHANGE_MORE
-                     MessageInterface::ShowMessage
-                        ("The propagator is the same as '%s'\n", currPropName.c_str());
-                     #endif
-                  }
-               }
-            }
-         }
-      }
+      // Preserve the native flush/segment policy and supplied event epoch.
+      FinishUpWriting();
+      std::string epoch;
+      if (epochInMjd != -999.999) epoch = " at " + ToUtcGregorian(epochInMjd, true, 2);
+      std::string comment = "This block begins after propagator change from " + prevPropName + " to " + currPropName;
+      if (identityChanged && prevPropName == currPropName) comment += " (different resource instance)";
+      StartNewSegment(comment + epoch, false, true, true);
    }
-   else
-   {
-      #ifdef DEBUG_EPHEMFILE_PROPAGATOR_CHANGE_MORE
-      MessageInterface::ShowMessage
-         ("EphemerisFile::HandlePropagatorChange() GMAT is solving\n");
-      #endif
-   }
-   
-   #ifdef DEBUG_EPHEMFILE_PROPAGATOR_CHANGE
-   MessageInterface::ShowMessage
-      ("EphemerisFile::HandlePropagatorChange() '%s' leaving, provider=<%p><%s>\n",
-       GetName().c_str(), provider, provider->GetTypeName().c_str());
-   #endif
+   prevPropName = currPropName;
+   previousPropagatorIdentity = identity;
+   previousPropagatorIdentified = identified;
 }
 
 
@@ -3623,6 +3940,12 @@ void EphemerisFile::HandleSpacecraftPropertyChange(GmatBase *originator, Real ep
          ("Cannot continue with ephemeris file writing, the spacecraft of which "
           "property changed is NULL");
    
+   bool identified = false;
+   const bool exactSubject = Publisher::IsPublishedEventSubject(
+      Publisher::ObjectEvent::SpacecraftProperty, originator, spacecraft, identified);
+   const bool isSubject = identified ? exactSubject : spacecraftName == satName;
+   if (!isSubject) return;
+
    bool checkForEmptyData = true;
    if (originator->IsOfType("Vary"))
       checkForEmptyData = false;
@@ -3644,22 +3967,8 @@ void EphemerisFile::HandleSpacecraftPropertyChange(GmatBase *originator, Real ep
    
    std::string epochStr = ToUtcGregorian(epoch, true, 2);
    
-   if (spacecraftName == satName)
+   if (isSubject)
    {
-      if (originator->IsOfType("Vary"))
-      {
-         if (runstate == Gmat::SOLVING)
-         {
-            #ifdef DEBUG_EPHEMFILE_SC_PROPERTY_CHANGE
-            MessageInterface::ShowMessage
-               ("EphemerisFile::HandleSpacecraftPropertyChange() '%s' leaving, "
-                "the spacecraft is set from the Vary command and status is SOLVING\n",
-                GetName().c_str());
-            #endif
-            return;
-         }
-      }
-      
       #ifdef DEBUG_EPHEMFILE_RESTART
       MessageInterface::ShowMessage
          ("EphemerisFile::HandleSpacecraftPropertyChange() Calling FinishUpWriting()\n");
@@ -3684,4 +3993,20 @@ void EphemerisFile::HandleSpacecraftPropertyChange(GmatBase *originator, Real ep
    MessageInterface::ShowMessage
       ("EphemerisFile::HandleSpacecraftPropertyChange() '%s' leaving\n", GetName().c_str());
    #endif
+}
+
+
+std::unique_ptr<FunctionInvocationState> EphemerisFile::SuspendFunctionBindings()
+{
+   auto native = std::make_shared<SubscriberBindingState>();
+   native->Capture(spacecraft);
+   native->Capture(outCoordSystem);
+   native->Capture(accelModel);
+   native->Require([this, role0 = spacecraftName, role1 = outCoordSystemName, role2 = accelModelName]
+   {
+      return role0 == spacecraftName &&
+            role1 == outCoordSystemName &&
+            role2 == accelModelName;
+   });
+   return WrapFunctionBindings(std::move(native), Subscriber::SuspendFunctionBindings());
 }

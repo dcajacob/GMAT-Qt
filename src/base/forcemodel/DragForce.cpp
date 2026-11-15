@@ -31,8 +31,25 @@
 
 
 #include "DragForce.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration dragForceValueProvider({
+   DragForce::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const DragForce*>(object) != nullptr; },
+   [](const GmatBase *object) { return dynamic_cast<const DragForce*>(object)->GetFunctionValueOwnedObjectsImpl(); },
+   nullptr,
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "GmatBaseException.hpp"
 #include <typeinfo>
+#include <algorithm>
+#include <memory>
+#include "NativeRestoration.hpp"
 #include "StringUtil.hpp"     // for ToString()
 #include "ODEModelException.hpp"
 #include "MessageInterface.hpp"
@@ -43,6 +60,9 @@
 
 #include <sstream>                 // for <<
 #include <cmath>
+#include <limits>
+#include <exception>
+#include "OrbitStmForceGradient.hpp"
 
 // Uncomment to generate drag model data for debugging:
 //#define DEBUG_CONSTRUCTION
@@ -171,7 +191,7 @@ DragForce::DragForce(const std::string &name) :
    cdEpsilonID             (-1),
    adsfID                  (-1),
    adsfEpsilonID           (-1),
-   useCentralDifferences   (false),
+   useCentralDifferences   (true),
    finiteDifferenceDv      (true),
    dataType                ("Constant"),
    historicWSource         ("ConstantFluxAndGeoMag"),
@@ -242,54 +262,15 @@ DragForce::DragForce(const std::string &name) :
 //------------------------------------------------------------------------------
 DragForce::~DragForce()
 {
-   // Do not delete atmos due to it is not created in DragForce class
-
+   ReleaseDragBuffers();
    if (internalAtmos)
    {
       #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (internalAtmos, "internalAtmos", "DragForce::~DragForce()",
-          "deleting internal atmosphere model", this);
+      MemoryTracker::Instance()->Remove(internalAtmos, internalAtmos->GetName(),
+            "DragForce::~DragForce()", "retiring owned atmosphere");
       #endif
       delete internalAtmos;
    }
-
-   if (density)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (density, "density", "DragForce::Initialize()",
-          "deleting density[satCount]", this);
-      #endif
-      delete [] density;
-   }
-
-   if (dragState)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (dragState, "dragState", "DragForce::Initialize()",
-          "deleting dragState[orbitDimension]", this);
-      #endif
-      delete [] dragState;
-   }
-
-   if (prefactor)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (prefactor, "prefactor", "DragForce::Initialize()",
-          "deleting prefactor[satCount]", this);
-      #endif
-      delete [] prefactor;
-   }
-   
-//   if (cbFixed)
-//      delete cbFixed;
-
-   #ifdef DEBUG_DRAGFORCE_DENSITY
-      dragdata.close();
-   #endif
 }
 
 
@@ -302,6 +283,31 @@ DragForce::~DragForce()
  * @param df The DragForce instance used to set parameters for this clone.
  */
 //------------------------------------------------------------------------------
+namespace
+{
+std::unique_ptr<AtmosphereModel> CopyDragAtmosphere(const AtmosphereModel *source,
+      DragForce *owner, const AtmosphereModel *existing = nullptr)
+{
+   if (!source) return {};
+   GmatBase::FunctionValueCopyGuard nativeCopy;
+   std::unique_ptr<GmatBase> value(source->Clone());
+   if (value && (value.get() == source || value.get() == owner || value.get() == existing))
+   {
+      value.release();
+      throw ODEModelException("Atmosphere Clone returned an existing resource.");
+   }
+   auto *copy = dynamic_cast<AtmosphereModel*>(value.get());
+   if (!copy || typeid(*copy) != typeid(*source) || copy->GetTypeName() != source->GetTypeName())
+      throw ODEModelException("Cannot copy an atmosphere with its native concrete type.");
+   copy->SetCloneOwner(owner);
+   copy->SetCloneSource(source);
+   copy->SetCloneNotificationsEnabled(false);
+   copy->SetFunctionValueContext(source->GetFunctionValueContext());
+   value.release();
+   return std::unique_ptr<AtmosphereModel>(copy);
+}
+}
+
 DragForce::DragForce(const DragForce& df) :
    PhysicalModel           (df),
    sun                     (NULL),
@@ -310,6 +316,7 @@ DragForce::DragForce(const DragForce& df) :
    useExternalAtmosphere   (df.useExternalAtmosphere),
    atmosphereType          (df.atmosphereType),
    atmos                   (NULL),
+   internalAtmos           (NULL),
    density                 (NULL),
    densityModel            (df.densityModel),
    inputFile               (df.inputFile),
@@ -365,67 +372,33 @@ DragForce::DragForce(const DragForce& df) :
    dragShapeModel          (df.dragShapeModel),
    dragShapeModelIndex     (df.dragShapeModelIndex)
 {
-#ifdef DEBUG_CONSTRUCTION
-	MessageInterface::ShowMessage("DragForce copy construction from <'%s',%p> to <'%s',%p>   enetered\n", df.GetName().c_str(), &df, GetName().c_str(), &(*this));
-#endif
-
-   internalAtmos = NULL;
-   if (df.internalAtmos)
-   {
-      internalAtmos = (AtmosphereModel*)df.internalAtmos->Clone();
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (internalAtmos, internalAtmos->GetName(), "DragForce::DragForce(copy)",
-          "internalAtmos = (AtmosphereModel*)df.internalAtmos->Clone()", this);
-      #endif
-   }
-   
-   if (df.cbFixed)
-//      cbFixed = (CoordinateSystem*)(df.cbFixed->Clone());      // Any other initialization needed?
-      cbFixed = (CoordinateSystem*)(df.cbFixed);
-
+   auto nextAtmosphere = CopyDragAtmosphere(df.internalAtmos, this);
+   area = df.area;
+   mass = df.mass;
+   dragCoeff = df.dragCoeff;
+   atmosDensityScaleFactor = df.atmosDensityScaleFactor;
+   firedOnce = df.firedOnce;
+   ap = df.ap;
    parameterCount = DragForceParamCount;
-
    dimension = df.dimension;
    orbitDimension = df.orbitDimension;
-
-   sunLoc[0] = df.sunLoc[0];
-   sunLoc[1] = df.sunLoc[1];
-   sunLoc[2] = df.sunLoc[2];
-   
-   cbLoc[0]  = df.cbLoc[0];
-   cbLoc[1]  = df.cbLoc[1];
-   cbLoc[2]  = df.cbLoc[2];
-   
-   //density = new Real[1];
-   if (df.satCount < 1)
-      density = new Real[1];
-   else
-      density = new Real[df.satCount];
-   ap = CalculateAp(kp);
-   
-   area.clear();
-   mass.clear();
-   dragCoeff.clear();
-   atmosDensityScaleFactor.clear();
-
-#ifdef DEBUG_CONSTRUCTION
-   if (df.atmos == NULL)
-	   MessageInterface::ShowMessage("$$$ df.atmos = NULL\n");
-   else
-      MessageInterface::ShowMessage("$$$   df.atmos = <'%s',%p>\n", df.atmos->GetName().c_str(), df.atmos);
-
-   if (df.internalAtmos == NULL)
-	   MessageInterface::ShowMessage("$$$ df.internalAtmos = NULL\n");
-   else
+   std::copy_n(df.sunLoc, 3, sunLoc);
+   std::copy_n(df.cbLoc, 3, cbLoc);
+   cbFixed = df.cbFixed;
+   CopyDragBuffers(df);
+   internalAtmos = nextAtmosphere.release();
+   atmos = df.atmos && df.atmos == df.internalAtmos ? internalAtmos : df.atmos;
+   if (internalAtmos)
    {
-	   MessageInterface::ShowMessage("$$$   df.internalAtmos = <'%s',%p>  df.internalAtmos.densitymodel = %s\n", df.internalAtmos->GetName().c_str(), df.internalAtmos, df.internalAtmos->GetStringParameter("DensityModel").c_str());
-	   MessageInterface::ShowMessage("$$$   internalAtmos = <'%s',%p>  internalAtmos.densitymodel = %s\n", internalAtmos->GetName().c_str(), internalAtmos, internalAtmos->GetStringParameter("DensityModel").c_str());
+      internalAtmos->SetSunVector(sunLoc);
+      internalAtmos->SetCentralBodyVector(cbLoc);
+      #ifdef DEBUG_MEMORY
+      MemoryTracker::Instance()->Add(internalAtmos, internalAtmos->GetName(),
+            "DragForce::DragForce(copy)", "copied owned atmosphere", this);
+      #endif
    }
-//   MessageInterface::ShowMessage("densityModel = '%s'\n",densityModel.c_str());
-//   MessageInterface::ShowMessage("inputFile = '%s'\n",inputFile.c_str());
-   MessageInterface::ShowMessage("DragForce copy construction from <'%s',%p> to <'%s',%p>   exit\n", df.GetName().c_str(), &df, GetName().c_str(), &(*this));
-#endif
+   angVel = df.angVel && atmos ? atmos->GetAngularVelocity() : nullptr;
+   isInitialized = false;
 }
 
 
@@ -449,10 +422,51 @@ DragForce& DragForce::operator=(const DragForce& df)
    if (this == &df)
       return *this;
    
+   const bool restoring = GmatBase::IsNativeRestorationCopy();
+   const bool ready = isInitialized;
+   bool complete = false;
+   const auto onFailure = [&](void*) { if (restoring && !complete) isInitialized = false; };
+   const std::unique_ptr<void, decltype(onFailure)> restorationStatus(this, onFailure);
+   if (restoring)
+   {
+      NativeRestoration::Validate(df.GetFunctionValueOwnedObjects(), GetFunctionValueOwnedObjects());
+      if (satCount < 0 || orbitDimension < 0 || satCount != df.satCount || orbitDimension != df.orbitDimension || cartIndex != df.cartIndex ||
+          fillCartesian != df.fillCartesian || cdEpsilonCount != df.cdEpsilonCount ||
+          cdEpsilonIndex != df.cdEpsilonIndex || fillCdEpsilon != df.fillCdEpsilon ||
+          atmosDensityEpsilonCount != df.atmosDensityEpsilonCount ||
+          atmosDensityEpsilonIndex != df.atmosDensityEpsilonIndex ||
+          fillAtmosDensityEpsilon != df.fillAtmosDensityEpsilon ||
+          useExternalAtmosphere != df.useExternalAtmosphere || atmosphereType != df.atmosphereType ||
+          dragBody != df.dragBody || dragShapeModel != df.dragShapeModel ||
+          dragShapeModelIndex != df.dragShapeModelIndex || dataType != df.dataType ||
+          historicWSource != df.historicWSource || predictedWSource != df.predictedWSource ||
+          cssiWFile != df.cssiWFile || schattenWFile != df.schattenWFile ||
+          densityModel != df.densityModel || inputFile != df.inputFile ||
+          cdEpsilon.size() != df.cdEpsilon.size() ||
+          cdEpsilonInitial.size() != df.cdEpsilonInitial.size() ||
+          cdInitial.size() != df.cdInitial.size() ||
+          adsfEpsilon.size() != df.adsfEpsilon.size() ||
+          adsfEpsilonInitial.size() != df.adsfEpsilonInitial.size() ||
+          adsfInitial.size() != df.adsfInitial.size() ||
+          area.size() != df.area.size() ||
+          mass.size() != df.mass.size() ||
+          dragCoeff.size() != df.dragCoeff.size() ||
+          atmosDensityScaleFactor.size() != df.atmosDensityScaleFactor.size() ||
+          (density == nullptr) != (df.density == nullptr) ||
+          (prefactor == nullptr) != (df.prefactor == nullptr) ||
+          (dragState == nullptr) != (df.dragState == nullptr) ||
+          (atmos == internalAtmos) != (df.atmos == df.internalAtmos) ||
+          (atmos != internalAtmos && atmos != df.atmos) ||
+          (angVel == nullptr) != (df.angVel == nullptr) ||
+          (cbFixed && df.cbFixed && cbFixed != df.cbFixed) ||
+          (internalCoordSystem && df.internalCoordSystem && internalCoordSystem != df.internalCoordSystem))
+         throw ODEModelException("Prepare drag configuration before restoring changed active bindings.");
+   }
+   auto nextAtmosphere = restoring ? std::unique_ptr<AtmosphereModel>() : CopyDragAtmosphere(df.internalAtmos, this, internalAtmos);
+   if (restoring) isInitialized = false;
    PhysicalModel::operator=(df);
    
-   sun                   = NULL;
-   centralBody           = NULL;
+   if (!restoring) { sun = NULL; centralBody = NULL; }
    useExternalAtmosphere = df.useExternalAtmosphere;
    atmosphereType        = df.atmosphereType;
    
@@ -466,63 +480,58 @@ DragForce& DragForce::operator=(const DragForce& df)
    schattenWFileID       = df.schattenWFileID;
    
    cdEpsilonID           = df.cdEpsilonID;
-   cdEpsilon             = df.cdEpsilon;
-   cdEpsilonInitial      = df.cdEpsilonInitial;
-   cdInitial             = df.cdInitial;
+   if (restoring) std::copy(df.cdEpsilon.begin(), df.cdEpsilon.end(), cdEpsilon.begin());
+   else cdEpsilon = df.cdEpsilon;
+   if (restoring) std::copy(df.cdEpsilonInitial.begin(), df.cdEpsilonInitial.end(), cdEpsilonInitial.begin());
+   else cdEpsilonInitial = df.cdEpsilonInitial;
+   if (restoring) std::copy(df.cdInitial.begin(), df.cdInitial.end(), cdInitial.begin());
+   else cdInitial = df.cdInitial;
    adsfID                = df.adsfID;
    adsfEpsilonID         = df.adsfEpsilonID;
-   adsfEpsilon           = df.adsfEpsilon;
-   adsfEpsilonInitial    = df.adsfEpsilonInitial;
-   adsfInitial           = df.adsfInitial;
+   if (restoring) std::copy(df.adsfEpsilon.begin(), df.adsfEpsilon.end(), adsfEpsilon.begin());
+   else adsfEpsilon = df.adsfEpsilon;
+   if (restoring) std::copy(df.adsfEpsilonInitial.begin(), df.adsfEpsilonInitial.end(), adsfEpsilonInitial.begin());
+   else adsfEpsilonInitial = df.adsfEpsilonInitial;
+   if (restoring) std::copy(df.adsfInitial.begin(), df.adsfInitial.end(), adsfInitial.begin());
+   else adsfInitial = df.adsfInitial;
    useCentralDifferences = df.useCentralDifferences;
    finiteDifferenceDv    = df.finiteDifferenceDv;
 
-   if (internalAtmos != NULL)
+   if (restoring)
    {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (internalAtmos, "internalAtmos", "DragForce::operator=()",
-          "deleting internal atmosphere model");
-      #endif
-      if (atmos == internalAtmos)
-         atmos = NULL;
-      delete internalAtmos;
+      NativeRestoration::Copy(df.GetFunctionValueOwnedObjects(), GetFunctionValueOwnedObjects());
+      NativeRestoration::RebindCovariance(*this, df.GetFunctionValueOwnedObjects(), GetFunctionValueOwnedObjects());
+      if (density) std::copy_n(df.density, std::max(1, satCount), density);
+      if (prefactor) std::copy_n(df.prefactor, std::max(1, satCount), prefactor);
+      if (dragState) std::copy_n(df.dragState, orbitDimension, dragState);
    }
-   internalAtmos = NULL;
-   atmos = NULL;
-
-   if (df.internalAtmos)
-   {
-      internalAtmos = (AtmosphereModel*)df.internalAtmos->Clone();
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (internalAtmos, internalAtmos->GetName(), "DragForce::operator=()",
-          "internalAtmos = (AtmosphereModel*)df.internalAtmos->Clone()", this);
-      #endif
-   }
-   
-//   if (df.cbFixed)                                             // made changes for bug GMT-5282
-//   {                                                           // made changes for bug GMT-5282
-////      if (cbFixed)                                           // made changes for bug GMT-5282
-////         delete cbFixed;                                     // made changes for bug GMT-5282
-////      cbFixed = (CoordinateSystem*)(df.cbFixed->Clone());    // made changes for bug GMT-5282
-//      cbFixed = (CoordinateSystem*)(df.cbFixed);               // made changes for bug GMT-5282
-//   }                                                           // made changes for bug GMT-5282
-   cbFixed               = df.cbFixed;                           // made changes for bug GMT-5282
-   internalCoordSystem   = df.internalCoordSystem;               // made changes for bug GMT-5282
-
-   angVel                = NULL;
-
-   if (df.satCount < 1)
-      density = new Real[1];
    else
-      density = new Real[df.satCount];
-   prefactor             = NULL;
-   firedOnce             = false;
+   {
+      CopyDragBuffers(df);
+      #ifdef DEBUG_MEMORY
+      if (internalAtmos) MemoryTracker::Instance()->Remove(internalAtmos, internalAtmos->GetName(),
+            "DragForce::operator=()", "retiring owned atmosphere");
+      #endif
+      delete internalAtmos;
+      internalAtmos = nextAtmosphere.release();
+      atmos = df.atmos && df.atmos == df.internalAtmos ? internalAtmos : df.atmos;
+      cbFixed = df.cbFixed;
+      internalCoordSystem = df.internalCoordSystem;
+      if (internalAtmos)
+      {
+         internalAtmos->SetSunVector(sunLoc);
+         internalAtmos->SetCentralBodyVector(cbLoc);
+         #ifdef DEBUG_MEMORY
+         MemoryTracker::Instance()->Add(internalAtmos, internalAtmos->GetName(),
+               "DragForce::operator=()", "copied owned atmosphere", this);
+         #endif
+      }
+      angVel = df.angVel && atmos ? atmos->GetAngularVelocity() : nullptr;
+   }
+   firedOnce = df.firedOnce;
    hasWindModel          = df.hasWindModel;
    satCount              = df.satCount;
    dragBody              = df.dragBody;
-   dragState             = NULL; //df.dragState;
    wUpdateInterval       = df.wUpdateInterval;
    wUpdateEpoch          = df.wUpdateEpoch;
    dataType              = df.dataType;
@@ -536,7 +545,7 @@ DragForce& DragForce::operator=(const DragForce& df)
    schattenTimingModel   = df.schattenTimingModel;
    kpApConversion        = df.kpApConversion;
    kp                    = df.kp;
-   ap                    = CalculateAp(kp);
+   ap                    = df.ap;
    
    dimension = df.dimension;
    orbitDimension = df. orbitDimension;
@@ -549,12 +558,16 @@ DragForce& DragForce::operator=(const DragForce& df)
    cbLoc[1]  = df.cbLoc[1];
    cbLoc[2]  = df.cbLoc[2];
 
-   ap = CalculateAp(kp);
-   
-   area.clear();
-   mass.clear();
-   dragCoeff.clear();
-   atmosDensityScaleFactor.clear();
+   ap = df.ap;
+
+   if (restoring) std::copy(df.area.begin(), df.area.end(), area.begin());
+   else area = df.area;
+   if (restoring) std::copy(df.mass.begin(), df.mass.end(), mass.begin());
+   else mass = df.mass;
+   if (restoring) std::copy(df.dragCoeff.begin(), df.dragCoeff.end(), dragCoeff.begin());
+   else dragCoeff = df.dragCoeff;
+   if (restoring) std::copy(df.atmosDensityScaleFactor.begin(), df.atmosDensityScaleFactor.end(), atmosDensityScaleFactor.begin());
+   else atmosDensityScaleFactor = df.atmosDensityScaleFactor;
    
    cartIndex = df.cartIndex;
    fillCartesian = df.fillCartesian;
@@ -571,6 +584,8 @@ DragForce& DragForce::operator=(const DragForce& df)
    dragShapeModel      = df.dragShapeModel;
    dragShapeModelIndex = df.dragShapeModelIndex;
 
+   isInitialized = restoring ? ready : false;
+   complete = true;
    return *this;
 }
 
@@ -956,7 +971,7 @@ bool DragForce::Initialize()
          delete [] dragState;
       }
       
-      dragState = new Real[orbitDimension];
+      dragState = new Real[orbitDimension]();
       
       #ifdef DEBUG_MEMORY
       MemoryTracker::Instance()->Add
@@ -991,14 +1006,14 @@ bool DragForce::Initialize()
       
       // Set up density even if only used for a parameter
       if (satCount > 0)
-         density   = new Real[satCount];
+         density   = new Real[satCount]();
       else
-         density   = new Real[1];
+         density   = new Real[1]();
       
       if (satCount > 0)
-         prefactor = new Real[satCount];
+         prefactor = new Real[satCount]();
       else
-         prefactor = new Real[1];
+         prefactor = new Real[1]();
 
       #ifdef DEBUG_MEMORY
       MemoryTracker::Instance()->Add
@@ -1689,7 +1704,7 @@ bool DragForce::GetDerivatives(Real *state, Real dt, Integer order,
 			// Create aTilde matrix
 			stmRowCount = sc->GetIntegerParameter("FullSTMRowCount");
 			Integer stmSize = stmRowCount * stmRowCount;
-			Real *aTilde = new Real[stmSize];
+         auto aTilde = std::make_unique<Real[]>(stmSize);
 			for (Integer j = 0; j < stmRowCount; ++j)
          {
             ix = j * stmRowCount;
@@ -1697,80 +1712,37 @@ bool DragForce::GetDerivatives(Real *state, Real dt, Integer order,
                aTilde[ix+k] = 0.0;
          }
 
-         // Build the base acceleration
-         Rvector3 accel = Accelerate(i, &state[i*6], now, prefactor[0]);
-
-         Rvector3 daccel, daccelm;
-         Real pert = 1.0e-2;
-         Real val;
-
-         // Finite difference the position submatrix
-         for (UnsignedInt j = 0; j < 3; ++j)
+         if (dragShapeModelIndex == ShapeModel::SPAD_FILE_MODEL)
          {
-            val = state[i*6 + j];
-            state[i*6 + j] += pert;
-            daccel = Accelerate(i, &state[i*6], now, prefactor[0]);
-            ix = stmRowCount * 3 + j;
-
-            if (useCentralDifferences)
-            {
-               state[i*6 + j] -= 2.0 * pert;
-               daccelm = Accelerate(i, &state[i*6], now, prefactor[0]);
-
-               #ifdef DEBUG_FINITEDIFF
-                  MessageInterface::ShowMessage("R: [%le  %le  %le] - [%le  %le  %le] ==> ",
-                        daccel[0], daccel[1], daccel[2], daccelm[0], daccelm[1], daccelm[2]);
-               #endif
-
-               for (UnsignedInt k = 0; k < 3; ++k)
-                  aTilde[ix+k*stmRowCount] = (daccel[k] - daccelm[k]) / (2.0 * pert);
-
-               #ifdef DEBUG_FINITEDIFF
-                  MessageInterface::ShowMessage("[%le  %le  %le]\n",
-                        aTilde[ix], aTilde[ix+1*stmRowCount], aTilde[ix+2*stmRowCount]);
-               #endif
-            }
-            else
-            {
-               #ifdef DEBUG_FINITEDIFF
-                  MessageInterface::ShowMessage("R: [%le  %le  %le] - [%le  %le  %le] ==> ",
-                        daccel[0], daccel[1], daccel[2],  accel[0], accel[1], accel[2]);
-               #endif
-
-               for (UnsignedInt k = 0; k < 3; ++k)
-                  aTilde[ix+k*stmRowCount] = (daccel[k] - accel[k]) / pert;
-
-               #ifdef DEBUG_FINITEDIFF
-                  MessageInterface::ShowMessage("[%le  %le  %le]\n",
-                        aTilde[ix], aTilde[ix+1*stmRowCount], aTilde[ix+2*stmRowCount]);
-               #endif
-            }
-
-            #ifdef DEBUG_A_MATRIX
-               MessageInterface::ShowMessage("%d: [%.12le  %.12le  %.12le]\n", j,
-                     aTilde[ix], aTilde[ix+1*stmRowCount], aTilde[ix+2*stmRowCount]);
-            #endif
-
-            state[i*6 + j] = val;
+            const Rmatrix gradient = SampledStateJacobian(sc, &dragState[i*6], now);
+            for (Integer row = 0; row < 3; ++row)
+               for (Integer column = 0; column < 6; ++column)
+                  aTilde[(row + 3) * stmRowCount + column] = gradient(row,column);
          }
-         // Next handle the velocity submatrix
-         if (finiteDifferenceDv)
+         else
          {
-            pert = 1.0e-6;
+            // Build the base acceleration
+            Rvector3 accel = Accelerate(i, &state[i*6], now, prefactor[i]);
+
+            Rvector3 daccel, daccelm;
+            Real pert = 1.0e-2;
+            Real val;
+
+            // Finite difference the position submatrix
             for (UnsignedInt j = 0; j < 3; ++j)
             {
-               val = state[i*6 + j+3];
-               state[i*6 + j+3] += pert;
-               daccel = Accelerate(i, &state[i*6], now, prefactor[0]);
-               ix = stmRowCount * 3 + j+3;
+               val = state[i*6 + j];
+               state[i*6 + j] += pert;
+               daccel = Accelerate(i, &state[i*6], now, prefactor[i]);
+               ix = stmRowCount * 3 + j;
 
                if (useCentralDifferences)
                {
-                  state[i*6 + j+3] -= 2.0 * pert;
-                  daccelm = Accelerate(i, &state[i*6], now, prefactor[0]);
+                  state[i*6 + j] -= 2.0 * pert;
+                  daccelm = Accelerate(i, &state[i*6], now, prefactor[i]);
 
                   #ifdef DEBUG_FINITEDIFF
-                     MessageInterface::ShowMessage("V: [%le  %le  %le] - [%le  %le  %le] ==> ",
+                     MessageInterface::ShowMessage("R: [%le  %le  %le] - [%le  %le  %le] ==> ",
                            daccel[0], daccel[1], daccel[2], daccelm[0], daccelm[1], daccelm[2]);
                   #endif
 
@@ -1785,7 +1757,7 @@ bool DragForce::GetDerivatives(Real *state, Real dt, Integer order,
                else
                {
                   #ifdef DEBUG_FINITEDIFF
-                     MessageInterface::ShowMessage("V: [%le  %le  %le] - [%le  %le  %le] ==> ",
+                     MessageInterface::ShowMessage("R: [%le  %le  %le] - [%le  %le  %le] ==> ",
                            daccel[0], daccel[1], daccel[2],  accel[0], accel[1], accel[2]);
                   #endif
 
@@ -1797,17 +1769,71 @@ bool DragForce::GetDerivatives(Real *state, Real dt, Integer order,
                            aTilde[ix], aTilde[ix+1*stmRowCount], aTilde[ix+2*stmRowCount]);
                   #endif
                }
+
                #ifdef DEBUG_A_MATRIX
-                  MessageInterface::ShowMessage("%d: [%.12le  %.12le  %.12le]\n",
-                        j+3, aTilde[ix], aTilde[ix+1*stmRowCount], aTilde[ix+2*stmRowCount]);
+                  MessageInterface::ShowMessage("%d: [%.12le  %.12le  %.12le]\n", j,
+                        aTilde[ix], aTilde[ix+1*stmRowCount], aTilde[ix+2*stmRowCount]);
                #endif
-               state[i*6 + j+3] = val;
+
+               state[i*6 + j] = val;
             }
-         }
-         else
-         {
-            throw ODEModelException("Analytic differencing for drag model A-matrix "
-                  "d(accel)/dv terms in not yet implemented");
+            // Next handle the velocity submatrix
+            if (finiteDifferenceDv)
+            {
+               pert = 1.0e-6;
+               for (UnsignedInt j = 0; j < 3; ++j)
+               {
+                  val = state[i*6 + j+3];
+                  state[i*6 + j+3] += pert;
+                  daccel = Accelerate(i, &state[i*6], now, prefactor[i]);
+                  ix = stmRowCount * 3 + j+3;
+
+                  if (useCentralDifferences)
+                  {
+                     state[i*6 + j+3] -= 2.0 * pert;
+                     daccelm = Accelerate(i, &state[i*6], now, prefactor[i]);
+
+                     #ifdef DEBUG_FINITEDIFF
+                        MessageInterface::ShowMessage("V: [%le  %le  %le] - [%le  %le  %le] ==> ",
+                              daccel[0], daccel[1], daccel[2], daccelm[0], daccelm[1], daccelm[2]);
+                     #endif
+
+                     for (UnsignedInt k = 0; k < 3; ++k)
+                        aTilde[ix+k*stmRowCount] = (daccel[k] - daccelm[k]) / (2.0 * pert);
+
+                     #ifdef DEBUG_FINITEDIFF
+                        MessageInterface::ShowMessage("[%le  %le  %le]\n",
+                              aTilde[ix], aTilde[ix+1*stmRowCount], aTilde[ix+2*stmRowCount]);
+                     #endif
+                  }
+                  else
+                  {
+                     #ifdef DEBUG_FINITEDIFF
+                        MessageInterface::ShowMessage("V: [%le  %le  %le] - [%le  %le  %le] ==> ",
+                              daccel[0], daccel[1], daccel[2],  accel[0], accel[1], accel[2]);
+                     #endif
+
+                     for (UnsignedInt k = 0; k < 3; ++k)
+                        aTilde[ix+k*stmRowCount] = (daccel[k] - accel[k]) / pert;
+
+                     #ifdef DEBUG_FINITEDIFF
+                        MessageInterface::ShowMessage("[%le  %le  %le]\n",
+                              aTilde[ix], aTilde[ix+1*stmRowCount], aTilde[ix+2*stmRowCount]);
+                     #endif
+                  }
+                  #ifdef DEBUG_A_MATRIX
+                     MessageInterface::ShowMessage("%d: [%.12le  %.12le  %.12le]\n",
+                           j+3, aTilde[ix], aTilde[ix+1*stmRowCount], aTilde[ix+2*stmRowCount]);
+                  #endif
+                  state[i*6 + j+3] = val;
+               }
+            }
+            else
+            {
+               throw ODEModelException("Analytic differencing for drag model A-matrix "
+                     "d(accel)/dv terms in not yet implemented");
+            }
+
          }
 
          if (estimatingCd)
@@ -1896,7 +1922,6 @@ bool DragForce::GetDerivatives(Real *state, Real dt, Integer order,
             MessageInterface::ShowMessage("]\n\n");
          #endif
 			
-         delete[] aTilde;
 			// Handle varied size of STMs
 			iStart = iStart + stmSize;
       }
@@ -2059,7 +2084,114 @@ Rvector6 DragForce::GetDerivativesForSpacecraft(Spacecraft* sc)
                dv[4], dv[5]);
    #endif
 
+   if (OrbitStmForceGradient::Request::For(this))
+   {
+      if (vRelMag == 0.0)
+         OrbitStmForceGradient::Request::Capture(this, Rmatrix(3,6));
+      else
+         OrbitStmForceGradient::Request::Capture(this, SampledStateJacobian(sc));
+   }
    return dv;
+}
+
+Rmatrix DragForce::SampledStateJacobian(Spacecraft *spacecraft,
+      const Real *bodyState, Real atEpoch)
+{
+   OrbitStmForceGradient::Request suppressNestedCapture(nullptr);
+   std::unique_ptr<GmatBase> copy(spacecraft->Clone());
+   bool borrowed = copy.get() == spacecraft;
+   for (auto *original : scObjs)
+      borrowed = borrowed || copy.get() == original;
+   if (borrowed)
+   {
+      copy.release();
+      throw ODEModelException("Drag derivative sampling requires an independent spacecraft clone.");
+   }
+   auto *sample = dynamic_cast<Spacecraft*>(copy.get());
+   if (!sample || sample->GetTypeName() != spacecraft->GetTypeName())
+      throw ODEModelException("Incompatible drag derivative spacecraft clone.");
+   if (bodyState)
+   {
+      // Invert BuildModelState for this integrator stage before evaluating
+      // state-dependent attitude and SPAD table coordinates.
+      const Rvector6 origin = body->GetMJ2000State(atEpoch);
+      for (Integer component = 0; component < 6; ++component)
+         sample->GetState()[component] = bodyState[component] + origin[component];
+      sample->GetState().SetEpoch(atEpoch);
+      sample->GetState().SetEpochGT(GmatTime(atEpoch));
+   }
+   if (!sample->InitializeClonedResource())
+      throw ODEModelException("Cannot initialize the drag derivative spacecraft clone.");
+   Real nominalState[6];
+   for (Integer component = 0; component < 6; ++component)
+      nominalState[component] = sample->GetState()[component];
+   const Rvector6 nominal = GetDerivativesForSpacecraft(sample);
+   auto evaluate = [&](Integer component, Real offset)
+   {
+      for (Integer index = 0; index < 6; ++index)
+         sample->GetState()[index] = nominalState[index];
+      sample->GetState()[component] += offset;
+      const Rvector6 value = GetDerivativesForSpacecraft(sample);
+      return Rvector3(value[3],value[4],value[5]);
+   };
+   Rmatrix gradient(3,6);
+   std::exception_ptr failure;
+   try
+   {
+      for (Integer column = 0; column < 6; ++column)
+      {
+         Real step = column < 3 ? 1.0 : 0.01;
+         Rvector3 previous(0,0,0);
+         bool accepted = false;
+         for (Integer attempt = 0; attempt < 5; ++attempt)
+         {
+            const Rvector3 minusTwo = evaluate(column,-2*step);
+            const Rvector3 minusOne = evaluate(column,-step);
+            const Rvector3 plusOne = evaluate(column,step);
+            const Rvector3 plusTwo = evaluate(column,2*step);
+            const Rvector3 value = (8*(plusOne-minusOne)-(plusTwo-minusTwo))/(12*step);
+            accepted = attempt > 0;
+            for (Integer row = 0; row < 3; ++row)
+            {
+               const Real scale = std::max(std::abs(value[row]),std::abs(previous[row]));
+               const Real rounding = 512 * std::numeric_limits<Real>::epsilon() *
+                  std::max({std::abs(nominal[row+3]),std::abs(minusTwo[row]),std::abs(plusTwo[row])}) / step;
+               const Real tolerance = std::max(rounding,scale*1e-6);
+               const Real forward = (-3*nominal[row+3]+4*plusOne[row]-plusTwo[row])/(2*step);
+               const Real backward = (3*nominal[row+3]-4*minusOne[row]+minusTwo[row])/(2*step);
+               accepted = accepted && std::isfinite(value[row]) &&
+                  std::abs(value[row]-previous[row]) <= tolerance &&
+                  std::abs(forward-backward) <= tolerance;
+            }
+            if (accepted)
+            {
+               for (Integer row = 0; row < 3; ++row)
+                  gradient(row,column) = value[row];
+               break;
+            }
+            previous = value;
+            step /= 2;
+         }
+         if (!accepted)
+            throw ODEModelException("Drag derivative sampling did not converge to a smooth finite gradient.");
+      }
+   }
+   catch (...)
+   {
+      failure = std::current_exception();
+   }
+   try
+   {
+      evaluate(0,0);
+   }
+   catch (...)
+   {
+      if (!failure)
+         throw;
+   }
+   if (failure)
+      std::rethrow_exception(failure);
+   return gradient;
 }
 
 
@@ -2768,6 +2900,32 @@ Integer DragForce::SetIntegerParameter(const std::string &label,
  *
  */
 //------------------------------------------------------------------------------
+void DragForce::RebindClonedCoordinateSystems(const DragForce &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   if (this == &source) return;
+   auto bind = [&](CoordinateSystem *original) -> CoordinateSystem*
+   {
+      if (!original) return NULL;
+      auto *value = dynamic_cast<CoordinateSystem*>(resolve(original));
+      if (!value)
+         throw ODEModelException("Incompatible coordinate system in copied drag force.\n");
+      return value;
+   };
+   CoordinateSystem *fixed = bind(source.cbFixed);
+   CoordinateSystem *internal = bind(source.internalCoordSystem);
+   cbFixed = fixed;
+   internalCoordSystem = internal;
+   // The atmosphere is an owned clone, but its frame pointers are borrowed.
+   // Reset them from the rebound force before native initialization uses them.
+   if (internalAtmos)
+   {
+      if (cbFixed) internalAtmos->SetFixedCoordinateSystem(cbFixed);
+      internalAtmos->SetInternalCoordSystem(internalCoordSystem);
+   }
+   isInitialized = false;
+}
+
 GmatBase* DragForce::GetRefObject(const UnsignedInt type,
                                       const std::string &name)
 {
@@ -3282,6 +3440,12 @@ bool DragForce::SetStart(Gmat::StateElementId id, Integer index,
 //------------------------------------------------------------------------------
 Real DragForce::GetDensity(Real *state, Real when, Integer count)
 {
+   return GetDensityForSpacecraft(state, when, count, 0);
+}
+
+Real DragForce::GetDensityForSpacecraft(Real *state, Real when, Integer count,
+      Integer firstSpacecraft)
+{
    #ifdef DEBUG_DRAGFORCE_DENSITY
       dragdata << "Entered DragForce::GetDensity()\n";
    #endif
@@ -3359,8 +3523,8 @@ Real DragForce::GetDensity(Real *state, Real when, Integer count)
    }
 
    // Apply atmosphere density scale factor
-   for (Integer i = 0; i < count && i < atmosDensityScaleFactor.size(); ++i)
-      density[i] *= atmosDensityScaleFactor[i];
+   for (Integer i = 0; i < count && i + firstSpacecraft < atmosDensityScaleFactor.size(); ++i)
+      density[i] *= atmosDensityScaleFactor[i + firstSpacecraft];
 
    return density[0];
 }
@@ -3405,7 +3569,7 @@ Rvector3 DragForce::Accelerate(Integer scID, Real *theState, GmatEpoch &theEpoch
    Real vRelative[3], vRelMag, factor;
    Rvector3 accel;
 
-   Real theDensity = GetDensity(theState, theEpoch, 1);
+   Real theDensity = GetDensityForSpacecraft(theState, theEpoch, 1, scID);
 
    if (hasWindModel)
    {
@@ -3495,4 +3659,55 @@ void DragForce::Copy(const GmatBase *original)
    if (source == this)
       return;
    operator=(*source);
+}
+
+ObjectArray DragForce::GetFunctionValueOwnedObjectsImpl() const
+{
+   return {internalAtmos};
+}
+
+void DragForce::CopyDragBuffers(const DragForce &source)
+{
+   if (source.satCount < 0 || source.orbitDimension < 0)
+      throw ODEModelException("Cannot copy drag buffers with a negative dimension.");
+   const auto copy = [](const Real *values, Integer count)
+   {
+      std::unique_ptr<Real[]> result;
+      if (values)
+      {
+         result.reset(new Real[count]);
+         std::copy_n(values, count, result.get());
+      }
+      return result;
+   };
+   auto nextDensity = copy(source.density, std::max(1, source.satCount));
+   auto nextPrefactor = copy(source.prefactor, std::max(1, source.satCount));
+   auto nextState = copy(source.dragState, source.orbitDimension);
+   ReleaseDragBuffers();
+   density = nextDensity.release();
+   prefactor = nextPrefactor.release();
+   dragState = nextState.release();
+   #ifdef DEBUG_MEMORY
+   const auto track = [&](Real *buffer, const char *name)
+   {
+      if (buffer) MemoryTracker::Instance()->Add(buffer, name,
+            "DragForce::CopyDragBuffers()", "copied owned buffer", this);
+   };
+   track(density, "density"); track(prefactor, "prefactor"); track(dragState, "dragState");
+   #endif
+}
+
+void DragForce::ReleaseDragBuffers()
+{
+   const auto retire = [&](Real *buffer, const char *name)
+   {
+      if (!buffer) return;
+      #ifdef DEBUG_MEMORY
+      MemoryTracker::Instance()->Remove(buffer, name,
+            "DragForce::ReleaseDragBuffers()", "retiring owned buffer");
+      #endif
+      delete [] buffer;
+   };
+   retire(density, "density"); retire(prefactor, "prefactor"); retire(dragState, "dragState");
+   density = prefactor = dragState = nullptr;
 }

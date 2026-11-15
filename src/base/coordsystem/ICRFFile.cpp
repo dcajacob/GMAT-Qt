@@ -35,6 +35,9 @@
 #include "FileManager.hpp"
 #include "MessageInterface.hpp"
 #include "GmatBaseException.hpp"
+#include <cmath>
+#include <limits>
+#include <memory>
 
 
 //------------------------------------------------------------------------------
@@ -79,6 +82,8 @@ void ICRFFile::Initialize()
 
    // Allocate buffer to store ICRF rotation vector table:
    AllocateArrays();
+   try
+   {
    
    // Use FileManager::FindPath() for new file path implementation (LOJ: 2014.07.01)
    
@@ -99,8 +104,9 @@ void ICRFFile::Initialize()
    if (icrfFileNameFullPath == "")
 		throw GmatBaseException("The ICRF file '" + icrfFileName + "' does not exist\n");
    
-   FILE* fpt = fopen(icrfFileNameFullPath.c_str(), "r");
-   if (fpt == NULL)
+   std::unique_ptr<FILE, decltype(&fclose)> fpt(
+      fopen(icrfFileNameFullPath.c_str(), "r"), &fclose);
+   if (!fpt)
       throw GmatBaseException("Error: GMAT can't open '" + icrfFileName + "' file!!!\n");
    
    // Read ICRF Euler rotation vector from data file and store to buffer:
@@ -108,28 +114,32 @@ void ICRFFile::Initialize()
    Real rotationvector[3];
    int c;
    Integer i;
-   for (i= 0; (c = fscanf(fpt, "%lf, %le, %le, %le\n",&t,
+   for (i= 0; (c = fscanf(fpt.get(), "%lf, %le, %le, %le\n",&t,
 	      &rotationvector[0],&rotationvector[1],&rotationvector[2])) != EOF; ++i)
    {
+      if (c != 4 || !std::isfinite(t) ||
+          !std::isfinite(rotationvector[0]) || !std::isfinite(rotationvector[1]) ||
+          !std::isfinite(rotationvector[2]))
+         throw GmatBaseException("Invalid record in ICRF file '" + icrfFileName + "'.\n");
+      if (i > 0 && t <= independence[i - 1])
+         throw GmatBaseException("ICRF file epochs must be strictly increasing.\n");
       // expend the buffer size when it has no room to contain data:
       if (i >= tableSz)
       {
          // create a new buffer with a larger size:
          Integer new_size = tableSz*2;
-         Real* ind = new Real[new_size];
-         Real** dep = new Real*[new_size];
+         auto ind = std::make_unique<Real[]>(new_size);
+         auto dep = std::make_unique<Real*[]>(new_size);
 
          // copy contain in the current buffer to the new buffer:
-         memcpy(ind, independence, tableSz*sizeof(Real));
-         memcpy(dep, dependences, tableSz*sizeof(Real*));
-         for (Integer k=tableSz; k < new_size; ++k)
-            dep[k] = NULL;
+         memcpy(ind.get(), independence, tableSz*sizeof(Real));
+         memcpy(dep.get(), dependences, tableSz*sizeof(Real*));
 
          // delete the current buffer and use the new buffer as the current buffer:
-         delete independence;
-         delete dependences;
-         independence = ind;
-         dependences = dep;
+         delete[] independence;
+         delete[] dependences;
+         independence = ind.release();
+         dependences = dep.release();
          tableSz = new_size;
       }
 
@@ -142,8 +152,16 @@ void ICRFFile::Initialize()
          dependences[i][j] = rotationvector[j];
    }
 
+   if (ferror(fpt.get()) || i == 0)
+      throw GmatBaseException("Cannot read ICRF table from '" + icrfFileName + "'.\n");
    pointsCount = i;
    isInitialized = true;
+   }
+   catch (...)
+   {
+      CleanupArrays();
+      throw;
+   }
 }
 
 //------------------------------------------------------------------------------
@@ -378,15 +396,11 @@ void ICRFFile::RotateFromFK5toICRF(const Real* inState, Real* outState, const Re
 //------------------------------------------------------------------------------
 void ICRFFile::AllocateArrays()
 {
-   
-   independence = new Real[tableSz];
-
-   dependences = new Real*[tableSz];
-   Integer i;
-   for (i = 0; i < tableSz; ++i)
-   {
-      dependences[i]  = new Real[dimension];
-   }
+   CleanupArrays();
+   auto ind = std::make_unique<Real[]>(tableSz);
+   auto dep = std::make_unique<Real*[]>(tableSz);
+   independence = ind.release();
+   dependences = dep.release();
 }
 
 
@@ -399,23 +413,25 @@ void ICRFFile::AllocateArrays()
 //------------------------------------------------------------------------------
 void ICRFFile::CleanupArrays()
 {
-   if (independence != NULL)
+   delete[] independence;
+   independence = NULL;
+   if (dependences != NULL)
    {
-	  // clean up the array of independent variable
-	  delete independence;
-	  independence = NULL;
-
 	  // clean up the array of dependent variables
 	  Integer i= 0;
 	  for (i=0; i <tableSz; ++i)
 	  {
 		  if (dependences[i] != NULL)
-			  delete dependences[i];
+			  delete[] dependences[i];
 	  }
 
-	  delete dependences;
+	  delete[] dependences;
 	  dependences = NULL;
    }
+   tableSz = MAX_TABLE_SIZE;
+   pointsCount = 0;
+   isInitialized = false;
+   lastIcrfToFk5Epoch = std::numeric_limits<Real>::quiet_NaN();
 }
 
 //------------------------------------------------------------------------------
@@ -441,7 +457,7 @@ ICRFFile::ICRFFile(const std::string &fileName, Integer dim) :
    dimension         (dim),
    tableSz           (MAX_TABLE_SIZE),
    pointsCount       (0),
-   lastIcrfToFk5Epoch (0.0),
+   lastIcrfToFk5Epoch (std::numeric_limits<Real>::quiet_NaN()),
    isInitialized     (false)
 {
 }

@@ -45,6 +45,12 @@ public:
    BranchCommand(const BranchCommand& bc);
    BranchCommand&          operator=(const BranchCommand& bc);
    virtual ~BranchCommand();
+   void RetireFunctionBindings(ObjectMap *store) override;
+
+   DefinitionCommandLinks GetDefinitionCommandLinks() const override;
+   void RebindClonedCommandLinks(const GmatCommand &source,
+         const std::function<GmatCommand*(const GmatCommand*)> &resolve) override;
+   void DetachCommandLinks() noexcept override;
    
    void                    AddBranch(GmatCommand *cmd, Integer which = 0);
    void                    AddToFrontOfBranch(GmatCommand *cmd,

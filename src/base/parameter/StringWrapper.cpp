@@ -28,6 +28,7 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ScriptStringLiteral.hpp"
 #include "StringWrapper.hpp"
 #include "ParameterException.hpp"
 #include "StringUtil.hpp"
@@ -120,6 +121,14 @@ ElementWrapper* StringWrapper::Clone() const
    return new StringWrapper(*this);
 }
 
+void StringWrapper::RebindClonedReferences(const ElementWrapper &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   CheckCloneType(source);
+   (void)resolve;
+}
+
+
 
 //------------------------------------------------------------------------------
 // std::string ToString()
@@ -200,7 +209,7 @@ bool StringWrapper::SetReal(const Real toValue)
 std::string StringWrapper::EvaluateString() const
 {
    // Remove single quotes before returning
-   std::string newValue = GmatStringUtil::RemoveEnclosingString(value, "'");
+   std::string newValue = GmatScriptString::Decode(value);
    //return value;
    return newValue;
 }

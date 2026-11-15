@@ -130,9 +130,9 @@ For::For(const For& f) :
    startValue      (f.startValue),
    endValue        (f.endValue),
    stepSize        (f.stepSize),
-   currentValue    (f.currentValue),
-   numPasses       (f.numPasses),
-   currentPass     (f.currentPass),
+   currentValue    (UNINITIALIZED_VALUE),
+   numPasses       ((int)UNINITIALIZED_VALUE),
+   currentPass     ((int)UNINITIALIZED_VALUE),
    indexWrapper    (NULL),
    startWrapper    (NULL),
    incrWrapper     (NULL),
@@ -161,18 +161,19 @@ For& For::operator=(const For& f)
    if (this == &f)
      return *this;
    
+   ClearWrappers();
    BranchCommand::operator=(f);
    startValue    = f.startValue;
    endValue      = f.endValue;
    stepSize      = f.stepSize;
-   currentValue  = f.currentValue;
-   numPasses     = f.numPasses;
+   currentValue  = UNINITIALIZED_VALUE;
+   numPasses     = (int)UNINITIALIZED_VALUE;
    // Wrappers must be recreated, so set to NULL (partial fix for GMT-2525 LOJ: 2012.12.20)
    indexWrapper  = NULL; //f.indexWrapper;
    startWrapper  = NULL; //f.startWrapper;
    incrWrapper   = NULL; //f.incrWrapper;
    endWrapper    = NULL; //f.endWrapper;
-   currentPass   = f.currentPass;
+   currentPass   = (int)UNINITIALIZED_VALUE;
    incrPositive  = f.incrPositive;
    indexName     = f.indexName;
    startName     = f.startName;
@@ -1225,3 +1226,13 @@ bool For::StillLooping()
    return false;
 }
 
+
+void For::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   ClearWrappers();
+   currentValue = UNINITIALIZED_VALUE;
+   currentPass = (int)UNINITIALIZED_VALUE;
+   numPasses = (int)UNINITIALIZED_VALUE;
+   BranchCommand::RetireFunctionBindings(store);
+}

@@ -178,7 +178,7 @@ BatchEstimatorBase::BatchEstimatorBase(const BatchEstimatorBase& est) :
    freezeEditing              (est.freezeEditing),
    freezeIteration            (est.freezeIteration),
    inversionType              (est.inversionType),
-   hasInitialized             (est.hasInitialized)
+   hasInitialized             (false)
 {
 }
 
@@ -227,7 +227,7 @@ BatchEstimatorBase& BatchEstimatorBase::operator=(const BatchEstimatorBase& est)
       outerLoopBuffer.clear();
 
       inversionType            = est.inversionType;
-	  hasInitialized           = est.hasInitialized;
+	  hasInitialized           = false;
    }
 
    return *this;

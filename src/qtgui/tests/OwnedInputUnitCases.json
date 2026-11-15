@@ -1,0 +1,60 @@
+{
+  "scope": "Previously untyped owned/numeric-string fields and user-defined numeric values. No provider or mission execution.",
+  "cases": [
+    {
+      "key": "FrameDirections",
+      "group": "OwnedUnits",
+      "object": "Probe",
+      "route": "nested-axes",
+      "fixture": "Create CoordinateSystem Probe;\nProbe.Origin = Earth;\nProbe.Axes = LocalAlignedConstrained;\nProbe.ReferenceObject = Luna;\nProbe.ConstraintCoordinateSystem = EarthMJ2000Eq;\n",
+      "units": {
+        "AlignmentVectorX": "dimensionless",
+        "AlignmentVectorY": "dimensionless",
+        "AlignmentVectorZ": "dimensionless",
+        "ConstraintVectorX": "dimensionless",
+        "ConstraintVectorY": "dimensionless",
+        "ConstraintVectorZ": "dimensionless",
+        "ConstraintReferenceVectorX": "dimensionless",
+        "ConstraintReferenceVectorY": "dimensionless",
+        "ConstraintReferenceVectorZ": "dimensionless"
+      }
+    },
+    {
+      "key": "FminconOptions",
+      "group": "OwnedUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create FminconOptimizer Probe;\n",
+      "units": {
+        "DiffMaxChange": "scaled-variable units",
+        "DiffMinChange": "scaled-variable units",
+        "MaxFunEvals": "evaluations",
+        "TolX": "dimensionless or scaled-variable units",
+        "TolFun": "dimensionless or objective/gradient units",
+        "TolCon": "constraint units"
+      }
+    },
+    {
+      "key": "ArrayValues",
+      "group": "OwnedUnits",
+      "object": "Probe",
+      "route": "table",
+      "fixture": "Create Array Probe[2,2];\n",
+      "units": {
+        "RmatValue": "user-defined per element"
+      },
+      "grid_unit_notice": "user-defined per element"
+    },
+    {
+      "key": "VariableValue",
+      "group": "OwnedUnits",
+      "object": "Probe",
+      "route": "primary",
+      "control": "parameterValue",
+      "fixture": "Create Variable Probe;\nProbe = 7;\n",
+      "units": {
+        "Value": "user-defined units"
+      }
+    }
+  ]
+}

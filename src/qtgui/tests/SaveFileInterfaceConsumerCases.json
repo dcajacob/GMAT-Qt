@@ -1,0 +1,140 @@
+{
+  "cases": [
+    {
+      "definitions": [
+        "Create FileInterface Subject",
+        "Create Spacecraft Sat",
+        "Create Variable ReloadAlive"
+      ],
+      "filename": "Subject_Sat_ReloadAlive.data",
+      "fixture_files": {
+        "input \u03b1.sv": "     TCOPS VECTOR HOLD FILE DUMP PROGRAM VERSION 95.01\n\n     DATE OF DUMP: 12/234/17:42:25.000\n\n     THERE ARE 609 RECORDS IN THE FILE\n\n     THE LAST RECORD WRITTEN IS RECORD 506\n\n     *****  NAMELIST INPUT  *****\n\n      &HFIN                                                                          \n       SID=0523401,                                                                  \n       ELMSTR=506,                                                                   \n       ELMEND=506,                                                                   \n       FORM='LONG',                                                                  \n      &END                                                                           \n1           LONG REPORT OF THE TCOPS VECTOR HOLD FILE                      RUN  1\n\n\n  SATELLITE ID:    523401                 SIC/VIC:   0234/01\n  ELEMENT SET NUMBER:    506\n                                          YY MM DD HH MM SS.SSS\n  EPOCH TIME FOR ELEMENTS:                12 08 20 00 00 00.000\n  START TIME OF FITTED DATA:              12 07 13 16 20 00.000\n  END TIME OF FITTED DATA:                12 08 21 15 26 56.000\n  RMS OF FIT:                               .128703D+01\n  VECTOR TYPE:                            FREE FLIGHT(ON-ORBIT)       \n  REFERENCE COORDINATE SYSTEM:            J2000\n  CENTRAL BODY:                           EARTH    \n  SPACECRAFT MASS:                          .50000000000000D+03\n  SPACECRAFT CROSS-SECTIONAL AREA:\n    DRAG     .60000000000000D-05          SOLRAD(EPSRPA)   .60000000000000D-05\n  AREA MODEL USED:                        BOX-AND-WING           \n                                          BOX TOP (M**2)      =   .00000000D+00\n                                          BOX SIDE (M**2)     =   .00000000D+00\n                                          BOX END (M**2)      =   .00000000D+00\n                                          PANEL FRONT (M**2)  =   .60000000D+01\n                                          PANEL EDGE (M**2)   =   .00000000D+00\n                                          PANEL OFFSET (DEG)  =   .00000000D+00\n                                          CRIT. ANGLE 1 (DEG) =   .00000000D+00\n                                          CRIT. ANGLE 2 (DEG) =   .00000000D+00\n                                          FEATHERING          = OFF\n  NUMBER OF ORBS TO GENERATE ELEMENT SET:   3095\n  CONVERGING/DIVERGING INDICATOR:\n    D.C. CONVERGED                                                  \n  ORBIT THEORY USED:                      COWELL                 \n  ATMOSPHERIC MODEL USED:                 JACCHIA-ROBERTS\n  CARTESIAN COORDINATES:\n    X        .42164000000000D+05 KM       XDOT       .00000000000000D+00 KM/S\n    Y        .00000000000000D+00 KM       YDOT       .30746662829706D+01 KM/S\n    Z        .00000000000000D+00 KM       ZDOT       .00000000000000D+00 KM/S\n  KEPLERIAN ELEMENTS:\n    SMA      .42164000000000D+05 KM       LAN        .00000000000000D+00 DEG\n    ECC      .00000000000000D+00          PA         .00000000000000D+00 DEG\n    INC      .00000000000000D+00 DEG      MA         .00000000000000D+00 DEG\n  SOLAR RADIATION PRESSURE COEFFICIENTS:    MODELING IS ON         \n    CSUBR    .14000000000000D+01\n  DRAG COEFFICIENTS:                        MODELING IS ON         \n    CSUBDZ   .20000000000000D+01          RHO2       .00000000000000D+00\n    RHO1     .00000000000000D+00          RHO3       .00000000000000D+00\n  THRUST MODEL COEFFICIENTS:                MODELING IS OFF        \n      .000000D+00     .000000D+00     .000000D+00     .000000D+00     .000000D+00\n  RIGHT ASCENSION:\n      .000000D+00     .000000D+00     .000000D+00     .000000D+00     .000000D+00\n  DECLINATION:\n      .000000D+00     .000000D+00     .000000D+00     .000000D+00     .000000D+00\n  JOB ID:   user                          SYSTEM:   GTDS    \n  MACHINE TIME:                           ** 08 21 13 26 22.000\n  MACHINE ID:                             us\n"
+      },
+      "key": "MissingFileInterfaceReader",
+      "objects": [
+        "Subject",
+        "Sat",
+        "ReloadAlive"
+      ],
+      "selected": [
+        "Subject",
+        "Sat",
+        "ReloadAlive"
+      ],
+      "setup": "Create FileInterface Subject;\nSubject.Filename = '@FILES@/input \u03b1.sv';\nSubject.Format = 'TVHF_ASCII';\nCreate Spacecraft Sat;\nSat.NAIFId = -101141;\nSat.NAIFIdReferenceFrame = -910141;\nSat.CoordinateSystem = EarthMJ2000Eq;\nSat.X = 7000;\nSat.Y = 0;\nSat.Z = 0;\nSat.VX = 0;\nSat.VY = 7.5;\nSat.VZ = 0;\nCreate Variable ReloadAlive;\nReloadAlive = 41;\n",
+      "witnesses": [
+        {
+          "expected": "@FILES@/input \u03b1.sv",
+          "field": "Filename",
+          "object": "Subject",
+          "type": "Filename"
+        },
+        {
+          "expected": "TVHF_ASCII",
+          "field": "Format",
+          "object": "Subject",
+          "type": "Enumeration"
+        },
+        {
+          "object": "Sat",
+          "field": "X",
+          "type": "Real",
+          "expected": 42164
+        },
+        {
+          "object": "Sat",
+          "field": "Y",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Sat",
+          "field": "Z",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Sat",
+          "field": "VX",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Sat",
+          "field": "VY",
+          "type": "Real",
+          "expected": 3.0746662829706
+        },
+        {
+          "object": "Sat",
+          "field": "VZ",
+          "type": "Real",
+          "expected": 0
+        }
+      ],
+      "before_save": "Set Sat Subject (Data = {'CartesianState'});\n",
+      "reload_probe": "Sat.X = 8000;\nSet Sat Subject (Data = {'CartesianState'});\nReloadAlive = ReloadAlive + 1;\n",
+      "probe_witnesses": [
+        {
+          "object": "ReloadAlive",
+          "field": "Value",
+          "type": "Real",
+          "expected": 42
+        },
+        {
+          "object": "Sat",
+          "field": "X",
+          "type": "Real",
+          "expected": 42164
+        },
+        {
+          "object": "Sat",
+          "field": "Y",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Sat",
+          "field": "Z",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Sat",
+          "field": "VX",
+          "type": "Real",
+          "expected": 0
+        },
+        {
+          "object": "Sat",
+          "field": "VY",
+          "type": "Real",
+          "expected": 3.0746662829706
+        },
+        {
+          "object": "Sat",
+          "field": "VZ",
+          "type": "Real",
+          "expected": 0
+        }
+      ],
+      "readonly_roundtrip_fields": [
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "FileInterface",
+          "field": "SelectedFields",
+          "type": "StringArray"
+        },
+        {
+          "object": "Subject",
+          "owned_indices": [],
+          "native_type": "FileInterface",
+          "field": "SupportedFields",
+          "type": "StringArray"
+        }
+      ]
+    }
+  ],
+  "scope": "Actual configured-file reader and explicit CartesianState subset after Save/reload. Independent six-element truth read from original retained TCOPS record. Existing 1e-12 relative witness bound unchanged."
+}

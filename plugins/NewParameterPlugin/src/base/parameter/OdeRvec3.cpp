@@ -377,5 +377,6 @@ bool OdeRvec3::NeedsForces() const
  //------------------------------------------------------------------------------
 void OdeRvec3::SetTransientForces(std::vector<PhysicalModel*>* tf)
 {
+   if (tf != retainedTransientValues.get()) retainedTransientValues.reset();
    transients = tf;
 }

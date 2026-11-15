@@ -122,6 +122,8 @@ public:
    virtual const StringArray&  
                         GetStringArrayParameter(const std::string &label) const;
    virtual GmatBase*    GetRefObject(const UnsignedInt type,
+                                     const std::string &name);
+   virtual GmatBase*    GetRefObject(const UnsignedInt type,
                                      const std::string &name,
                                      const Integer index);
    virtual bool         SetRefObject(GmatBase *obj, 

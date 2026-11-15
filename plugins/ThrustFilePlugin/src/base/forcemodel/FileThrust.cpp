@@ -28,11 +28,34 @@
 //------------------------------------------------------------------------------
 
 #include "FileThrust.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration fileThrustValueProvider({
+   FileThrust::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const FileThrust*>(object) != nullptr; },
+   nullptr,
+   nullptr,
+   [](GmatBase *object, const GmatBase &source) { return dynamic_cast<FileThrust*>(object)->PrepareRestorationImpl(source); },
+   nullptr,
+   nullptr
+});
+}
+#include "NativeRestoration.hpp"
+#include "GmatBaseException.hpp"
+#include <typeinfo>
+#include <memory>
+#include <algorithm>
 
 #include "MessageInterface.hpp"
 #include "TimeTypes.hpp"
 #include "ODEModelException.hpp"
 #include "PropagationStateManager.hpp"
+#include "OrbitStmForceGradient.hpp"
+#include "ObjectReferencedAxes.hpp"
+#include <limits>
+#include "OrbitStmFrame.hpp"
 #include "Rmatrix33.hpp"
 #include <sstream>
 
@@ -88,6 +111,11 @@ FileThrust::FileThrust(const std::string &name) :
    derivativeIds.push_back(Gmat::CARTESIAN_STATE);
    objectTypeNames.push_back("FileThrust");
 
+   for (auto &value : dataBlock) value = 0.0;
+   for (auto &value : nominalBurnBody) value = 0.0;
+   for (auto &row : dataSet) for (auto &value : row) value = 0.0;
+   for (auto &value : interpolatorData) value = -1;
+   indexPair[0] = indexPair[1] = -1;
    estimatingAngles[0] = estimatingAngles[1] = false;
    thrustAngleRows[0] = thrustAngleRows[1] = -1;
 }
@@ -142,6 +170,17 @@ FileThrust::FileThrust(const FileThrust& ft) :
    thrustSF                (ft.thrustSF),
    thrustSFinitial         (ft.thrustSFinitial)
    {
+   std::unique_ptr<LinearInterpolator> nextLinear(ft.liner ? new LinearInterpolator(*ft.liner) : nullptr);
+   std::unique_ptr<NotAKnotInterpolator> nextSpline(ft.spliner ? new NotAKnotInterpolator(*ft.spliner) : nullptr);
+   spacecraft = ft.spacecraft;
+   scIndices = ft.scIndices;
+   liner = nextLinear.release();
+   spliner = nextSpline.release();
+   std::copy_n(ft.dataBlock, 7, dataBlock);
+   std::copy_n(ft.nominalBurnBody, 3, nominalBurnBody);
+   for (Integer row = 0; row < 5; ++row) std::copy_n(ft.dataSet[row], 5, dataSet[row]);
+   std::copy_n(ft.interpolatorData, 5, interpolatorData);
+   std::copy_n(ft.indexPair, 2, indexPair);
    estimatingAngles[0] = ft.estimatingAngles[0];
    estimatingAngles[1] = ft.estimatingAngles[1];
    thrustAngleRows[0] = ft.thrustAngleRows[0];
@@ -163,6 +202,33 @@ FileThrust& FileThrust::operator=(const FileThrust& ft)
 {
    if (this != &ft)
    {
+      if (GmatBase::IsNativeRestorationCopy())
+      {
+         const bool ready = isInitialized;
+         bool complete = false;
+         const auto onFailure = [&](void*) { if (!complete) isInitialized = false; };
+         const std::unique_ptr<void, decltype(onFailure)> restorationState(this, onFailure);
+         auto interpolationPreparation = PrepareRestoration(ft);
+         if (interpolationPreparation) interpolationPreparation->Apply();
+         ValidateRestorationInputs(ft, true);
+         isInitialized = false;
+         PhysicalModel::operator=(ft);
+         tsfInitial = ft.tsfInitial;
+         thrustSF = ft.thrustSF;
+         thrustSFinitial = ft.thrustSFinitial;
+         massFlowWarningNeeded = ft.massFlowWarningNeeded;
+         warnTooFewPoints = ft.warnTooFewPoints;
+         std::copy_n(ft.dataBlock, 7, dataBlock);
+         std::copy_n(ft.nominalBurnBody, 3, nominalBurnBody);
+         for (Integer row = 0; row < 5; ++row) std::copy_n(ft.dataSet[row], 5, dataSet[row]);
+         std::copy_n(ft.interpolatorData, 5, interpolatorData);
+         std::copy_n(ft.indexPair, 2, indexPair);
+         if (liner) liner->RestoreValues(*ft.liner);
+         if (spliner) spliner->RestoreValues(*ft.spliner);
+         isInitialized = ready;
+         complete = true;
+         return *this;
+      }
       PhysicalModel::operator=(ft);
 
       spacecraftNames = ft.spacecraftNames;
@@ -236,7 +302,9 @@ bool FileThrust::operator==(const FileThrust& ft) const
 //------------------------------------------------------------------------------
 GmatBase* FileThrust::Clone() const
 {
-   return new FileThrust(*this);
+   std::unique_ptr<FileThrust> value(new FileThrust(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 //------------------------------------------------------------------------------
@@ -1296,6 +1364,20 @@ bool FileThrust::GetDerivatives(Real* state, Real dt, Integer order,
             accel[1] += burnData[1] * factor;
             accel[2] += burnData[2] * factor;
 
+            std::vector<SpaceObject*> frameDependencies;
+            if (coordSystem)
+               PlotOriginScope::CollectReferences(coordSystem, frameDependencies);
+            if (std::find(frameDependencies.begin(), frameDependencies.end(), sat) != frameDependencies.end())
+            {
+               GmatTime segmentEpoch = hasPrecisionTime ? epochGT : GmatTime(epoch);
+               segmentEpoch.AddSeconds(elapsedTime);
+               GmatTime atEpoch(segmentEpoch);
+               atEpoch.AddSeconds(dt);
+               const Rvector6 staged = SampleSpacecraft(static_cast<Spacecraft*>(sat), state+i6,
+                     segmentEpoch, atEpoch, nullptr);
+               for (Integer row = 0; row < 3; ++row) accel[row] = staged[row+3];
+            }
+
             #ifdef DEBUG_MASS_FLOW
                MessageInterface::ShowMessage(
                      "   --> direction = [%.12le %.12le %.12le]",
@@ -1383,8 +1465,10 @@ bool FileThrust::GetDerivatives(Real* state, Real dt, Integer order,
    #endif
 
    Integer i, ix;
-   if (fillSTM || fillAMatrix)
+   for (const auto matrixType : {Gmat::ORBIT_STATE_TRANSITION_MATRIX, Gmat::ORBIT_A_MATRIX})
    {
+      const bool stm = matrixType == Gmat::ORBIT_STATE_TRANSITION_MATRIX;
+      if (!(stm ? fillSTM : fillAMatrix)) continue;
       Real now;
       Real burnData[4];
 
@@ -1393,7 +1477,7 @@ bool FileThrust::GetDerivatives(Real* state, Real dt, Integer order,
                stmRowCount);
       #endif
       
-      Integer iStart = stmStart;
+      Integer iStart = stm ? stmStart : aMatrixStart;
       for (i = 0; i < satCount; ++i)
       {
          //Get Spacecraft object
@@ -1402,7 +1486,7 @@ bool FileThrust::GetDerivatives(Real* state, Real dt, Integer order,
          // Create aTilde matrix
          Integer stmRowCount = sc->GetIntegerParameter("FullSTMRowCount");
          Integer stmSize = stmRowCount * stmRowCount;
-         Real *aTilde = new Real[stmSize];
+         std::vector<Real> aTilde(stmSize);
          for (Integer j = 0; j < stmRowCount; ++j)
          {
             ix = j * stmRowCount;
@@ -1532,6 +1616,23 @@ bool FileThrust::GetDerivatives(Real* state, Real dt, Integer order,
             }
          }
 
+         if (TargetsSpacecraft(sc))
+         {
+            const Integer associate = theState->GetAssociateIndex(iStart);
+            if (stmRowCount < 6 || associate < 0 || associate > dimension-6 ||
+                  iStart < 0 || stmRowCount > (dimension-iStart)/stmRowCount)
+               throw ODEModelException("File-thrust matrix layout is inconsistent.");
+            GmatTime segmentEpoch = hasPrecisionTime ? epochGT : GmatTime(epoch);
+            segmentEpoch.AddSeconds(elapsedTime);
+            GmatTime atEpoch(segmentEpoch);
+            atEpoch.AddSeconds(dt);
+            Rmatrix gradient(3,6);
+            SampleSpacecraft(sc, state+associate, segmentEpoch, atEpoch, &gradient);
+            for (Integer row = 0; row < 3; ++row)
+               for (Integer column = 0; column < 6; ++column)
+                  aTilde[(row+3)*stmRowCount+column] = gradient(row,column);
+         }
+
          Integer element;
          for (Integer j = 0; j < stmRowCount; ++j)
          {
@@ -1577,8 +1678,7 @@ bool FileThrust::GetDerivatives(Real* state, Real dt, Integer order,
             MessageInterface::ShowMessage("]\n\n");
          #endif
          
-         delete[] aTilde;
-         iStart = stmStart + stmSize;
+         iStart += stmSize;
       }
    }
 
@@ -1596,16 +1696,145 @@ bool FileThrust::GetDerivatives(Real* state, Real dt, Integer order,
  *
  * @return The derivative data as a 6-vector
  *
- * @note: Not yet implemented for the Thrust History File reader code.
+ * Uses private interpolation and coordinate-system caches for this query.
  */
 //------------------------------------------------------------------------------
 Rvector6 FileThrust::GetDerivativesForSpacecraft(Spacecraft* sc)
 {
-   Rvector6 dv;
+   if (!sc)
+      throw ODEModelException("File-thrust sampling requires a spacecraft.");
+   if (!TargetsSpacecraft(sc))
+   {
+      OrbitStmForceGradient::Request::Capture(this, Rmatrix(3,6));
+      return Rvector6(0,0,0,0,0,0);
+   }
+   if (!segments)
+      throw ODEModelException("File-thrust sampling requires initialized segments.");
 
-   MessageInterface::ShowMessage("Warning: Acceleration calculation is not implemented for Thrust Files.\n");
+   Rmatrix gradient(3,6);
+   const bool capture = OrbitStmForceGradient::Request::For(this);
+   const GmatTime atEpoch = hasPrecisionTime ? sc->GetEpochGT() : GmatTime(sc->GetEpoch());
+   const Rvector6 result = SampleSpacecraft(sc, nullptr, atEpoch, atEpoch,
+         capture ? &gradient : nullptr);
+   if (capture)
+      OrbitStmForceGradient::Request::Capture(this, gradient);
+   return result;
+}
 
-   return dv;
+Rvector6 FileThrust::SampleSpacecraft(Spacecraft *sc, const Real *modelState,
+      const GmatTime &segmentEpoch, const GmatTime &atEpoch, Rmatrix *gradient)
+{
+   std::vector<SpaceObject*> dependencies;
+   for (const auto &segment : *segments)
+      if (segment.segData.cs)
+         PlotOriginScope::CollectReferences(segment.segData.cs, dependencies);
+   const bool ownerDependent = std::find(dependencies.begin(), dependencies.end(), sc) != dependencies.end();
+   std::unique_ptr<Spacecraft> owner;
+   if (ownerDependent)
+   {
+      GmatBase *copy = sc->Clone();
+      if (copy == sc)
+         throw ODEModelException("File-thrust sampling Clone returned the live spacecraft.");
+      owner.reset(dynamic_cast<Spacecraft*>(copy));
+      if (!owner)
+      {
+         delete copy;
+         throw ODEModelException("File-thrust sampling requires a spacecraft clone.");
+      }
+      if (modelState)
+      {
+         if (!forceOrigin)
+            throw ODEModelException("File-thrust stage sampling requires a force origin.");
+         const Rvector6 origin = forceOrigin->GetMJ2000State(atEpoch);
+         for (Integer component = 0; component < 6; ++component)
+            owner->GetState()[component] = modelState[component] + origin[component];
+      }
+      owner->GetState().SetEpoch(atEpoch.GetMjd());
+      owner->GetState().SetEpochGT(atEpoch);
+   }
+
+   // Interpolation and coordinate conversion update caches. The copied frame
+   // graph reads the private stage state, including during differentiation.
+   std::vector<ThrustSegment> localSegments(*segments);
+   OrbitStmFrame::DetachedFrames frames(sc, owner.get());
+   for (auto &segment : localSegments)
+   {
+      if (scriptSegments)
+         for (const auto *script : *scriptSegments)
+            if (script && script->GetName() == segment.GetName())
+            {
+               segment.SetRealParameter("ThrustScaleFactor", script->GetRealParameter("ThrustScaleFactor"));
+               segment.SetRvectorParameter("ThrustAngle1", script->GetRvectorParameter("ThrustAngle1"));
+               segment.SetRvectorParameter("ThrustAngle2", script->GetRvectorParameter("ThrustAngle2"));
+            }
+      if (segment.segData.cs)
+         segment.segData.cs = frames.Copy(segment.segData.cs);
+   }
+   FileThrust sample(*this);
+   sample.segments = &localSegments;
+   Real nominal[6];
+   if (owner)
+      for (Integer component = 0; component < 6; ++component)
+         nominal[component] = owner->GetState()[component];
+   auto evaluate = [&](Integer component, Real offset)
+   {
+      if (owner)
+      {
+         for (Integer index = 0; index < 6; ++index)
+            owner->GetState()[index] = nominal[index];
+         owner->GetState()[component] += offset;
+      }
+      Real data[4];
+      const Integer segment = hasPrecisionTime ?
+         sample.ComputeAccelerationMassFlow(segmentEpoch, atEpoch, data, false) :
+         sample.ComputeAccelerationMassFlow(segmentEpoch.GetMjd(), atEpoch.GetMjd(), data, false);
+      Real factor = 0.001;
+      if (sample.dataIsThrust && segment >= 0)
+         factor /= sc->GetRealParameter("TotalMass");
+      return Rvector3(data[0]*factor, data[1]*factor, data[2]*factor);
+   };
+   const Rvector3 acceleration = evaluate(0,0);
+   if (gradient && ownerDependent)
+   {
+      for (Integer column = 0; column < 6; ++column)
+      {
+         Real step = column < 3 ? 1.0 : 0.01;
+         Rvector3 previous(0,0,0);
+         bool accepted = false;
+         for (Integer attempt = 0; attempt < 5; ++attempt)
+         {
+            const Rvector3 minusTwo = evaluate(column,-2*step);
+            const Rvector3 minusOne = evaluate(column,-step);
+            const Rvector3 plusOne = evaluate(column,step);
+            const Rvector3 plusTwo = evaluate(column,2*step);
+            const Rvector3 current = (8*(plusOne-minusOne)-(plusTwo-minusTwo))/(12*step);
+            accepted = attempt > 0;
+            for (Integer row = 0; row < 3; ++row)
+            {
+               const Real scale = std::max(std::abs(current[row]),std::abs(previous[row]));
+               const Real rounding = 512*std::numeric_limits<Real>::epsilon()*
+                  std::max({std::abs(acceleration[row]),std::abs(minusTwo[row]),std::abs(plusTwo[row])})/step;
+               const Real tolerance = std::max(rounding,scale*1e-6);
+               const Real forward = (-3*acceleration[row]+4*plusOne[row]-plusTwo[row])/(2*step);
+               const Real backward = (3*acceleration[row]-4*minusOne[row]+minusTwo[row])/(2*step);
+               accepted = accepted && std::isfinite(current[row]) &&
+                  std::abs(current[row]-previous[row]) <= tolerance &&
+                  std::abs(forward-backward) <= tolerance;
+            }
+            if (accepted)
+            {
+               for (Integer row = 0; row < 3; ++row)
+                  (*gradient)(row,column) = current[row];
+               break;
+            }
+            previous = current;
+            step /= 2;
+         }
+         if (!accepted)
+            throw ODEModelException("File-thrust sampling did not converge to a smooth finite gradient.");
+      }
+   }
+   return Rvector6(0,0,0,acceleration[0],acceleration[1],acceleration[2]);
 }
 
 //------------------------------------------------------------------------------
@@ -1776,7 +2005,7 @@ void FileThrust::SetStmIndex(Integer id, Integer paramID)
  */
 //------------------------------------------------------------------------------
 Integer FileThrust::ComputeAccelerationMassFlow(const GmatEpoch segEpoch, const GmatEpoch atEpoch,
-      Real burnData[4])
+      Real burnData[4], bool evaluatePartials)
 {
    // Start from nothin'
    burnData[0] = burnData[1] = burnData[2] = burnData[3] = 0.0;
@@ -1810,9 +2039,9 @@ Integer FileThrust::ComputeAccelerationMassFlow(const GmatEpoch segEpoch, const 
          Integer tsfID = (*segments)[i].GetStmIndex((*segments)[i].GetParameterID("ThrustScaleFactor"));
          Integer ta1ID = (*segments)[i].GetStmIndex((*segments)[i].GetParameterID("ThrustAngle1"));
          Integer ta2ID = (*segments)[i].GetStmIndex((*segments)[i].GetParameterID("ThrustAngle2"));
-         Integer tsfIndexSTM = psm->GetSTMIndex(tsfID, NULL);
-         Integer ta1IndexSTM = psm->GetSTMIndex(ta1ID, NULL);
-         Integer ta2IndexSTM = psm->GetSTMIndex(ta2ID, NULL);
+         Integer tsfIndexSTM = evaluatePartials ? psm->GetSTMIndex(tsfID, NULL) : -1;
+         Integer ta1IndexSTM = evaluatePartials ? psm->GetSTMIndex(ta1ID, NULL) : -1;
+         Integer ta2IndexSTM = evaluatePartials ? psm->GetSTMIndex(ta2ID, NULL) : -1;
 
 #ifdef DEBUG_TSF_SOLVEFOR
          MessageInterface::ShowMessage("File TSF from psm %p (id %d) index in the STM "
@@ -1926,7 +2155,7 @@ Integer FileThrust::ComputeAccelerationMassFlow(const GmatEpoch segEpoch, const 
 */
 //------------------------------------------------------------------------------
 Integer FileThrust::ComputeAccelerationMassFlow(const GmatTime &segEpoch, const GmatTime &atEpoch,
-   Real burnData[4])
+   Real burnData[4], bool evaluatePartials)
 {
    // Start from nothin'
    burnData[0] = burnData[1] = burnData[2] = burnData[3] = 0.0;
@@ -1960,9 +2189,9 @@ Integer FileThrust::ComputeAccelerationMassFlow(const GmatTime &segEpoch, const 
          Integer tsfID = (*segments)[i].GetStmIndex((*segments)[i].GetParameterID("ThrustScaleFactor"));
          Integer ta1ID = (*segments)[i].GetStmIndex((*segments)[i].GetParameterID("ThrustAngle1"));
          Integer ta2ID = (*segments)[i].GetStmIndex((*segments)[i].GetParameterID("ThrustAngle2"));
-         Integer tsfIndexSTM = psm->GetSTMIndex(tsfID, NULL);
-         Integer ta1IndexSTM = psm->GetSTMIndex(ta1ID, NULL);
-         Integer ta2IndexSTM = psm->GetSTMIndex(ta2ID, NULL);
+         Integer tsfIndexSTM = evaluatePartials ? psm->GetSTMIndex(tsfID, NULL) : -1;
+         Integer ta1IndexSTM = evaluatePartials ? psm->GetSTMIndex(ta1ID, NULL) : -1;
+         Integer ta2IndexSTM = evaluatePartials ? psm->GetSTMIndex(ta2ID, NULL) : -1;
 
 #ifdef DEBUG_TSF_SOLVEFOR
          MessageInterface::ShowMessage("File TSF from psm %p (id %d) index in the STM "
@@ -2543,7 +2772,14 @@ void FileThrust::ConvertDirectionToInertial(Real *dir, Real *dirInertial, Real e
 
    // Now rotate to base system axes, we don't want to translate so
    // set coincident to true
-   coordSystem->ToBaseSystem(A1Mjd(epoch), inDir, outDir, true);
+   auto *axes = dynamic_cast<ObjectReferencedAxes*>(coordSystem->GetAxisSystem());
+   if (axes && axes->GetTypeName() == "ObjectReferenced")
+   {
+      const Rvector3 rotated = axes->GetRotationMatrixOnly(A1Mjd(epoch)) * Rvector3(dir[0],dir[1],dir[2]);
+      for (Integer i = 0; i < 3; ++i) outDir[i] = rotated[i];
+   }
+   else
+      coordSystem->ToBaseSystem(A1Mjd(epoch), inDir, outDir, true, true);
 
    dirInertial[0] = outDir[0];
    dirInertial[1] = outDir[1];
@@ -2577,7 +2813,14 @@ void FileThrust::ConvertDirectionToInertial(Real *dir, Real *dirInertial,
 
    // Now rotate to base system axes, we don't want to translate so
    // set coincident to true
-   coordSystem->ToBaseSystem(epoch, inDir, outDir, true);
+   auto *axes = dynamic_cast<ObjectReferencedAxes*>(coordSystem->GetAxisSystem());
+   if (axes && axes->GetTypeName() == "ObjectReferenced")
+   {
+      const Rvector3 rotated = axes->GetRotationMatrixOnly(epoch) * Rvector3(dir[0],dir[1],dir[2]);
+      for (Integer i = 0; i < 3; ++i) outDir[i] = rotated[i];
+   }
+   else
+      coordSystem->ToBaseSystem(epoch, inDir, outDir, true, true);
 
    dirInertial[0] = outDir[0];
    dirInertial[1] = outDir[1];
@@ -3177,4 +3420,64 @@ bool FileThrust::InSegmentInterval(const GmatTime& begin, const GmatTime& end, c
       return true;
 
    return false;
+}
+
+void FileThrust::Copy(const GmatBase *original)
+{
+   const auto *source = dynamic_cast<const FileThrust*>(original);
+   if (!source || typeid(*source) != typeid(FileThrust) || typeid(*this) != typeid(FileThrust))
+      throw GmatBaseException("Incompatible native FileThrust copy.");
+   if (source == this) return;
+   const auto previous = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
+}
+
+
+void FileThrust::ValidateRestorationInputs(const FileThrust &ft, bool withCaches) const
+{
+   if (spacecraftNames != ft.spacecraftNames || spacecraft != ft.spacecraft ||
+       scIndices != ft.scIndices || satCount != ft.satCount || cartIndex != ft.cartIndex ||
+       fillCartesian != ft.fillCartesian || dataIsThrust != ft.dataIsThrust ||
+       segmentNames != ft.segmentNames || segments != ft.segments || scriptSegments != ft.scriptSegments ||
+       mDotIndex != ft.mDotIndex || depleteMass != ft.depleteMass || activeTankName != ft.activeTankName ||
+       csNames != ft.csNames || estimatingTSF != ft.estimatingTSF || tsfEpsilonID != ft.tsfEpsilonID ||
+       tsfEpsilonRow != ft.tsfEpsilonRow || estimatingAngles[0] != ft.estimatingAngles[0] ||
+       estimatingAngles[1] != ft.estimatingAngles[1] || thrustAngleRows[0] != ft.thrustAngleRows[0] ||
+       thrustAngleRows[1] != ft.thrustAngleRows[1])
+      throw ODEModelException("Prepare file-thrust profiles and propagation roles before restoring changed bindings.");
+   if (withCaches)
+   {
+      if ((liner == nullptr) != (ft.liner == nullptr) ||
+            (spliner == nullptr) != (ft.spliner == nullptr))
+         throw ODEModelException("Prepare file-thrust profiles and propagation roles before restoring changed bindings.");
+      if (liner) liner->ValidateRestorationLayout(*ft.liner);
+      if (spliner) spliner->ValidateRestorationLayout(*ft.spliner);
+   }
+}
+
+std::unique_ptr<NativeRestorationPlan> FileThrust::PrepareRestorationImpl(const GmatBase &source)
+{
+   if (!GmatBase::IsNativeRestorationCopy() || &source == this) return {};
+   const auto *value = dynamic_cast<const FileThrust*>(&source);
+   if (!value) throw ODEModelException("Incompatible file-thrust restoration preparation.");
+   try
+   {
+      const bool linear = NativeRestoration::NeedsPrivateInterpolatorPreparation(liner, value->liner);
+      const bool spline = NativeRestoration::NeedsPrivateInterpolatorPreparation(spliner, value->spliner);
+      if (!linear && !spline) return {};
+      if (typeid(*this) != typeid(FileThrust) || typeid(*value) != typeid(FileThrust))
+         throw ODEModelException("Private file-thrust cache preparation requires its native owner.");
+      ValidateRestorationInputs(*value, false);
+      PhysicalModel::ValidateRestorationLayout(*value);
+      std::vector<std::unique_ptr<NativeRestorationPlan>> plans;
+      if (linear) plans.push_back(NativeRestoration::PreparePrivateInterpolator(liner, value->liner));
+      if (spline) plans.push_back(NativeRestoration::PreparePrivateInterpolator(spliner, value->spliner));
+      return NativeRestoration::Combine(std::move(plans));
+   }
+   catch (...)
+   {
+      isInitialized = false;
+      throw;
+   }
 }

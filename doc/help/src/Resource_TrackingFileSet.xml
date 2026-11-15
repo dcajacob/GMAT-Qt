@@ -29,6 +29,13 @@
   <refsection>
     <title>Description</title>
 
+    <para>Estimator and simulator resources retain their own tracking-set and
+    data-filter values. Their measurement adapters and signal paths are rebuilt
+    from those configurations during preparation. Filter counters are therefore
+    separate between measurement managers. Definition updates follow actual
+    source objects; an equal name in another scope does not select an unrelated
+    tracking or filter copy.</para>
+
     <para>A <guilabel>TrackingFileSet</guilabel> is required for both
     simulator and estimator runs. For a data simulation run, the user must
     specify the desired tracking strings for the simulated data (via
@@ -57,6 +64,12 @@
     <para>See Also: <xref linkend="Simulator"/>, <xref
     linkend="BatchEstimator"/>, <xref linkend="AcceptFilter"/>, <xref
     linkend="RejectFilter"/>, <xref linkend="TrackingDataTypes"/></para>
+    <para>Function values retain private participant references and owned filter
+    values. Propagator lists and spacecraft assignments are rebound by actual
+    object identity, and signal-path labels follow resolved participant names.
+    Binding remains passive; measurement adapters and data streams are prepared
+    by the native simulation or estimation command.</para>
+
   </refsection>
 
   <refsection>

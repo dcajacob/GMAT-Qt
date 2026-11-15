@@ -70,6 +70,10 @@ public:
                         GetParameterType(const Integer id) const;
    virtual std::string  GetParameterTypeString(const Integer id) const;
    
+   std::string GetStringParameter(const Integer id) const override;
+   std::string GetStringParameter(const std::string &label) const override;
+   const StringArray& GetPropertyEnumStrings(const Integer id) const override;
+
    virtual bool         SetStringParameter(const Integer id, 
                                            const std::string &value);
    virtual bool         SetStringParameter(const std::string &label, 
@@ -96,6 +100,8 @@ protected:
    enum  
    {
       OBJECT_NAMES = GmatCommandParamCount,
+      FILENAME_STYLE,
+      OUTPUT_FILENAME,
       SaveParamCount
    };
    
@@ -111,11 +117,14 @@ protected:
    ObjectArray          objArray;
    /// Toggle to show or hide emply fields
    bool                 writeVerbose;
+   std::string filenameStyle = "Worksheet";
+   std::string outputFilename;
+   bool combinedFile = false;
    /// File streams used for the output
    std::ofstream        *fileArray;
    
    void  UpdateOutputFileNames(Integer index, const std::string objName);
-   void  WriteObject(UnsignedInt i, GmatBase *o);
+   void  WriteObject(std::ostream &stream, GmatBase *o);
    
    static const std::string
       PARAMETER_TEXT[SaveParamCount - GmatCommandParamCount];

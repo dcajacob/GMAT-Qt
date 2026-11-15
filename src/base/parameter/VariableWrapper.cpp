@@ -70,7 +70,8 @@
 //---------------------------------------------------------------------------
 VariableWrapper::VariableWrapper() :
    ElementWrapper(),
-   var           (NULL)
+   var(NULL),
+   ownsVariable(false)
 {
    wrapperType = Gmat::VARIABLE_WT;
 }
@@ -87,17 +88,12 @@ VariableWrapper::VariableWrapper() :
 //---------------------------------------------------------------------------
 VariableWrapper::VariableWrapper(const VariableWrapper &vw) :
    ElementWrapper(vw),
-   var           (NULL)
+   var(NULL),
+   ownsVariable(false)
 {
-   if (vw.var)
-   {
-      var = (Variable*)((vw.var)->Clone());
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (var, var->GetName(), "VariableWrapper copy constructor",
-          "var = (Variable*)((vw.var)->Clone())");
-      #endif
-   }
+   auto value = CloneOwnedReference(vw.var);
+   var = value.release();
+   ownsVariable = var != NULL;
 }
 
 //---------------------------------------------------------------------------
@@ -113,32 +109,12 @@ VariableWrapper::VariableWrapper(const VariableWrapper &vw) :
 //---------------------------------------------------------------------------
 const VariableWrapper& VariableWrapper::operator=(const VariableWrapper &vw)
 {
-   if (&vw == this)
-      return *this;
-   
+   if (&vw == this) return *this;
+   auto value = CloneOwnedReference(vw.var, var);
    ElementWrapper::operator=(vw);
-   
-   if (var)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (var, var->GetName(), "VariableWrapper operator=", "deleting old var");
-      #endif
-      delete var;
-   }
-   
-   var = NULL;
-   
-   if (vw.var)
-   {
-      var = (Variable*)((vw.var)->Clone());
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (var, var->GetName(), "VariableWrapper operator=",
-          "var = (Variable*)((vw.var)->Clone())");
-      #endif
-   }
-   
+   if (ownsVariable) delete var;
+   var = value.release();
+   ownsVariable = var != NULL;
    return *this;
 }
 
@@ -152,17 +128,7 @@ const VariableWrapper& VariableWrapper::operator=(const VariableWrapper &vw)
 //---------------------------------------------------------------------------
 VariableWrapper::~VariableWrapper()
 {
-   ///@todo deleting var causes crash
-   #ifdef __ENABLE_CLONING_REFOBJ__
-   if (var)
-   {
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (var, var->GetName(), "VariableWrapper destructor", "deleting var");
-      #endif
-      delete var;
-   }
-   #endif
+   if (ownsVariable) delete var;
 }
 
 
@@ -177,6 +143,23 @@ ElementWrapper* VariableWrapper::Clone() const
 {
    return new VariableWrapper(*this);
 }
+
+void VariableWrapper::RebindClonedReferences(const ElementWrapper &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   CheckCloneType(source);
+   const auto &original = static_cast<const VariableWrapper&>(source);
+   auto *value = BindClonedReference(original.var, resolve);
+   if (value != var)
+   {
+      if (ownsVariable) delete var;
+      var = value;
+      ownsVariable = false;
+   }
+}
+
+bool VariableWrapper::OwnsRefObject() const { return ownsVariable; }
+
 
 //------------------------------------------------------------------------------
 //  Gmat::ParameterType GetDataType() const
@@ -238,72 +221,22 @@ GmatBase* VariableWrapper::GetRefObject(const std::string &name)
 //---------------------------------------------------------------------------
 bool VariableWrapper::SetRefObject(GmatBase *obj)
 {
-   if (obj == NULL)
-      return false;
-   
-   #ifdef DEBUG_REF_OBJ
-   MessageInterface::ShowMessage
-      ("VariableWrapper::SetRefObject() <%p>'%s' entered, obj=<%p><%s>'%s', "
-       "var=<%p>\n", this, description.c_str(), obj, obj->GetTypeName().c_str(),
-       obj->GetName().c_str(), var);
-   #endif
-   
-//   if ( (obj->GetName() != refObjectNames[0]) ||
-//        (obj->GetTypeName() != "Variable") )
-//   {
-//      std::string errmsg = "Referenced variable \"";
-//      errmsg += obj->GetName();
-//      errmsg += ("\" of type \"" + obj->GetTypeName());
-//      errmsg += "\" was passed into the variable wrapper \"";
-//      errmsg += description;
-//      errmsg += "\", but an object named \"";
-//      errmsg += refObjectNames[0];
-//      errmsg += "\" was expected.\n";
-//      throw ParameterException(errmsg);
-//   }
-   
-   if ((obj->GetName() == refObjectNames[0]) && (obj->IsOfType("Variable")) )
-   {
-      ///@todo if we clone the ref. Variable, math in script does not work,
-      // such as RouttineTests/APT_Cart2KepMathTest.script.
-      // This script creates Variables and set values in command mode, that
-      // means Assignment command's lhs wrappers' ref object should be the same
-      // as this VariableWrappers's ref. Variable, so we cannot clone the
-      // ref. Variable here. (LOJ: 2009.03.12)
-      
+   auto *value = dynamic_cast<Variable*>(obj);
+   if (!value || refObjectNames.empty() || value->GetName() != refObjectNames[0]) return false;
 #ifdef __ENABLE_CLONING_REFOBJ__
-      if (var)
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (var, var->GetName(), "VariableWrapper::SetRefObject()",
-             "deleting old var");
-         #endif
-         delete var;
-      }
-      
-      #ifdef DEBUG_REF_OBJ
-      MessageInterface::ShowMessage("   Now cloning obj and setting to var\n");
-      #endif
-      
-      var = (Variable*)(obj->Clone());
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (var, var->GetName(), "VariableWrapper::SetRefObject()",
-          "var = (Variable*)(obj->Clone()");
-      #endif
-
+   auto copied = CloneOwnedReference(value, var);
+   if (ownsVariable) delete var;
+   var = copied.release();
+   ownsVariable = true;
 #else
-      var = (Variable*) obj;
-#endif
-      
-      #ifdef DEBUG_REF_OBJ
-      MessageInterface::ShowMessage
-         ("VariableWrapper::SetRefObject() Set var to <%p>, returning true\n", var);
-      #endif
-      return true;
+   if (value != var)
+   {
+      if (ownsVariable) delete var;
+      var = value;
+      ownsVariable = false;
    }
-   else  return false;
+#endif
+   return true;
 }
 
 //---------------------------------------------------------------------------

@@ -62,6 +62,7 @@ class GMAT_API Vary : public SolverSequenceCommand
 public:
    Vary();
    virtual ~Vary();
+   void RetireFunctionBindings(ObjectMap *store) override;
    
    Vary(const Vary& t);
    Vary&              operator=(const Vary& t);

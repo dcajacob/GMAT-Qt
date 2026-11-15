@@ -29,11 +29,13 @@
  */
 //------------------------------------------------------------------------------
 
+#include <exception>
 #include <sstream>
 #include <cmath>
 #include <locale>
 #include <set>
 #include "Optimize.hpp"
+#include "EphemerisIterationScope.hpp"
 #include "MessageInterface.hpp"
 
 //Added __USE_EXTERNAL_OPTIMIZER__ so that header will not be compiled
@@ -162,11 +164,17 @@ bool Optimize::Append(GmatCommand *cmd)
                                      cmd->GetTypeName().c_str());
    #endif
     
+   const bool wasFillingBranch = branchToFill >= 0;
    if (!SolverBranchCommand::Append(cmd))
         return false;
     
    // If at the end of a optimizer branch, point that end back to this command.
-   if (cmd->GetTypeName() == "EndOptimize") 
+   // A nested Target consumes its own EndTarget first. Its back-link identifies
+   // that owner, so the outer optimizer must not consume the same terminator.
+   const bool legacyOptimizerEnd = wasFillingBranch &&
+      cmd->GetTypeName() == "EndTarget" &&
+      (!cmd->GetNext() || cmd->GetNext()->GetTypeName() == "Optimize");
+   if (cmd->GetTypeName() == "EndOptimize" || legacyOptimizerEnd)
    {
       if ((nestLevel == 0) && (branchToFill != -1))  
       {
@@ -396,27 +404,15 @@ bool Optimize::Initialize()
             " is not an Optimizer, so the Optimize command cannot proceed "
             "with initialization.");
 
-   // Delete the old cloned solver
-   if (theSolver)
-   {	   
-	   if (theSolver->GetBooleanParameter(theSolver->GetParameterID("Nested")))
-	   {
-		   branchExecuting = false;
-		   commandExecuting = false;
-		   return true;
-}
-	   else {
-#ifdef DEBUG_MEMORY
-		   MemoryTracker::Instance()->Remove
-		   (theSolver, "local solver", "Optimize::Initialize()",
-			   "deleting local cloned solver");
-#endif
-		   delete theSolver;
-	   }
+   // A nested active invocation keeps its own solver state. Otherwise stage
+   // a cold definition and reuse this command's owned instance of that class.
+   if (theSolver && theSolver->GetBooleanParameter(theSolver->GetParameterID("Nested")))
+   {
+      branchExecuting = false;
+      commandExecuting = false;
+      return true;
    }
-
-   // Clone the optimizer for local use
-   theSolver = (Solver *)(mapObj->Clone());
+   theSolver = PrepareLocalSolver(mapObj);
    #ifdef DEBUG_MEMORY
       MemoryTracker::Instance()->Add
          (theSolver, theSolver->GetName(), "Optimize::Initialize()",
@@ -439,52 +435,37 @@ bool Optimize::Initialize()
    theSolver->SetStringParameter("ExitMode",
          GetStringParameter(SOLVER_EXIT_MODE));
 
-   // Set the local copy of the optimizer on each node
-   std::vector<GmatCommand*>::iterator node;
-   GmatCommand *currentCmd = NULL;
+   // Bind and count controls in this solver's ordinary nested branches.
+   // Nested solver sequences bind and count their own controls.
    specialState = Solver::INITIALIZING;
 
    Integer constraintCount = 0, variableCount = 0, objectiveCount = 0;
 
-   for (node = branch.begin(); node != branch.end(); ++node)
+   for (GmatCommand *currentCmd : GetCommandsInSolverScope())
    {
-      currentCmd = *node;
-
       #ifdef DEBUG_OPTIMIZE_COMMANDS
-         Integer nodeNum = 0;
+         MessageInterface::ShowMessage("   Optimize Command: %s\n",
+                                      currentCmd->GetTypeName().c_str());
       #endif
-      while ((currentCmd != NULL) && (currentCmd != this))
-      {
-         #ifdef DEBUG_OPTIMIZE_COMMANDS
-            MessageInterface::ShowMessage(
-               "   Optimize Command %d:  %s\n", ++nodeNum, 
-               currentCmd->GetTypeName().c_str());       
-         #endif
-         
-         if ((currentCmd->GetTypeName() == "Vary") || 
-             (currentCmd->GetTypeName() == "Minimize") ||
-             (currentCmd->GetTypeName() == "NonlinearConstraint"))
-         {
-            currentCmd->SetRefObject(theSolver, Gmat::SOLVER, solverName);
 
-            // Count optimization parameters
-            if (currentCmd->GetTypeName() == "Minimize")
-               ++objectiveCount;
-            if (currentCmd->GetTypeName() == "NonlinearConstraint")
-            {
-               ++constraintCount;
-            }
-            if (currentCmd->GetTypeName() == "Vary")
-               ++variableCount;
-               
-            #ifdef DEBUG_OPTIMIZE_EXEC
-               MessageInterface::ShowMessage(
-                  "   *** COUNTS: %d Costs, %d Variables, %d Constraints ***\n",
-                  objectiveCount, variableCount, constraintCount);
-            #endif
-         }
-         
-         currentCmd = currentCmd->GetNext();
+      if ((currentCmd->GetTypeName() == "Vary") ||
+          (currentCmd->GetTypeName() == "Minimize") ||
+          (currentCmd->GetTypeName() == "NonlinearConstraint"))
+      {
+         currentCmd->SetRefObject(theSolver, Gmat::SOLVER, solverName);
+
+         if (currentCmd->GetTypeName() == "Minimize")
+            ++objectiveCount;
+         if (currentCmd->GetTypeName() == "NonlinearConstraint")
+            ++constraintCount;
+         if (currentCmd->GetTypeName() == "Vary")
+            ++variableCount;
+
+         #ifdef DEBUG_OPTIMIZE_EXEC
+            MessageInterface::ShowMessage(
+               "   *** COUNTS: %d Costs, %d Variables, %d Constraints ***\n",
+               objectiveCount, variableCount, constraintCount);
+         #endif
       }
    }
 
@@ -572,6 +553,17 @@ bool Optimize::Initialize()
 bool Optimize::Execute()
 {
    PlotExecutionScope plotScope(this);
+   EphemerisIterationScope ephemerisScope([](const void *object)
+   {
+      const auto *command = static_cast<const Optimize*>(object);
+      if (command->startMode != RUN_AND_SOLVE) return true;
+      if (!command->theSolver) return false;
+      const Integer status = command->theSolver->GetIntegerParameter(
+            command->theSolver->GetParameterID("IntegerSolverStatus"));
+      // Optimizer's scripted physical tolerances are a separate successful
+      // terminal status from the optimizer backend's convergence status.
+      return status == Gmat::CONVERGED || status == Gmat::IN_TOLERANCE;
+   }, this);
    #ifdef DEBUG_OPTIMIZE_EXEC
    MessageInterface::ShowMessage("Optimize::Execute() <%p> entered\n", this);
    #endif
@@ -594,6 +586,8 @@ bool Optimize::Execute()
    bool retval = true;
    
    // Drive through the state machine.
+   GmatInterface::CallbackScope callbackScope(theSolver->IsOfType("ExternalOptimizer") &&
+         theSolver->GetStringParameter("SourceType") == "MATLAB" ? this : nullptr);
    Solver::SolverState state = theSolver->GetState();
    
    #ifdef DEBUG_OPTIMIZE_EXEC
@@ -701,17 +695,23 @@ bool Optimize::Execute()
 //------------------------------------------------------------------------------
 void Optimize::RunComplete()
 {
-   if (gmatInt) gmatInt->UnregisterCallbackServer(this);
+   std::exception_ptr firstError;
+   try { if (gmatInt) gmatInt->UnregisterCallbackServer(this); }
+   catch (...) { firstError = std::current_exception(); }
    callbackExecuting = false;
-   if (theSolver != NULL) {
-      theSolver->SetBooleanParameter(theSolver->GetParameterID("Nested"), false);
-      theSolver->Finalize();
+   try
+   {
+      if (theSolver)
+      {
+         theSolver->SetBooleanParameter(theSolver->GetParameterID("Nested"), false);
+         theSolver->Finalize();
+      }
    }
-   
-   // Free local data (LOJ: 2009.03.19)
+   catch (...) { if (!firstError) firstError = std::current_exception(); }
    FreeLoopData();
-   
-   SolverBranchCommand::RunComplete();
+   try { SolverBranchCommand::RunComplete(); }
+   catch (...) { if (!firstError) firstError = std::current_exception(); }
+   if (firstError) std::rethrow_exception(firstError);
 }
 
 
@@ -1017,7 +1017,6 @@ bool Optimize::RunInternalSolver(Solver::SolverState state)
          ("Executing the Internal Optimizer %s\n", theSolver->GetName().c_str());
       #endif
       
-      GmatCommand *currentCmd = NULL;
       // Set GMAT run state to SOLVING (LOJ: 2010.01.12)
       // Keep this optimizer's display scope in sync without propagating a
       // different run state into its child commands or numerical execution.
@@ -1038,17 +1037,10 @@ bool Optimize::RunInternalSolver(Solver::SolverState state)
                MessageInterface::ShowMessage("Mode: %d  State: %d  Special state: INITIALIZING (%d)",
                      startMode, state, specialState);
                #endif
-               currentCmd = branch[0];
                optimizerConverged = false;
-               while (currentCmd && (currentCmd != this))
-               {
-                  std::string type = currentCmd->GetTypeName();
-                  if ((type == "Optimize") || (type == "Vary") ||
-                      (type == "Minimize") || (type == "NonlinearConstraint"))
-                     currentCmd->Execute();
-                  currentCmd = currentCmd->GetNext();
-               }
+               RegisterSolverControlData({"Vary", "Minimize", "NonlinearConstraint"});
                StoreLoopData();
+               UpdateInitialGuessSubscriberBreakpoint(false);
                specialState = Solver::NOMINAL;
 //               specialState = Solver::RUNSPECIAL;
 
@@ -1093,6 +1085,7 @@ bool Optimize::RunInternalSolver(Solver::SolverState state)
                   #endif
                   ResetLoopData();
                   branchExecuting = true;
+                  UpdateInitialGuessSubscriberBreakpoint(true);
                   ChangeRunState(Gmat::SOLVEDPASS);
                   //publisher->SetRunState(Gmat::SOLVEDPASS);
                }
@@ -1156,21 +1149,10 @@ bool Optimize::RunInternalSolver(Solver::SolverState state)
             MessageInterface::ShowMessage
                ("Optimize::Execute - internal solver in INITIALIZING state\n");
             #endif
-            currentCmd = branch[0];
             optimizerConverged = false;
             StoreLoopData();
-            while (currentCmd && (currentCmd != this))
-            {
-               std::string type = currentCmd->GetTypeName();
-               if ((type == "Optimize") || (type == "Vary") ||
-                   (type == "Minimize") || (type == "NonlinearConstraint"))
-               {
-                  if ((type == "Vary") && (optimizerRunOnce))
-                     currentCmd->TakeAction("SolverReset");
-                  currentCmd->Execute();
-               }
-               currentCmd = currentCmd->GetNext();
-            }
+            RegisterSolverControlData({"Vary", "Minimize", "NonlinearConstraint"},
+                  optimizerRunOnce ? VARY_RESET_BEFORE : VARY_RESET_NONE);
             GetActiveSubscribers();
             SetSubscriberBreakpoint();
             break;
@@ -1235,21 +1217,9 @@ bool Optimize::RunInternalSolver(Solver::SolverState state)
             // vector. Refresh only the report cache before the provider can
             // declare convergence and write its final variable values.
             {
-               std::set<GmatCommand *> visited;
-               auto refresh=[&](auto &&self,GmatCommand *command,GmatCommand *owner)->void
-               {
-                  for (;command && command!=owner;command=command->GetNext())
-                  {
-                     if (!visited.insert(command).second) break;
-                     if (command->IsOfType("Vary"))
-                        command->TakeAction("RefreshSolverReporting",solverName);
-                     // A nested solver owns its own decision/report values.
-                     if (!dynamic_cast<SolverBranchCommand *>(command))
-                        for (Integer i=0;auto *child=command->GetChildCommand(i);++i)
-                           self(self,child,command);
-                  }
-               };
-               refresh(refresh,branch[0],this);
+               for (GmatCommand *command : GetCommandsInSolverScope())
+                  if (command->IsOfType("Vary"))
+                     command->TakeAction("RefreshSolverReporting",solverName);
                // Report physical controls only after the last probe's cache
                // has been replaced by the restored nominal decision values.
                if (theSolver->GetTypeName() == "VF13ad")
@@ -1337,7 +1307,6 @@ bool Optimize::RunExternalSolver(Solver::SolverState state)
          ("Executing the External Optimizer %s\n", theSolver->GetName().c_str());
       #endif
       
-      GmatCommand *currentCmd = NULL;
       currentRunState = Gmat::SOLVING;
       publisher->SetRunState(Gmat::SOLVING);
 
@@ -1352,16 +1321,8 @@ bool Optimize::RunExternalSolver(Solver::SolverState state)
             MessageInterface::ShowMessage
                ("Optimize::Execute - external solver in INITIALIZING state\n");
             #endif
-            currentCmd = branch[0];
             optimizerConverged = false;
-            while (currentCmd && (currentCmd != this))
-            {
-               std::string type = currentCmd->GetTypeName();
-               if ((type == "Optimize") || (type == "Vary") ||
-                   (type == "Minimize") || (type == "NonlinearConstraint"))
-                  currentCmd->Execute();
-               currentCmd = currentCmd->GetNext();
-            }
+            RegisterSolverControlData({"Vary", "Minimize", "NonlinearConstraint"});
             StoreLoopData();
 
             theSolver->ReportProgress(Solver::INITIALIZING);
@@ -1373,6 +1334,11 @@ bool Optimize::RunExternalSolver(Solver::SolverState state)
          case Solver::NOMINAL:
             branchExecuting = true;
             specialState = Solver::FINISHED;
+            // External RunInitialGuess executes this branch only once. Mark
+            // the explicitly requested trajectory as publishable now, before
+            // the completion path retires the command.
+            currentRunState = Gmat::SOLVEDPASS;
+            publisher->SetRunState(Gmat::SOLVEDPASS);
             break;
 
          case Solver::FINISHED:
@@ -1425,17 +1391,9 @@ bool Optimize::RunExternalSolver(Solver::SolverState state)
             MessageInterface::ShowMessage
                ("Optimize::Execute - external solver in INITIALIZING state\n");
             #endif
-            currentCmd = branch[0];
             optimizerConverged = false;
             StoreLoopData();
-            while (currentCmd && (currentCmd != this))
-            {
-               std::string type = currentCmd->GetTypeName();
-               if ((type == "Optimize") || (type == "Vary") ||
-                   (type == "Minimize") || (type == "NonlinearConstraint"))
-                  currentCmd->Execute();
-               currentCmd = currentCmd->GetNext();
-            }
+            RegisterSolverControlData({"Vary", "Minimize", "NonlinearConstraint"});
             GetActiveSubscribers();
             SetSubscriberBreakpoint();
             break;
@@ -1497,3 +1455,19 @@ bool Optimize::RunExternalSolver(Solver::SolverState state)
    return retval;
 }
 
+
+void Optimize::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   if (gmatInt) gmatInt->UnregisterCallbackServer(this);
+   callbackExecuting = false;
+   optimizerConverged = false;
+   optimizerInFunctionInitialized = false;
+   optimizerRunOnce = false;
+   penIsDown = false;
+   minimizeCount = 0;
+   callbackResults.clear();
+   callbackData.clear();
+   callbackRealData.clear();
+   SolverBranchCommand::RetireFunctionBindings(store);
+}

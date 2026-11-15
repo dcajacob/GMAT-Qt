@@ -98,7 +98,12 @@ OrbitTime& OrbitTime::operator=(const OrbitTime &copy)
  */
 GmatBase* OrbitTime::Clone() const
 {
-   return new OrbitTime(*this);
+   return CompleteParameterClone(new OrbitTime(*this));
+}
+
+void OrbitTime::Copy(const GmatBase *source)
+{
+   CopyParameterValue<OrbitTime>(source);
 }
 
 

@@ -49,6 +49,7 @@ public:
    NonlinearConstraint(const NonlinearConstraint& nlc);
    NonlinearConstraint&           operator=(const NonlinearConstraint& nlc);
    virtual ~NonlinearConstraint();
+   void RetireFunctionBindings(ObjectMap *store) override;
 
    // inherited from GmatBase
    virtual GmatBase*   Clone() const;

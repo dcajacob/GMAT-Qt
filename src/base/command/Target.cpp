@@ -30,7 +30,9 @@
 //------------------------------------------------------------------------------
 
  
+#include <exception>
 #include "Target.hpp"
+#include "EphemerisIterationScope.hpp"
 #include "MessageInterface.hpp"
 
 //#define DEBUG_TARGETER_PARSING
@@ -120,7 +122,7 @@ Target& Target::operator=(const Target& t)
    if (this == &t)
       return *this;
     
-   GmatCommand::operator=(t);
+   SolverBranchCommand::operator=(t);
 
    targeterConverged   = false;
    targeterInFunctionInitialized = false;
@@ -160,7 +162,10 @@ bool Target::Append(GmatCommand *cmd)
         return false;
     
    // If at the end of a targeter branch, point that end back to this comand.
-   if (cmd->GetTypeName() == "EndTarget") {
+   // An inner Optimize may consume EndTarget as its legacy terminator. Do not
+   // also close this Target when that end already points to the optimizer.
+   if (cmd->GetTypeName() == "EndTarget" &&
+       (!cmd->GetNext() || cmd->GetNext()->GetTypeName() != "Optimize")) {
       if ((nestLevel == 0) && (branchToFill != -1))  {
          cmd->Append(this);
          // Targeter loop is complete; -1 pops to the next higher sequence.
@@ -511,26 +516,15 @@ bool Target::Initialize()
        mapObj->GetIntegerParameter(mapObj->GetParameterID("MaximumIterations")));
    #endif 
 
-   // Delete the old cloned solver
-   if (theSolver)
+   // A nested active invocation keeps its own solver state. Otherwise stage
+   // a cold definition and reuse this command's owned instance of that class.
+   if (theSolver && theSolver->GetBooleanParameter(theSolver->GetParameterID("Nested")))
    {
-	   if (theSolver->GetBooleanParameter(theSolver->GetParameterID("Nested")))
-	   {
-		   branchExecuting = false;
-		   commandExecuting = false;
-		   return true;		   
-	   }
-	   else {		
-#ifdef DEBUG_MEMORY
-		   MemoryTracker::Instance()->Remove
-		   (theSolver, "local solver", "Target::Initialize()",
-			   "deleting local cloned solver");
-#endif
-		   delete theSolver;
-	   }
+      branchExecuting = false;
+      commandExecuting = false;
+      return true;
    }
-   
-   theSolver = (Solver *)(mapObj->Clone());
+   theSolver = PrepareLocalSolver(mapObj);
    if (theSolver != NULL)
       ++cloneCount;
 
@@ -559,30 +553,19 @@ bool Target::Initialize()
    theSolver->SetStringParameter("ExitMode", 
          GetStringParameter(SOLVER_EXIT_MODE));
    
-   // Set the local copy of the targeter on each node
-   std::vector<GmatCommand*>::iterator node;
-   GmatCommand *current;
+   // Bind controls in ordinary nested branches to this local solver copy.
+   // Nested solver sequences bind their own controls during initialization.
    specialState = Solver::INITIALIZING;
 
-   for (node = branch.begin(); node != branch.end(); ++node)
+   for (GmatCommand *current : GetCommandsInSolverScope())
    {
-      current = *node;
-
       #ifdef DEBUG_TARGET_COMMANDS
-         Integer nodeNum = 0;
+         MessageInterface::ShowMessage("   Target Command: %s\n",
+                                      current->GetTypeName().c_str());
       #endif
-      while ((current != NULL) && (current != this))
-      {
-         #ifdef DEBUG_TARGET_COMMANDS
-            MessageInterface::ShowMessage(
-               "   Target Command %d:  %s\n", ++nodeNum, 
-               current->GetTypeName().c_str());       
-         #endif
-         if ((current->GetTypeName() == "Vary") || 
-             (current->GetTypeName() == "Achieve"))
-            current->SetRefObject(theSolver, Gmat::SOLVER, solverName);
-         current = current->GetNext();
-      }
+      if ((current->GetTypeName() == "Vary") ||
+          (current->GetTypeName() == "Achieve"))
+         current->SetRefObject(theSolver, Gmat::SOLVER, solverName);
    }
 
    bool retval = SolverBranchCommand::Initialize();
@@ -624,6 +607,13 @@ bool Target::Initialize()
 bool Target::Execute()
 {
    PlotExecutionScope plotScope(this);
+   EphemerisIterationScope ephemerisScope([](const void *object)
+   {
+      const auto *command = static_cast<const Target*>(object);
+      return command->startMode != RUN_AND_SOLVE ||
+            (command->theSolver && command->theSolver->GetIntegerParameter(
+                  command->theSolver->GetParameterID("IntegerSolverStatus")) == Gmat::CONVERGED);
+   }, this);
    #ifdef DEBUG_TARGET_EXEC
    MessageInterface::ShowMessage
       ("\nTarget::Execute() entered, theSolver=<%p>'%s', ", (GmatBase*)theSolver,
@@ -716,8 +706,6 @@ bool Target::Execute()
    }
    else
    {
-      GmatCommand *currentCmd;
-   
       ChangeRunState(Gmat::SOLVING);
       
       switch (startMode)
@@ -732,18 +720,13 @@ bool Target::Execute()
             {
                case Solver::INITIALIZING:
                   // Finalize initialization of the targeter data
-                  currentCmd = branch[0];
                   targeterConverged = false;
-                  while (currentCmd != this)  
-                  {
-                     std::string type = currentCmd->GetTypeName();
-                     if ((type == "Target") || (type == "Vary") ||
-                         (type == "Achieve"))
-                        currentCmd->Execute();
-                     currentCmd = currentCmd->GetNext();
-                  }
-
+                  // Registering a nested solver can execute its sequence.
+                  // Retain the initial epoch/state before that work, as in
+                  // normal Solve mode, so the displayed pass starts there.
                   StoreLoopData();
+                  RegisterSolverControlData({"Vary", "Achieve"});
+                  UpdateInitialGuessSubscriberBreakpoint(false);
                   specialState = Solver::NOMINAL;
                   break;
                      
@@ -762,6 +745,7 @@ bool Target::Execute()
                   if (!commandComplete)
                   {
                      ResetLoopData();
+                     UpdateInitialGuessSubscriberBreakpoint(true);
                      branchExecuting = true;
                      ChangeRunState(Gmat::SOLVEDPASS);
                   }
@@ -802,25 +786,14 @@ bool Target::Execute()
             {
                case Solver::INITIALIZING:
                   // Finalize initialization of the targeter data
-                  currentCmd = branch[0];
                   targeterConverged = false;
                   StoreLoopData();
                   // Inner Target initialization can publish trial samples.
                   // Anchor the parent plot history before dispatching it.
                   GetActiveSubscribers();
                   SetSubscriberBreakpoint();
-                  while (currentCmd != this)  
-                  {
-                     std::string type = currentCmd->GetTypeName();
-                     if ((type == "Target") || (type == "Vary") ||
-                         (type == "Achieve"))
-                     {
-                        currentCmd->Execute();
-                        if ((type == "Vary") && (targeterRunOnce))
-                           currentCmd->TakeAction("SolverReset");
-                     }
-                     currentCmd = currentCmd->GetNext();
-                  }
+                  RegisterSolverControlData({"Vary", "Achieve"},
+                        targeterRunOnce ? VARY_RESET_AFTER : VARY_RESET_NONE);
                   break;
                      
                case Solver::NOMINAL:
@@ -923,11 +896,20 @@ bool Target::Execute()
 //------------------------------------------------------------------------------
 void Target::RunComplete()
 {
-   if (theSolver != NULL)
-      theSolver->Finalize();
-   
-   // Free local data (LOJ: 2009.03.17)
+   std::exception_ptr firstError;
+   try { if (theSolver) theSolver->Finalize(); }
+   catch (...) { firstError = std::current_exception(); }
    FreeLoopData();
-   
-   SolverBranchCommand::RunComplete();
+   try { SolverBranchCommand::RunComplete(); }
+   catch (...) { if (!firstError) firstError = std::current_exception(); }
+   if (firstError) std::rethrow_exception(firstError);
+}
+
+void Target::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   targeterConverged = false;
+   targeterInFunctionInitialized = false;
+   targeterRunOnce = false;
+   SolverBranchCommand::RetireFunctionBindings(store);
 }

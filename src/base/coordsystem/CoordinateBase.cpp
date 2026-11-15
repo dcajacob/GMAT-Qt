@@ -37,6 +37,7 @@
 #include "CoordinateSystemException.hpp"
 #include "SolarSystem.hpp"
 #include "SpacePoint.hpp"
+#include "CelestialBody.hpp"
 #include "MessageInterface.hpp"
 
 //#define DEBUG_SET_SS
@@ -361,6 +362,17 @@ std::string CoordinateBase::GetOriginName() const
 {
    if (origin) return origin->GetName();
    else        return originName;
+}
+
+const std::string& CoordinateBase::GetOriginPhysicalName() const
+{
+   if (origin && origin->GetName() == originName)
+      if (const auto *body = dynamic_cast<CelestialBody *>(origin))
+         return body->GetPhysicalBodyName();
+   if (solar)
+      if (const auto *body = solar->GetBody(originName))
+         return body->GetPhysicalBodyName();
+   return originName;
 }
 
 //------------------------------------------------------------------------------

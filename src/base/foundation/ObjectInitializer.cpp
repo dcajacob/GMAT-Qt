@@ -38,7 +38,11 @@
 #include "GmatGlobal.hpp"
 #include "Moderator.hpp"
 #include "ObjectInitializer.hpp"
+#include "FunctionValueContext.hpp"
 #include "SolarSystem.hpp"
+#include "Plate.hpp"
+#include "Attitude.hpp"
+#include "Solver.hpp"
 #include "CoordinateSystem.hpp"
 #include "GmatBaseException.hpp"
 #include "SubscriberException.hpp"
@@ -746,6 +750,14 @@ void ObjectInitializer::SetObjectJ2000Body(ObjectMap *objMap)
                obj->GetName().c_str());
          #endif
          SpacePoint *spObj = (SpacePoint *)obj;
+         // A retained station already carries its exact mapped reference body.
+         // Equal-name global/configured bodies must not replace that identity.
+         if (obj->IsOfType(Gmat::GROUND_STATION))
+         {
+            const auto context = obj->GetFunctionValueContext();
+            if (context && spObj->GetJ2000Body() && context->RetainsReference(spObj->GetJ2000Body()))
+               continue;
+         }
          SpacePoint* j2k = FindSpacePoint(spObj->GetJ2000BodyName());
          if (j2k)
          {
@@ -757,6 +769,17 @@ void ObjectInitializer::SetObjectJ2000Body(ObjectMap *objMap)
                spObj->GetJ2000BodyName() + "\"");
       }
    }
+}
+
+bool ObjectInitializer::InitializeGroundStation(GmatBase *station)
+{
+   if (!station || !station->IsOfType(Gmat::GROUND_STATION))
+      throw GmatBaseException("InitializeGroundStation requires a GroundStation");
+   ObjectMap selected;
+   selected.emplace(station->GetName(), station);
+   SetObjectJ2000Body(&selected);
+   BuildReferences(station);
+   return station->Initialize();
 }
 
 
@@ -965,6 +988,18 @@ void ObjectInitializer::InitializeSubscribers(ObjectMap *objMap)
        registerSubscribers);
    #endif
    
+   auto preserveShared = [this](GmatBase *object)
+   {
+      if (!inFunction || !GOS || !object->IsInitialized()) return false;
+      return std::any_of(GOS->begin(), GOS->end(),
+            [object](const auto &entry) { return entry.second == object; });
+   };
+   auto initialize = [this](GmatBase *object)
+   {
+      auto *subscriber = static_cast<Subscriber*>(object);
+      subscriber->ConfigureRuntimeOutput(inFunction);
+      BuildReferencesAndInitialize(object);
+   };
    std::list<Subscriber*>::iterator subiter;
    std::list<Subscriber*> subList = publisher->GetSubscriberList();
    /// Initialize in z-order here, if relative z-order values have been saved from a previous run
@@ -977,7 +1012,6 @@ void ObjectInitializer::InitializeSubscribers(ObjectMap *objMap)
    
    for (subiter = orderedList.begin(); subiter != orderedList.end(); ++subiter)
    {
-      std::string subName = (*subiter)->GetName();      
       for (omi = objMap->begin(); omi != objMap->end(); ++omi)
       {
          GmatBase *obj = omi->second;
@@ -990,15 +1024,11 @@ void ObjectInitializer::InitializeSubscribers(ObjectMap *objMap)
          // in the order they are created. So use initializing order from the Publisher.
          if (obj->IsOfType(Gmat::SUBSCRIBER))
          {
-            if (subName == obj->GetName())
+            if (obj == *subiter)
             {
-               // The caller already bound this global step plot to its runtime
-               // spacecraft. A function must not reset its sampling cursor or
-               // rebind those references to same-name local spacecraft.
-               if (inFunction && objMap == GOS && obj == *subiter && obj->IsGlobal() &&
-                   obj->IsInitialized() && (obj->IsOfType("OrbitPlot") || obj->IsOfType("GroundTrack")) &&
-                   obj->GetIntegerParameter("IntegrationStepsToSkip") >= 0)
-                  continue;
+               // Shared global subscribers keep their actual runtime bindings,
+               // writer state, plot history and sampling cursor across calls.
+               if (preserveShared(obj)) continue;
 
                #if defined(DEBUG_OBJECT_INITIALIZER) || defined(DEBUG_SUBSCRIBER)
                MessageInterface::ShowMessage
@@ -1006,7 +1036,7 @@ void ObjectInitializer::InitializeSubscribers(ObjectMap *objMap)
                    obj, obj->GetTypeName().c_str(), obj->GetName().c_str());
                #endif
                
-               BuildReferencesAndInitialize(obj);
+               initialize(obj);
             }
          }
       }
@@ -1043,7 +1073,7 @@ void ObjectInitializer::InitializeSubscribers(ObjectMap *objMap)
                 obj, obj->GetTypeName().c_str(), obj->GetName().c_str());
             #endif
             
-            BuildReferencesAndInitialize(obj);
+            if (!preserveShared(obj)) initialize(obj);
             
             if (registerSubscribers)
             {
@@ -1272,13 +1302,27 @@ void ObjectInitializer::InitializeCoordinateSystem(GmatBase *obj)
    if (axes == NULL)
       throw GmatBaseException
          ("Cannot initialize NULL axes of CoordinateSystem \"" + cs->GetName() + "\"");
-   
-   BuildReferences(axes);
+
+   const auto valueContext = cs->GetFunctionValueContext();
+   {
+      // Axes are natively owned by the public frame. Borrow its lookup context
+      // only during initialization; storing it on graph-owned axes would make
+      // an ownership cycle.
+      struct RestoreContext
+      {
+         GmatBase *object;
+         std::shared_ptr<const FunctionValueContext> previous;
+         ~RestoreContext() { object->SetFunctionValueContext(previous); }
+      } restore{axes, axes->GetFunctionValueContext()};
+      if (valueContext) axes->SetFunctionValueContext(valueContext);
+      BuildReferences(axes);
+   }
    
    // Initialize origin of the coordinate system
    oName = cs->GetStringParameter("Origin");
    
-   sp = FindSpacePoint(oName);
+   sp = valueContext && cs->GetOrigin() && cs->GetOrigin()->GetName() == oName ?
+         cs->GetOrigin() : FindSpacePoint(oName);
    if (sp == NULL)
       throw GmatBaseException("Cannot find SpacePoint named \"" +
          oName + "\" used for the coordinate system " +
@@ -1288,7 +1332,8 @@ void ObjectInitializer::InitializeCoordinateSystem(GmatBase *obj)
    
    oName = cs->GetStringParameter("J2000Body");
    
-   sp = FindSpacePoint(oName);
+   sp = valueContext && cs->GetJ2000Body() && cs->GetJ2000Body()->GetName() == oName ?
+         cs->GetJ2000Body() : FindSpacePoint(oName);
    if (sp == NULL)
       throw GmatBaseException("Cannot find SpacePoint named \"" +
          oName + "\" used for the coordinate system " +
@@ -1318,7 +1363,8 @@ void ObjectInitializer::BuildReferencesAndInitialize(GmatBase *obj)
    MessageInterface::ShowMessage("--- Calling BuildReferences()\n");
 	#endif
 	
-   BuildReferences(obj);
+   auto *retainedSubscriber = dynamic_cast<Subscriber*>(obj);
+   if (!retainedSubscriber || !retainedSubscriber->HasFunctionValueBindings()) BuildReferences(obj);
    
    // If this object has a run time GUI component, set it up now
    if (obj->HasGuiPlugin() && pCreateWidget)
@@ -1343,7 +1389,44 @@ void ObjectInitializer::BuildReferencesAndInitialize(GmatBase *obj)
    /// @todo Fix so that failed initialization (return == false) is handled
    try
    {
-       obj->Initialize();
+       auto *attitude = dynamic_cast<Attitude*>(obj);
+       if (attitude && obj->GetFunctionValueContext())
+       {
+          if (!attitude->InitializeClonedResource())
+             throw GmatBaseException("Cannot initialize retained Attitude.");
+       }
+       else if (auto *plate = dynamic_cast<Plate*>(obj); plate && obj->GetFunctionValueContext())
+       {
+          if (!plate->InitializeClonedResource())
+             throw GmatBaseException("Cannot prepare retained Plate definition.");
+       }
+       else if (obj->IsOfType(Gmat::STOP_CONDITION) && obj->GetFunctionValueContext())
+       {
+          // A retained value preserves interpolation/sampling history. Propagate
+          // performs native definition preparation when it uses the condition.
+       }
+       else if (auto *solver = dynamic_cast<Solver*>(obj);
+             solver && obj->GetFunctionValueContext() &&
+             solver->HasSolverValueReferenceProvider())
+       {
+          // Keep captured numerical data and dormant services during function
+          // preparation. Target/Optimize initialize their own cold solver copy
+          // when a command actually starts a run.
+       }
+       else if (auto *subscriber = dynamic_cast<Subscriber*>(obj)) subscriber->InitializeForRun();
+       else obj->Initialize();
+       if (auto *plate = dynamic_cast<Plate*>(obj))
+       {
+          const std::string frameName = plate->GetHistoryCoordinateSystemName();
+          if (!frameName.empty() && frameName != "FixedInBody")
+          {
+             const auto context = obj->GetFunctionValueContext();
+             CoordinateSystem *current = plate->GetBoundHistoryCoordinateSystem();
+             if (!context || !current || !context->RetainsReference(current))
+                plate->BindHistoryCoordinateSystem(dynamic_cast<CoordinateSystem*>(FindObject(frameName)), inFunction);
+          }
+          else plate->BindHistoryCoordinateSystem(NULL, inFunction);
+       }
    }
    catch (BaseException &e)
    {
@@ -1856,6 +1939,59 @@ void ObjectInitializer::SetRefFromName(GmatBase *obj, const std::string &oName)
          oName.c_str(), obj->GetName().c_str(), inFunction);
    #endif
       
+   if (const auto context = obj->GetFunctionValueContext())
+   {
+      const ObjectArray &privateObjects = context->GetPrivateObjects();
+      // Preserve an actual retained binding before considering names. Several
+      // independent function values can have different private objects with
+      // the same local name.
+      for (UnsignedInt type : {Gmat::COORDINATE_SYSTEM, Gmat::SPACE_POINT,
+            Gmat::SPACECRAFT, Gmat::ODE_MODEL, Gmat::HARDWARE,
+            Gmat::ERROR_MODEL, Gmat::FIELD_OF_VIEW, Gmat::PARAMETER})
+      {
+         GmatBase *current = NULL;
+         try { current = obj->GetRefObject(type, oName); }
+         catch (BaseException &) { continue; }
+         if (current && (current->GetName() == oName || obj->IsOfType(Gmat::STOP_CONDITION)) &&
+               context->RetainsReference(current))
+            return;
+      }
+      GmatBase *privateReference = NULL;
+      for (GmatBase *candidate : privateObjects)
+         if (candidate && candidate->GetName() == oName)
+         {
+            if (privateReference && privateReference != candidate)
+            {
+               GmatBaseException error("Ambiguous private reference \"" + oName +
+                     "\" in retained function value \"" + obj->GetName() + "\"");
+               error.SetFatal(true);
+               throw error;
+            }
+            privateReference = candidate;
+         }
+      if (privateReference)
+      {
+         if (!obj->SetRefObject(privateReference, privateReference->GetType(), oName))
+         {
+            GmatBaseException error("Cannot bind retained private reference \"" + oName + "\"");
+            error.SetFatal(true);
+            throw error;
+         }
+         return;
+      }
+   }
+
+   // Station value copies already own these attachments. They need not also
+   // be separately Global in a function, and a same-named external template
+   // must not replace the station's current private component values.
+   if (obj->IsOfType(Gmat::GROUND_STATION) &&
+       oName != obj->GetRefObjectName(Gmat::SPACE_POINT))
+   {
+      for (const auto type : {Gmat::HARDWARE, Gmat::ERROR_MODEL})
+         for (auto *owned : obj->GetRefObjectArray(type))
+            if (owned && owned->GetName() == oName) return;
+   }
+
    GmatBase *refObj = NULL;
    
    if ((refObj = FindObject(oName)) != NULL)
@@ -1934,6 +2070,18 @@ void ObjectInitializer::BuildAssociations(GmatBase * obj)
       StringArray hw = obj->GetRefObjectNameArray(Gmat::HARDWARE);
       for (StringArray::iterator i = hw.begin(); i < hw.end(); ++i)
       {
+         if (obj->GetFunctionValueContext())
+         {
+            bool attached = false;
+            const ObjectArray components = obj->GetRefObjectArray(Gmat::UNKNOWN_OBJECT);
+            for (GmatBase *component : components)
+               if (component && component->IsOfType(Gmat::HARDWARE) && component->GetName() == *i)
+               {
+                  attached = true;
+                  break;
+               }
+            if (attached) continue;
+         }
          #ifdef DEBUG_BUILD_ASSOCIATIONS
             MessageInterface::ShowMessage
                ("ObjectInitializer::BuildAssociations() setting \"%s\" on \"%s\"\n",
@@ -2022,7 +2170,12 @@ void ObjectInitializer::BuildAssociations(GmatBase * obj)
             
          }
       }
+      obj->SetCloneNotificationsEnabled(true);
    }
+   if ((obj->IsOfType("Estimator") || obj->IsOfType("Simulator") ||
+        obj->IsOfType("TrackingFileSet")) &&
+       !obj->GetCloneOwner())
+      obj->SetCloneNotificationsEnabled(true);
    
    #ifdef DEBUG_BUILD_ASSOCIATIONS
    MessageInterface::ShowMessage

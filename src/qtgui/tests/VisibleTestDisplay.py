@@ -16,7 +16,8 @@ import ctypes
 import ctypes.util
 import time
 
-TITLE = 'GMAT GUI acceptance — live test desktop'
+# Xephyr stores -title in legacy WM_NAME/STRING, so keep it ASCII.
+TITLE = 'GMAT GUI acceptance - live test desktop'
 
 
 def host_windows(environment):

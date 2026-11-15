@@ -28,6 +28,7 @@
 //------------------------------------------------------------------------------
 
 #include "RHSEquation.hpp"
+#include "ExpressionBinding.hpp"
 
 #include "MathParser.hpp"
 #include "MathTree.hpp"
@@ -38,17 +39,78 @@
 #include "ElementWrapper.hpp"
 #include "NumberWrapper.hpp"
 #include "ArrayWrapper.hpp"
+#include "RvectorWrapper.hpp"
 #include "ObjectWrapper.hpp"
 #include "StringWrapper.hpp"
 #include "Array.hpp"
 #include "FunctionManager.hpp"
+#include "EquationWrapper.hpp"
+#include <set>
+#include <memory>
+#include <utility>
+#include <exception>
+
+#ifdef DEBUG_MEMORY
+#include "MemoryTracker.hpp"
+#endif
 
 //#define DEBUG_RUN_MATH_TREE
 //#define DEBUG_WRAPPER_CODE
 
-#ifdef DEBUG_RUN_MATH_TREE
 #include "MessageInterface.hpp"
-#endif
+
+namespace
+{
+struct RHSWrapperCopies
+{
+   WrapperMap values;
+   std::vector<std::unique_ptr<ElementWrapper>> owned;
+   void Release() { for (auto &value : owned) value.release(); }
+};
+
+RHSWrapperCopies CopyRHSWrappers(const WrapperMap &source)
+{
+   RHSWrapperCopies result;
+   std::map<const ElementWrapper*, ElementWrapper*> copies;
+   std::set<const ElementWrapper*> forbidden;
+   for (const auto &entry : source) if (entry.second) forbidden.insert(entry.second);
+   GmatBase::FunctionValueCopyGuard copying;
+   for (const auto &entry : source)
+   {
+      if (!entry.second) { result.values.emplace(entry.first, nullptr); continue; }
+      auto found = copies.find(entry.second);
+      if (found == copies.end())
+      {
+         auto copy = ElementWrapper::CloneValue(entry.second);
+         if (forbidden.count(copy.get()))
+         {
+            copy.release();
+            throw CommandException("Equation wrapper Clone returned a source/peer.\n");
+         }
+         ElementWrapper *value = copy.get();
+         result.owned.push_back(std::move(copy));
+         copies.emplace(entry.second, value);
+         forbidden.insert(value);
+         found = copies.find(entry.second);
+      }
+      result.values.emplace(entry.first, found->second);
+   }
+   // Register owned values before reconnecting borrowed aliases between wrappers.
+   ObjectArray originals, values;
+   for (const auto &entry : copies)
+      entry.second->CollectClonedOwnedReferences(*entry.first, originals, values, true);
+   for (const auto &entry : copies)
+      entry.second->CollectClonedOwnedReferences(*entry.first, originals, values);
+   auto resolve = [&](GmatBase *object) -> GmatBase*
+   {
+      const auto found = std::find(originals.begin(), originals.end(), object);
+      return found == originals.end() ? object : values[found - originals.begin()];
+   };
+   for (const auto &entry : copies)
+      entry.second->RebindClonedReferences(*entry.first, resolve);
+   return result;
+}
+}
 
 //------------------------------------------------------------------------------
 // RealRHS()
@@ -61,7 +123,8 @@ RHSEquation::RHSEquation() :
    rhsString      (""),
    resourceMap    (NULL),
    rhsWrapper     (NULL),
-   mathTree       (NULL)
+   mathTree       (NULL),
+   isExpressionInitialized(false)
 {
 }
 
@@ -74,8 +137,7 @@ RHSEquation::RHSEquation() :
 //------------------------------------------------------------------------------
 RHSEquation::~RHSEquation()
 {
-   if (mathTree != NULL)
-      delete mathTree;
+   Reset();
 }
 
 //------------------------------------------------------------------------------
@@ -88,22 +150,23 @@ RHSEquation::~RHSEquation()
  */
 //------------------------------------------------------------------------------
 RHSEquation::RHSEquation(const RHSEquation &rhs) :
-         rhsString      (rhs.rhsString),
-         resourceMap    (rhs.resourceMap),
-         rhsWrapper     (NULL),
-         mathTree       (NULL)
+   rhsString(rhs.rhsString), resourceMap(rhs.resourceMap),
+   rhsWrapper(nullptr), mathTree(nullptr), isExpressionInitialized(false)
 {
-   // Initialize the wrapper map
-   if (rhs.mathWrapperMap.size() == 0)
+   // Native copies are cold and must not populate a surrounding retained
+   // binding pass with interim identity-only scope mappings.
+   ExpressionBindingScope cloning(false, true);
+   auto wrappers = CopyRHSWrappers(rhs.mathWrapperMap);
+   std::unique_ptr<MathTree> tree(rhs.mathTree ? new MathTree(*rhs.mathTree) : nullptr);
+   mathWrapperMap.swap(wrappers.values);
+   if (tree) tree->SetMathWrappers(&mathWrapperMap);
+   mathTree = tree.get();
    {
-      ElementWrapper *wrapper = NULL;
-      for (WrapperMap::const_iterator it = rhs.mathWrapperMap.begin();
-            it != rhs.mathWrapperMap.end(); ++it)
-      {
-         wrapper = it->second->Clone();
-         mathWrapperMap[it->first] = wrapper;
-      }
+      ExpressionBindingScope complete(false, true);
+      RebindClonedReferences(rhs, [](GmatBase *object) { return object; });
    }
+   mathTree = tree.release();
+   wrappers.Release();
 }
 
 //------------------------------------------------------------------------------
@@ -119,35 +182,9 @@ RHSEquation::RHSEquation(const RHSEquation &rhs) :
 //------------------------------------------------------------------------------
 RHSEquation& RHSEquation::operator=(const RHSEquation &rhs)
 {
-   if (this != &rhs)
-   {
-      rhsString = rhs.rhsString;
-      resourceMap = rhs.resourceMap;
-
-      if (rhsWrapper != NULL)
-         delete rhsWrapper;
-      rhsWrapper = NULL;
-
-      if (mathTree != NULL)
-         delete mathTree;
-      mathTree = NULL;
-
-      // Leak to fix here
-      mathWrapperMap.clear();
-
-      // Initialize the wrapper map
-      if (rhs.mathWrapperMap.size() == 0)
-      {
-         ElementWrapper *wrapper = NULL;
-         for (WrapperMap::const_iterator it = rhs.mathWrapperMap.begin();
-               it != rhs.mathWrapperMap.end(); ++it)
-         {
-            wrapper = it->second->Clone();
-            mathWrapperMap[it->first] = wrapper;
-         }
-      }
-   }
-
+   if (this == &rhs) return *this;
+   RHSEquation prepared(rhs);
+   Swap(prepared);
    return *this;
 }
 
@@ -177,6 +214,7 @@ std::string RHSEquation::GetEquationString()
 //------------------------------------------------------------------------------
 bool RHSEquation::Initialize(ObjectMap *objectMap, ObjectMap *globalObjectMap)
 {
+   isExpressionInitialized = false;
    bool retval = true;
    if ((rhsString != "") && (resourceMap != NULL))
       retval = BuildExpression(rhsString, resourceMap);
@@ -186,10 +224,23 @@ bool RHSEquation::Initialize(ObjectMap *objectMap, ObjectMap *globalObjectMap)
             mathTree);
    #endif
 
+   if (!mathTree || !mathTree->GetTopNode()) return false;
+
    // Set references for the math element wrappers
    std::map<std::string, ElementWrapper*>::iterator ewi;
+   std::set<ElementWrapper*> associated;
    for (ewi = mathWrapperMap.begin(); ewi != mathWrapperMap.end(); ++ewi)
-      SetWrapperReferences(*(ewi->second), objectMap, globalObjectMap);
+   {
+      if (!ewi->second)
+         throw CommandException("Missing equation wrapper for \"" + ewi->first + "\".\n");
+      if (associated.insert(ewi->second).second)
+      {
+         SetWrapperReferences(*(ewi->second), objectMap, globalObjectMap);
+         if (auto *equation = dynamic_cast<EquationWrapper*>(ewi->second))
+            if (!equation->Initialize(objectMap, globalObjectMap))
+               throw CommandException("Cannot initialize nested equation wrapper.\n");
+      }
+   }
 
    if (mathTree && retval)
    {
@@ -217,7 +268,8 @@ bool RHSEquation::Initialize(ObjectMap *objectMap, ObjectMap *globalObjectMap)
       }
    }
 
-   return retval;
+   isExpressionInitialized = mathTree && retval;
+   return isExpressionInitialized;
 }
 
 
@@ -238,18 +290,24 @@ bool RHSEquation::Initialize(ObjectMap *objectMap, ObjectMap *globalObjectMap)
 void RHSEquation::SetWrapperReferences(ElementWrapper &ew, ObjectMap *objectMap,
       ObjectMap *globalObjectMap)
 {
-   StringArray refs = ew.GetRefObjectNames();
-   for (UnsignedInt i = 0; i < refs.size(); ++i)
+   const StringArray refs = ew.GetRefObjectNames();
+   for (const std::string &name : refs)
    {
-      GmatBase *obj = (*objectMap)[refs[i]];
-      if (obj == nullptr)
+      GmatBase *object = nullptr;
+      if (objectMap)
       {
-         obj = (*globalObjectMap)[refs[i]];
-         // Set the object pointer in the map for later use
-         (*objectMap)[refs[i]] = obj;
+         auto found = objectMap->find(name);
+         if (found != objectMap->end()) object = found->second;
       }
-      if (obj)
-         ew.SetRefObject(obj);
+      if (!object && globalObjectMap)
+      {
+         auto found = globalObjectMap->find(name);
+         if (found != globalObjectMap->end()) object = found->second;
+      }
+      if (!object)
+         throw CommandException("Cannot resolve equation reference \"" + name + "\".\n");
+      if (!ew.SetRefObject(object))
+         throw CommandException("Cannot bind equation reference \"" + name + "\".\n");
    }
 }
 
@@ -277,6 +335,7 @@ bool RHSEquation::SetElementWrapper(ElementWrapper *toWrapper,
    #endif
 
    bool retval = false;
+   if (!toWrapper) return false;
 
    // If name found in the math wrapper map
    if (mathWrapperMap.find(withName) != mathWrapperMap.end())
@@ -301,6 +360,7 @@ bool RHSEquation::SetElementWrapper(ElementWrapper *toWrapper,
                      this);
             #endif
             mathWrapperMap[withName] = toWrapper;
+            isExpressionInitialized = false;
          }
          retval = true;
       }
@@ -318,25 +378,14 @@ bool RHSEquation::SetElementWrapper(ElementWrapper *toWrapper,
 //------------------------------------------------------------------------------
 void RHSEquation::ClearWrappers()
 {
-   // clear rhs math wrapper map
-   std::map<std::string, ElementWrapper *>::iterator ewi;
-   for (ewi = mathWrapperMap.begin(); ewi != mathWrapperMap.end(); ++ewi)
-   {
-      if (ewi->second != NULL)
-      {
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Remove
-            (ewi->second, (ewi->second)->GetDescription(),
-             "Assignment::ClearWrappers()",
-             //GetGeneratingString(Gmat::NO_COMMENTS) + " deleting math node wrapper");
-             " deleting math node wrapper");
-         #endif
-         delete ewi->second;
-         ewi->second = NULL;
-      }
-   }
-
+   isExpressionInitialized = false;
+   std::set<ElementWrapper*> wrappers;
+   for (const auto &entry : mathWrapperMap)
+      if (entry.second) wrappers.insert(entry.second);
+   if (rhsWrapper) wrappers.insert(rhsWrapper);
    mathWrapperMap.clear();
+   rhsWrapper = nullptr;
+   for (ElementWrapper *wrapper : wrappers) delete wrapper;
 }
 
 
@@ -379,8 +428,30 @@ void RHSEquation::SetMathWrappers()
 //------------------------------------------------------------------------------
 void RHSEquation::Finalize()
 {
+   isExpressionInitialized = false;
    if (mathTree)
       mathTree->Finalize();
+}
+
+void RHSEquation::RetireBindings()
+{
+   if (isRetiringBindings) return;
+   isRetiringBindings = true;
+   struct RetirementGuard
+   {
+      bool &retiring;
+      ~RetirementGuard() { retiring = false; }
+   } guard{isRetiringBindings};
+   isExpressionInitialized = false;
+   resourceMap = nullptr;
+   std::exception_ptr firstError;
+   try { if (mathTree) mathTree->RetireBindings(); }
+   catch (...) { firstError = std::current_exception(); }
+   // Keep copied scope storage alive through wrapper destruction. Nested
+   // EquationWrappers own their trees/managers and retire before the FOS dies.
+   ClearWrappers();
+   expressionBindings.reset();
+   if (firstError) std::rethrow_exception(firstError);
 }
 
 
@@ -407,74 +478,36 @@ void RHSEquation::Finalize()
 bool RHSEquation::BuildExpression(const std::string &rhside, ObjectMap *theMap,
       bool allowSingleElement)
 {
-   bool retval = false;
-
-   if (/*(rhside == "") && */ (mathTree != NULL))
-      retval = true;
-   else
+   if (mathTree && rhside == rhsString)
    {
-      MathParser mp(theMap);
-      if (mp.IsEquation(rhside, false, allowSingleElement))
-      {
-         rhsString = rhside;
-
-         // Parse RHS if equation
-         #ifdef DEBUG_ASSIGNMENT_IA
-         MessageInterface::ShowMessage
-            ("Assignment::InterpretAction() %s is an equation\n", rhs.c_str());
-         #endif
-
-         MathNode *topNode = mp.Parse(rhsString, true);
-
-         #ifdef DEBUG_ASSIGNMENT_IA
-         if (topNode)
-            MessageInterface::ShowMessage
-               ("   topNode=%s\n", topNode->GetTypeName().c_str());
-         #endif
-
-         // Check if string has missing start quote.
-         // It will be an error if rhs with blank space removed matches with
-         // any GmatFunction name without letter case
-         std::string str1 = rhsString;
-         if (GmatStringUtil::EndsWith(str1, "'"))
-         {
-            #ifdef DEBUG_ASSIGNMENT_IA
-            MessageInterface::ShowMessage("   <%s> ends with '\n", str1.c_str());
-            #endif
-
-            str1 = GmatStringUtil::RemoveLastString(str1, "'");
-            str1 = GmatStringUtil::RemoveAll(str1, ' ');
-            StringArray gmatFnNames = mp.GetGmatFunctionNames();
-            bool isError = false;
-            for (UnsignedInt i=0; i<gmatFnNames.size(); i++)
-            {
-               if (GmatStringUtil::ToUpper(str1) == GmatStringUtil::ToUpper(gmatFnNames[i]))
-               {
-                  isError = true;
-                  break;
-               }
-            }
-            if (isError)
-               throw CommandException("Found missing start quote on the right-"
-                     "hand side of an Assignment command or equation");
-         }
-
-         mathTree = new MathTree("MathTree", rhsString);
-         #ifdef DEBUG_MEMORY
-         MemoryTracker::Instance()->Add
-            (mathTree, rhs, "Assignment::InterpretAction()", "mathTree = new MathTree()");
-         #endif
-
-         mathTree->SetTopNode(topNode);
-         mathTree->SetGmatFunctionNames(mp.GetGmatFunctionNames());
-         retval = true;
-      }
-//      else
-//         throw CommandException("The expression \"" + rhside + "\" is not a "
-//               "valid equation.");
+      resourceMap = theMap;
+      return true;
    }
+   MathParser parser(theMap);
+   if (!parser.IsEquation(rhside, false, allowSingleElement)) return false;
 
-   return retval;
+   // The new owner is installed immediately after parsing so subsequent syntax
+   // checks and metadata allocation cannot leak a successfully parsed graph.
+   std::unique_ptr<MathTree> tree(new MathTree("MathTree", rhside));
+   tree->SetTopNode(parser.Parse(rhside, true));
+   std::string expression = rhside;
+   if (GmatStringUtil::EndsWith(expression, "'"))
+   {
+      std::string candidate = GmatStringUtil::RemoveLastString(expression, "'");
+      candidate = GmatStringUtil::RemoveAll(candidate, ' ');
+      for (const std::string &name : parser.GetGmatFunctionNames())
+         if (GmatStringUtil::ToUpper(candidate) == GmatStringUtil::ToUpper(name))
+            throw CommandException("Found missing start quote on the right-"
+                  "hand side of an Assignment command or equation");
+   }
+   tree->SetGmatFunctionNames(parser.GetGmatFunctionNames());
+   delete mathTree;
+   mathTree = nullptr;
+   ClearWrappers();
+   rhsString.swap(expression);
+   resourceMap = theMap;
+   mathTree = tree.release();
+   return true;
 }
 
 
@@ -568,7 +601,10 @@ MathTree* RHSEquation::GetMathTree(bool releaseOwnership)
    MathTree *retval = mathTree;
 
    if (releaseOwnership)
+   {
       mathTree = NULL;
+      isExpressionInitialized = false;
+   }
 
    return retval;
 }
@@ -585,230 +621,110 @@ MathTree* RHSEquation::GetMathTree(bool releaseOwnership)
 //------------------------------------------------------------------------------
 ElementWrapper* RHSEquation::RunMathTree(ElementWrapper *lhsWrapper)
 {
-   #ifdef DEBUG_RUN_MATH_TREE
-   MessageInterface::ShowMessage
-      ("Assignment::RunMathTree() entered, mathTree=<%p>\n", mathTree);
-   #endif
-
-   if (mathTree == NULL)
-      return NULL;
-
-   Gmat::ParameterType lhsDataType;
-   if (lhsWrapper != NULL)
-      lhsDataType = lhsWrapper->GetDataType();
-   else
-      lhsDataType = Gmat::UNKNOWN_PARAMETER_TYPE;
-
-   ElementWrapper *outWrapper = NULL;
-
-   // Evaluate math tree
-   Integer returnType;
-   Integer numRow;
-   Integer numCol;
-
+   if (!mathTree) return nullptr;
+   if (!isExpressionInitialized)
+      throw CommandException("Equation must be initialized before evaluation.\n");
    MathNode *topNode = mathTree->GetTopNode();
-
-   if (topNode)
+   if (!topNode) throw CommandException("RHS is an equation, but top node is NULL\n");
+   Integer returnType, rows, columns;
+   topNode->GetOutputInfo(returnType, rows, columns);
+   if (returnType < 0 || returnType >= Gmat::TypeCount)
+      throw CommandException("Equation has an undefined result type.\n");
+   const auto lhsType = lhsWrapper ? lhsWrapper->GetDataType() :
+         static_cast<Gmat::ParameterType>(returnType);
+   if (lhsType < 0 || lhsType >= Gmat::TypeCount)
+      throw CommandException("Equation destination has an undefined type.\n");
+   if (lhsType != returnType)
    {
-      #ifdef DEBUG_RUN_MATH_TREE
-      MessageInterface::ShowMessage
-         ("Assignment::RunMathTree() topNode=%s, %s\n",
-          topNode->GetTypeName().c_str(), topNode->GetName().c_str());
-      #endif
-
-      topNode->GetOutputInfo(returnType, numRow, numCol);
-
-      // Equations embedded in other scripting may not have LHS wrappers
-      if (lhsWrapper == NULL)
+      bool compatible = lhsType == Gmat::REAL_TYPE &&
+            returnType == Gmat::RMATRIX_TYPE && rows == 1 && columns == 1;
+      if (lhsType == Gmat::RVECTOR_TYPE && returnType == Gmat::RMATRIX_TYPE &&
+            (rows == 1 || columns == 1)) compatible = true;
+      if (lhsType == Gmat::RMATRIX_TYPE && returnType == Gmat::RVECTOR_TYPE)
+         compatible = true;
+      if (lhsType == Gmat::RMATRIX_TYPE && returnType == Gmat::REAL_TYPE && lhsWrapper)
       {
-         lhsDataType = (Gmat::ParameterType)returnType;
+         auto *array = dynamic_cast<Array*>(lhsWrapper->GetRefObject());
+         compatible = array && array->GetRowCount() == 1 && array->GetColCount() == 1;
       }
-
-      #ifdef DEBUG_RUN_MATH_TREE
-      MessageInterface::ShowMessage
-         ("   lhsDataType=%d, returnType=%d, numRow=%d, numCol=%d\n",
-          lhsDataType, returnType, numRow, numCol);
-      #endif
-
-      if (lhsDataType != returnType)
+      if (!compatible)
       {
-         bool isOk = false;
-         if (lhsDataType == Gmat::REAL_TYPE &&
-             returnType == Gmat::RMATRIX_TYPE && numRow == 1 && numCol == 1)
-         {
-            // It's ok to assign 1x1 matrix to scalar
-            isOk = true;
-         }
-         else if (lhsDataType == Gmat::RMATRIX_TYPE)
-         {
-            Array *array = (Array*)lhsWrapper->GetRefObject();
-
-            // It's ok to assign scalar to 1x1 matrix
-            if (array && array->GetRowCount() == 1 && array->GetColCount() == 1)
-               isOk = true;
-         }
-
-         if (!isOk)
-         {
-            std::string lhsTypeStr = GmatBase::PARAM_TYPE_STRING[lhsDataType];
-            CommandException ce;
-            ce.SetDetails("Cannot set type \"%s\" to type \"%s\"",
-                          GmatBase::PARAM_TYPE_STRING[returnType].c_str(),
-                          lhsTypeStr.c_str());
-            throw ce;
-         }
-      }
-
-      // @note Need to set description before setting value to output wrapper
-
-      switch (returnType)
-      {
-         case Gmat::REAL_TYPE:
-         {
-            #ifdef DEBUG_RUN_MATH_TREE
-            MessageInterface::ShowMessage("   Calling topNode->Evaluate()\n");
-            #endif
-
-            Real rval = -9999.9999;
-            rval = topNode->Evaluate();
-
-            #ifdef DEBUG_RUN_MATH_TREE
-            MessageInterface::ShowMessage("   Returned %f (%s)\n",
-                              rval, GmatStringUtil::ToString(rval).c_str());
-            MessageInterface::ShowMessage("   Returned %f\n", rval);
-            MessageInterface::ShowMessage("   Creating NumberWrapper for output\n");
-            #endif
-
-            outWrapper = new NumberWrapper();
-            #ifdef DEBUG_MEMORY
-            MemoryTracker::Instance()->Add
-               (outWrapper, GmatStringUtil::ToString(rval), "Assignment::RunMathTree()",
-                "outWrapper = new NumberWrapper()");
-            #endif
-
-            outWrapper->SetDescription(GmatStringUtil::ToString(rval));
-            outWrapper->SetReal(rval);
-            break;
-         }
-         case Gmat::RMATRIX_TYPE:
-         {
-            #ifdef DEBUG_RUN_MATH_TREE
-            MessageInterface::ShowMessage
-               ("   MathTree return type is Rmatrix so Calling topNode->MatrixEvaluate()\n");
-            #endif
-
-            Rmatrix rmat;
-            rmat.SetSize(numRow, numCol);
-            rmat = topNode->MatrixEvaluate();
-            #ifdef DEBUG_RUN_MATH_TREE
-            MessageInterface::ShowMessage
-               ("   rmat.rows=%d, rmat.cols=%d\n", rmat.GetNumRows(), rmat.GetNumColumns());
-            #endif
-            // create Array, this array will be deleted when ArrayWrapper is deleted
-            Array *outArray = new Array("ArrayOutput");
-            #ifdef DEBUG_MEMORY
-            MemoryTracker::Instance()->Add
-               (outArray, "outArray", "Assignment::RunMathTree()",
-                "outArray = new Array()");
-            #endif
-            outArray->SetSize(numRow, numCol);
-            outArray->SetRmatrix(rmat);
-
-            #ifdef DEBUG_RUN_MATH_TREE
-            MessageInterface::ShowMessage
-               ("   Creating ArrayWrapper for output, topNodeType='%s', topNodeName='%s'\n",
-                topNode->GetTypeName().c_str(), topNode->GetName().c_str());
-            #endif
-
-            outWrapper = new ArrayWrapper();
-
-            // Allow setting one dimential row or column vector to each other
-            // for Cross() function (LOJ: 2016.03.14)
-            if (topNode->GetTypeName() == "Cross3")
-               outWrapper->AllowOneDimArraySetting(true);
-
-            #ifdef DEBUG_MEMORY
-            MemoryTracker::Instance()->Add
-               (outWrapper, "outWrapper", "Assignment::RunMathTree()",
-                "outWrapper = new ArrayWrapper()");
-            #endif
-            outWrapper->SetDescription("ArrayOutput");
-            outWrapper->SetRefObject(outArray);
-            break;
-         }
-         case Gmat::OBJECT_TYPE:
-         {
-            #ifdef DEBUG_RUN_MATH_TREE
-            MessageInterface::ShowMessage("   Return type is OBJECT_TYPE\n");
-            MessageInterface::ShowMessage("   Calling topNode->MatrixEvaluate()\n");
-            #endif
-
-            GmatBase *outObj = topNode->EvaluateObject();
-
-            if (outObj)
-            {
-               #ifdef DEBUG_RUN_MATH_TREE
-               MessageInterface::ShowMessage("   Creating ObjectWrapper for output\n");
-               #endif
-               outWrapper = new ObjectWrapper();
-               outWrapper->SetDescription(outObj->GetName());
-               outWrapper->SetRefObject(outObj->Clone());
-            }
-            else
-            {
-               CommandException ce;
-               ce.SetDetails("Cannot set \"%s\" to the return object. The "
-                     "return type of the equation is an OBJECT and it is NULL",
-                             rhsString.c_str());
-               throw ce;
-            }
-            break;
-         }
-         case Gmat::STRING_TYPE:
-         {
-            #ifdef DEBUG_RUN_MATH_TREE
-            MessageInterface::ShowMessage("   Calling topNode->EvaluateString()\n");
-            #endif
-
-            std::string strval = topNode->EvaluateString();
-
-            #ifdef DEBUG_RUN_MATH_TREE
-            MessageInterface::ShowMessage("   Returned '%s'\n", strval.c_str());
-            MessageInterface::ShowMessage("   Creating StringWrapper for output\n");
-            #endif
-
-            outWrapper = new StringWrapper();
-            #ifdef DEBUG_MEMORY
-            MemoryTracker::Instance()->Add
-               (outWrapper, GmatStringUtil::ToString(rval), "Assignment::RunMathTree()",
-                "outWrapper = new NumberWrapper()");
-            #endif
-
-            outWrapper->SetDescription(strval);
-            outWrapper->SetString(strval);
-            break;
-         }
-         default:
-         {
-            CommandException ce;
-            ce.SetDetails("Cannot set \"%s\" to to the return object. The "
-                  "return type of the equation or function is unknown",
-                  rhsString.c_str());
-            throw ce;
-         }
+         CommandException error;
+         error.SetDetails("Cannot set type \"%s\" to type \"%s\"",
+               GmatBase::PARAM_TYPE_STRING[returnType].c_str(),
+               GmatBase::PARAM_TYPE_STRING[lhsType].c_str());
+         throw error;
       }
    }
-   else
+   std::unique_ptr<ElementWrapper> result;
+   switch (returnType)
    {
-      throw CommandException("RHS is an equation, but top node is NULL\n");
+      case Gmat::REAL_TYPE:
+      {
+         const Real value = topNode->Evaluate();
+         std::unique_ptr<NumberWrapper> wrapper(new NumberWrapper);
+         wrapper->SetDescription(GmatStringUtil::ToString(value));
+         wrapper->SetReal(value);
+         result = std::move(wrapper);
+         break;
+      }
+      case Gmat::RVECTOR_TYPE:
+      {
+         const Rvector value = topNode->VectorEvaluate();
+         if (value.GetSize() != rows || columns != 1)
+            throw CommandException("Equation vector size does not match its declared output.\n");
+         std::unique_ptr<RvectorWrapper> wrapper(new RvectorWrapper(value));
+         wrapper->SetDescription("VectorOutput");
+         result = std::move(wrapper);
+         break;
+      }
+      case Gmat::RMATRIX_TYPE:
+      {
+         const Rmatrix value = topNode->MatrixEvaluate();
+         if (value.GetNumRows() != rows || value.GetNumColumns() != columns)
+            throw CommandException("Equation matrix dimensions do not match its declared output.\n");
+         std::unique_ptr<Array> array(new Array("ArrayOutput"));
+         array->SetSize(value.GetNumRows(), value.GetNumColumns());
+         array->SetRmatrix(value);
+         std::unique_ptr<ArrayWrapper> wrapper(new ArrayWrapper);
+         wrapper->SetDescription("ArrayOutput");
+         wrapper->AdoptRefObject(std::move(array));
+         if (topNode->GetTypeName() == "Cross3") wrapper->AllowOneDimArraySetting(true);
+         result = std::move(wrapper);
+         break;
+      }
+      case Gmat::OBJECT_TYPE:
+      {
+         GmatBase *source = topNode->EvaluateObject();
+         if (!source) throw CommandException("Equation returned an undefined object.\n");
+         std::unique_ptr<GmatBase> object(source->Clone());
+         if (object.get() == source)
+         {
+            object.release();
+            throw CommandException("Equation result Clone returned its source.\n");
+         }
+         if (!object || typeid(*object) != typeid(*source))
+            throw CommandException("Equation result Clone changed its native object type.\n");
+         std::unique_ptr<ObjectWrapper> wrapper(new ObjectWrapper);
+         wrapper->SetDescription(source->GetName());
+         wrapper->AdoptRefObject(std::move(object));
+         result = std::move(wrapper);
+         break;
+      }
+      case Gmat::STRING_TYPE:
+      {
+         const std::string value = topNode->EvaluateString();
+         std::unique_ptr<StringWrapper> wrapper(new StringWrapper);
+         wrapper->SetDescription(value);
+         wrapper->SetString(value);
+         result = std::move(wrapper);
+         break;
+      }
+      default:
+         throw CommandException("The return type of the equation or function is unknown.\n");
    }
-
-   #ifdef DEBUG_RUN_MATH_TREE
-   MessageInterface::ShowMessage
-      ("Assignment::RunMathTree() returning, outWrapper=<%p>\n", outWrapper);
-   #endif
-
-   return outWrapper;
+   // The caller owns the wrapper; it owns any newly generated result object.
+   return result.release();
 }
 
 
@@ -830,6 +746,8 @@ bool RHSEquation::RenameRefObject(const UnsignedInt type, const std::string &old
          const std::string &newName)
 {
    bool retval = false;
+   isExpressionInitialized = false;
+   rhsString = GmatStringUtil::ReplaceName(rhsString, oldName, newName);
 
    if (mathTree)
       retval = mathTree->RenameRefObject(type, oldName, newName);
@@ -936,4 +854,89 @@ StringArray RHSEquation::GetFunctionNames()
    if (mathTree)
       funs = mathTree->GetGmatFunctionNames();
    return funs;
+}
+
+// Relocate the trees' borrowed map addresses after transferring their payloads.
+void RHSEquation::Swap(RHSEquation &rhs)
+{
+   if (this == &rhs) return;
+   rhsString.swap(rhs.rhsString);
+   std::swap(resourceMap, rhs.resourceMap);
+   std::swap(rhsWrapper, rhs.rhsWrapper);
+   std::swap(mathTree, rhs.mathTree);
+   mathWrapperMap.swap(rhs.mathWrapperMap);
+   std::swap(isExpressionInitialized, rhs.isExpressionInitialized);
+   expressionBindings.swap(rhs.expressionBindings);
+   if (mathTree) mathTree->SetMathWrappers(&mathWrapperMap);
+   if (rhs.mathTree) rhs.mathTree->SetMathWrappers(&rhs.mathWrapperMap);
+}
+
+void RHSEquation::GetClonedOwnedObjects(const RHSEquation &target,
+      ObjectArray &originals, ObjectArray &copies) const
+{
+   GetClonedOwnedObjects(target, originals, copies, true);
+   GetClonedOwnedObjects(target, originals, copies, false);
+}
+
+void RHSEquation::GetClonedOwnedObjects(const RHSEquation &target,
+      ObjectArray &originals, ObjectArray &copies, bool sourceOwnedOnly) const
+{
+   if (mathWrapperMap.size() != target.mathWrapperMap.size() ||
+         static_cast<bool>(mathTree) != static_cast<bool>(target.mathTree))
+      throw CommandException("Changed copied equation ownership graph.\n");
+   if (mathTree) mathTree->GetClonedOwnedObjects(*target.mathTree, originals, copies);
+   std::map<ElementWrapper*, ElementWrapper*> seen;
+   for (const auto &entry : mathWrapperMap)
+   {
+      const auto found = target.mathWrapperMap.find(entry.first);
+      if (found == target.mathWrapperMap.end()) throw CommandException("Missing copied equation role.\n");
+      if (!entry.second && !found->second) continue;
+      if (!entry.second || !found->second) throw CommandException("Missing copied equation wrapper.\n");
+      auto inserted = seen.emplace(entry.second, found->second);
+      if (!inserted.second && inserted.first->second != found->second)
+         throw CommandException("Changed copied equation wrapper alias.\n");
+   }
+   for (const auto &entry : seen)
+      entry.second->CollectClonedOwnedReferences(*entry.first, originals, copies, sourceOwnedOnly);
+}
+
+void RHSEquation::RebindClonedReferences(const RHSEquation &source,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   isExpressionInitialized = false;
+   if (rhsString != source.rhsString)
+      throw CommandException("Cannot bind a different expression definition.\n");
+   ExpressionBindingScope binding;
+   ObjectArray originals, copies;
+   source.GetClonedOwnedObjects(*this, originals, copies);
+   auto actual = [&](GmatBase *object) -> GmatBase*
+   {
+      // The enclosing native owner/scene may have already chosen a canonical
+      // copy shared by several expressions. Preserve that choice before using
+      // this definition's own freshly cloned values.
+      GmatBase *mapped = resolve(object);
+      if (mapped && mapped != object) return mapped;
+      const auto found = std::find(originals.begin(), originals.end(), object);
+      return found == originals.end() ? mapped : copies[found - originals.begin()];
+   };
+   auto *resources = binding.scopes->CopyMap(source.resourceMap, actual);
+   std::set<ElementWrapper*> seen;
+   for (const auto &entry : source.mathWrapperMap)
+      if (entry.second && seen.insert(entry.second).second)
+         mathWrapperMap.at(entry.first)->RebindClonedReferences(*entry.second, actual);
+   if (mathTree) mathTree->RebindClonedReferences(*source.mathTree, actual, &mathWrapperMap);
+   expressionBindings = binding.scopes;
+   resourceMap = resources;
+   isExpressionInitialized = ExpressionBindingScope::preserveReadiness && source.isExpressionInitialized;
+}
+
+void RHSEquation::Reset()
+{
+   isExpressionInitialized = false;
+   delete mathTree;
+   mathTree = nullptr;
+   ClearWrappers();
+   rhsString.clear();
+   resourceMap = nullptr;
+   expressionBindings.reset();
 }

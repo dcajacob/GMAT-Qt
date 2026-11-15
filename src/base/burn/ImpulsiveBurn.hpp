@@ -101,6 +101,13 @@ public:
                                         const std::string &oldName,
                                         const std::string &newName);
    
+   void RebindClonedReferences(const Burn &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
+   bool InitializeClonedResource() override;
+
+   using Burn::GetRefObject;
+   GmatBase* GetRefObject(const UnsignedInt type, const std::string &name) override;
+
 protected:
    void                 TransformDeltaVToJ2kFrame(Real *deltaV, Real epoch);
    bool                 SetTankFromSpacecraft();

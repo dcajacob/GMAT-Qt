@@ -33,10 +33,19 @@
 #define FormationInterface_hpp
 
 #include "SpaceObject.hpp"
+#include <functional>
 
 /**
  * Interface definition for Formations, implemented in libFormation.
  */
+// A prepared layout owns all allocations and retained owners before Apply.
+// Applying it swaps native storage only and does not initialize propagation.
+class GMAT_API FormationRestorationPlan : public NativeRestorationPlan
+{
+public:
+   ~FormationRestorationPlan() override = default;
+};
+
 class GMAT_API FormationInterface : public SpaceObject
 {
 public:
@@ -49,6 +58,14 @@ public:
    virtual void         BuildState() = 0;
    virtual void         UpdateElements() = 0;
    virtual void         UpdateState() = 0;
+   // Reconnect a completed native value copy without rebuilding its packed
+   // state or applying member values. Implemented across the plugin boundary.
+   virtual void RebindClonedReferences(const FormationInterface &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve, bool bindMembers = true);
+   virtual std::unique_ptr<FormationRestorationPlan> PrepareRestorationLayout(
+         const FormationInterface &snapshot, const ObjectArray &members);
+   virtual GmatBase *CloneRestorationProbe() const;
+
 };
 
 #endif // FormationInterface_hpp

@@ -32,11 +32,32 @@
       <literal>NonlinearConstraint</literal> <replaceable>OptimizerName</replaceable> ({logical expression})
     or
       <literal>NonlinearConstraint</literal> <replaceable>OptimizerName</replaceable> ({logical expression}, {<literal>Tolerance</literal>=<replaceable>Arg</replaceable>})
+    or
+      <literal>NonlinearConstraint</literal> <replaceable>OptimizerName</replaceable> (<replaceable>ObjectiveFunction</replaceable>)
     </synopsis>
   </refsynopsisdiv>
 
   <refsection>
     <title>Description</title>
+
+    <para>When its argument has no comparison operator,
+    <literal>NonlinearConstraint OptimizerName(ObjectiveFunction)</literal>
+    defines the cost function to minimize, using the same objective rules as
+    <xref linkend="Minimize"/>. This supports the NASA worksheet's cost-function
+    use of the command name. The cost form and Minimize share the limit of one
+    objective per Optimize sequence. Script serialization and the Qt objective
+    editor preserve the selected command spelling.</para>
+
+    <para>An argument containing a comparison, such as
+    <literal>NonlinearConstraint OptimizerName(value &lt;= limit)</literal>,
+    defines a constraint. Its optional Tolerance applies to that comparison;
+    the cost form accepts the same syntax as Minimize.</para>
+
+    <para>During nominal and perturbation passes, both operands, their computed
+    residual and any specified tolerance must be finite real values. A missing
+    operand or failed parameter evaluation stops the command with an error.
+    A finite, nonpositive optional tolerance uses the optimizer's feasibility
+    tolerance.</para>
 
     <para>The <guilabel>NonlinearConstraint</guilabel> command is used within
     an <guilabel>Optimize</guilabel>/<guilabel>EndOptimize</guilabel>

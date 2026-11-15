@@ -1,0 +1,66 @@
+name: Independent eclipse and contact checks
+
+on:
+  push:
+    branches: ['codex/independent-events']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  events:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2022
+            platform: windows-x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Restore Windows dependency SDK
+        if: matrix.platform == 'windows-x64'
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/preview-package/deps/qt
+            build/preview-package/deps/osg
+            C:\vcpkg\installed
+          key: gmat-tutorial-windows-sdk-v1
+      - uses: actions/download-artifact@v4
+        with:
+          name: alpha3-${{ matrix.platform }}
+          run-id: 43582612711
+          github-token: ${{ github.token }}
+          path: build/event-archive
+      - name: Run the twelve independent cases
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+          import sys
+          archive, = Path('build/event-archive').glob('*.zip')
+          raise SystemExit(subprocess.call([sys.executable, 'tools/preview/RunPackagedTutorials.py',
+              '--platform', '${{ matrix.platform }}', '--archive', str(archive),
+              '--smoother-fix', '--event-results', '--output', 'build/event-results']))
+          PY
+      - name: Preserve results and original failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: independent-events-${{ matrix.platform }}
+          path: |
+            build/event-results/results.json
+            build/event-results/Nasa*ResultCases.json
+            build/event-results/QtGui.*/
+            build/preview-package/logs/
+          retention-days: 30

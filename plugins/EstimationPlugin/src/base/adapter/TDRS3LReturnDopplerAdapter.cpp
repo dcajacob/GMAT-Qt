@@ -1036,6 +1036,8 @@ const MeasurementData& TDRS3LReturnDopplerAdapter::CalculateMeasurement(bool wit
       ObservationData* forObservation, std::vector<RampTableData>* rampTable,
       bool forSimulation)
 {
+   ObservationEpochGuard observationEpoch(cMeasurement, forObservation);
+
    #ifdef DEBUG_DOPPLER_CALCULATION
       MessageInterface::ShowMessage("TDRS3LReturnDopplerAdapter::CalculateMeasurement(%s, "
             "<%p>, <%p>) called\n", (withEvents ? "true" : "false"), forObservation,
@@ -1047,7 +1049,7 @@ const MeasurementData& TDRS3LReturnDopplerAdapter::CalculateMeasurement(bool wit
    GmatTime computeEpoch;
    if (forObservation)
    {
-      computeEpoch = forObservation->epochGT;
+      computeEpoch = forObservation->GetEpochInA1();
    }
    else
    {
@@ -1135,6 +1137,7 @@ const MeasurementData& TDRS3LReturnDopplerAdapter::CalculateMeasurement(bool wit
       MessageInterface::ShowMessage("Compute range for End Spacecraft-Path...\n");
 #endif
       //RangeAdapterKm::CalculateMeasurement(withEvents, forObservation, rampTB, forSimulation);
+      adapterESC->GetMeasurementModel()->SetIntegrationInterval(dopplerCountInterval);
       adapterESC->CalculateMeasurement(withEvents, forObservation, rampTB, forSimulation);
 #ifdef DEBUG_DOPPLER_CALCULATION
       MessageInterface::ShowMessage("Complete calculation range for End Spacecraft-Path.\n");
@@ -1169,8 +1172,7 @@ const MeasurementData& TDRS3LReturnDopplerAdapter::CalculateMeasurement(bool wit
          obData = new ObservationData(*forObservation);
       else
          obData = new ObservationData();
-      obData->epochGT = tm;
-      obData->epoch   = tm.GetMjd();
+      obData->SetReceiverEpochInA1(tm);
 
       // 2.3.2. Compute range in Km w/o any noise and bias for End-Short path
       // For End-GroundStation path, range calculation does not add bias and noise to calculated value
@@ -1460,7 +1462,7 @@ const MeasurementData& TDRS3LReturnDopplerAdapter::CalculateMeasurement(bool wit
                   {
                      // add pass bias
                      // specify pass number associate to the current observation
-                     Real passBias = measErrorModel->GetPassBias(cMeasurement.epochGT);
+                     Real passBias = measErrorModel->GetPassBias(observationEpoch.GetEpoch(cMeasurement.epochGT));
                      cMeasurement.value[i] = cMeasurement.value[i] + passBias;                       // pass bias unit: Km/s
                      cMeasurement.correction[i] = cMeasurement.correction[i] + passBias;             // pass bias unit: Km/s
                   }

@@ -41,6 +41,8 @@
 class GMAT_API XyPlot : public Subscriber 
 {
 public:
+   bool HasSubscriberValueReferenceProvider() const override;
+   std::unique_ptr<FunctionInvocationState> SuspendFunctionBindings() override;
    XyPlot(const std::string &name, Parameter *xParam = NULL,
           Parameter *firstYParam = NULL, const std::string &plotTitle = "",
           const std::string &xAxisTitle = "", const std::string &yAxisTitle = "");
@@ -134,6 +136,8 @@ public:
    virtual void         SetRunState(Gmat::RunState rs);
 
 protected:
+   void RebindSubscriberValueReferences(const Subscriber &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
 
    bool SetXParameter(const std::string &paramName);
    bool AddYParameter(const std::string &paramName, Integer index);

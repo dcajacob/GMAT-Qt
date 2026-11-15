@@ -29,6 +29,7 @@
 
 
 #include "PowerSystem.hpp"
+#include <memory>
 #include "StringUtil.hpp"          // for GmatStringUtil
 #include "Spacecraft.hpp"
 #include "HardwareException.hpp"
@@ -187,6 +188,8 @@ PowerSystem& PowerSystem::operator=(const PowerSystem& copy)
    #endif
    if (&copy != this)
    {
+      const bool restoring = GmatBase::IsNativeRestorationCopy();
+      const bool ready = isInitialized;
       Hardware::operator=(copy);
 
       initialMaxPower       = copy.initialMaxPower;
@@ -198,10 +201,11 @@ PowerSystem& PowerSystem::operator=(const PowerSystem& copy)
       busCoeff2             = copy.busCoeff2;
       busCoeff3             = copy.busCoeff3;
       initialEp             = copy.initialEp;
-      solarSystem           = NULL;
-      sun                   = NULL;
-      spacecraft            = NULL;
-      scOrigin              = NULL;
+      if (!restoring)
+      {
+         solarSystem = NULL; sun = NULL; spacecraft = NULL; scOrigin = NULL;
+      }
+      else isInitialized = ready;
       sunRadius             = copy.sunRadius;
       theTimeConverter      = copy.theTimeConverter;
    }
@@ -250,7 +254,13 @@ bool PowerSystem::Initialize()
 //---------------------------------------------------------------------------
 void PowerSystem::Copy(const GmatBase* orig)
 {
-   operator=(*((PowerSystem *)(orig)));
+   const auto *source = dynamic_cast<const PowerSystem*>(orig);
+   if (!source || source->GetTypeName() != GetTypeName())
+      throw GmatBaseException("Incompatible PowerSystem value copy.");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   operator=(*source);
+   RebindFunctionValueContext(*source);
 }
 
 //------------------------------------------------------------------------------
@@ -258,9 +268,12 @@ void PowerSystem::Copy(const GmatBase* orig)
 //------------------------------------------------------------------------------
 void PowerSystem::SetSolarSystem(SolarSystem *ss)
 {
+   if (solarSystem == ss && sun) return;
+   CelestialBody *body = ss ? ss->GetBody(GmatSolarSystemDefaults::SUN_NAME) : NULL;
+   if (!body) throw HardwareException("Cannot bind PowerSystem without a solar-system Sun.");
    solarSystem = ss;
-   sun         = solarSystem->GetBody(GmatSolarSystemDefaults::SUN_NAME);
-   sunRadius   = sun->GetEquatorialRadius();
+   sun = body;
+   sunRadius = sun->GetEquatorialRadius();
 }
 
 //------------------------------------------------------------------------------
@@ -904,3 +917,33 @@ Real PowerSystem::GetSunToSCDistance(Real atEpoch) const
    return sunSCDist;
 }
 
+
+void PowerSystem::RebindClonedReferences(const PowerSystem &source, SolarSystem *system,
+      const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   if (&source == this) return;
+   auto map = [&resolve](auto *from)
+   {
+      if (!from) return from;
+      auto *to = dynamic_cast<decltype(from)>(resolve(from));
+      if (!to || to->GetTypeName() != from->GetTypeName())
+         throw HardwareException("Incompatible retained power-system dependency.");
+      return to;
+   };
+   CelestialBody *newSun = map(source.sun);
+   Spacecraft *owner = map(source.spacecraft);
+   SpacePoint *origin = map(source.scOrigin);
+   if (!newSun && system) newSun = system->GetBody(GmatSolarSystemDefaults::SUN_NAME);
+   solarSystem = system;
+   sun = newSun;
+   spacecraft = owner;
+   scOrigin = origin;
+   sunRadius = sun ? sun->GetEquatorialRadius() : source.sunRadius;
+   isInitialized = false;
+}
+
+bool PowerSystem::InitializeClonedResource()
+{
+   if (spacecraft) scOrigin = spacecraft->GetOrigin();
+   return Initialize();
+}

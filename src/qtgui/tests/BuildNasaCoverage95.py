@@ -49,6 +49,9 @@ def baseline(repo,path):
 
 def qualify(repo,path,inventory):
     kind=load(path)['contract_kind']
+    if kind=='source-versioned-complete-fixed-offset-FRR35-conjunction':
+        from AuditFixedOffsetAcceptance import qualify as admission
+        return admission(repo,path,inventory)
     if kind=='source-versioned-complete-OEM-output-time-systems':
         from AuditOemOutputTimeAcceptance import qualify as admission
         return admission(repo,path,inventory)

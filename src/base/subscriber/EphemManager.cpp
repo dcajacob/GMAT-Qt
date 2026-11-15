@@ -52,6 +52,8 @@
 #include <algorithm>
 #ifdef __USE_SPICE__
    #include "SpiceInterface.hpp"
+   #include "SpiceKernelFileRetirement.hpp"
+   #include "EventRootRefinement.hpp"
 namespace
 {
    struct StationElevationContext
@@ -197,24 +199,12 @@ EphemManager::~EphemManager()
                eachFile.c_str());
       #endif
       #ifdef __USE_SPICE__
-         spice->UnloadKernel(eachFile.c_str());
+         GmatSpiceKernelFiles::TryRetire(spice, eachFile, deleteTmpFiles);
+      #else
+         if (deleteTmpFiles) remove(eachFile.c_str());
       #endif
    }
 
-   if (deleteTmpFiles)
-   {
-      // Remove all of the temporary SPK/CK files
-      for (unsigned int ii = 0; ii < fileList.size(); ii++)
-      {
-         std::string eachFile = fileList.at(ii);
-         #ifdef DEBUG_EPHEM_MANAGER
-            MessageInterface::ShowMessage(
-                  "Destructing EphemManager ...about to delete file %s\n",
-                  eachFile.c_str());
-         #endif
-         remove(eachFile.c_str());
-      }
-   }
    fileList.clear();
 
    #ifdef DEBUG_EPHEM_MANAGER
@@ -416,6 +406,13 @@ bool EphemManager::ProvideEphemerisData()
 //------------------------------------------------------------------------------
 void EphemManager::StopRecording(bool done)
 {
+   // Spacecraft cleanup also calls this after a failed recording setup or an
+   // earlier stop. No writer pair exists in a partially initialized manager.
+   if (!recording || !ephemFile || !attitudeFile)
+   {
+      recording = false;
+      return;
+   }
    #ifdef DEBUG_EPHEM_MANAGER
       MessageInterface::ShowMessage("StopRecording -----  ephemFileName = %s, done = %s\n",
             ephemFileName.c_str(), (done? "true" : "false"));
@@ -453,10 +450,8 @@ void EphemManager::StopRecording(bool done)
             MessageInterface::ShowMessage("-==-==-= Now attempting to UNload fileList \"%s\"\n",
                   ephemFileName.c_str());
          #endif
-         if (spice->IsLoaded(ephemFileName))
-            spice->UnloadKernel(ephemFileName);   // need to unload before re-loading?
-         if (spice->IsLoaded(attitudeFileName))
-            spice->UnloadKernel(attitudeFileName);   // need to unload before re-loading?
+         GmatSpiceKernelFiles::Unload(spice, ephemFileName);
+         GmatSpiceKernelFiles::Unload(spice, attitudeFileName);
       #endif
       // tell the EphemerisFile to close the SPK and leave ready for appending
       #ifdef DEBUG_EPHEM_MANAGER
@@ -591,6 +586,32 @@ bool EphemManager::GetOccultationIntervals(const std::string &occType,
                                            RealArray         &starts,
                                            RealArray         &ends)
 {
+   return GetOccultationIntervals(occType,frontBody,frontShape,frontFrame,
+      backBody,backShape,backFrame,abCorrection,s,e,useEntireIntvl,stepSize,
+      numIntervals,starts,ends,"SPICE",1.0e-6);
+}
+
+bool EphemManager::GetOccultationIntervals(const std::string &occType,
+                                           const std::string &frontBody,
+                                           const std::string &frontShape,
+                                           const std::string &frontFrame,
+                                           const std::string &backBody,
+                                           const std::string &backShape,
+                                           const std::string &backFrame,
+                                           const std::string &abCorrection,
+                                           Real              s,
+                                           Real              e,
+                                           bool              useEntireIntvl,
+                                           Real              stepSize,
+                                           Integer           &numIntervals,
+                                           RealArray         &starts,
+                                           RealArray         &ends,
+                                           const std::string &rootMethod,
+                                           Real rootTolerance)
+{
+   if ((rootMethod != "SPICE" && rootMethod != "Brent") ||
+       !std::isfinite(rootTolerance) || rootTolerance <= 0)
+      throw SubscriberException("Occultation root method must be SPICE/Brent with a finite positive tolerance.");
    Spacecraft  *theSc       = (Spacecraft*) theObj;
 
    #ifndef __USE_SPICE__
@@ -687,6 +708,11 @@ bool EphemManager::GetOccultationIntervals(const std::string &occType,
          throw SubscriberException(errmsg);
       }
 
+      if (rootMethod == "Brent")
+         GmatEventRoot::RefineOccultation(result,window,occultationType,
+            frontBody,frontShape,frontFrame,backBody,backShape,backFrame,
+            abCorrection,theNAIFIdStr,rootTolerance);
+
       SpiceInt sz = wncard_c(&result);
       numIntervals = (Integer) sz;
       #ifdef DEBUG_OCCULTATION
@@ -772,6 +798,35 @@ bool EphemManager::GetContactIntervals(const std::string &observerID,
                                        const std::string           idForInstrument,
                                        RealArray       &maxEl)
 {
+   return GetContactIntervals(observerID,minElevation,obsFrameName,occultingBodyNames,
+         abCorrection,s,e,useEntireIntvl,useLightTime,transmit,stepSize,numIntervals,
+         starts,ends,contactForImager,idForInstrument,maxEl,"SPICE",1.0e-6);
+}
+
+bool EphemManager::GetContactIntervals(const std::string &observerID,
+                                       Real              minElevation,
+                                       const std::string &obsFrameName,
+                                       StringArray       &occultingBodyNames,
+                                       const std::string &abCorrection,
+                                       Real              s,
+                                       Real              e,
+                                       bool              useEntireIntvl,
+                                       bool              useLightTime,
+                                       bool              transmit,
+                                       Real              stepSize,
+                                       Integer           &numIntervals,
+                                       RealArray         &starts,
+                                       RealArray         &ends,
+                                       bool              contactForImager,
+                                       const std::string           idForInstrument,
+                                       RealArray       &maxEl,
+                                       const std::string &rootMethod,
+                                       Real rootTolerance)
+{
+   if (rootMethod != "SPICE" && rootMethod != "Brent")
+      throw SubscriberException("RootFindingMethod must be SPICE or Brent");
+   if (!std::isfinite(rootTolerance) || rootTolerance <= 0)
+      throw SubscriberException("RootTolerance must be finite and positive in seconds");
    Spacecraft  *theSc       = (Spacecraft*) theObj;
 
 #ifndef __USE_SPICE__
@@ -882,14 +937,6 @@ bool EphemManager::GetContactIntervals(const std::string &observerID,
    gfposc_c(target, tframe, abcorr, obsrvr, crdsys, coord, relate,
       refval, adjust, step, nintvls, &window, &obsResults);
 
-   if (contactForImager)
-   {
-      gftfov_c(inst, target, tshape, tframe, abcorr, obsrvr, step, &windowFOV, &obsResultsFOV);
-      wnintd_c(&obsResults, &obsResultsFOV, &subtracted);
-      copy_c(&subtracted, &obsResults);
-      scard_c(0, &subtracted);   // reset (empty) the coverage cell
-   }
-
    if (failed_c())
    {
       ConstSpiceChar option[] = "LONG";
@@ -902,6 +949,33 @@ bool EphemManager::GetContactIntervals(const std::string &observerID,
       errmsg += errStr + "\n";
       reset_c();
       throw SubscriberException(errmsg);
+   }
+
+   if (rootMethod == "Brent")
+      GmatEventRoot::RefineLatitude(obsResults,window,target,tframe,abcorr,obsrvr,refval,rootTolerance);
+
+   if (contactForImager)
+   {
+      gftfov_c(inst, target, tshape, tframe, abcorr, obsrvr, step, &windowFOV, &obsResultsFOV);
+   if (failed_c())
+   {
+      ConstSpiceChar option[] = "LONG";
+      SpiceInt       numChar  = MAX_LONG_MESSAGE_VALUE;
+      SpiceChar      err[MAX_LONG_MESSAGE_VALUE];
+      getmsg_c(option, numChar, err);
+      std::string errStr(err);
+      std::string errmsg = "Error calling gftfov_c!!!  ";
+      errmsg += "Message received from CSPICE is: ";
+      errmsg += errStr + "\n";
+      reset_c();
+      throw SubscriberException(errmsg);
+   }
+
+      if (rootMethod == "Brent")
+         GmatEventRoot::RefineFieldOfView(obsResultsFOV,windowFOV,inst,target,tshape,tframe,abcorr,obsrvr,rootTolerance);
+      wnintd_c(&obsResults, &obsResultsFOV, &subtracted);
+      copy_c(&subtracted, &obsResults);
+      scard_c(0, &subtracted);
    }
 
    SpiceInt szObs = wncard_c(&obsResults);
@@ -982,6 +1056,9 @@ bool EphemManager::GetContactIntervals(const std::string &observerID,
                      ii, eeOcc);
             }
          #endif
+         if (rootMethod == "Brent")
+            GmatEventRoot::RefineOccultation(occultResults,obsResults,occultationType,
+                  front,fshape,fframe,target,tshape," ",abcorr,obsrvr,rootTolerance);
          wndifd_c(&obsResults, &occultResults, &subtracted);
          copy_c(&subtracted, &obsResults);
          
@@ -1034,8 +1111,9 @@ bool EphemManager::GetContactIntervals(const std::string &observerID,
       // First construct an isolated window for each event
       SpiceDouble ss, ee;
       wnfetd_c(&result, ii, &ss, &ee);
+      scard_c(0, &cnfine);
+      scard_c(0, &resultMax);
       wninsd_c(ss, ee, &cnfine);
-      cnfine.data = result.data;
       // Then search the window for the Max elevation
       gfposc_c(target, tframe, abcorr, obsrvr, crdsys, coord, "ABSMAX",
          refval, adjust, step, nintvls, &cnfine, &resultMax);
@@ -1053,6 +1131,10 @@ bool EphemManager::GetContactIntervals(const std::string &observerID,
          reset_c();
          throw SubscriberException(errmsg);
       }
+      if (wncard_c(&resultMax) == 0)
+         throw SubscriberException("Contact maximum-elevation search returned no epoch.");
+      if (rootMethod == "Brent")
+         GmatEventRoot::RefineLatitude(resultMax,cnfine,target,tframe,abcorr,obsrvr,refval,rootTolerance,true);
       // Finally extract the time of the elevation and pass it through
       SpiceDouble maxElevation1, maxElevation2;
       wnfetd_c(&resultMax, 0, &maxElevation1, &maxElevation2);
@@ -1084,6 +1166,23 @@ bool EphemManager::GetStationElevationCrossings(
       bool useEntireInterval, bool useLightTime, bool transmit, Real stepSize,
       RealArray &rises, RealArray &sets)
 {
+   return GetStationElevationCrossings(observerID,minElevation,obsFrameName,
+         occultingBodies,abCorrection,start,stop,useEntireInterval,
+         useLightTime,transmit,stepSize,rises,sets,"SPICE",1.0e-6);
+}
+
+bool EphemManager::GetStationElevationCrossings(
+      const std::string &observerID, Real minElevation,
+      const std::string &obsFrameName, const StringArray &occultingBodies,
+      const std::string &abCorrection, Real start, Real stop,
+      bool useEntireInterval, bool useLightTime, bool transmit, Real stepSize,
+      RealArray &rises, RealArray &sets,
+      const std::string &rootMethod, Real rootTolerance)
+{
+   if (rootMethod != "SPICE" && rootMethod != "Brent")
+      throw SubscriberException("Station root method must be SPICE or Brent.");
+   if (!std::isfinite(rootTolerance) || rootTolerance <= 0.0)
+      throw SubscriberException("Station root tolerance must be finite and positive in seconds.");
    rises.clear(); sets.clear();
    if (!theObj || !theObj->IsOfType("Spacecraft") ||
        !std::isfinite(minElevation) || minElevation < -90 || minElevation > 90 ||
@@ -1196,6 +1295,44 @@ bool EphemManager::GetStationElevationCrossings(
          }
          if (interior) candidates.push_back(candidate);
       }
+   }
+   if (rootMethod == "Brent")
+   {
+      RealArray refined;
+      for (const Real center : candidates)
+      {
+         auto value = [&](Real offset) {
+            SpiceDouble state[6]; apparentState(center+offset,state);
+            return latitude(state)-elevation;
+         };
+         if (value(0.0) == 0.0) { refined.push_back(center); continue; }
+         const Real spacing = std::nextafter(center,std::numeric_limits<Real>::infinity())-center;
+         if (rootTolerance < 2*spacing)
+            throw SubscriberException("Station root tolerance is below the resolution of SPICE epoch seconds at this epoch.");
+         const Real tolerance = (std::min)(rootTolerance,static_cast<Real>(SPICE_GF_CNVTOL));
+         const Real margin = (std::max)(16*static_cast<Real>(SPICE_GF_CNVTOL),16*spacing);
+         Real a=0,b=0; bool covered=false;
+         for (SpiceInt index=0; index<wncard_c(&available); ++index)
+         {
+            SpiceDouble begin,end; wnfetd_c(&available,index,&begin,&end);
+            if (center < begin || center > end) continue;
+            a=(std::max)(begin,center-margin)-center;
+            b=(std::min)(end,center+margin)-center;
+            covered=true; break;
+         }
+         if (!covered || a==b) continue;
+         Real fa=value(a),fb=value(b);
+         if (fa!=0 && fb!=0 && std::signbit(fa)==std::signbit(fb)) continue;
+         // Refine a continuous elevation residual in seconds relative to the
+         // GF candidate, using the same backend as other event geometries.
+         const Real root=center+GmatEventRoot::Refine(value,a,b,tolerance);
+         for (SpiceInt index=0; index<wncard_c(&confinement); ++index)
+         {
+            SpiceDouble begin,end;wnfetd_c(&confinement,index,&begin,&end);
+            if (root>=begin && root<=end) {refined.push_back(root);break;}
+         }
+      }
+      candidates.swap(refined);
    }
    std::sort(candidates.begin(), candidates.end());
    candidates.erase(std::unique(candidates.begin(), candidates.end()), candidates.end());
@@ -1324,6 +1461,35 @@ bool EphemManager::GetIntrusionIntervals(const std::string &instName,
                                          RealArray         &starts,
                                          RealArray         &ends)
 {
+   return GetIntrusionIntervals(instName,targetName,targetShape,targetFrame,targetNaifId,
+         abCorrection,occultingBodyNames,maxPhaseAngle,s,e,useEntireIntvl,useLightTime,
+         stepSize,numIntervals,intervalTypes,starts,ends,"SPICE",1.0e-6);
+}
+
+bool EphemManager::GetIntrusionIntervals(const std::string &instName,
+                                         const std::string &targetName,
+                                         const std::string &targetShape,
+                                         const std::string &targetFrame,
+                                         Integer           targetNaifId,
+                                         const std::string &abCorrection,
+                                         StringArray       &occultingBodyNames,
+                                         Real              maxPhaseAngle,
+                                         Real              s,
+                                         Real              e,
+                                         bool              useEntireIntvl,
+                                         bool              useLightTime,
+                                         Real              stepSize,
+                                         Integer           &numIntervals,
+                                         StringArray       &intervalTypes,
+                                         RealArray         &starts,
+                                         RealArray         &ends,
+                                         const std::string &rootMethod,
+                                         Real rootTolerance)
+{
+   if (rootMethod != "SPICE" && rootMethod != "Brent")
+      throw SubscriberException("RootFindingMethod must be SPICE or Brent");
+   if (!std::isfinite(rootTolerance) || rootTolerance <= 0)
+      throw SubscriberException("RootTolerance must be finite and positive in seconds");
    if (targetShape != "ELLIPSOID" && targetShape != "POINT")
    {
       std::string errmsg = "Error calling GetIntrusionIntervals! The provided "
@@ -1385,6 +1551,9 @@ bool EphemManager::GetIntrusionIntervals(const std::string &instName,
       throw SubscriberException(errmsg);
    }
 
+   if (rootMethod == "Brent")
+      GmatEventRoot::RefineFieldOfView(fovResults,window,inst,target,tshape,tframe,abcorr,obsrvr,rootTolerance);
+
    SpiceInt szFOVs = wncard_c(&fovResults);
 
    // Now check for whether the minimum phase was met
@@ -1416,6 +1585,8 @@ bool EphemManager::GetIntrusionIntervals(const std::string &instName,
          throw SubscriberException(errmsg);
       }
 
+      if (rootMethod == "Brent")
+         GmatEventRoot::RefinePhase(illmnResults,fovResults,target,illmn,obsrvr,abcorr,refval,rootTolerance);
       wndifd_c(&fovResults, &illmnResults, &subtracted);
       copy_c(&subtracted, &fovResults);
    }
@@ -1479,6 +1650,9 @@ bool EphemManager::GetIntrusionIntervals(const std::string &instName,
             throw SubscriberException(errmsg);
          }
 
+         if (rootMethod == "Brent")
+            GmatEventRoot::RefineOccultation(occultResults,fovResults,occultationType,
+                  front,fshape,fframe,target,tshape,tframe,abcorr,obsrvr,rootTolerance);
          wndifd_c(&fovResults, &occultResults, &subtracted);
          copy_c(&subtracted, &fovResults);
 
@@ -1503,6 +1677,9 @@ bool EphemManager::GetIntrusionIntervals(const std::string &instName,
             throw SubscriberException(errmsg);
          }
 
+         if (rootMethod == "Brent")
+            GmatEventRoot::RefineOccultation(transitResults,fovResults,occultationType,
+                  target,tshape,tframe,front,fshape,fframe,abcorr,obsrvr,rootTolerance);
          wndifd_c(&fovResults, &transitResults, &subtracted);
          copy_c(&subtracted, &fovResults);
 
@@ -1937,6 +2114,9 @@ void EphemManager::CreateSPKFile()
    //         ss << "tmp_" << theObjName << "_" << ephemCount << "_" << GmatTimeUtil::FormatCurrentTime(4);
    ss << "tmp_" << theObjName << "_" << GmatTimeUtil::FormatCurrentTime(4);
    ephemFile = new EphemerisFile(ephemFileName);
+   // Establish the internal event-data role before any trial-sensitive setup.
+   // EphemerisFile retains it for lazy writer creation.
+   ephemFile->SetBackgroundGeneration(true);
    #ifdef DEBUG_EPHEM_MANAGER_FILES
       MessageInterface::ShowMessage(
          "In EphemManager::RecordEphemerisData, ephemFile is at <%p> with name %s\n",
@@ -1969,7 +2149,6 @@ void EphemManager::CreateSPKFile()
    ephemFile->SetStringParameter("Filename", ephemFileName);
    ephemFile->SetStringParameter("Interpolator", "Hermite");
    ephemFile->SetIntegerParameter(ephemFile->GetParameterID("InterpolationOrder"), 7);
-   //         ephemFile->SetBackgroundGeneration(true); // must be set after initialization
 
    ephemFile->SetInternalCoordSystem(coordSys);
    ephemFile->SetRefObject(theObj, Gmat::SPACECRAFT, theObjName);
@@ -1977,7 +2156,6 @@ void EphemManager::CreateSPKFile()
 
    ephemFile->Initialize();
    ephemFile->TakeAction("ToggleOn");
-   ephemFile->SetBackgroundGeneration(true);
 
    // Subscribe to the data
    Publisher* pub = Publisher::Instance();
@@ -2016,6 +2194,7 @@ void EphemManager::CreateCKFile()
    ss << "tmp_" << theObjName << "_" << GmatTimeUtil::FormatCurrentTime(4);
    attitudeFileName = ss.str();
    attitudeFile = new EphemerisFile(attitudeFileName);
+   attitudeFile->SetBackgroundGeneration(true);
    #ifdef DEBUG_EPHEM_MANAGER_FILES
       MessageInterface::ShowMessage(
          "In EphemManager::RecordEphemerisData, ephemFile is at <%p> with name %s\n",
@@ -2055,7 +2234,6 @@ void EphemManager::CreateCKFile()
 
    attitudeFile->Initialize();
    attitudeFile->TakeAction("ToggleOn");
-   attitudeFile->SetBackgroundGeneration(true);
 
    // Subscribe to the data
    Publisher* pub = Publisher::Instance();

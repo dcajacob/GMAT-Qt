@@ -40,6 +40,7 @@
 #define BodyFixedPoint_hpp
 
 #include "SpacePoint.hpp"
+#include <functional>
 #include "BodyFixedStateConverter.hpp"
 #include "CoordinateSystem.hpp"
 #include "CoordinateConverter.hpp"
@@ -125,6 +126,9 @@ public:
    virtual const Rvector6  GetMJ2000State(const A1Mjd &atTime);
    virtual const Rvector3  GetMJ2000Position(const A1Mjd &atTime);
    virtual const Rvector3  GetMJ2000Velocity(const A1Mjd &atTime);
+   const Rvector3 GetMJ2000Acceleration(const A1Mjd &atTime) override;
+   const Rvector3 GetMJ2000Acceleration(const Real atTime) override { return GetMJ2000Acceleration(GmatTime(atTime)); }
+   const Rvector3 GetMJ2000Acceleration(const GmatTime &atTime) override;
 
    virtual const Rvector6  GetMJ2000State(const GmatTime &atTime);
    virtual const Rvector3  GetMJ2000Position(const GmatTime &atTime);
@@ -142,6 +146,10 @@ public:
    virtual GmatBase *      Clone() const;
 
    virtual SpacePoint *    GetCentralBody();
+
+   // Passive value binding; native initialization rebuilds frames separately.
+   void RebindClonedBodyReferences(const BodyFixedPoint &source, SolarSystem *system,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
 
    DEFAULT_TO_NO_CLONES
    DEFAULT_TO_NO_REFOBJECTS
@@ -218,6 +226,12 @@ protected:
    //virtual bool HasLocalClones() const;
    //virtual void RenameRefObject(const UnsignedInt, const std::string & name, const std::string &newName);
    void UpdateBodyFixedLocation();
+   /// Unload this instance's generated station kernels and honor file retention.
+   void RetireGeneratedKernels();
+   /// Retire owned frames and generated geometry before rebinding the body.
+   void InvalidateBodyBindings();
+   /// Require initialized frames bound to the current body and solar system.
+   void ValidateBodyBindings() const;
 
    bool WriteSPK(bool deleteFile = true);
    bool WriteFK(bool deleteFile = true);

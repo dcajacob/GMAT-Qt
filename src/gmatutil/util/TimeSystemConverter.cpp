@@ -360,16 +360,18 @@ Real TimeSystemConverter::ConvertToTaiMjd(Integer fromType, Real origValue,
        // This cleans up round-off error from differencing large numbers
        Real tttOffset = T_TT_OFFSET - refJd;
 
-       // An approximation valid to the difference between TDB and TT; 1st term
-       // here should be in TT rather than the input TDB, but we do not know TT
-       Real t_TT = (origValue - tttOffset) / T_TT_COEFF1;
-       Real m_E = (M_E_OFFSET + (M_E_COEFF1 * t_TT)) *
-             GmatMathConstants::RAD_PER_DEG;
-
-       Real offset = ((TDB_COEFF1 *Sin(m_E)) + (TDB_COEFF2 * Sin(2 * m_E))) /
-             GmatTimeConstants::SECS_PER_DAY ;
-
-       Real ttJd = origValue - offset;
+       // Invert the same TT-based model used by ConvertFromTaiMjd.
+       Real ttJd = origValue, t_TT = 0.0, m_E = 0.0, offset = 0.0;
+       for (Integer iteration = 0; iteration < 8; ++iteration)
+       {
+          t_TT = (ttJd - tttOffset) / T_TT_COEFF1;
+          m_E = (M_E_OFFSET + M_E_COEFF1 * t_TT) * GmatMathConstants::RAD_PER_DEG;
+          offset = (TDB_COEFF1 * Sin(m_E) + TDB_COEFF2 * Sin(2 * m_E)) /
+             GmatTimeConstants::SECS_PER_DAY;
+          const Real next = origValue - offset;
+          if (next == ttJd) break;
+          ttJd = next;
+       }
        Real taiJd = ConvertToTaiMjd(TTMJD,
              ttJd, 0.0);
 
@@ -513,16 +515,19 @@ GmatTime TimeSystemConverter::ConvertToTaiMjd(Integer fromType, const GmatTime &
       // This cleans up round-off error from differencing large numbers
       GmatTime tttOffset = T_TT_OFFSET - refJd;
 
-      // An approximation valid to the difference between TDB and TT; 1st term
-      // here should be in TT rather than the input TDB, but we do not know TT
-      Real t_TT = (origValue - tttOffset).GetMjd() / T_TT_COEFF1;
-      Real m_E = ((t_TT * M_E_COEFF1) + M_E_OFFSET) *
-         GmatMathConstants::RAD_PER_DEG;
-
-      Real offset = ((TDB_COEFF1 *Sin(m_E)) + (TDB_COEFF2 * Sin(2 * m_E))) /
-         GmatTimeConstants::SECS_PER_DAY;
-
-      GmatTime ttJd = origValue - offset;
+      // Preserve split-epoch precision while inverting the TT-based model.
+      GmatTime ttJd = origValue;
+      Real t_TT = 0.0, m_E = 0.0, offset = 0.0;
+      for (Integer iteration = 0; iteration < 8; ++iteration)
+      {
+         t_TT = (ttJd - tttOffset).GetMjd() / T_TT_COEFF1;
+         m_E = (M_E_OFFSET + M_E_COEFF1 * t_TT) * GmatMathConstants::RAD_PER_DEG;
+         offset = (TDB_COEFF1 * Sin(m_E) + TDB_COEFF2 * Sin(2 * m_E)) /
+            GmatTimeConstants::SECS_PER_DAY;
+         const GmatTime next = origValue - offset;
+         if (next == ttJd) break;
+         ttJd = next;
+      }
       GmatTime taiJd = ConvertToTaiMjd(TTMJD,
          ttJd, 0.0);
 
@@ -716,7 +721,7 @@ Real TimeSystemConverter::ConvertFromTaiMjd(Integer toType, Real origValue,
              // compute T_TT
              // This cleans up round-off error from differencing large numbers
              Real tttOffset = T_TT_OFFSET - refJd;
-             Real t_TT = (origValue - tttOffset) / T_TT_COEFF1;
+             Real t_TT = (ttJd - tttOffset) / T_TT_COEFF1;
 
              // compute M_E
              Real m_E = (M_E_OFFSET + (M_E_COEFF1 * t_TT)) * GmatMathConstants::RAD_PER_DEG;
@@ -887,7 +892,7 @@ GmatTime TimeSystemConverter::ConvertFromTaiMjd(Integer toType, const GmatTime &
       // compute T_TT
       // This cleans up round-off error from differencing large numbers
       GmatTime tttOffset = GmatTime(T_TT_OFFSET) - GmatTime(refJd);
-      Real t_TT = (origValue - tttOffset).GetMjd() / T_TT_COEFF1;
+      Real t_TT = (ttJd - tttOffset).GetMjd() / T_TT_COEFF1;
 
       // compute M_E
       Real m_E = ((t_TT * M_E_COEFF1) + M_E_OFFSET) * GmatMathConstants::RAD_PER_DEG;

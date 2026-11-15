@@ -158,6 +158,7 @@ Optimizer& Optimizer::operator=(const Optimizer& opt)
       Solver::operator=(opt);
    
       sourceType       = opt.sourceType;
+      objectiveDefined = opt.objectiveDefined;
       objectiveFnName  = opt.objectiveFnName;
       cost             = opt.cost;
       tolerance        = opt.tolerance;
@@ -219,6 +220,47 @@ bool Optimizer::IsParameterReadOnly(const std::string &label) const
    return IsParameterReadOnly(GetParameterID(label));
 }
 
+
+void Optimizer::CopyOptimizerValueData(const Optimizer &source)
+{
+   auto cloneMatrix = [](const Rmatrix &value) -> Rmatrix
+   {
+      if (value.IsSized()) return Rmatrix(value);
+      return Rmatrix();
+   };
+   Rmatrix equality(cloneMatrix(source.eqConstraintJacobian));
+   Rmatrix inequality(cloneMatrix(source.ineqConstraintJacobian));
+   CopySolverValueData(source);
+   sourceType = source.sourceType;
+   objectiveDefined = source.objectiveDefined;
+   objectiveFnName = source.objectiveFnName;
+   cost = source.cost;
+   oldCost = source.oldCost;
+   tolerance = source.tolerance;
+   feasibilityTolerance = source.feasibilityTolerance;
+   converged = source.converged;
+   eqConstraintCount = source.eqConstraintCount;
+   ineqConstraintCount = source.ineqConstraintCount;
+   eqConstraintNames = source.eqConstraintNames;
+   ineqConstraintNames = source.ineqConstraintNames;
+   eqConstraintValues = source.eqConstraintValues;
+   eqConstraintDesiredValues = source.eqConstraintDesiredValues;
+   eqConstraintAchievedValues = source.eqConstraintAchievedValues;
+   eqConstraintTolerances = source.eqConstraintTolerances;
+   eqConstraintOp = source.eqConstraintOp;
+   ineqConstraintValues = source.ineqConstraintValues;
+   ineqConstraintDesiredValues = source.ineqConstraintDesiredValues;
+   ineqConstraintAchievedValues = source.ineqConstraintAchievedValues;
+   ineqConstraintTolerances = source.ineqConstraintTolerances;
+   ineqConstraintOp = source.ineqConstraintOp;
+   gradient = source.gradient;
+   jacobian = source.jacobian;
+   supportsPhysicalToleranceCheck = source.supportsPhysicalToleranceCheck;
+   checkPhysicalTolerances = source.checkPhysicalTolerances;
+   physicalTolerancesMet = source.physicalTolerancesMet;
+   eqConstraintJacobian.Swap(equality);
+   ineqConstraintJacobian.Swap(inequality);
+}
 
 bool Optimizer::Initialize()
 {

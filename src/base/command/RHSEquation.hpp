@@ -36,6 +36,7 @@
 
 class MathTree;
 class FunctionManager;
+struct ExpressionScopeCopies;
 
 /**
  * Equation manager for right hand side strings describing equations
@@ -47,6 +48,13 @@ public:
    virtual ~RHSEquation();
    RHSEquation(const RHSEquation &rhs);
    RHSEquation& operator=(const RHSEquation &rhs);
+
+   void Swap(RHSEquation &rhs);
+   void Reset();
+   void GetClonedOwnedObjects(const RHSEquation &target, ObjectArray &originals, ObjectArray &copies) const;
+   void GetClonedOwnedObjects(const RHSEquation &target, ObjectArray &originals, ObjectArray &copies, bool sourceOwnedOnly) const;
+   void RebindClonedReferences(const RHSEquation &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
 
    std::string GetEquationString();
 
@@ -66,6 +74,9 @@ public:
          ObjectMap *globalObjectMap);
    void ClearWrappers();
    void Finalize();
+   // Deletes invocation wrappers after detaching node references. External
+   // wrapper owners must detach their aliases before calling this method.
+   void RetireBindings();
 
    bool RenameRefObject(const UnsignedInt type, const std::string &oldName,
          const std::string &newName);
@@ -73,6 +84,9 @@ public:
    StringArray GetFunctionNames();
 
 protected:
+   std::shared_ptr<ExpressionScopeCopies> expressionBindings;
+   bool isRetiringBindings = false;
+
    /// String that defines the equation
    std::string rhsString;
    /// Map of resources used by the RHS expression
@@ -83,6 +97,8 @@ protected:
    MathTree *mathTree;
    /// Wrapper name and ElementWrapper pointer Map for RHS math element
    WrapperMap mathWrapperMap;
+   /// Definition/wrapper changes require fresh native association before use.
+   bool isExpressionInitialized;
 
 };
 

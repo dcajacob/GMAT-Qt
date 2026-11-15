@@ -45,6 +45,11 @@
 
     <para>This resource cannot be modified in the Mission Sequence.</para>
 
+    <para>Reaching the iteration or function-evaluation limit without meeting
+    the convergence criteria reports a limit termination. It does not report
+    convergence. The final pass uses the solver's returned decision variables;
+    internal elastic variables are not exposed as additional Vary controls.</para>
+
     <para><phrase role="ref_seealso">See Also</phrase>: <xref
     linkend="FminconOptimizer"/>, <xref linkend="VF13ad"/>, <xref
     linkend="Optimize"/>,<xref linkend="Vary"/>, <xref

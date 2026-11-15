@@ -31,6 +31,7 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ScriptStringLiteral.hpp"
 #include "MathParser.hpp"
 #include "MathFunction.hpp"
 #include "FunctionRunner.hpp"
@@ -113,11 +114,7 @@ MathParser::MathParser(ObjectMap *objMap)
  * @param <copy> Object that is copied
  */
 //------------------------------------------------------------------------------
-MathParser::MathParser(const MathParser &copy)
-{
-   theGmatFuncCount = 0;
-   BuildAllFunctionList();
-}
+MathParser::MathParser(const MathParser &copy) = default;
 
 
 //------------------------------------------------------------------------------
@@ -131,15 +128,7 @@ MathParser::MathParser(const MathParser &copy)
  * @return this object
  */
 //------------------------------------------------------------------------------
-MathParser& MathParser::operator=(const MathParser &right)
-{
-   if (this == &right)
-      return *this;
-   
-   theGmatFuncCount = 0;
-   BuildAllFunctionList();
-   return *this;
-}
+MathParser& MathParser::operator=(const MathParser &right) = default;
 
 
 //------------------------------------------------------------------------------
@@ -195,7 +184,7 @@ bool MathParser::IsEquation(const std::string &str, bool checkMinusSign,
    Integer errCode;
    
    // Check if string is enclosed with quotes
-   if (GmatStringUtil::IsEnclosedWith(strNoTab, "'"))
+   if (GmatScriptString::IsLiteral(strNoTab))
    {
       #if DEBUG_PARSE_EQUATION
       MessageInterface::ShowMessage
@@ -3162,7 +3151,7 @@ bool MathParser::IsMathElement(const std::string &str)
    if (str.find('\'') != str.npos) // ' for transpose
    {
       // If input is enclosed with single quote the it is a String so return true
-      if (GmatStringUtil::IsEnclosedWith(str, "'"))
+      if (GmatScriptString::IsLiteral(str))
       {
          #ifdef DEBUG_MATH_ELEMENT
          MessageInterface::ShowMessage

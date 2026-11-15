@@ -1,0 +1,200 @@
+{
+  "cases": [
+    {
+      "key": "TableAppearance",
+      "setup": "Create Variable Value Other;\nValue = 12.5;\nOther = -2.25;\nCreate DynamicDataDisplay Subject;\nSubject.AddParameters = {1, Value, '', Other};\nSubject.AddParameters = {2, '', ''};\nSubject.RowTextColors = {1, [0 0 0], [9 8 7], [4 5 6]};\nSubject.RowTextColors = {2, [0 0 0], [12 34 56]};\nSubject.RowTextColorModes = {1, Manual, Manual, Auto};\nSubject.RowTextColorModes = {2, Manual, Auto};\nSubject.RowBackgroundColors = {1, [1 2 3], [10 20 30], [254 128 64]};\nSubject.RowBackgroundColors = {2, [3 2 1], [30 20 10]};\nSubject.RowWarnBounds = {1, [-5 5], [1 2], [-3 3]};\nSubject.RowWarnBounds = {2, [0 1], [2 3]};\nSubject.RowCritBounds = {1, [-10 10], [-1 4], [-6 6]};\nSubject.RowCritBounds = {2, [-1 2], [1 4]};\n",
+      "selected": [
+        "Subject",
+        "Value",
+        "Other"
+      ],
+      "objects": [
+        "Subject",
+        "Value",
+        "Other"
+      ],
+      "filename": "Subject_Value_Other.data",
+      "definitions": [
+        "Create DynamicDataDisplay Subject;",
+        "Create Variable Value\n",
+        "Create Variable Other\n"
+      ],
+      "witnesses": [
+        {
+          "object": "Subject",
+          "field": "AddParameters",
+          "type": "ObjectArray",
+          "expected": [
+            [
+              "Value",
+              "",
+              "Other"
+            ],
+            [
+              "",
+              ""
+            ]
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "RowTextColorModes",
+          "type": "StringArray",
+          "expected": [
+            [
+              "Manual",
+              "Manual",
+              "Auto"
+            ],
+            [
+              "Manual",
+              "Auto"
+            ]
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "RowTextColors",
+          "type": "StringArray",
+          "expected": [
+            [
+              [
+                0,
+                true
+              ],
+              [
+                591879,
+                true
+              ],
+              [
+                0,
+                false
+              ]
+            ],
+            [
+              [
+                0,
+                true
+              ],
+              [
+                0,
+                false
+              ]
+            ]
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "RowBackgroundColors",
+          "type": "StringArray",
+          "expected": [
+            [
+              66051,
+              660510,
+              16678976
+            ],
+            [
+              197121,
+              1971210
+            ]
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "RowWarnBounds",
+          "type": "StringArray",
+          "expected": [
+            [
+              [
+                -5,
+                5
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                -3,
+                3
+              ]
+            ],
+            [
+              [
+                0,
+                1
+              ],
+              [
+                2,
+                3
+              ]
+            ]
+          ]
+        },
+        {
+          "object": "Subject",
+          "field": "RowCritBounds",
+          "type": "StringArray",
+          "expected": [
+            [
+              [
+                -10,
+                10
+              ],
+              [
+                -1,
+                4
+              ],
+              [
+                -6,
+                6
+              ]
+            ],
+            [
+              [
+                -1,
+                2
+              ],
+              [
+                1,
+                4
+              ]
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "key": "StringBytes",
+      "setup": "Create String Text Empty;\nText = 'seed';\nEmpty = 'not-empty';\n",
+      "before_save": "Text = @'71756F74652027205B5D207B7D3B3D250A6C696E6509CEA9007461696C';\nEmpty = '';\n",
+      "selected": [
+        "Text",
+        "Empty"
+      ],
+      "objects": [
+        "Text",
+        "Empty"
+      ],
+      "filename": "Text_Empty.data",
+      "definitions": [
+        "Create String Text\n",
+        "Create String Empty\n"
+      ],
+      "witnesses": [
+        {
+          "object": "Text",
+          "field": "Value",
+          "type": "String",
+          "expected": "quote ' [] {};=%\nline\tΩ\u0000tail"
+        },
+        {
+          "object": "Empty",
+          "field": "Value",
+          "type": "String",
+          "expected": ""
+        }
+      ]
+    }
+  ],
+  "scope": "Supplementary actual snapshots of blank cells/manual black/positional appearance and runtime String bytes/empty values. Finite cases only; no parent requirement admission."
+}

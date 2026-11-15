@@ -42,6 +42,7 @@
 #include "ICRFFile.hpp"
 #include "ObjectReferencedAxes.hpp"
 #include "MessageInterface.hpp"
+#include <utility>
 
 //#define DEBUG_FIRST_CALL
 //#define DEBUG_TO_FROM
@@ -93,7 +94,12 @@ CoordinateConverter::CoordinateConverter():
  */
 //---------------------------------------------------------------------------
 CoordinateConverter::CoordinateConverter(const CoordinateConverter &coordCvt):
+   lastRotMatrix         (coordCvt.lastRotMatrix),
+   lastRotDotMatrix      (coordCvt.lastRotDotMatrix),
    specifyRotMatrixDeriv  (coordCvt.specifyRotMatrixDeriv),
+   lastRotMatrixDeriv     (coordCvt.lastRotMatrixDeriv),
+   icrfToFK5              (coordCvt.icrfToFK5),
+   icrfToFK5Dot           (coordCvt.icrfToFK5Dot),
    lastIcrfToFk5Epoch(coordCvt.lastIcrfToFk5Epoch)
 {
 }
@@ -115,9 +121,27 @@ const CoordinateConverter& CoordinateConverter::operator=(
    if (&coordCvt == this)
       return *this;
 
-   specifyRotMatrixDeriv = coordCvt.specifyRotMatrixDeriv;
-   lastIcrfToFk5Epoch    = coordCvt.lastIcrfToFk5Epoch;
+   CoordinateConverter prepared(coordCvt);
+   Swap(prepared);
    return *this;
+}
+
+void CoordinateConverter::Swap(CoordinateConverter &other) noexcept
+{
+   using std::swap;
+   // Rmatrix33 storage is fixed at 3x3. Swap its elements rather than invoke
+   // an allocating matrix assignment during a prepared-value publication.
+   for (Integer row = 0; row < 3; ++row)
+      for (Integer col = 0; col < 3; ++col)
+      {
+         swap(lastRotMatrix(row, col), other.lastRotMatrix(row, col));
+         swap(lastRotDotMatrix(row, col), other.lastRotDotMatrix(row, col));
+         swap(icrfToFK5(row, col), other.icrfToFK5(row, col));
+         swap(icrfToFK5Dot(row, col), other.icrfToFK5Dot(row, col));
+      }
+   swap(specifyRotMatrixDeriv, other.specifyRotMatrixDeriv);
+   lastRotMatrixDeriv.swap(other.lastRotMatrixDeriv);
+   swap(lastIcrfToFk5Epoch, other.lastIcrfToFk5Epoch);
 }
 //---------------------------------------------------------------------------
 //  ~CoordinateConverter()

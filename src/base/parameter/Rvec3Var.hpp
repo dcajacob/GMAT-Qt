@@ -58,6 +58,8 @@ public:
    virtual const        Rvector3& GetRvector3() const;
    virtual void         SetRvector3(const Rvector3 &val);
    virtual const        Rvector3& EvaluateRvector3();
+   const Rvector& EvaluateRvector() override;
+   void SetRvector(const Rvector &value) override;
 
 protected:
 

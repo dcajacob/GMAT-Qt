@@ -44,6 +44,9 @@
 #include "ColorTypes.hpp"               // for namespace GmatColor::
 #include "MessageInterface.hpp"         // for debugging
 #include "CoordinateSystem.hpp"
+#include <utility>
+#include <memory>
+#include <cstdio>
 
 //#define DEBUG_SS_SET
 //#define DEBUG_SS_COPY
@@ -73,6 +76,191 @@
 #endif
 
 using namespace GmatSolarSystemDefaults;
+
+namespace
+{
+Integer DeFilenameSourceIndex(const std::string &active, const StringArray &sources)
+{
+   const Integer supported[] = {Gmat::DE405, Gmat::DE421, Gmat::DE424};
+   for (Integer id : supported)
+      if (active == Gmat::POS_VEL_SOURCE_STRINGS[id]) return id;
+   if (active == Gmat::POS_VEL_SOURCE_STRINGS[Gmat::SPICE])
+      for (const auto &source : sources)
+         for (Integer id : supported)
+            if (source == Gmat::POS_VEL_SOURCE_STRINGS[id]) return id;
+   return -1;
+}
+}
+
+
+// Preserve native source configuration until all affected receivers accept it.
+// The token owns displaced DE readers only after replacement, and nested tokens
+// transfer that retirement to the nearest enclosing update of the same system.
+class SolarSystemEphemerisTransaction
+{
+public:
+   explicit SolarSystemEphemerisTransaction(SolarSystem &system)
+      : owner(system), previous(active), source(system.pvSrcForAll),
+        ephemeris(system.thePlanetaryEphem), reader(system.theDefaultDeFile),
+        current(system.theCurrentPlanetarySource), spk(system.theSPKFilename),
+        pck(system.pckKernelName), lsk(system.lskKernelName),
+        timeOverride(system.overrideTimeForAll), interval(system.ephemUpdateInterval),
+        names(system.thePlanetarySourceNames), kernels(system.theSPKKernelNames),
+        order(system.thePlanetarySourceTypesInUse)
+   {
+      for (auto *body : owner.bodiesInUse)
+      {
+         if (!body) throw SolarSystemException("A solar-system ephemeris receiver is missing.");
+         Capture(body);
+      }
+      for (const auto &point : owner.specialPoints) Capture(point.second);
+      active = this;
+   }
+
+   ~SolarSystemEphemerisTransaction() noexcept
+   {
+      DeFile *abandoned = nullptr;
+      if (!committed)
+      {
+         abandoned = owner.theDefaultDeFile;
+         owner.pvSrcForAll = source;
+         owner.thePlanetaryEphem = ephemeris;
+         owner.theDefaultDeFile = reader;
+         owner.theCurrentPlanetarySource.swap(current);
+         owner.theSPKFilename.swap(spk);
+         owner.pckKernelName.swap(pck);
+         owner.lskKernelName.swap(lsk);
+         owner.overrideTimeForAll = timeOverride;
+         owner.ephemUpdateInterval = interval;
+         owner.thePlanetarySourceNames.swap(names);
+         owner.theSPKKernelNames.swap(kernels);
+         owner.thePlanetarySourceTypesInUse.swap(order);
+         for (auto &saved : bodies)
+         {
+            saved.object->posVelSrc = saved.source;
+            saved.object->theSourceFile = saved.file;
+            saved.object->sourceFilename.swap(saved.filename);
+            saved.object->bodyNumber = saved.number;
+            saved.object->spiceSetupDone = saved.spiceReady;
+            saved.object->newTwoBody = saved.newTwoBody;
+            saved.object->lastEphemTime = saved.epoch;
+            saved.object->lastEphemTimeGT = saved.preciseEpoch;
+            saved.object->ephemerisStateValid = saved.cacheValid;
+            saved.object->ephemerisStateEpoch = saved.cacheEpoch;
+            saved.object->naifIdSet = saved.naifReady;
+            saved.object->naifId = saved.naif;
+            saved.object->naifIdObserver = saved.observer;
+            saved.object->naifName.swap(saved.naifName);
+            #ifdef __USE_SPICE__
+               saved.object->kernelReader = saved.kernelReader;
+               saved.object->mainSPK.swap(saved.mainSPK);
+               saved.object->mainPCK.swap(saved.mainPCK);
+            #endif
+            saved.object->overrideTime = saved.timeOverride;
+            saved.object->ephemUpdateInterval = saved.interval;
+            saved.object->state = saved.state;
+            saved.object->lastState = saved.lastState;
+            saved.object->j2kState = saved.j2kState;
+            saved.object->stateTime = saved.stateEpoch;
+            saved.object->stateTimeGT = saved.preciseStateEpoch;
+            for (Integer i = 0; i < 6; ++i)
+               saved.object->prevState[i] = saved.previousState[i];
+         }
+      }
+      active = previous;
+      for (size_t i = 0; i < retired.size(); ++i)
+         if (retired[i] && retired[i] != owner.theDefaultDeFile &&
+             std::find(retired.begin(), retired.begin() + i, retired[i]) == retired.begin() + i)
+            delete retired[i];
+      if (!committed && abandoned && abandoned != owner.theDefaultDeFile &&
+          std::find(retired.begin(), retired.end(), abandoned) == retired.end())
+         delete abandoned;
+   }
+
+   SolarSystemEphemerisTransaction(const SolarSystemEphemerisTransaction &) = delete;
+   SolarSystemEphemerisTransaction &operator=(const SolarSystemEphemerisTransaction &) = delete;
+
+   void Retire(DeFile *file)
+   {
+      // Allocate the retirement entry before publishing a replacement reader.
+      if (file) retired.push_back(file);
+   }
+
+   void Commit()
+   {
+      for (auto *parent = previous; parent; parent = parent->previous)
+         if (&parent->owner == &owner)
+         {
+            parent->retired.insert(parent->retired.end(), retired.begin(), retired.end());
+            retired.clear();
+            break;
+         }
+      committed = true;
+   }
+
+private:
+   struct Body
+   {
+      CelestialBody *object;
+      Gmat::PosVelSource source;
+      PlanetaryEphem *file;
+      std::string filename;
+      Integer number;
+      bool spiceReady, newTwoBody;
+      A1Mjd epoch;
+      GmatTime preciseEpoch;
+      bool cacheValid, timeOverride, naifReady;
+      Integer naif, observer;
+      std::string naifName;
+      #ifdef __USE_SPICE__
+         SpiceOrbitKernelReader *kernelReader;
+         std::string mainSPK, mainPCK;
+      #endif
+      GmatTime cacheEpoch;
+      Real interval;
+      Rvector6 state, lastState, j2kState, previousState;
+      A1Mjd stateEpoch;
+      GmatTime preciseStateEpoch;
+   };
+
+   void Capture(CelestialBody *body)
+   {
+      if (!body)
+         throw SolarSystemException("A solar-system ephemeris receiver is missing.");
+      for (const auto &saved : bodies)
+         if (saved.object == body) return;
+      bodies.push_back({body, body->posVelSrc, body->theSourceFile,
+         body->sourceFilename, body->bodyNumber, body->spiceSetupDone,
+         body->newTwoBody, body->lastEphemTime, body->lastEphemTimeGT,
+         body->ephemerisStateValid, body->overrideTime, body->naifIdSet,
+         body->naifId, body->naifIdObserver, body->naifName,
+         #ifdef __USE_SPICE__
+            body->kernelReader, body->mainSPK, body->mainPCK,
+         #endif
+         body->ephemerisStateEpoch,
+         body->ephemUpdateInterval, body->state, body->lastState, body->j2kState,
+         Rvector6(body->prevState[0], body->prevState[1], body->prevState[2],
+                  body->prevState[3], body->prevState[4], body->prevState[5]),
+         body->stateTime, body->stateTimeGT});
+   }
+
+   static thread_local SolarSystemEphemerisTransaction *active;
+   SolarSystem &owner;
+   SolarSystemEphemerisTransaction *previous;
+   Gmat::PosVelSource source;
+   PlanetaryEphem *ephemeris;
+   DeFile *reader;
+   std::string current, spk, pck, lsk;
+   bool timeOverride;
+   Real interval;
+   StringArray names, kernels, order;
+   std::vector<Body> bodies;
+   std::vector<DeFile*> retired;
+   bool committed = false;
+};
+
+thread_local SolarSystemEphemerisTransaction *SolarSystemEphemerisTransaction::active = nullptr;
+
 
 //------------------------------------------------------------------------------
 // static data
@@ -723,7 +911,7 @@ SolarSystem::SolarSystem(const SolarSystem &ss) :
    theSPKKernelNames = ss.theSPKKernelNames;
 
    // save all default DE filenames
-   for (Integer ii = 0; ii < Gmat::PosVelSourceCount - 1; ii++)
+   for (Integer ii = 0; ii < Gmat::GlobalPosVelSourceCount - 1; ii++)
       default_DEFilename[ii] = ss.default_DEFilename[ii];
 
 //   default_DEFilename[0] = ss.default_DEFilename[0];
@@ -799,7 +987,7 @@ SolarSystem& SolarSystem::operator=(const SolarSystem &ss)
    default_ephemerisSource           = ss.default_ephemerisSource;
    // save all default DE filenames
    // save all default DE filenames
-   for (Integer ii = 0; ii < Gmat::PosVelSourceCount - 1; ii++)
+   for (Integer ii = 0; ii < Gmat::GlobalPosVelSourceCount - 1; ii++)
       default_DEFilename[ii] = ss.default_DEFilename[ii];
 
 //   default_DEFilename[0]             = ss.default_DEFilename[0];
@@ -997,7 +1185,7 @@ void SolarSystem::CreatePlanetarySource(bool setDefault)
    #endif
 
    // initialize planetary source
-   for (int i=0; i<Gmat::PosVelSourceCount; i++)
+   for (int i=0; i<Gmat::GlobalPosVelSourceCount; i++)
    {
       if ((i == Gmat::SPICE) && (!(allowSpiceForDefaultBodies) ||
             !spiceAvailable)) continue; // SPICE not selectable for entire solar system
@@ -1208,64 +1396,23 @@ const StringArray& SolarSystem::GetPlanetarySourceTypesInUse()
 bool SolarSystem::SetPlanetarySourceName(const std::string &sourceType,
                                          const std::string &fileName)
 {
-   bool status = false;
-   Integer id = GetPlanetarySourceId(sourceType);
-   #ifdef DEBUG_SS_PLANETARY_FILE
-      MessageInterface::ShowMessage(
-            "In SS:SetPlanetarySourceName, sourceType = %s  and fileName = %s\n",
-            sourceType.c_str(), fileName.c_str());
-      MessageInterface::ShowMessage("   and id for that type = %d\n", id);
-   #endif
-
-   if (id >= 0)
+   const Integer id = GetPlanetarySourceId(sourceType);
+   SolarSystemEphemerisTransaction change(*this);
+   if (id == Gmat::SPICE)
    {
-      if (id == Gmat::SPICE)
-      {
-         theSPKFilename = fileName;  // do I need SetSPKFile here?
-         thePlanetarySourceNames[id] = fileName;
-         status =  true;
-      }
-      else if (id == Gmat::DE405)
-      {
-         status = CreateDeFile(Gmat::DE405, fileName);
-         if (status)
-         {
-            thePlanetarySourceNames[id] = fileName;
-            SetSourceFile(theDefaultDeFile);
-         }
-      }
-      else if (id == Gmat::DE421)
-      {
-         status = CreateDeFile(Gmat::DE421, fileName);
-         if (status)
-         {
-            thePlanetarySourceNames[id] = fileName;
-            SetSourceFile(theDefaultDeFile);
-         }
-      }
-      else if (id == Gmat::DE424)
-      {
-         status = CreateDeFile(Gmat::DE424, fileName);
-         if (status)
-         {
-            thePlanetarySourceNames[id] = fileName;
-            SetSourceFile(theDefaultDeFile);
-         }
-      }
-//      else if (id == Gmat::DE430)
-//      {
-//         status = CreateDeFile(Gmat::DE430, fileName);
-//         if (status)
-//         {
-//            thePlanetarySourceNames[id] = fileName;
-//            SetSourceFile(theDefaultDeFile);
-//         }
-//      }
+      // Retain the existing provisioning API: validation occurs at selection.
+      theSPKFilename = fileName;
+      thePlanetarySourceNames[id] = fileName;
    }
-
-   return status;
+   else if (id == Gmat::DE405 || id == Gmat::DE421 || id == Gmat::DE424)
+   {
+      if (!CreateDeFile(id, fileName)) return false;
+      thePlanetarySourceNames[id] = fileName;
+   }
+   else return false;
+   change.Commit();
+   return true;
 }
-
 
 //------------------------------------------------------------------------------
 // std::string GetPlanetarySourceName(const std::string &sourceType)
@@ -1597,7 +1744,7 @@ Integer SolarSystem::GetPlanetarySourceId(const std::string &sourceType)
    MessageInterface::ShowMessage("In SS::GPSI, sourceType = %s\n",
                      sourceType.c_str());
    #endif
-   for (int i=0; i<Gmat::PosVelSourceCount; i++)
+   for (int i=0; i<Gmat::GlobalPosVelSourceCount; i++)
    {
       if (sourceType == Gmat::POS_VEL_SOURCE_STRINGS[i])
          return i;
@@ -1654,7 +1801,7 @@ void SolarSystem::SetIsSpiceAllowedForDefaultBodies(const bool allowSpice)
       MessageInterface::ShowMessage("In SS, setting allowSpice flag on body %s\n",
             ((*cbi)->GetName()).c_str());
 #endif
-      if (!((*cbi)->IsUserDefined())) (*cbi)->SetAllowSpice(allowSpiceForDefaultBodies);
+      if ((*cbi)->UsesDefaultBodyModel()) (*cbi)->SetAllowSpice(allowSpiceForDefaultBodies);
       ++cbi;
    }
    // Set the flag on special points as well
@@ -1991,7 +2138,7 @@ void SolarSystem::ResetToDefaults()
    std::vector<CelestialBody*>::iterator cbi = bodiesInUse.begin();
    while (cbi != bodiesInUse.end())
    {
-      if (!((*cbi)->IsUserDefined())) (*cbi)->SetSource(pvSrcForAll);
+      if ((*cbi)->UsesDefaultBodyModel()) (*cbi)->SetSource(pvSrcForAll);
       (*cbi)->SetOverrideTimeSystem(overrideTimeForAll);
       (*cbi)->SetEphemUpdateInterval(ephemUpdateInterval);
       (*cbi)->SetUsePotentialFile(false);
@@ -2034,19 +2181,22 @@ bool SolarSystem::AddBody(CelestialBody* cb)
       return false;    // write some kind of error or throw an exception?
    }
 
-   bool userDef = cb->IsUserDefined();
-   bodiesInUse.push_back(cb);
-   bodyStrings.push_back(cb->GetName());
-   if (userDef)  userDefinedBodyStrings.push_back(cb->GetName());
-   else          defaultBodyStrings.push_back(cb->GetName());
+   std::string bodyName = cb->GetName();
+   if (bodyName.empty()) return false;
+   for (auto *existing : bodiesInUse)
+   {
+      // A repeated call with the owned pointer must not create a second
+      // owning entry. A different object cannot replace an existing name.
+      if (existing == cb) return true;
+      if (existing && existing->GetName() == bodyName)
+         throw SolarSystemException("A celestial body named \"" + bodyName +
+            "\" is already registered in this SolarSystem.");
+   }
 
-   #ifdef DEBUG_SS_ADD_BODY
-   MessageInterface::ShowMessage
-      ("   %s, Added <%p> %s\n", GetName().c_str(), cb, cb->GetName().c_str());
-   #endif
+   bool userDef = cb->IsUserDefined();
 
    // Set the source, source file, and override flag for the new body
-   if (!userDef)
+   if (cb->UsesDefaultBodyModel())
    {
       if (!cb->SetSource(pvSrcForAll))  return false;
       if ((pvSrcForAll == Gmat::DE405) || (pvSrcForAll == Gmat::DE421)||
@@ -2067,6 +2217,23 @@ bool SolarSystem::AddBody(CelestialBody* cb)
 
    // Set the pointer to the Solar System
    cb->SetSolarSystem(this);
+
+   // Setters above can reject the body or throw. Allocate every registry
+   // entry before transferring ownership, so failure leaves no partial entry.
+   std::string categoryName = bodyName;
+   StringArray &category = userDef ? userDefinedBodyStrings : defaultBodyStrings;
+   bodiesInUse.reserve(bodiesInUse.size() + 1);
+   bodyStrings.reserve(bodyStrings.size() + 1);
+   category.reserve(category.size() + 1);
+
+   #ifdef DEBUG_SS_ADD_BODY
+   MessageInterface::ShowMessage
+      ("   %s, Adding <%p> %s\n", GetName().c_str(), cb, cb->GetName().c_str());
+   #endif
+
+   bodiesInUse.push_back(cb);
+   bodyStrings.push_back(std::move(bodyName));
+   category.push_back(std::move(categoryName));
 
    return true;
 }
@@ -2458,61 +2625,32 @@ StringArray SolarSystem::GetValidModelList(Gmat::ModelType m,
 //------------------------------------------------------------------------------
 bool SolarSystem::SetSource(Gmat::PosVelSource pvSrc)
 {
-   #ifdef DEBUG_SS_PLANETARY_FILE
-      MessageInterface::ShowMessage("SetSource::Setting Solar System ephem source to %d (%s)\n",
-            (Integer) pvSrc, (Gmat::POS_VEL_SOURCE_STRINGS[pvSrc]).c_str());
-   #endif
-
-   std::string srcStr = "";
-   for (Integer ii = 0; ii < Gmat::PosVelSourceCount; ii++)
-      if (pvSrc == ii)
-      {
-         srcStr = Gmat::POS_VEL_SOURCE_STRINGS[ii];
-         break;
-      }
-   if (srcStr == "")
-      throw SolarSystemException("Error setting source for Solar System - unknown source\n");
-
-   pvSrcForAll = pvSrc;
-   // Set the source flag on all of the default bodies
-   std::vector<CelestialBody*>::iterator cbi = bodiesInUse.begin();
-   while (cbi != bodiesInUse.end())
-   {
-      bool userDef = (*cbi)->IsUserDefined();
-      if (!userDef)
-      {
-         if ((*cbi)->SetSource(pvSrc) == false)  return false;
-      }
-      ++cbi;
-   }
-   // Set the source flag on all of the special points as well
-   std::map<std::string, SpecialCelestialPoint*>::iterator spi = specialPoints.begin();
-   while (spi != specialPoints.end())
-   {
-      if ((spi->second)->SetSource(pvSrc) == false)  return false;
-      ++spi;
-   }
-
-   theCurrentPlanetarySource = srcStr;
-
-   // store the current planetary source on the top of thePlanetarySourceTypesInUse:
-   StringArray temp = thePlanetarySourceTypesInUse;
-
-   thePlanetarySourceTypesInUse.clear();
-   thePlanetarySourceTypesInUse.push_back(srcStr);
-   for(unsigned int i= 0; i < temp.size(); ++i)
-   {
-	   if (temp[i] != srcStr)
-		   thePlanetarySourceTypesInUse.push_back(temp[i].c_str());
-   }
-
-#ifdef DEBUG_SS_PLANETARY_FILE
-   MessageInterface::ShowMessage("SetSource::thePlanetarySourceTypesInUse are:\n");
-   for (Integer ii = 0; ii < thePlanetarySourceTypesInUse.size(); ii++)
-      MessageInterface::ShowMessage("   %s\n", thePlanetarySourceTypesInUse.at(ii).c_str());
+   if (pvSrc < Gmat::DE405 || pvSrc >= Gmat::GlobalPosVelSourceCount)
+      throw SolarSystemException("Error setting source for Solar System - unknown source");
+#ifndef __USE_SPICE__
+   if (pvSrc == Gmat::SPICE)
+      throw SolarSystemException("SPICE ephemeris support is not enabled in this build.");
 #endif
-   SetSPKFile(theSPKKernelNames[pvSrc ]);
+   std::string nextSource = Gmat::POS_VEL_SOURCE_STRINGS[pvSrc];
+   StringArray nextOrder(1, nextSource);
+   for (const auto &source : thePlanetarySourceTypesInUse)
+      if (source != nextSource) nextOrder.push_back(source);
 
+   SolarSystemEphemerisTransaction change(*this);
+#ifdef __USE_SPICE__
+   if (static_cast<size_t>(pvSrc) >= theSPKKernelNames.size())
+      throw SolarSystemException("The selected ephemeris source has no configured SPK file.");
+   // Validate the associated kernel before changing any body's source flags.
+   if (!SetSPKFile(theSPKKernelNames[pvSrc])) return false;
+#endif
+   pvSrcForAll = pvSrc;
+   for (auto *body : bodiesInUse)
+      if (body->UsesDefaultBodyModel() && !body->SetSource(pvSrc)) return false;
+   for (const auto &point : specialPoints)
+      if (!point.second->SetSource(pvSrc)) return false;
+   theCurrentPlanetarySource.swap(nextSource);
+   thePlanetarySourceTypesInUse.swap(nextOrder);
+   change.Commit();
    return true;
 }
 
@@ -2531,13 +2669,13 @@ bool SolarSystem::SetSource(Gmat::PosVelSource pvSrc)
 //------------------------------------------------------------------------------
 bool SolarSystem::SetSource(const std::string &pvSrc)
 {
-   Gmat::PosVelSource theSrc = Gmat::PosVelSourceCount;
-   for (Integer i = 0; i < Gmat::PosVelSourceCount; i++)
+   Gmat::PosVelSource theSrc = Gmat::GlobalPosVelSourceCount;
+   for (Integer i = 0; i < Gmat::GlobalPosVelSourceCount; i++)
    {
       if (pvSrc == Gmat::POS_VEL_SOURCE_STRINGS[i])
          theSrc = (Gmat::PosVelSource) i;
    }
-   if (theSrc == Gmat::PosVelSourceCount)
+   if (theSrc == Gmat::GlobalPosVelSourceCount)
       throw SolarSystemException("Unknown ephemeris source " + pvSrc);
 
    // Search through bodiesInUse and set the source for all
@@ -2557,41 +2695,37 @@ bool SolarSystem::SetSource(const std::string &pvSrc)
  *
  */
 //------------------------------------------------------------------------------
-bool SolarSystem::SetSourceFile(PlanetaryEphem *src)
+void SolarSystem::InvalidateEphemerisCaches(const CelestialBody *changed,
+                                             bool resetSpice) noexcept
 {
-   // check for null src
-   if (src == NULL)
-      return false;
-
-   thePlanetaryEphem = src;
-
-   #ifdef DEBUG_SS_PLANETARY_FILE
-   MessageInterface::ShowMessage
-      ("SolarSystem::SetSourceFile() Setting source file to <%p>\n   %s\n", src,
-       src->GetName().c_str(), src);
-   #endif
-
-   // Set the file on each of the default bodies
-   std::vector<CelestialBody*>::iterator cbi = bodiesInUse.begin();
-   while (cbi != bodiesInUse.end())
+   if (changed)
    {
-      bool userDef = (*cbi)->IsUserDefined();
-      if (!userDef)
-         if ((*cbi)->SetSourceFile(thePlanetaryEphem) == false) return false;
-      ++cbi;
+      bool member = std::find(bodiesInUse.begin(), bodiesInUse.end(), changed) != bodiesInUse.end();
+      if (!member)
+         for (const auto &point : specialPoints)
+            if (point.second == changed) { member = true; break; }
+      if (!member) return;
    }
-
-   // Set the file on each of the special points
-   std::map<std::string, SpecialCelestialPoint*>::iterator spi = specialPoints.begin();
-   while (spi != specialPoints.end())
-   {
-      if ((spi->second)->SetSourceFile(thePlanetaryEphem) == false) return false;
-      ++spi;
-   }
-
-   return true;
+   // A provider/reference or parent-mu change can affect analytic descendants
+   // as well as the changed body. Invalidation itself never broadcasts again.
+   for (auto *body : bodiesInUse)
+      if (body) body->InvalidateEphemerisState(resetSpice);
+   for (const auto &point : specialPoints)
+      if (point.second) point.second->InvalidateEphemerisState(resetSpice);
 }
 
+bool SolarSystem::SetSourceFile(PlanetaryEphem *src)
+{
+   if (!src) return false;
+   SolarSystemEphemerisTransaction change(*this);
+   thePlanetaryEphem = src;
+   for (auto *body : bodiesInUse)
+      if (body->UsesDefaultBodyModel() && !body->SetSourceFile(src)) return false;
+   for (const auto &point : specialPoints)
+      if (!point.second->SetSourceFile(src)) return false;
+   change.Commit();
+   return true;
+}
 
 //------------------------------------------------------------------------------
 // bool SolarSystem::SetSPKFile(const std::string &spkFile)
@@ -2644,7 +2778,11 @@ MessageInterface::ShowMessage("-- That file did not exist, so checking path %s\n
          throw sse;
       }
    #endif
-   theSPKFilename = fullSpkName;
+   if (theSPKFilename != fullSpkName)
+   {
+      theSPKFilename = fullSpkName;
+      InvalidateEphemerisCaches(nullptr, true);
+   }
 
 //   thePlanetarySourceNames[Gmat::SPICE] = theSPKFilename;
 //   Integer i = GetPlanetarySourceId(theCurrentPlanetarySource);
@@ -2696,7 +2834,11 @@ bool SolarSystem::SetPCKFile(const std::string &pckFile)
       throw sse;
    }
    #endif
-   pckKernelName = fullPckName;
+   if (pckKernelName != fullPckName)
+   {
+      pckKernelName = fullPckName;
+      InvalidateEphemerisCaches(nullptr, true);
+   }
    return true;
 }
 
@@ -2740,7 +2882,11 @@ bool SolarSystem::SetLSKFile(const std::string &lskFile)
          throw sse;
       }
    #endif
-   lskKernelName = fullLskName;
+   if (lskKernelName != fullLskName)
+   {
+      lskKernelName = fullLskName;
+      InvalidateEphemerisCaches(nullptr, true);
+   }
    return true;
 }
 
@@ -2765,6 +2911,7 @@ bool SolarSystem::SetOverrideTimeSystem(bool overrideIt)
        this, GetName().c_str(), overrideIt);
    #endif
 
+   SolarSystemEphemerisTransaction update(*this);
    // Set it for each of the bodies
    std::vector<CelestialBody*>::iterator cbi = bodiesInUse.begin();
    while (cbi != bodiesInUse.end())
@@ -2780,6 +2927,7 @@ bool SolarSystem::SetOverrideTimeSystem(bool overrideIt)
       ++spi;
    }
    overrideTimeForAll = overrideIt;
+   update.Commit();
    return true;
 }
 
@@ -2807,6 +2955,7 @@ bool SolarSystem::SetEphemUpdateInterval(Real intvl)
       throw sse;
    }
 
+   SolarSystemEphemerisTransaction update(*this);
    // Set it for each of the bodies
    std::vector<CelestialBody*>::iterator cbi = bodiesInUse.begin();
    while (cbi != bodiesInUse.end())
@@ -2822,6 +2971,7 @@ bool SolarSystem::SetEphemUpdateInterval(Real intvl)
       ++spi;
    }
    ephemUpdateInterval = intvl;
+   update.Commit();
    return true;
 }
 
@@ -3358,25 +3508,9 @@ std::string SolarSystem::GetStringParameter(const Integer id) const
    if (id == EPHEMERIS_SOURCE) return theCurrentPlanetarySource;    // pvSrcForAll (string of)?
    if (id == DE_FILE_NAME)
    {
-      if (theCurrentPlanetarySource == Gmat::POS_VEL_SOURCE_STRINGS[Gmat::SPICE])
-      {
-         // if the current source is SPICE, it should be at the front of the list;
-         // the next one on the list should be the most recently selected DE file
-         std::string lastDeFile = thePlanetarySourceTypesInUse.at(1);
-         for(int index=0; index < Gmat::PosVelSourceCount; ++index)
-         {
-            if (Gmat::POS_VEL_SOURCE_STRINGS[index] == lastDeFile)
-               return thePlanetarySourceNames[index];
-         }
-      }
-      else
-      {
-         for(int index=0; index < Gmat::PosVelSourceCount; ++index)
-         {
-            if (Gmat::POS_VEL_SOURCE_STRINGS[index] == theCurrentPlanetarySource)
-               return thePlanetarySourceNames[index];
-         }
-      }
+      const Integer index = DeFilenameSourceIndex(
+         theCurrentPlanetarySource, thePlanetarySourceTypesInUse);
+      return index < 0 ? "" : thePlanetarySourceNames[index];
    }
    if (id == SPK_FILE_NAME)    return theSPKFilename;
    if (id == LSK_FILE_NAME)    return lskKernelName;
@@ -3436,7 +3570,7 @@ bool SolarSystem::SetStringParameter(const Integer id,
       while ((!validSrcFound) && pos < parts.size())
       {
          validSrc = GmatStringUtil::RemoveAll(parts[pos], '\'');
-         for (unsigned int jj = 0; jj < Gmat::PosVelSourceCount; jj++)
+         for (unsigned int jj = 0; jj < Gmat::GlobalPosVelSourceCount; jj++)
          {
             if (validSrc == Gmat::POS_VEL_SOURCE_STRINGS[jj])
             {
@@ -3453,8 +3587,7 @@ bool SolarSystem::SetStringParameter(const Integer id,
              "removed from a future build; please use \"EphemerisSource\" "
              "instead.\nSetting ephemeris source to first valid source in list - \"%s\".\n",
              validSrc.c_str());
-         SetSource(validSrc);
-         return true;
+         return SetStringParameter(EPHEMERIS_SOURCE, validSrc);
       }
       else
       {
@@ -3466,58 +3599,30 @@ bool SolarSystem::SetStringParameter(const Integer id,
    }
    if (id == EPHEMERIS_SOURCE)
    {
-	  // set source:
-     SetSource(value);				// theCurrentPlanetarySource is set to the value
-     // Get the current source index:
-     int sourceindex;
-	  for(sourceindex = 0; sourceindex < Gmat::PosVelSourceCount; ++sourceindex)
-	  {
-		  if (Gmat::POS_VEL_SOURCE_STRINGS[sourceindex] == value)
-			  break;
-	  }
-
-	  // create DE file and set source file:
-	  if ((sourceindex < Gmat::PosVelSourceCount) &&
-	      ((sourceindex == Gmat::DE405) ||
-          (sourceindex == Gmat::DE421) ||
-          (sourceindex == Gmat::DE424)))   //  ||
-//          (sourceindex == Gmat::DE430)))
-	  {
-        // remove old DE file object, create new DE file object
-        // and assign it to theDefaultDeFile
-        if (CreateDeFile(sourceindex, thePlanetarySourceNames[sourceindex]))
-           // set source file
-           SetSourceFile(theDefaultDeFile);
-        else
-           return false;
-	  }
-     
-     return true;
+      SolarSystemEphemerisTransaction change(*this);
+      if (!SetSource(value)) return false;
+      const Integer index = DeFilenameSourceIndex(value, thePlanetarySourceTypesInUse);
+      if (value != Gmat::POS_VEL_SOURCE_STRINGS[Gmat::SPICE] && index >= 0)
+         if (!CreateDeFile(index, thePlanetarySourceNames[index])) return false;
+      change.Commit();
+      return true;
    }
    if (id == DE_FILE_NAME)
    {
-      // Get the current source index:
-      int sourceindex;
-	   for(sourceindex = 0; sourceindex < Gmat::PosVelSourceCount; ++sourceindex)
-	   {
-		   if (Gmat::POS_VEL_SOURCE_STRINGS[sourceindex] == theCurrentPlanetarySource)
-			   break;
-	   }
-
-	  // if the source file name was changed then set the change in
-	  // thePlanetarySourceNames, create new DE file, and set
-	  // the source file to the new DE file.
-	  if (value != thePlanetarySourceNames[sourceindex])
-	  {
-        if (CreateDeFile(sourceindex, value))
-        {
-           thePlanetarySourceNames[sourceindex] = value;
-           SetSourceFile(theDefaultDeFile);
-        }
-        else
-           return false;
-	  }
-     return true;
+      // Match the getter: SPICE retains the most recently selected DE source.
+      // Changing its file does not change the active ephemeris source.
+      const Integer index = DeFilenameSourceIndex(
+         theCurrentPlanetarySource, thePlanetarySourceTypesInUse);
+      if (index < 0)
+         throw SolarSystemException("Select a DE ephemeris source before assigning DEFilename.");
+      SolarSystemEphemerisTransaction change(*this);
+      if (value != thePlanetarySourceNames[index])
+      {
+         if (!CreateDeFile(index, value)) return false;
+         thePlanetarySourceNames[index] = value;
+      }
+      change.Commit();
+      return true;
    }
    if (id == SPK_FILE_NAME)
    {
@@ -3526,10 +3631,11 @@ bool SolarSystem::SetStringParameter(const Integer id,
          MessageInterface::ShowMessage
             ("SolarSystem::SetStringParameter, about to set spk filename to %s\n", value.c_str());
          #endif
-         SetSPKFile(value);
+         SolarSystemEphemerisTransaction change(*this);
+         if (!SetSPKFile(value)) return false;
          // Get the current source index:
          int sourceindex;
-         for(sourceindex = 0; sourceindex < Gmat::PosVelSourceCount; ++sourceindex)
+         for(sourceindex = 0; sourceindex < Gmat::GlobalPosVelSourceCount; ++sourceindex)
          {
             if (Gmat::POS_VEL_SOURCE_STRINGS[sourceindex] == theCurrentPlanetarySource)
             {
@@ -3544,6 +3650,7 @@ bool SolarSystem::SetStringParameter(const Integer id,
          {
             thePlanetarySourceNames[Gmat::SPICE] = value;
          }
+         change.Commit();
          return true;
       #else
          return false;
@@ -3730,33 +3837,11 @@ bool SolarSystem::IsParameterEqualToDefault(const Integer id) const
    }
    if (id == DE_FILE_NAME)
    {
-      #ifdef DEBUG_SS_CLOAKING
-         MessageInterface::ShowMessage("... Checking DEFile ... count = %d\n",Gmat::PosVelSourceCount);
-      #endif
-      if (theCurrentPlanetarySource == Gmat::POS_VEL_SOURCE_STRINGS[Gmat::SPICE])
-      {
-         // if the current source is SPICE, it should be at the front of the list;
-         // the next one on the list should be the most recently selected DE file
-         std::string lastDeFile = thePlanetarySourceTypesInUse.at(1);
-         for(int index=0; index < Gmat::PosVelSourceCount - 1; ++index)
-         {
-            #ifdef DEBUG_SS_CLOAKING
-               MessageInterface::ShowMessage("... in loop, index = %d, source name = %s, default = %s\n",
-                     index, thePlanetarySourceNames[index].c_str(), default_DEFilename[index].c_str());
-            #endif
-            if (Gmat::POS_VEL_SOURCE_STRINGS[index] == lastDeFile)
-               return (thePlanetarySourceNames[index] == default_DEFilename[index]);
-         }
-      }
-      else
-      {
-         int index = -1;
-         for(index=0; index < Gmat::PosVelSourceCount - 1; ++index)  // use -1 here to ignore SPICE
-         {
-            if(Gmat::POS_VEL_SOURCE_STRINGS[index] == theCurrentPlanetarySource)
-               return (default_DEFilename[index] == thePlanetarySourceNames[index]);
-         }
-      }
+      const Integer index = DeFilenameSourceIndex(
+         theCurrentPlanetarySource, thePlanetarySourceTypesInUse);
+      // No selected DE family has no filename to export, rather than an
+      // empty filename assignment to an unknown source.
+      return index >= 0 && thePlanetarySourceNames[index] == default_DEFilename[index];
    }
    if (id == SPK_FILE_NAME)
    {
@@ -3798,7 +3883,7 @@ bool SolarSystem::SaveAllAsDefault()
    default_planetarySourceTypesInUse = thePlanetarySourceTypesInUse;  // deprecated!!!!
    default_ephemerisSource           = theCurrentPlanetarySource;
 
-   for (unsigned int ii = 0; ii < Gmat::PosVelSourceCount - 1; ii++)   // use -1 to ignore SPICE name at the end
+   for (unsigned int ii = 0; ii < Gmat::GlobalPosVelSourceCount - 1; ii++)   // use -1 to ignore SPICE name at the end
       default_DEFilename[ii]                = thePlanetarySourceNames[ii];
 
    default_SPKFilename               = theSPKFilename;
@@ -3835,7 +3920,7 @@ bool SolarSystem::SaveParameterAsDefault(const Integer id)
    }
    if (id == DE_FILE_NAME)
    {
-      for (unsigned int ii = 0; ii < Gmat::PosVelSourceCount - 1; ii++)   // use -1 to ignore SPICE at the end
+      for (unsigned int ii = 0; ii < Gmat::GlobalPosVelSourceCount - 1; ii++)   // use -1 to ignore SPICE at the end
          default_DEFilename[ii]                = thePlanetarySourceNames[ii];
       return true;
    }
@@ -4176,157 +4261,62 @@ void SolarSystem::SetDefaultPlanetarySource()
 bool SolarSystem::CreateDeFile(Integer id, const std::string &fileName,
                                Gmat::DeFileFormat format)
 {
-   #ifdef DEBUG_SS_PLANETARY_FILE
-      MessageInterface::ShowMessage
-      ("ENTERING SolarSystem::CreateDeFile()\n");
-   #endif
-   bool status = false;
-   Gmat::DeFileType deFileType;
-
-   if (theDefaultDeFile != NULL)
-   {
-      #ifdef DEBUG_SS_PLANETARY_FILE
-         MessageInterface::ShowMessage
-         ("SolarSystem::CreateDeFile() on entry, current DeFile = <%p>\n",
-          theDefaultDeFile);
-      #endif
-      if (theDefaultDeFile->GetName() == fileName)
-      {
-         status = true;
-         return status;
-      }
-      else
-      {
-         #ifdef DEBUG_SS_PLANETARY_FILE
-         MessageInterface::ShowMessage
-            ("SolarSystem::CreateDeFile() deleting OLD DeFile %s <%p>\n",
-             (theDefaultDeFile->GetName()).c_str(), theDefaultDeFile);
-         #endif
-         // NOTE - do we want to do this?  There is an array of pointers to
-         // all of the planetary source options - won't this wreck that? *******
-         delete theDefaultDeFile;
-         theDefaultDeFile = NULL;
-         #ifdef DEBUG_SS_PLANETARY_FILE
-            MessageInterface::ShowMessage
-               ("SolarSystem::CreateDeFile()  theDefaultDeFile is now  <%p>\n",
-               theDefaultDeFile);
-         #endif
-      }
-   }
-   #ifdef DEBUG_SS_PLANETARY_FILE
-   else
-   {
-      MessageInterface::ShowMessage
-      ("SolarSystem::CreateDeFile() on entry, current DeFile = NULL\n");
-   }
-   #endif
+   Gmat::DeFileType type;
    switch (id)
    {
-   case Gmat::DE405:
-      deFileType = Gmat::DE_DE405;
-      break;
-   case Gmat::DE421:
-      deFileType = Gmat::DE_DE421;
-      break;
-   case Gmat::DE424:
-      deFileType = Gmat::DE_DE424;
-      break;
-//   case Gmat::DE430:
-//      deFileType = Gmat::DE_DE430;
-//      break;
-   default:
-      // MessageInterface::PopupMessage
-      //    (Gmat::WARNING_,
-      //     "SolarSystem::CreateDeFile() unsupported DE file type");
-      // return false;
-      SolarSystemException sse;
-      sse.SetDetails("%d is unsupported DE file type", id);
-      throw sse;
-   }
-   
-   #ifdef DEBUG_SS_PLANETARY_FILE
-   MessageInterface::ShowMessage
-      ("SolarSystem::CreateDeFile() creating DeFile. type=%d,\n   "
-       "fileName=%s, format=%d\n", deFileType, fileName.c_str(),
-       format);
-   #endif
-   
-   FILE *defile = fopen(fileName.c_str(), "rb");
-   if (defile == NULL)
-   {
-      #ifdef DEBUG_SS_PLANETARY_FILE
-         MessageInterface::ShowMessage
-            ("SolarSystem::CreateDeFile()  COULDN'T find the defile as specified\n");
-      #endif
-      // MessageInterface::PopupMessage
-      //    (Gmat::WARNING_,
-      //     "Error opening the DE file named: %s.\n"
-      //     "Please check the path and file name.\n", fileName.c_str());
-      
-      // Try open with absolute path (LOJ: 2014.02.27 ref to GMT-4408)
-      if (fileName.size() > 1 && fileName[0] == '.')
+      case Gmat::DE405: type = Gmat::DE_DE405; break;
+      case Gmat::DE421: type = Gmat::DE_DE421; break;
+      case Gmat::DE424: type = Gmat::DE_DE424; break;
+      default:
       {
-         FileManager *fm = FileManager::Instance();
-         std::string absDeFile = fm->GetCurrentWorkingDirectory() + fm->GetPathSeparator() + fileName;
-         
-         MessageInterface::ShowMessage
-            ("Error opening the DE file \"%s\", so trying with abs path \"%s\"", fileName.c_str(),
-             absDeFile.c_str());
-         
-         defile = fopen(absDeFile.c_str(), "rb");
-         if (defile == NULL)
-         {
-            SolarSystemException sse;
-            sse.SetDetails("Error opening the DE file \"%s\" or \"%s\"", fileName.c_str(), absDeFile.c_str());
-            throw sse;
-         }
-      }
-      
-      if (defile == NULL)
-      {
-         SolarSystemException sse;
-         sse.SetDetails("Error opening the DE file \"%s\"", fileName.c_str());
-         throw sse;
+         SolarSystemException error;
+         error.SetDetails("%d is unsupported DE file type", id);
+         throw error;
       }
    }
-   else
-   {
-      fclose(defile);
-      #ifdef DEBUG_SS_PLANETARY_FILE
-         MessageInterface::ShowMessage
-            ("SolarSystem::CreateDeFile() FOUND the defile as specified right away\n");
-      #endif
+   if (theDefaultDeFile && theDefaultDeFile->GetName() == fileName &&
+       theDefaultDeFile->GetDeFileType() == type)
+      return SetSourceFile(theDefaultDeFile);
 
-      try
-      {
-         theDefaultDeFile  = new DeFile(deFileType, fileName, format);
-         thePlanetaryEphem = theDefaultDeFile;
-         #ifdef DEBUG_SS_PLANETARY_FILE
-         MessageInterface::ShowMessage
-            ("SolarSystem::CreateDeFile() CREATED DeFile %s <%p> of type %d\n",
-             fileName.c_str(), theDefaultDeFile, (Integer) deFileType);
-         #endif
-
-         if (theDefaultDeFile != NULL)
-            status = true;
-      }
-      catch (...)
-      {
-         // MessageInterface::PopupMessage
-         //    (Gmat::WARNING_,
-         //     "*** Warning *** The following DE file is invalid and will not be used: %s.",
-         //     fileName.c_str());
-         SolarSystemException sse;
-         sse.SetDetails("\"%s\" is invalid DE file and will not be used", fileName.c_str());
-         throw sse;
-      }
+   std::string resolved = fileName;
+   const auto closeProbe = [](FILE *file) { fclose(file); };
+   std::unique_ptr<FILE, decltype(closeProbe)> probe(fopen(resolved.c_str(), "rb"), closeProbe);
+   if (!probe && fileName.size() > 1 && fileName[0] == '.')
+   {
+      FileManager *files = FileManager::Instance();
+      resolved = files->GetCurrentWorkingDirectory() + files->GetPathSeparator() + fileName;
+      probe.reset(fopen(resolved.c_str(), "rb"));
    }
-   #ifdef DEBUG_SS_PLANETARY_FILE
-      MessageInterface::ShowMessage
-      ("SolarSystem::CreateDeFile() EXITing with theDefaultDeFile = <%p>, thePlanetaryEphem = <%p>\n",
-       theDefaultDeFile, thePlanetaryEphem);
-   #endif
-   return status;
+   if (!probe)
+   {
+      SolarSystemException error;
+      if (resolved == fileName)
+         error.SetDetails("Error opening the DE file \"%s\"", fileName.c_str());
+      else
+         error.SetDetails("Error opening the DE file \"%s\" or \"%s\"", fileName.c_str(), resolved.c_str());
+      throw error;
+   }
+   probe.reset();
+
+   // Stage allocation and file parsing before retiring the currently usable
+   // file. Relative-path fallback must also construct from the resolved path.
+   std::unique_ptr<DeFile> candidate;
+   try
+   {
+      candidate.reset(new DeFile(type, resolved, format));
+   }
+   catch (...)
+   {
+      SolarSystemException error;
+      error.SetDetails("\"%s\" is invalid DE file and will not be used", fileName.c_str());
+      throw error;
+   }
+   SolarSystemEphemerisTransaction change(*this);
+   change.Retire(theDefaultDeFile);
+   theDefaultDeFile = candidate.release();
+   if (!SetSourceFile(theDefaultDeFile)) return false;
+   change.Commit();
+   return true;
 }
 
 //------------------------------------------------------------------------------

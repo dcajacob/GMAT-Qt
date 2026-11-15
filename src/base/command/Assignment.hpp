@@ -82,6 +82,7 @@ public:
    virtual bool         Initialize();
    virtual bool         Execute();
    virtual void         RunComplete();
+   void RetireFunctionBindings(ObjectMap *store) override;
    virtual bool         SkipInterrupt();
    virtual void         SetCallingFunction(FunctionManager *fm);
    
@@ -126,6 +127,7 @@ protected:
    ElementWrapper*      rhsWrapper;
    /// Container for RHS equation
    RHSEquation          *rhsEquation;
+   bool isRetiringBindings = false;
    /// Wrapper name and ElementWrapper pointer Map for RHS math element
    WrapperMap           mathWrapperMap;
 

@@ -66,6 +66,8 @@ public:
 
    /// inherited from GmatBase
    virtual GmatBase* Clone() const;
+   void RebindClonedReferences(const Attitude &source,
+         const std::function<GmatBase*(GmatBase*)> &resolve) override;
    void Copy(const GmatBase *original) override;
 
    /// Set the object's identifying information

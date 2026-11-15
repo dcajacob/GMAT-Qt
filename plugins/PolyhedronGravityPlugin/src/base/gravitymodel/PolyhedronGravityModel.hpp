@@ -68,6 +68,7 @@ public:
 
    virtual bool GetDerivatives(Real * state, Real dt = 0.0, Integer order = 1, 
          const Integer id = -1);
+   virtual Rvector6 GetDerivativesForSpacecraft(Spacecraft *spacecraft);
 
    // Parameter definition and accessor methods inherited from GmatBase
    virtual Integer      GetParameterCount() const;
@@ -124,6 +125,8 @@ public:
    static const Real 	UniverisalGravityConstant;
 
 private:
+   Rvector6 EvaluateField(const Rvector6 &bodyRelative, const GmatTime &atEpoch,
+         Rmatrix66 &gradient);
    Rmatrix33            CalculateTransformationMatrix_UsingIAUSimplified() const;
    const std::vector<Rmatrix33> CalculateTransformationMatrix() const;
    bool					   Calculation(Rvector6 x, Rvector6& xdot, Rmatrix66& A);		// calculate gravity

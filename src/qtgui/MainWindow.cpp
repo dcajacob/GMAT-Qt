@@ -2,6 +2,13 @@
 #include "ReportViewer.hpp"
 #include "ComparisonPanel.hpp"
 #include "MainWindow.hpp"
+#include "SatelliteImportDialog.hpp"
+#include "SpaceTrackAccount.hpp"
+#include "SpaceTrackAccountDialog.hpp"
+#include "ScriptInterpreter.hpp"
+#include <QCryptographicHash>
+#include <QStandardPaths>
+#include "McpBridge.hpp"
 #include "FunctionValidation.hpp"
 #include "PlotPlaybackControls.hpp"
 #include <QPainter>
@@ -15,16 +22,25 @@
 #include "HelpDialog.hpp"
 #include "FolderRunDialog.hpp"
 #include "GmatGlobal.hpp"
+#include "Interface.hpp"
 #include "UserParameter.hpp"
 #include "SolarSystemPanel.hpp"
 #include "SolarSystem.hpp"
 #include "CelestialBodyPanel.hpp"
 #include "CelestialBody.hpp"
 #include "PathSettingsDialog.hpp"
+#include "WorkspaceTabs.hpp"
+#include "NavigationTree.hpp"
+#include "MatrixTableWidget.hpp"
+#include "WorkspaceLayout.hpp"
 #include "GmatCommand.hpp"
 #include "CommandUtil.hpp"
 #include "PropagationGroupsDialog.hpp"
+#include "PropSetup.hpp"
+#include "Propagator.hpp"
 #include "CoordinateSystem.hpp"
+#include "AxisSystem.hpp"
+#include "ObjectScriptExportScope.hpp"
 #include "SpacePoint.hpp"
 #include "TrackingConfigDialog.hpp"
 #include "EpochIntervalDialog.hpp"
@@ -34,9 +50,11 @@
 #include "ResourceDraft.hpp"
 #include "ResourceRename.hpp"
 #include "ResourceProperties.hpp"
+#include "ScriptStringLiteral.hpp"
 #include "CustomFovProperties.hpp"
 #include "QtScriptInterpreter.hpp"
 #include "SpacecraftOrbit.hpp"
+#include "StandardIcons.hpp"
 #include "Spacecraft.hpp"
 #include "StateConversionUtil.hpp"
 #include "AtmosphereDialog.hpp"
@@ -47,6 +65,7 @@
 #include "EphemerisDialog.hpp"
 #include "DynamicDataDialog.hpp"
 #include "CalculatedPoint.hpp"
+#include "Barycenter.hpp"
 #include "EphemerisFile.hpp"
 #include "EventLocatorDialog.hpp"
 #include "EventLocator.hpp"
@@ -74,8 +93,10 @@
 #include <QVBoxLayout>
 #include <QDialogButtonBox>
 #include <QComboBox>
+#include <QStandardItemModel>
 #include <QFormLayout>
 #include <QLabel>
+#include <QCheckBox>
 #include <QLineEdit>
 #include <QSpinBox>
 #include <QPushButton>
@@ -160,22 +181,6 @@ QString validateSolverPlacement(const MissionSnapshot &snapshot)
    }
    return {};
 }
-class NavigationTree final : public QTreeWidget
-{
-public:
-   using QTreeWidget::QTreeWidget;
-protected:
-   void keyPressEvent(QKeyEvent *event) override
-   {
-      if ((event->key()==Qt::Key_Return || event->key()==Qt::Key_Enter) && (event->modifiers()==Qt::NoModifier || event->modifiers()==Qt::KeypadModifier)) {
-         // Use the same guarded route as mouse activation and existing callers.
-         // Consuming the key avoids a second platform itemActivated dispatch.
-         if (!event->isAutoRepeat() && currentItem()) emit itemDoubleClicked(currentItem(),currentColumn());
-         event->accept(); return;
-      }
-      QTreeWidget::keyPressEvent(event);
-   }
-};
 bool setGmatScriptDirectory(const QString &directory)
 {
    // FileManager stores this path verbatim and FindPath joins it directly to
@@ -206,27 +211,8 @@ void keepWorkspaceWindowReachable(QMdiArea *workspace,QMdiSubWindow *child)
 }
 void showNewWorkspaceWindow(QMdiArea *workspace,QMdiSubWindow *child)
 {
-   const auto initialSize=child->size();
-   const bool configurationPanel=child->property("configurationPanel").toBool();
-   child->show();
-   // Configuration panels are created with a normal size. Do not inherit the
-   // active script's maximized state and later restore an unclamped position.
-   if (configurationPanel && child->isMaximized()) child->showNormal();
-   if (configurationPanel && !child->isMinimized() && !child->isMaximized()) child->resize(initialSize);
-   // Keep new controls reachable when Qt's cascade position leaves the viewport.
-   keepWorkspaceWindowReachable(workspace,child);
-   // An active maximized script can briefly maximize the new child, then Qt
-   // restores its original geometry during deferred initialization. Bound that
-   // final normal geometry too, without altering an explicit min/max state.
-   const QPointer<QMdiSubWindow> guarded=child;
-   QTimer::singleShot(0,child,[workspace,guarded,initialSize,configurationPanel] {
-      if (!guarded || !guarded->isVisible()) return;
-      // Qt can restore a small fallback geometry after inheriting a maximized
-      // sibling. Preserve the caller's initial usable size once at creation;
-      // later activation and manual resizing retain their existing behavior.
-      if (configurationPanel && !guarded->isMinimized() && !guarded->isMaximized()) guarded->resize(initialSize);
-      keepWorkspaceWindowReachable(workspace,guarded);
-   });
+   child->showMaximized();
+   activateWorkspaceWindow(workspace,child);
 }
 // wx assigns display names while populating the mission tree. Qt keeps its
 // snapshots independent of engine objects; give summaries those names only
@@ -247,7 +233,7 @@ private:
    void collect(GmatCommand *command,GmatCommand *stop,int depth)
    {
       if (depth>100) throw std::runtime_error("Mission nesting is too deep to summarize");
-      for (;command && command!=stop;command=command->GetNext()) {
+      for (;command && command!=stop;command=command->GetNextWhileExecuting()) {
          if (!visited.insert(command).second) return;
          originals.emplace_back(command,command->GetSummaryName());
          auto name=command->GetName();
@@ -335,9 +321,8 @@ QStringList creatableResourceTypes()
       for (const auto &type:Moderator::Instance()->GetListOfViewableItems(category)) result.append(QString::fromStdString(type));
    }
    result.append({"Variable","String","Array"});
-   // The engine fails in CreateCelestialBody/SetUpBody for a new Star before
-   // script properties can supply its missing central body. Keep that factory
-   // item out of creation menus; the existing Sun remains editable.
+   // Stars are available through script creation and the celestial-body copy
+   // command. Keep the established New-resource menu's body-type list.
    result.removeAll("Star");
    result.removeDuplicates(); result.sort(); return result;
 }
@@ -347,26 +332,227 @@ bool resourceNameMatchesFolder(QTreeWidget *tree,const QString &name)
       if (item->data(0,Qt::UserRole+1).isValid() && item->data(0,Qt::UserRole).toString().isEmpty()) return true;
    return false;
 }
-bool resourceCanBeCloned(GmatBase *object)
+bool resourceCanBeCloned(GmatBase *object,MainWindow::ResourceClonePolicy policy=MainWindow::ResourceClonePolicy::Native)
 {
-   if (!object || object->IsOfType("SolarSystem") || object->IsOfType("PropSetup")) return false;
+   if (!object || object->IsOfType("SolarSystem")) return false;
+   if (object->IsOfType("PropSetup") && policy!=MainWindow::ResourceClonePolicy::IncludePropagators) return false;
    // The Resource Tree guide excludes default bodies, not user-defined ones.
-   if (auto *body=dynamic_cast<CelestialBody *>(object);body && !body->IsUserDefined()) return false;
-   if (auto *frame=dynamic_cast<CoordinateSystem *>(object);frame && frame->IsBuiltIn()) return false;
-   if (auto *point=dynamic_cast<CalculatedPoint *>(object);point && point->IsBuiltIn()) return false;
+   if (auto *body=dynamic_cast<CelestialBody *>(object)) {
+      if (body->GetBodyType()==Gmat::SPECIAL_CELESTIAL_POINT) return false;
+      if (!body->IsUserDefined() && policy!=MainWindow::ResourceClonePolicy::IncludeDefaultBodies) return false;
+   }
+   if (auto *frame=dynamic_cast<CoordinateSystem *>(object);frame && frame->IsBuiltIn() && policy!=MainWindow::ResourceClonePolicy::IncludeBuiltInFrames) return false;
+   // The guide's Clone exclusions do not exclude the built-in SSB. Its
+   // detached copy now has a serializable native ephemeris descriptor.
+   if (auto *point=dynamic_cast<CalculatedPoint *>(object);point && point->IsBuiltIn() && !dynamic_cast<Barycenter *>(point)) return false;
    return true;
 }
-QMap<QString,QString> cloneColorDefaults(GmatBase &object)
+QtResourcePreview resourceCloneDraft(GmatBase &object,const QString &name,MainWindow::ResourceClonePolicy policy)
+{
+   QtResourcePreview draft(object.Clone());
+   if (!draft) throw std::runtime_error("The resource could not be copied.");
+   if (auto *body=dynamic_cast<CelestialBody *>(draft.get());body && !body->IsUserDefined() &&
+       policy==MainWindow::ResourceClonePolicy::IncludeDefaultBodies) body->MakeDefaultBodyCopy();
+   draft->SetName(name.toStdString(),name.toStdString());
+   if (policy==MainWindow::ResourceClonePolicy::IncludeBuiltInFrames)
+      if (auto *frame=dynamic_cast<CoordinateSystem *>(draft.get())) {
+         // Only the detached value becomes editable. Its axes are native deep
+         // copies; keep their diagnostic owner name tied to this new resource.
+         frame->SetIsBuiltIn(false);
+         frame->SetModifyFlag(true);
+         if (auto *axes=frame->GetAxisSystem()) { axes->SetIsBuiltIn(false); axes->SetCoordinateSystemName(name.toStdString()); }
+      }
+   if (auto *point=dynamic_cast<Barycenter *>(draft.get());point &&
+       (point->IsBuiltIn() || policy==MainWindow::ResourceClonePolicy::IncludeBuiltInPoints)) point->MakeUserDefinedCopy();
+   return draft;
+}
+bool formationAllowsSharedMembers(GmatBase &object)
+{
+   for (Integer id=0;id<object.GetParameterCount();++id)
+      if (object.GetParameterText(id)=="AllowSharedMembers") return object.GetBooleanParameter(id);
+   return false;
+}
+QMap<QString,QString> cloneConfigurationDefaults(GmatBase &object)
 {
    QMap<QString,QString> values;
-   for (const auto &field:resourceProperties(object))
+   for (const auto &field:resourceProperties(object)) {
       if (field.name=="OrbitColor" || field.name=="TargetColor") values.insert(field.name,field.value);
+      else if (!field.list && !field.value.isEmpty() &&
+            (field.fileOutput || (object.IsOfType("Function") && field.name=="FunctionPath")))
+         values.insert(field.name,QString::fromStdString(GmatScriptString::Quote(field.value.toStdString())));
+   }
+   if (auto *setup=dynamic_cast<PropSetup *>(&object);setup && setup->GetPropagator() && setup->GetPropagator()->UsesODEModel()) {
+      // FinalPass can supply a shared implicit model that has no authored FM
+      // assignment. Preserve that effective reference on the new setup.
+      const auto name=setup->GetStringParameter("FM");
+      auto *model=Moderator::Instance()->GetConfiguredObject(name);
+      if (!model || !model->IsOfType(Gmat::ODE_MODEL))
+         throw std::runtime_error("Build a configured force-model reference before cloning this propagator.");
+      values.insert("FM",QString::fromStdString(name));
+   }
    return values;
 }
-QString cloneResourceSource(const QString &source,const QString &original,const QString &name,const QString &firstMissionStatement,const QMap<QString,QString> &colorDefaults)
+QString nativeResourceCopySnapshot(GmatBase &object)
 {
-   // Copy only explicit configuration. Canonical engine regeneration would
-   // materialize unrelated defaults and lose expressions, spelling and comments.
+   struct RestorePrecision {
+      GmatGlobal *global;
+      Integer previous;
+      ~RestorePrecision() { global->SetDataPrecision(previous); }
+   } restore{GmatGlobal::Instance(),GmatGlobal::Instance()->GetDataPrecision()};
+   restore.global->SetDataPrecision(std::max(restore.previous,
+      static_cast<Integer>(std::numeric_limits<Real>::max_digits10)));
+   ObjectScriptExportScope snapshot;
+   return QString::fromStdString(object.GetGeneratingString(Gmat::OBJECT_EXPORT));
+}
+class CloneIncludeExpansionRequired : public std::runtime_error
+{
+public:
+   explicit CloneIncludeExpansionRequired(const char *message):std::runtime_error(message){}
+};
+QString normalizedCloneStatement(QString code)
+{
+   code=code.trimmed(); if (code.endsWith(';')) code.chop(1);
+   code.remove(QRegularExpression("^GMAT\\s+"));
+   QString result; bool quoted=false;
+   for (auto ch:code) { if (ch=='\'') quoted=!quoted; if (quoted || !ch.isSpace()) result+=ch; }
+   return result;
+}
+QString commentCloneIncludes(QString text)
+{
+   const QRegularExpression include("^\\s*#Include\\b");
+   const auto statements=scriptStatements(text);
+   for (auto i=statements.crbegin();i!=statements.crend();++i) {
+      if (!include.match(i->code).hasMatch()) continue;
+      qsizetype first=0; while (first<i->code.size() && i->code[first].isSpace()) ++first;
+      if (first<i->code.size()) text.insert(i->positions[first],"% ");
+   }
+   return text;
+}
+QString copiedCloneIncludeSource(const QString &source,const QtScriptSource &captured)
+{
+   // Copy the exact successful Build inputs, never a later on-disk revision.
+   // Keep root text outside include lines; nested include directives become
+   // comments because their captured bodies follow in the same logical order.
+   const QRegularExpression include("^\\s*#Include\\b");
+   struct Group { QString code,root,text; };
+   QVector<Group> groups; int active=-1;
+   for (const auto &block:captured.blocks) {
+      const auto text=captured.text.mid(block.begin,block.end-block.begin);
+      if (!block.included) {
+         active=-1;
+         const auto statements=scriptStatements(text);
+         if (statements.size()==1 && include.match(statements.first().code).hasMatch()) {
+            groups.append({normalizedCloneStatement(statements.first().code),block.rootBlock,{}});
+            active=groups.size()-1;
+         }
+      } else if (active>=0 && block.rootBlock==groups[active].root) {
+         groups[active].text+=commentCloneIncludes(text);
+      } else {
+         throw std::runtime_error("The included source capture is incomplete. Build again before copying included statements.");
+      }
+   }
+   struct Replacement { qsizetype begin,end; QString text; };
+   QVector<Replacement> replacements; int next=0;
+   for (const auto &statement:scriptStatements(source)) {
+      if (!include.match(statement.code).hasMatch()) continue;
+      if (next>=groups.size() || normalizedCloneStatement(statement.code)!=groups[next].code)
+         throw std::runtime_error("Cannot safely match this include to its Build input. Keep the include or edit the defining script.");
+      qsizetype first=0,last=statement.code.size()-1;
+      while (first<=last && statement.code[first].isSpace()) ++first;
+      while (last>=first && statement.code[last].isSpace()) --last;
+      if (first>last) throw std::runtime_error("The include has no source statement.");
+      const auto begin=statement.positions[first];
+      auto lineEnd=source.indexOf('\n',statement.positions[last]+1); if (lineEnd<0) lineEnd=source.size();
+      const auto end=lineEnd+(lineEnd<source.size()?1:0);
+      if (!replacements.isEmpty() && replacements.last().end>begin)
+         throw std::runtime_error("Put each include on its own line before copying included statements.");
+      replacements.append({begin,end,"% "+source.mid(begin,lineEnd-begin)+'\n'+groups[next].text});
+      ++next;
+   }
+   if (next!=groups.size())
+      throw std::runtime_error("Cannot locate the included Build statements safely.");
+   auto result=source;
+   for (auto i=replacements.crbegin();i!=replacements.crend();++i) result.replace(i->begin,i->end-i->begin,i->text);
+   for (const auto &statement:scriptStatements(result))
+      if (include.match(statement.code).hasMatch())
+         throw std::runtime_error("A runtime include cannot be copied as configuration. Keep it in the defining script.");
+   return result;
+}
+QString rebindArrayCloneSelfReferences(const QString &source,const QString &original,const QString &name)
+{
+   QString result; result.reserve(source.size());
+   bool quoted=false,comment=false;
+   for (qsizetype i=0;i<source.size();) {
+      const auto character=source[i];
+      if (comment) {
+         result+=character; ++i;
+         if (character=='\n') comment=false;
+      } else if (character=='\'') {
+         quoted=!quoted; result+=character; ++i;
+      } else if (!quoted && character=='%') {
+         comment=true; result+=character; ++i;
+      } else if (!quoted && (character.isLetterOrNumber() || character=='_')) {
+         auto end=i+1;
+         while (end<source.size() && (source[end].isLetterOrNumber() || source[end]=='_')) ++end;
+         auto previous=i;
+         while (previous>0 && source[previous-1].isSpace()) --previous;
+         const auto token=source.mid(i,end-i);
+         // Only an object root is self-owned. A terminal property with the
+         // same spelling (Anchor.X), other identifiers, and literal text stay.
+         result+=(token==original && !(previous>0 && source[previous-1]=='.')) ? name : token;
+         i=end;
+      } else {
+         result+=character; ++i;
+      }
+   }
+   return result;
+}
+QString cloneResourceSource(const QString &source,GmatBase &object,const QString &name,const QString &firstMissionStatement,const QMap<QString,QString> &copyDefaults,MainWindow::ResourceClonePolicy policy,bool copyIncludes=false)
+{
+   if (copyIncludes) {
+      const auto captured=qtCapturedScriptSource(source);
+      if (!captured) throw std::runtime_error("Build the current script successfully before copying included statements.");
+      return cloneResourceSource(copiedCloneIncludeSource(source,*captured),object,name,firstMissionStatement,copyDefaults,policy);
+   }
+   const auto original=QString::fromStdString(object.GetName());
+   const auto *body=dynamic_cast<CelestialBody *>(&object);
+   // Physical-model copies need their native provider descriptor. Ordinary
+   // user bodies retain authored settings and valid factory-unset values.
+   const bool bodyCopy=body && body->UsesDefaultBodyModel();
+   struct BodyDefault { Integer id; QString statement; };
+   QVector<BodyDefault> bodyDefaults;
+   QSet<Integer> authoredBodyFields;
+   QString bodyDeclaration;
+   if (bodyCopy) {
+      auto value=resourceCloneDraft(object,original,policy);
+      const auto snapshot=nativeResourceCopySnapshot(*value);
+      const QRegularExpression created("^\\s*Create\\s+([A-Za-z][A-Za-z0-9_]*)\\s+"+QRegularExpression::escape(original)+"\\s*;?\\s*$");
+      const QRegularExpression configured("^\\s*(?:GMAT\\s+)?("+QRegularExpression::escape(original)+")\\.([A-Za-z0-9_]+)\\s*=");
+      for (const auto &statement:scriptStatements(snapshot)) {
+         const auto creation=created.match(statement.code);
+         if (creation.hasMatch()) { bodyDeclaration="Create "+creation.captured(1)+' '+name+";\n"; continue; }
+         const auto property=configured.match(statement.code);
+         if (!property.hasMatch()) continue;
+         const Integer id=value->GetParameterID(property.captured(2).toStdString());
+         auto code=statement.code;
+         code.replace(property.capturedStart(1),original.size(),name);
+         code=code.trimmed(); if (!code.endsWith(';')) code+=';';
+         bodyDefaults.append({id,code+'\n'});
+      }
+      if (bodyDeclaration.isEmpty()) throw std::runtime_error("The body copy has no native declaration.");
+   }
+   QString implicitConfiguration;
+   const bool implicitFrame=dynamic_cast<CoordinateSystem *>(&object) &&
+      static_cast<CoordinateSystem &>(object).IsBuiltIn() && policy==MainWindow::ResourceClonePolicy::IncludeBuiltInFrames;
+   const bool implicitPoint=dynamic_cast<Barycenter *>(&object) &&
+      static_cast<Barycenter &>(object).IsBuiltIn();
+   if (implicitFrame || implicitPoint) {
+      auto value=resourceCloneDraft(object,original,policy);
+      implicitConfiguration=nativeResourceCopySnapshot(*value);
+      if (!implicitConfiguration.endsWith('\n')) implicitConfiguration+='\n';
+   }
+   // Authored resources retain explicit configuration. Regenerating their
+   // whole source would lose expressions, spelling and comments.
    const QRegularExpression create("^\\s*Create\\s+([A-Za-z][A-Za-z0-9_]*)\\s+([^;]+?);?\\s*$",QRegularExpression::DotMatchesEverythingOption);
    const QRegularExpression definition("\\b("+QRegularExpression::escape(original)+"(?:\\s*\\[\\s*[1-9][0-9]*\\s*,\\s*[1-9][0-9]*\\s*\\])?)(?![A-Za-z0-9_])");
    const QRegularExpression assignment("^\\s*(?:GMAT\\s+)?("+QRegularExpression::escape(original)+")(?:\\.[A-Za-z0-9_.]+(?:\\([^;=]*\\))?|\\([^;=]*\\))?\\s*=");
@@ -376,17 +562,27 @@ QString cloneResourceSource(const QString &source,const QString &original,const 
    };
    QString firstCommand;
    if (!firstMissionStatement.isEmpty()) { const auto commands=scriptStatements(firstMissionStatement); if (!commands.isEmpty()) firstCommand=normalize(commands.first().code); }
-   const auto statements=scriptStatements(source);
+   const auto mainStatements=scriptStatements(source);
+   const QRegularExpression include("^\\s*#Include\\b");
+   const bool hasIncludes=std::any_of(mainStatements.cbegin(),mainStatements.cend(),[&](const auto &statement) { return include.match(statement.code).hasMatch(); });
+   const auto captured=hasIncludes ? qtCapturedScriptSource(source) : std::nullopt;
+   if (hasIncludes && !captured) throw std::runtime_error("Build the current script successfully before cloning resources from includes.");
+   // Use exactly the logical input consumed by Build. Re-reading include files
+   // here could copy different settings from the configured source object.
+   // Built-in resources have no authored Create statement. Seed their detached
+   // native configuration for extraction, then retain any authored overrides.
+   const auto configurationSource=implicitConfiguration+(captured ? captured->text : source);
+   const auto statements=scriptStatements(configurationSource);
    const QRegularExpression explicitBoundary("^\\s*BeginMissionSequence\\b");
    const bool explicitMission=std::any_of(statements.cbegin(),statements.cend(),[&](const auto &statement) { return explicitBoundary.match(statement.code).hasMatch(); });
-   QString declaration,settings; QSet<QString> explicitColors; qsizetype boundary=source.size(); bool located=firstCommand.isEmpty();
+   QString declaration,settings,boundaryCode; QSet<QString> explicitDefaults; qsizetype boundary=configurationSource.size(); bool located=firstCommand.isEmpty();
    for (const auto &statement:statements) {
       qsizetype first=0,last=statement.code.size()-1;
       while (first<=last && statement.code[first].isSpace()) ++first;
       while (last>=first && statement.code[last].isSpace()) --last;
       if (first>last) continue;
       if (explicitBoundary.match(statement.code).hasMatch() || (!explicitMission && !firstCommand.isEmpty() && normalize(statement.code)==firstCommand)) {
-         boundary=statement.positions[first]; located=true; break;
+         boundary=statement.positions[first]; boundaryCode=normalize(statement.code); located=true; break;
       }
       const auto declared=create.match(statement.code);
       if (declared.hasMatch()) {
@@ -396,15 +592,36 @@ QString cloneResourceSource(const QString &source,const QString &original,const 
          continue;
       }
       const auto configured=assignment.match(statement.code); if (!configured.hasMatch()) continue;
-      for (auto it=colorDefaults.cbegin();it!=colorDefaults.cend();++it)
-         if (QRegularExpression("^\\s*(?:GMAT\\s+)?"+QRegularExpression::escape(original)+"\\."+it.key()+"\\s*=").match(statement.code).hasMatch()) explicitColors.insert(it.key());
+      const auto assignedProperty=QRegularExpression("^\\s*(?:GMAT\\s+)?"+QRegularExpression::escape(original)+
+         "\\.([A-Za-z0-9_]+)(?=\\s*(?:\\(|\\.|=))").match(statement.code);
+      Integer assignedId=-1;
+      if (assignedProperty.hasMatch()) try { assignedId=object.GetParameterID(assignedProperty.captured(1).toStdString()); }
+      catch (BaseException &) {} // A nested/specialized field keeps its source spelling below.
+      if (bodyCopy && assignedId>=0) {
+         const auto type=object.GetParameterType(assignedId);
+         // Keep one effective list value: replaying additive/indexed kernel
+         // assignments over a snapshot can change its contents or ordering.
+         // PhysicalBody is the immutable constructor descriptor and is emitted
+         // first from the native snapshot, ahead of Earth/Luna-only settings.
+         if (object.GetParameterText(assignedId)=="PhysicalBody" ||
+             type==Gmat::STRINGARRAY_TYPE || type==Gmat::OBJECTARRAY_TYPE ||
+             object.IsParameterReadOnly(assignedId)) continue;
+         authoredBodyFields.insert(assignedId);
+      }
+      for (auto it=copyDefaults.cbegin();it!=copyDefaults.cend();++it) {
+         bool authored=QRegularExpression("^\\s*(?:GMAT\\s+)?"+QRegularExpression::escape(original)+"\\."+
+            QRegularExpression::escape(it.key())+"\\s*=").match(statement.code).hasMatch();
+         if (!authored && assignedId>=0) try { authored=assignedId==object.GetParameterID(it.key().toStdString()); }
+         catch (BaseException &) {}
+         if (authored) explicitDefaults.insert(it.key());
+      }
       auto start=statement.positions[first],end=statement.positions[last]+1;
-      const auto lineStart=start ? source.lastIndexOf('\n',start-1)+1 : 0;
-      if (source.mid(lineStart,start-lineStart).trimmed().isEmpty()) start=lineStart;
-      auto lineEnd=source.indexOf('\n',end); if (lineEnd<0) lineEnd=source.size();
-      const auto tail=source.mid(end,lineEnd-end).trimmed();
-      if (tail.isEmpty() || tail.startsWith('%')) end=lineEnd+(lineEnd<source.size() ? 1 : 0);
-      auto copied=source.mid(start,end-start);
+      const auto lineStart=start ? configurationSource.lastIndexOf('\n',start-1)+1 : 0;
+      if (configurationSource.mid(lineStart,start-lineStart).trimmed().isEmpty()) start=lineStart;
+      auto lineEnd=configurationSource.indexOf('\n',end); if (lineEnd<0) lineEnd=configurationSource.size();
+      const auto tail=configurationSource.mid(end,lineEnd-end).trimmed();
+      if (tail.isEmpty() || tail.startsWith('%')) end=lineEnd+(lineEnd<configurationSource.size() ? 1 : 0);
+      auto copied=configurationSource.mid(start,end-start);
       // Like wx Clone, keep references to other resources, including references
       // in array expressions and quoted filenames. Change only assignment owner.
       const auto position=statement.positions[configured.capturedStart(1)]-start;
@@ -412,13 +629,57 @@ QString cloneResourceSource(const QString &source,const QString &original,const 
       if (!copied.endsWith('\n')) copied+='\n';
       settings+=copied;
    }
+   if (declaration.isEmpty() && bodyCopy) declaration=bodyDeclaration;
    if (declaration.isEmpty()) throw std::runtime_error("Cannot locate this resource's declaration safely. Clone it in the script that defines it.");
    if (!located) throw std::runtime_error("Cannot locate the mission boundary safely. Add BeginMissionSequence before cloning this resource.");
-   // Unwritten palette defaults depend on creation order. Materialize just
-   // these effective values on the copy; preserve explicit color expressions
-   // and all unrelated source spelling instead of regenerating the object.
-   for (auto it=colorDefaults.cbegin();it!=colorDefaults.cend();++it)
-      if (!explicitColors.contains(it.key())) settings+=name+"."+it.key()+" = "+it.value()+";\n";
+   if (captured || !implicitConfiguration.isEmpty()) {
+      if (boundary==configurationSource.size()) boundary=source.size();
+      else {
+         const auto containingBlock=[&](qsizetype position) -> const QtScriptSourceBlock * {
+            if (!captured) return nullptr;
+            position-=implicitConfiguration.size();
+            for (const auto &block:captured->blocks) if (position>=block.begin && position<block.end) return &block;
+            return nullptr;
+         };
+         const auto *owner=containingBlock(boundary);
+         if (captured && !owner) throw std::runtime_error("Cannot locate the built mission boundary. Build again before cloning this resource.");
+         QString anchor=boundaryCode;
+         if (owner && owner->included) {
+            int roots=0;
+            for (const auto &statement:scriptStatements(owner->rootBlock)) if (include.match(statement.code).hasMatch()) { anchor=normalize(statement.code); ++roots; }
+            if (roots!=1) throw std::runtime_error("Cannot locate the main script's mission include safely.");
+            // A mission-only include is a safe insertion point. If the same
+            // include also configures resources, moving copied expressions in
+            // front of that configuration would change dependency ordering.
+            for (const auto &statement:statements) {
+               qsizetype first=0; while (first<statement.code.size() && statement.code[first].isSpace()) ++first;
+               if (first==statement.code.size()) continue;
+               const auto position=statement.positions[first]; if (position>=boundary) break;
+               const auto *block=containingBlock(position);
+               if (block && block->included && block->rootBlock==owner->rootBlock && !include.match(statement.code).hasMatch())
+                  throw CloneIncludeExpansionRequired("This include configures resources before starting the mission. Put the mission boundary in the main script before cloning, so expressions keep their dependency order.");
+            }
+         }
+         int matches=0;
+         for (const auto &statement:mainStatements) if (normalize(statement.code)==anchor) {
+            qsizetype first=0; while (first<statement.code.size() && statement.code[first].isSpace()) ++first;
+            if (first<statement.code.size()) { boundary=statement.positions[first]; ++matches; }
+         }
+         if (matches!=1) throw std::runtime_error("Cannot locate a unique mission insertion point in the main script.");
+      }
+      if (declaration.startsWith("Create Array ") && arrayExpressions(configurationSource,original)!="[]" && arrayExpressions(source,original)=="[]")
+         throw CloneIncludeExpansionRequired("This array has a mission initializer in an included file. Clone it in the defining script to keep its expression order.");
+   }
+   // Palette, default filenames/function paths and implicit FM references can
+   // depend on creation context. Freeze only their un-authored effective values;
+   // preserve explicit aliases/expressions and unrelated source spelling.
+   if (bodyCopy) {
+      QString defaults;
+      for (const auto &field:bodyDefaults)
+         if (!authoredBodyFields.contains(field.id)) defaults+=field.statement;
+      settings=defaults+settings;
+   } else for (auto it=copyDefaults.cbegin();it!=copyDefaults.cend();++it)
+      if (!explicitDefaults.contains(it.key())) settings+=name+"."+it.key()+" = "+it.value()+";\n";
    auto block=declaration+settings;
    const auto cameras=qtCameraSettings(source);
    if (cameras.contains(original)) block+=qtCameraDirective(name,cameras.value(original));
@@ -435,6 +696,9 @@ QString cloneResourceSource(const QString &source,const QString &original,const 
       copied.replace("% GMAT-Qt-Array-Expressions "+original+" begin","% GMAT-Qt-Array-Expressions "+name+" begin");
       copied.replace("% GMAT-Qt-Array-Expressions "+original+" end","% GMAT-Qt-Array-Expressions "+name+" end");
       copied.replace(QRegularExpression("^([ \\t]*(?:GMAT[ \\t]+)?)"+QRegularExpression::escape(original)+"(?=\\()",QRegularExpression::MultilineOption),"\\1"+name);
+      // These statements initialize the copied array. Rebase its internal
+      // self-references as well; references to other resources remain shared.
+      copied=rebindArrayCloneSelfReferences(copied,original,name);
       if (!copied.endsWith('\n')) copied+='\n';
       result.insert(end.capturedEnd(),copied);
    }
@@ -481,7 +745,35 @@ MainWindow::MainWindow()
    workspace = new QMdiArea(this);
    workspace->setObjectName("workspace");
    workspace->setBackground(palette().mid());
-   setCentralWidget(workspace);
+   auto *workspacePanel=new QWidget(this);
+   auto *workspaceLayout=new QVBoxLayout(workspacePanel);
+   workspaceLayout->setContentsMargins(0,0,0,0);
+   workspaceLayout->setSpacing(0);
+   modelBuildStatus=new QWidget(workspacePanel);
+   modelBuildStatus->setObjectName("modelBuildStatus");
+   auto *modelStatusLayout=new QHBoxLayout(modelBuildStatus);
+   modelStatusLayout->setContentsMargins(8,4,8,4);
+   modelBuildMessage=new QLabel(modelBuildStatus);
+   modelBuildMessage->setObjectName("modelBuildMessage");
+   modelBuildMessage->setWordWrap(true);
+   modelBuildButton=new QPushButton("Build script (F7)",modelBuildStatus);
+   modelBuildButton->setObjectName("modelBuildButton");
+   modelBuildButton->setToolTip("Build the active script to update Resources and Mission");
+   connect(modelBuildButton,&QPushButton::clicked,this,[this] { buildScript(); });
+   modelStatusLayout->addWidget(modelBuildMessage,1);
+   modelStatusLayout->addWidget(modelBuildButton);
+   workspaceLayout->addWidget(modelBuildStatus);
+   modelBuildStatus->hide();
+   auto *workspaceHeader=new QWidget(workspacePanel);
+   auto *headerLayout=new QHBoxLayout(workspaceHeader);
+   headerLayout->setContentsMargins(0,0,0,0);
+   headerLayout->setSpacing(0);
+   auto *windowTabs=new WorkspaceTabs(workspace,workspaceHeader);
+   headerLayout->addWidget(windowTabs,1);
+   headerLayout->addWidget(windowTabs->windowControls());
+   workspaceLayout->addWidget(workspaceHeader);
+   workspaceLayout->addWidget(workspace,1);
+   setCentralWidget(workspacePanel);
    plots = std::make_unique<QtPlotReceiver>(workspace);
    solverListeners=std::make_unique<QtSolverListenerManager>(workspace);
    auto *navigation = new QDockWidget("Mission workspace", this);
@@ -683,7 +975,7 @@ MainWindow::MainWindow()
    auto *toolbar = addToolBar("Standard");
    toolbar->setObjectName("standardToolbar");
    auto add = [this, toolbar](QMenu *menu, const QString &label, QStyle::StandardPixmap icon, const QKeySequence &key, auto callback) {
-      auto *action = menu->addAction(style()->standardIcon(icon), label);
+      auto *action = menu->addAction(standardActionIcon(icon,this), label);
       action->setShortcut(key);
       connect(action, &QAction::triggered, this, callback);
       toolbar->addAction(action);
@@ -725,15 +1017,33 @@ MainWindow::MainWindow()
       bool owned=false;
       for (auto *parent=focused;parent;parent=parent->parentWidget())
          if (parent==this) { owned=true; break; }
+      editContextTarget=owned ? focused : nullptr;
       if (owned && (qobject_cast<QPlainTextEdit *>(focused) ||
           qobject_cast<QTextEdit *>(focused) || qobject_cast<QLineEdit *>(focused))) textEditTarget=focused;
       else textEditTarget.clear();
    });
-   auto editAction = [edit, this](const QString &label, const QKeySequence &key, const char *slot) {
+   const auto copyResourceSelection=[this] {
+      const auto *item=resources->currentItem();
+      if (!item || item->data(0,Qt::UserRole).toString().isEmpty()) return;
+      const auto name=item->text(0);
+      auto *selected=Moderator::Instance()->GetConfiguredObject(name.toStdString());
+      ResourceClonePolicy policy=ResourceClonePolicy::Native;
+      if (selected && selected->IsOfType("PropSetup")) policy=ResourceClonePolicy::IncludePropagators;
+      else if (auto *frame=dynamic_cast<CoordinateSystem *>(selected);frame && frame->IsBuiltIn())
+         policy=ResourceClonePolicy::IncludeBuiltInFrames;
+      else if (auto *point=dynamic_cast<CalculatedPoint *>(selected);point && point->IsBuiltIn())
+         policy=ResourceClonePolicy::IncludeBuiltInPoints;
+      else if (auto *body=dynamic_cast<CelestialBody *>(selected);body && !body->IsUserDefined())
+         policy=ResourceClonePolicy::IncludeDefaultBodies;
+      showCloneResource(name,policy);
+   };
+   auto editAction = [edit, this, copyResourceSelection](const QString &label, const QKeySequence &key, const char *slot) {
       auto *action = edit->addAction(label); action->setShortcut(key);
       action->setObjectName(QString("edit_")+slot);
-      connect(action, &QAction::triggered, this, [this,slot] {
+      connect(action, &QAction::triggered, this, [this,slot,copyResourceSelection] {
          auto *modal=QApplication::activeModalWidget();
+         if (editContextTarget && (!modal || modal==editContextTarget || modal->isAncestorOf(editContextTarget)) &&
+             MatrixTableWidget::editFocusedWidget(editContextTarget,slot)) return;
          if (textEditTarget) {
             // A field keeps its own history, including fields in modal editors.
             // Never reuse a target behind an active modal dialog.
@@ -747,6 +1057,11 @@ MainWindow::MainWindow()
             if (textEditTarget->isEnabled() && (!changesText || writable) &&
                 (!modal || modal==textEditTarget || modal->isAncestorOf(textEditTarget)))
                QMetaObject::invokeMethod(textEditTarget,slot,Qt::DirectConnection);
+            return;
+         }
+         if (!modal && !qstrcmp(slot,"copy") && editContextTarget &&
+             (editContextTarget==resources || resources->isAncestorOf(editContextTarget))) {
+            copyResourceSelection();
             return;
          }
          // GUI Apply records one script edit even when a tree, plot or button
@@ -841,7 +1156,13 @@ MainWindow::MainWindow()
    auto *create=edit->addAction("New &resource…");
    create->setObjectName("createResource"); editingActions.append(create);
    connect(create,&QAction::triggered,this,[this] { showCreateResource(); });
-   auto *clone=edit->addAction("Clone resource…"); clone->setObjectName("cloneResource");
+   auto *satellite=edit->addAction("Import satellite…"); satellite->setObjectName("importSatelliteCatalog"); editingActions.append(satellite);
+   connect(satellite,&QAction::triggered,this,&MainWindow::showImportSatellite);
+   auto *spaceTrackAccount=edit->addAction("Space-Track account…");spaceTrackAccount->setObjectName("spaceTrackAccount");
+   connect(spaceTrackAccount,&QAction::triggered,this,[this] {
+      SpaceTrackAccountDialog dialog(SpaceTrackAccount::instance(),this);dialog.exec();
+   });
+   auto *clone=new QAction("Clone resource…",this); clone->setObjectName("cloneResource");
    clone->setShortcut(QKeySequence("Ctrl+Shift+C")); clone->setShortcutContext(Qt::WidgetWithChildrenShortcut);
    resources->addAction(clone); editingActions.append(clone);
    connect(clone,&QAction::triggered,this,[this] {
@@ -862,22 +1183,25 @@ MainWindow::MainWindow()
    connect(resources,&QTreeWidget::customContextMenuRequested,this,[this,create](const QPoint &position) {
       auto *item=resources->itemAt(position);
       if (item && item->data(0,Qt::UserRole+2).toString()=="matlab-interface") {
-         bool open=false,close=false;
+         bool open=false,close=false,configure=false;
          {
             QMenu menu(this);menu.setObjectName("resourceContextMenu");
             auto *start=menu.addAction("Open");start->setObjectName("openMatlabInterface");start->setEnabled(ready && !running);
             auto *stop=menu.addAction("Close");stop->setObjectName("closeMatlabInterface");stop->setEnabled(ready && !running);
+            menu.addSeparator();
+            auto *mode=menu.addAction("Engine mode…");mode->setObjectName("configureMatlabMode");mode->setEnabled(ready && !running);
             const auto *chosen=menu.exec(resources->viewport()->mapToGlobal(position));
-            open=chosen==start;close=chosen==stop;
+            open=chosen==start;close=chosen==stop;configure=chosen==mode;
          }
          if (open || close) setMatlabConnection(open);
+         else if (configure) showMatlabMode();
          return;
       }
       const QString name=item && !item->data(0,Qt::UserRole).toString().isEmpty() ? item->text(0) : QString();
       const QString snapshot=builtScript;
       auto *selected=name.isEmpty() ? nullptr : Moderator::Instance()->GetConfiguredObject(name.toStdString());
       auto *body=dynamic_cast<CelestialBody *>(selected);
-      enum class Operation { None,Create,Open,Close,Clone,Rename,Delete }; Operation operation=Operation::None; QString type;
+      enum class Operation { None,Create,ImportSatellite,Open,Close,Clone,ClonePropagator,CopyFrame,CopyPoint,CopyBody,Rename,Delete }; Operation operation=Operation::None; QString type;
       {
          QMenu menu(this); menu.setObjectName("resourceContextMenu");
          QAction *open=nullptr,*close=nullptr;
@@ -891,6 +1215,12 @@ MainWindow::MainWindow()
          }
          auto *category=item;
          while (category && !category->data(0,Qt::UserRole+1).isValid()) category=category->parent();
+         QAction *import=nullptr;
+         if (category && category->data(0,Qt::UserRole+1).toUInt()==Gmat::SPACECRAFT) {
+            import=menu.addAction("Import from catalog or file…");
+            import->setObjectName("importSatelliteFromSpacecraft");
+            import->setEnabled(ready && !running && modelValid && editor->toPlainText()==builtScript);
+         }
          if (category) {
             const auto group=category->data(0,Qt::UserRole+1).toUInt();
             QStringList types;
@@ -919,6 +1249,26 @@ MainWindow::MainWindow()
          menu.addSeparator();
          auto *clone=menu.addAction("Clone resource…"); clone->setObjectName("cloneResource");
          clone->setEnabled(ready && !running && modelValid && editor->toPlainText()==builtScript && resourceCanBeCloned(selected));
+         QAction *clonePropagator=nullptr;
+         if (selected && selected->IsOfType("PropSetup")) {
+            clonePropagator=menu.addAction("Clone propagator…"); clonePropagator->setObjectName("clonePropagator");
+            clonePropagator->setEnabled(ready && !running && modelValid && editor->toPlainText()==builtScript && resourceCanBeCloned(selected,ResourceClonePolicy::IncludePropagators));
+         }
+         QAction *copyFrame=nullptr;
+         if (auto *frame=dynamic_cast<CoordinateSystem *>(selected);frame && frame->IsBuiltIn()) {
+            copyFrame=menu.addAction("Copy coordinate system…"); copyFrame->setObjectName("copyCoordinateSystem");
+            copyFrame->setEnabled(ready && !running && modelValid && editor->toPlainText()==builtScript && resourceCanBeCloned(selected,ResourceClonePolicy::IncludeBuiltInFrames));
+         }
+         QAction *copyPoint=nullptr;
+         if (auto *point=dynamic_cast<CalculatedPoint *>(selected);point && point->IsBuiltIn()) {
+            copyPoint=menu.addAction("Copy calculated point…"); copyPoint->setObjectName("copyCalculatedPoint");
+            copyPoint->setEnabled(ready && !running && modelValid && editor->toPlainText()==builtScript && resourceCanBeCloned(selected,ResourceClonePolicy::IncludeBuiltInPoints));
+         }
+         QAction *copyBody=nullptr;
+         if (body && !body->IsUserDefined()) {
+            copyBody=menu.addAction("Copy celestial body…"); copyBody->setObjectName("copyCelestialBody");
+            copyBody->setEnabled(ready && !running && modelValid && editor->toPlainText()==builtScript && resourceCanBeCloned(selected,ResourceClonePolicy::IncludeDefaultBodies));
+         }
          auto *rename=menu.addAction("Rename resource…"); rename->setObjectName("renameResource");
          rename->setEnabled(ready && !running && modelValid && editor->toPlainText()==builtScript && resourceCanBeRenamed(selected));
          QAction *remove=nullptr;
@@ -930,12 +1280,18 @@ MainWindow::MainWindow()
          const auto *chosen=menu.exec(resources->viewport()->mapToGlobal(position));
          if (chosen && chosen==open) operation=Operation::Open;
          else if (chosen && chosen==close) operation=Operation::Close;
+         else if (import && chosen==import) operation=Operation::ImportSatellite;
          else if (chosen && (chosen->objectName().startsWith("addResource_") || chosen->objectName()=="createResource")) { operation=Operation::Create; type=chosen->data().toString(); }
          else if (chosen==clone) operation=Operation::Clone;
+         else if (clonePropagator && chosen==clonePropagator) operation=Operation::ClonePropagator;
+         else if (copyFrame && chosen==copyFrame) operation=Operation::CopyFrame;
+         else if (copyPoint && chosen==copyPoint) operation=Operation::CopyPoint;
+         else if (copyBody && chosen==copyBody) operation=Operation::CopyBody;
          else if (chosen==rename) operation=Operation::Rename;
          else if (chosen && chosen==remove) operation=Operation::Delete;
       } // Destroy the popup before opening another modal surface; retain values only.
       if (operation==Operation::Create) showCreateResource(type,body ? name : QString());
+      else if (operation==Operation::ImportSatellite) showImportSatellite();
       else if (operation==Operation::Open) {
          const auto found=resources->findItems(name,Qt::MatchExactly|Qt::MatchRecursive);
          if (found.size()==1) { resources->setCurrentItem(found.first()); resources->itemDoubleClicked(found.first(),0); }
@@ -943,6 +1299,10 @@ MainWindow::MainWindow()
          for (auto *child:workspace->subWindowList()) if (child->property("resourceName").toString()==name) child->close();
       }
       else if (operation==Operation::Clone) showCloneResource(name);
+      else if (operation==Operation::ClonePropagator) showCloneResource(name,ResourceClonePolicy::IncludePropagators);
+      else if (operation==Operation::CopyFrame) showCloneResource(name,ResourceClonePolicy::IncludeBuiltInFrames);
+      else if (operation==Operation::CopyPoint) showCloneResource(name,ResourceClonePolicy::IncludeBuiltInPoints);
+      else if (operation==Operation::CopyBody) showCloneResource(name,ResourceClonePolicy::IncludeDefaultBodies);
       else if (operation==Operation::Rename) showRenameResource(name);
       else if (operation==Operation::Delete &&
           QMessageBox::question(this,"Delete resource","Delete "+name+" from this mission?",
@@ -1014,21 +1374,18 @@ MainWindow::MainWindow()
       connect(action("Close current window","closeCurrentWindow"),&QAction::triggered,workspace,&QMdiArea::closeActiveSubWindow);
       connect(action("Close all windows","closeAllWindows"),&QAction::triggered,workspace,&QMdiArea::closeAllSubWindows);
       windows->addSeparator();
-      connect(action("&Tile","tileWindows"),&QAction::triggered,workspace,&QMdiArea::tileSubWindows);
-      auto tile=[this](bool vertical) {
-         QList<QMdiSubWindow *> children;
-         for (auto *child:workspace->subWindowList()) if (child->isVisible() && !child->isMinimized()) children.append(child);
-         if (children.isEmpty()) return;
-         for (auto *child:children) if (child->isMaximized()) child->showNormal();
-         const auto bounds=workspace->viewport()->rect();
-         const int extent=vertical ? bounds.width() : bounds.height(),count=children.size();
-         for (int i=0;i<count;++i) {
-            const int begin=i*extent/count,end=(i+1)*extent/count;
-            children[i]->setGeometry(vertical ? QRect(begin,0,end-begin,bounds.height()) : QRect(0,begin,bounds.width(),end-begin));
+      connect(action("&Tile","tileWindows"),&QAction::triggered,this,[this] { tileWorkspaceWindows(workspace); });
+      connect(action("Tile vertically","tileWindowsVertically"),&QAction::triggered,this,[this] { tileWorkspaceWindows(workspace); });
+      connect(action("Tile horizontally","tileWindowsHorizontally"),&QAction::triggered,this,[this] { tileWorkspaceWindows(workspace,1); });
+      connect(action("Maximum tile columns…","maximumTileColumns"),&QAction::triggered,this,[this] {
+         bool accepted=false;
+         const int columns=QInputDialog::getInt(this,"Window tiling","Maximum side-by-side windows",
+            workspaceColumnLimit(),1,std::numeric_limits<int>::max(),1,&accepted);
+         if (accepted) {
+            QSettings().setValue("Workspace/maximumColumns",columns);
+            tileWorkspaceWindows(workspace);
          }
-      };
-      connect(action("Tile vertically","tileWindowsVertically"),&QAction::triggered,this,[tile] { tile(true); });
-      connect(action("Tile horizontally","tileWindowsHorizontally"),&QAction::triggered,this,[tile] { tile(false); });
+      });
       connect(action("&Cascade","cascadeWindows"),&QAction::triggered,workspace,&QMdiArea::cascadeSubWindows);
       connect(action("&Next window","nextWindow"),&QAction::triggered,workspace,&QMdiArea::activateNextSubWindow);
       connect(action("&Previous window","previousWindow"),&QAction::triggered,workspace,&QMdiArea::activatePreviousSubWindow);
@@ -1042,10 +1399,8 @@ MainWindow::MainWindow()
          const QPointer<QMdiSubWindow> guarded=child;
          connect(action,&QAction::triggered,this,[this,guarded] {
             if (!guarded) return;
-            if (guarded->isMinimized()) guarded->showNormal();
-            workspace->setActiveSubWindow(guarded);
             if (guarded->property("configurationPanel").toBool()) keepWorkspaceWindowReachable(workspace,guarded);
-            guarded->raise(); guarded->widget()->setFocus();
+            activateWorkspaceWindow(workspace,guarded);
          });
       }
    });
@@ -1064,10 +1419,10 @@ MainWindow::MainWindow()
    connect(issue,&QAction::triggered,this,[] { QDesktopServices::openUrl(QUrl("https://gmat.atlassian.net/browse/GMT/issues/?filter=allissues")); });
    auto *feedback=help->addAction("Provide Feedback"); feedback->setObjectName("gmatFeedbackHelp");
    connect(feedback,&QAction::triggered,this,[] { QDesktopServices::openUrl(QUrl("mailto:gmat-developers@lists.sourceforge.net?subject=GMAT%20Feedback")); });
-   // Keep the existing shared animation transport on Standard. A second row
-   // exposes document/help routes without displacing its retained-data controls.
+   // Keep document/help actions available in an optional toolbar row.
    addToolBarBreak();
    auto *documents=addToolBar("Documents and help"); documents->setObjectName("documentToolbar");
+   documents->hide();
    auto expose=[this,documents](QAction *action,const QString &icon,QStyle::StandardPixmap fallback) {
       action->setIcon(QIcon::fromTheme(icon,style()->standardIcon(fallback))); documents->addAction(action);
    };
@@ -1077,7 +1432,7 @@ MainWindow::MainWindow()
    expose(findChild<QAction *>("edit_copy"),"edit-copy",QStyle::SP_FileIcon);
    expose(findChild<QAction *>("edit_paste"),"edit-paste",QStyle::SP_DialogOpenButton);
    documents->addSeparator();
-   auto *closeCurrent=documents->addAction(style()->standardIcon(QStyle::SP_TitleBarCloseButton),"Close current window"); closeCurrent->setObjectName("toolbarCloseCurrent");
+   auto *closeCurrent=documents->addAction(standardActionIcon(QStyle::SP_TitleBarCloseButton,this),"Close current window"); closeCurrent->setObjectName("toolbarCloseCurrent");
    connect(closeCurrent,&QAction::triggered,workspace,&QMdiArea::closeActiveSubWindow);
    auto *closeAll=documents->addAction(style()->standardIcon(QStyle::SP_DialogCloseButton),"Close all windows"); closeAll->setObjectName("toolbarCloseAll");
    connect(closeAll,&QAction::triggered,workspace,&QMdiArea::closeAllSubWindows);
@@ -1211,7 +1566,7 @@ void MainWindow::showFileComparison(const QString &baseline)
    auto *panel=new ComparisonPanel(baseline);
    auto *child=workspace->addSubWindow(panel); child->setAttribute(Qt::WA_DeleteOnClose);
    child->setWindowTitle("Compare files");
-   child->resize(qBound(600,workspace->width(),980),qBound(480,workspace->height(),780)); child->show();
+   child->resize(qBound(600,workspace->width(),980),qBound(480,workspace->height(),780)); showNewWorkspaceWindow(workspace,child);
 }
 MainWindow::~MainWindow()
 {
@@ -1471,10 +1826,13 @@ bool MainWindow::buildScript()
 }
 void MainWindow::refreshTrees()
 {
+   QStringList resourceSelection;
+   for (auto *item=resources->currentItem();item;item=item->parent()) resourceSelection.prepend(item->text(0));
+   updateModelStatus();
    // A failed parse may leave partial native objects. Keep the GUI at its
    // documented empty base state until a corrected script builds successfully.
    for (auto *action:editingActions)
-      if (action->objectName()=="createResource") action->setEnabled(ready && !running && modelValid);
+      if (action->objectName()=="createResource" || action->objectName()=="importSatelliteCatalog") action->setEnabled(ready && !running && modelValid);
    if (breakpointSource!=builtScript) { breakpoints.clear(); breakpointSource=builtScript; }
    resources->clear(); mission->clear(); output->clear();
    reportFiles.clear();
@@ -1565,6 +1923,15 @@ void MainWindow::refreshTrees()
       }
    }
    root->setExpanded(true); resources->expandToDepth(1);
+   auto *selectedResource=root;
+   for (int depth=1;depth<resourceSelection.size();++depth) {
+      QTreeWidgetItem *match=nullptr;
+      for (int i=0;i<selectedResource->childCount();++i)
+         if (selectedResource->child(i)->text(0)==resourceSelection[depth]) { match=selectedResource->child(i); break; }
+      if (!match) break;
+      selectedResource=match;
+   }
+   if (!resourceSelection.isEmpty()) resources->setCurrentItem(selectedResource);
    auto *sequence = new QTreeWidgetItem(mission, {"Mission Sequence"});
    missionState = {};
    if (modelValid) {
@@ -1606,8 +1973,8 @@ void MainWindow::refreshOutput()
    }
    ephemerides->setExpanded(true);
    auto *folder = new QTreeWidgetItem(output, {"Plots"});
-   for (const auto &name : plots->names()) {
-      auto *item = new QTreeWidgetItem(folder, {name});
+   for (const auto &name : plots->backendNames()) {
+      auto *item = new QTreeWidgetItem(folder, {plots->displayName(name)});
       item->setData(0, Qt::UserRole, name);
    }
    folder->setExpanded(true);
@@ -1615,6 +1982,17 @@ void MainWindow::refreshOutput()
 void MainWindow::updateTitle()
 {
    setWindowTitle(QString("%1%2 — GMAT Qt 6").arg(scriptPath.isEmpty() ? "Untitled" : QFileInfo(scriptPath).fileName(), editor->document()->isModified() ? " *" : ""));
+   updateModelStatus();
+}
+void MainWindow::updateModelStatus()
+{
+   if (!modelBuildStatus || !editor) return;
+   const bool current=modelValid && editor->toPlainText()==builtScript;
+   modelBuildStatus->setVisible(ready && !current);
+   modelBuildButton->setEnabled(ready && !running);
+   modelBuildMessage->setText(modelValid
+      ? "Resources and Mission show the last build. Build this script to update them."
+      : "Build this script to populate Resources and Mission.");
    updateScriptDocuments();
 }
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -1629,6 +2007,62 @@ void MainWindow::closeEvent(QCloseEvent *event)
    for (const auto &document:scriptDocuments) if (document!=activeDocument && !confirmScriptClose(document,false)) { event->ignore(); return; }
    QSettings settings; settings.setValue("geometry", saveGeometry()); settings.setValue("windowState", saveState());
    event->accept();
+}
+
+void MainWindow::showMatlabMode()
+{
+   if (!ready || running) return;
+   auto *interface=Moderator::Instance()->GetMatlabInterface();
+   if (!GmatGlobal::Instance()->IsMatlabAvailable() || !interface) {
+      statusBar()->showMessage("MATLAB interface is unavailable");return;
+   }
+   try {
+      const auto id=interface->GetParameterID("MatlabMode");
+      QDialog dialog(this);dialog.setObjectName("matlabModeDialog");dialog.setWindowTitle("MATLAB engine mode");
+      auto *layout=new QVBoxLayout(&dialog);
+      auto *mode=new QComboBox(&dialog);mode->setObjectName("matlabMode");
+#ifdef Q_OS_WIN
+      mode->addItem("Shared session",GmatGlobal::SHARED);
+      mode->addItem("Private session",GmatGlobal::SINGLE_USE);
+#else
+      mode->addItem("Session for this GMAT process",GmatGlobal::SHARED);
+      mode->addItem("Windows private-session mode",GmatGlobal::SINGLE_USE);
+#endif
+#ifndef Q_OS_WIN
+      if (auto *model=qobject_cast<QStandardItemModel *>(mode->model())) model->item(1)->setEnabled(false);
+#endif
+      mode->setCurrentIndex(mode->findData(interface->GetIntegerParameter(id)));
+      auto *form=new QFormLayout;form->addRow("Engine mode",mode);layout->addLayout(form);
+#ifdef Q_OS_WIN
+      const QString sessionDescription="Shared sessions can serve multiple GMAT processes. "
+         "Private sessions belong to this GMAT process. Close MATLAB before changing mode.";
+#else
+      const QString sessionDescription="MATLAB starts a session for this GMAT process. "
+         "The C Engine cannot attach to an existing session on this platform. Close MATLAB before changing mode.";
+#endif
+      auto *description=new QLabel(sessionDescription,&dialog);
+      description->setWordWrap(true);layout->addWidget(description);
+      auto *status=new QLabel(&dialog);status->setObjectName("matlabModeStatus");status->setWordWrap(true);layout->addWidget(status);
+      auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,&dialog);layout->addWidget(buttons);
+      connect(buttons,&QDialogButtonBox::rejected,&dialog,&QDialog::reject);
+      connect(buttons,&QDialogButtonBox::accepted,&dialog,[&] {
+         if (mode->currentIndex()<0) {status->setText("Select an engine mode.");return;}
+         const auto selected=mode->currentData().toInt();
+#ifndef Q_OS_WIN
+         if (selected==GmatGlobal::SINGLE_USE) {status->setText("Single use requires the Windows MATLAB Engine API.");return;}
+#endif
+         try {
+            // Use the interface's native setter so its live-engine ownership
+            // guard is also applied to changes made through this dialog.
+            interface->SetIntegerParameter(id,selected);
+            GmatGlobal::Instance()->SetMatlabMode(selected);
+            dialog.accept();
+         } catch (BaseException &error) {status->setText(QString::fromStdString(error.GetFullMessage()));}
+         catch (const std::exception &error) {status->setText(QString::fromUtf8(error.what()));}
+      });
+      if (dialog.exec()==QDialog::Accepted) statusBar()->showMessage("MATLAB engine mode updated");
+   } catch (BaseException &error) {messages->appendPlainText(QString::fromStdString(error.GetFullMessage()));}
+   catch (const std::exception &error) {messages->appendPlainText(QString::fromUtf8(error.what()));}
 }
 
 bool MainWindow::setMatlabConnection(bool open)
@@ -1677,6 +2111,7 @@ void MainWindow::setRunning(bool value)
    pauseAction->setEnabled(value);
    stopAction->setEnabled(value);
    stepAction->setEnabled(false);
+   updateModelStatus();
 }
 MainWindow::RunResult MainWindow::runMission()
 {
@@ -1713,6 +2148,7 @@ MainWindow::RunResult MainWindow::executeMission(bool debug)
       return RunResult::Failed;
    }
    debug=debug || !breakpoints.isEmpty();
+   if (mcpBridge) try { mcpBridge->missionStarted(); } catch (std::exception &error) { messages->appendPlainText(QString::fromUtf8(error.what())); return RunResult::Failed; }
    solverListeners->missionStarted();
    paused = false;
    stopRequested = false;
@@ -1774,6 +2210,7 @@ MainWindow::RunResult MainWindow::executeMission(bool debug)
    if (reportPathChanged) refreshOutput();
    setRunning(false);
    solverListeners->missionFinished(result==RunResult::Stopped,result==RunResult::Failed);
+   if (mcpBridge) try { mcpBridge->missionFinished(result==RunResult::Completed ? 1 : result==RunResult::Stopped ? -4 : -9); } catch (std::exception &error) { messages->appendPlainText(QString::fromUtf8(error.what())); }
    statusBar()->showMessage(result == RunResult::Completed ? "Mission completed" :
       result == RunResult::Stopped ? "Mission stopped" : "Mission failed — see Message Window");
    return result;
@@ -2120,9 +2557,14 @@ QString MainWindow::applyResourceSettings(GmatBase &resource,const QMap<QString,
       const auto ephemerisChanges=applyEphemerisProperties(*proposed,changes);
       const auto intervalChanges=applyEpochIntervalProperties(*proposed,changes);
       const auto warmChanges=applyWarmStartProperties(*proposed,changes);
+      // A source switch can make BodyNames writable or inactive. Apply that
+      // descriptor before the alphabetically earlier body-list field.
+      const bool barycenterSource=proposed->IsOfType("Barycenter") && changes.contains("EphemerisSource");
+      if (barycenterSource) setResourceProperty(*proposed,"EphemerisSource",changes.value("EphemerisSource"));
       const QString modelField=proposed->IsOfType("ProcessNoiseModel") ? "Type" : proposed->IsOfType("EstimatedParameter") ? "Model" : QString();
       if (!modelField.isEmpty() && changes.contains(modelField)) setResourceProperty(*proposed,modelField,changes.value(modelField));
       for (auto it = changes.cbegin(); it != changes.cend(); ++it) {
+         if (barycenterSource && it.key()=="EphemerisSource") continue;
          if (propChanges.contains(it.key()) || orbitChanges.contains(it.key()) || attitudeChanges.contains(it.key()) || gravityChanges.contains(it.key()) || tankChanges.contains(it.key()) || regionChanges.contains(it.key()) || customFovChanges.contains(it.key()) || atmosphereChanges.contains(it.key()) || stationChanges.contains(it.key()) || eventChanges.contains(it.key()) || viewChanges.contains(it.key()) || burnChanges.contains(it.key()) || ephemerisChanges.contains(it.key()) || objectDrawingKeys.contains(it.key()) || it.key()=="@ArrayExpressions" || it.key()=="@DynamicData" || it.key()=="@TrackingConfigs" || it.key().startsWith("@ExternalForce.") || it.key()=="@PolyhedronForces" || (pairedMixture && it.key()=="MixRatio")) continue;
          if (intervalChanges.contains(it.key()) || warmChanges.contains(it.key()) || it.key()==modelField || isResourceList(*proposed,it.key())) continue;
          // A disabled, newly created XY plot may not have an X parameter yet.
@@ -2384,6 +2826,113 @@ QString MainWindow::createResource(const QString &type,const QString &name,const
    return createResourceUnderBody(type,name,expectedScript,rows,columns,initialValue,functionPath,spacecraft,settings,policy,{});
 }
 
+QString MainWindow::importSatellite(const SatelliteImportData &data,const QString &name,const QString &expectedScript,const QString &storageDirectory,std::optional<int> propagationCommand,const QString &statePropagator)
+{
+   if (!ready || running || !modelValid || expectedScript!=builtScript || editor->toPlainText()!=builtScript)
+      return "Build the current script before importing a satellite.";
+   for (auto *child:workspace->subWindowList())
+      if (auto *panel=dynamic_cast<EditablePanel *>(child->widget()); panel && panel->hasUnappliedInput())
+         return "Apply or discard open panel changes before importing a satellite.";
+   if (Moderator::Instance()->GetConfiguredObject(name.toStdString()) ||
+       (!data.propagatorType.isEmpty() && Moderator::Instance()->GetConfiguredObject((name+"Prop").toStdString())))
+      return "Choose a spacecraft name with an unused matching propagator name.";
+   QString path=data.sourceFile;
+   bool created=false;
+   try {
+      if (!data.state && data.elements.isEmpty() && (!QFileInfo(path).isFile() || !QFileInfo(path).isReadable()))
+         return "Select a readable orbital-data file.";
+      if (!data.elements.isEmpty()) {
+         if (data.extension!="tle" && data.extension!="omm") return "Select TLE or OMM orbital elements.";
+         const auto directory=storageDirectory.isEmpty()
+            ? (scriptPath.isEmpty() ? QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) : QFileInfo(scriptPath).absolutePath())+"/satellite-data"
+            : storageDirectory;
+         const auto digest=QString::fromLatin1(QCryptographicHash::hash(data.elements,QCryptographicHash::Sha256).toHex());
+         path=QDir(directory).absoluteFilePath(digest+'.'+data.extension);
+         satelliteImportScript(data,name,path);
+         if (!QDir().mkpath(directory)) return "The orbital-data directory could not be created.";
+         QFile existing(path);
+         if (existing.exists()) {
+            if (!existing.open(QIODevice::ReadOnly) || existing.readAll()!=data.elements) return "The saved orbital-data file has different contents.";
+         } else {
+            QFile output(path);
+            if (!output.open(QIODevice::WriteOnly|QIODevice::NewOnly)) return "The orbital-data file could not be created.";
+            created=true;
+            if (output.write(data.elements)!=data.elements.size() || !output.flush()) {
+               output.close(); QFile::remove(path); return "The orbital-data file could not be saved completely.";
+            }
+         }
+      }
+      const auto fragment=satelliteImportScript(data,name,path);
+      auto candidate=builtScript;
+      QString propagation;
+      if (propagationCommand) {
+         const auto propagator=data.propagatorType.isEmpty() ? statePropagator : name+"Prop";
+         if (data.propagatorType.isEmpty()) {
+            auto *setup=dynamic_cast<PropSetup *>(Moderator::Instance()->GetConfiguredObject(propagator.toStdString()));
+            if (!setup || !setup->GetPropagator() || !setup->GetPropagator()->UsesODEModel())
+               throw std::runtime_error("Select a numerical propagator for the imported state vector.");
+         }
+         if (*propagationCommand==-1) {
+            propagation="Propagate "+propagator+"("+name+");";
+            candidate=editMission(missionState,-1,MissionEdit::Append,propagation);
+         } else {
+            if (*propagationCommand<0 || *propagationCommand>=missionState.nodes.size())
+               throw std::runtime_error("Select a current Propagate command.");
+            const auto &node=missionState.nodes[*propagationCommand];
+            if (node.type!="Propagate" || !node.editable || node.start<0 || node.end>candidate.size())
+               throw std::runtime_error("Select an editable Propagate command in this script.");
+            propagation=PropagationGroupsDialog::appendGroup(candidate.mid(node.start,node.end-node.start),propagator,name);
+            candidate.replace(node.start,node.end-node.start,propagation);
+         }
+      }
+      const auto error=applyModelScript(fragment+candidate,[propagation] {
+         if (propagation.isEmpty()) return QString();
+         const auto statements=scriptStatements(propagation);
+         return configuredPropagationError(statements.first().code);
+      });
+      if (!error.isEmpty() && created) QFile::remove(path);
+      return error;
+   } catch (const std::exception &error) {
+      if (created) QFile::remove(path);
+      return QString::fromUtf8(error.what());
+   }
+}
+
+bool MainWindow::showImportSatellite()
+{
+   if (!ready || running || !modelValid || editor->toPlainText()!=builtScript) {
+      statusBar()->showMessage("Build the current script before importing a satellite"); return false;
+   }
+   const auto snapshot=builtScript;
+   QStringList frames,bodies,numericalPropagators;
+   for (const auto &name:Moderator::Instance()->GetListOfObjects(Gmat::COORDINATE_SYSTEM)) frames.append(QString::fromStdString(name));
+   for (const auto &name:Moderator::Instance()->GetListOfObjects(Gmat::CELESTIAL_BODY)) bodies.append(QString::fromStdString(name));
+   for (const auto &name:Moderator::Instance()->GetListOfObjects(Gmat::PROP_SETUP)) {
+      auto *setup=dynamic_cast<PropSetup *>(Moderator::Instance()->GetConfiguredObject(name));
+      if (setup && setup->GetPropagator() && setup->GetPropagator()->UsesODEModel()) numericalPropagators.append(QString::fromStdString(name));
+   }
+   QMap<int,QString> commands;
+   for (int i=0;i<missionState.nodes.size();++i) {
+      const auto &node=missionState.nodes[i];
+      const auto statements=scriptStatements(node.statement);
+      if (node.type=="Propagate" && node.editable && statements.size()==1 && PropagationGroupsDialog::supports(statements.first().code))
+         commands.insert(i,node.statement.simplified());
+   }
+   SatelliteImportDialog dialog(frames,bodies,[this,snapshot,&dialog](const SatelliteImportData &data,const QString &name) {
+      return importSatellite(data,name,snapshot,{},dialog.propagationCommand(),dialog.statePropagator());
+   },this);
+   const int selected=mission->currentItem() ? mission->currentItem()->data(0,Qt::UserRole).toInt() : -1;
+   dialog.configurePropagation(commands,numericalPropagators,selected);
+   dialog.setWindowFlag(Qt::WindowMaximizeButtonHint,true);
+   dialog.setWindowState(Qt::WindowMaximized);
+   if (dialog.exec()!=QDialog::Accepted) return false;
+   const auto imported=resources->findItems(dialog.spacecraftName(),Qt::MatchExactly|Qt::MatchRecursive);
+   if (imported.size()==1) {
+      resources->setCurrentItem(imported.first()); resources->scrollToItem(imported.first());
+   }
+   return true;
+}
+
 QString MainWindow::createResourceUnderBody(const QString &type,const QString &name,const QString &expectedScript,int rows,int columns,const std::optional<QString> &initialValue,const QString &functionPath,const QString &spacecraft,const QMap<QString,QString> &settings,ResourceCreationPolicy policy,const QString &centralBody)
 {
    if (!ready || running || !modelValid || expectedScript!=builtScript || editor->toPlainText()!=builtScript)
@@ -2403,6 +2952,13 @@ QString MainWindow::createResourceUnderBody(const QString &type,const QString &n
    const auto dimensions=type=="Array" ? QString("[%1,%2]").arg(rows).arg(columns) : QString();
    QString initializer,forceModelDeclaration;
    auto changes=settings;
+   if (type=="OrbitView") {
+      const auto camera=defaultOrbitViewCameraSettings();
+      changes=camera;
+      changes.insert(settings);
+      for (auto it=camera.cbegin();it!=camera.cend();++it)
+         initializer+="GMAT "+name+"."+it.key()+" = "+changes.value(it.key())+";\n";
+   }
    if (!centralBody.isEmpty()) {
       auto *parent=Moderator::Instance()->GetConfiguredObject(centralBody.toStdString());
       if (!QStringList{"Planet","Moon","Comet","Asteroid"}.contains(type) || !parent ||
@@ -2498,6 +3054,16 @@ QString MainWindow::createResourceUnderBody(const QString &type,const QString &n
 
 QString MainWindow::cloneResource(const QString &original,const QString &requestedName,const QString &expectedScript,const QMap<QString,QString> &settings)
 {
+   return cloneResource(original,requestedName,expectedScript,settings,ResourceClonePolicy::Native);
+}
+
+QString MainWindow::cloneResource(const QString &original,const QString &requestedName,const QString &expectedScript,const QMap<QString,QString> &settings,ResourceClonePolicy policy)
+{
+   return cloneResource(original,requestedName,expectedScript,settings,policy,ResourceCloneSourcePolicy::PreserveIncludes);
+}
+
+QString MainWindow::cloneResource(const QString &original,const QString &requestedName,const QString &expectedScript,const QMap<QString,QString> &settings,ResourceClonePolicy policy,ResourceCloneSourcePolicy sourcePolicy)
+{
    if (!ready || running || !modelValid || expectedScript!=builtScript || editor->toPlainText()!=builtScript)
       return "Build the current script before cloning a resource.";
    for (auto *child:workspace->subWindowList())
@@ -2505,7 +3071,7 @@ QString MainWindow::cloneResource(const QString &original,const QString &request
          return "Apply or discard the open panel changes before cloning a resource.";
    auto *moderator=Moderator::Instance(); auto *object=moderator->GetConfiguredObject(original.toStdString());
    if (!object) return "Select a configured resource to clone.";
-   if (!resourceCanBeCloned(object)) return "Built-in resources, default celestial bodies and propagators cannot be cloned from this panel.";
+   if (!resourceCanBeCloned(object,policy)) return "Built-in resources, default celestial bodies and propagators cannot be cloned from this panel.";
    const auto name=requestedName.trimmed().isEmpty() ? QString::fromStdString(moderator->GetNewName(original.toStdString(),2)) : requestedName.trimmed();
    if (!QRegularExpression("^[A-Za-z][A-Za-z0-9_]*$").match(name).hasMatch()) return "Use a name starting with a letter, followed by letters, digits or underscores.";
    if (resourceNameMatchesFolder(resources,name)) return "Choose a name that is not a Resource Tree folder name.";
@@ -2514,22 +3080,27 @@ QString MainWindow::cloneResource(const QString &original,const QString &request
    if (name=="GMAT" || name=="function" || std::find(commands.begin(),commands.end(),name.toStdString())!=commands.end()) return "Choose a name that is not a mission command or reserved keyword.";
    try {
       if (object->IsOfType("Formation")) {
+         bool shared=formationAllowsSharedMembers(*object);
+         if (settings.contains("AllowSharedMembers")) {
+            const auto value=settings.value("AllowSharedMembers").trimmed().toLower();
+            if (value!="true" && value!="false") return "AllowSharedMembers must be true or false.";
+            shared=value=="true";
+         }
          QStringList members;
          if (settings.contains("Add")) members=splitResourceReferences(settings.value("Add"));
          else for (const auto &member:object->GetStringArrayParameter("Add")) members.append(QString::fromStdString(member));
-         // Interpreter validation forbids shared formation members. Explain
-         // this while the copy is still a draft, so the user can select a
-         // disjoint set without rebuilding and rolling back the mission.
+         // Match native pairwise consent while the copy is still a draft.
          for (const auto &existingName:moderator->GetListOfObjects(Gmat::FORMATION)) {
             auto *existing=moderator->GetConfiguredObject(existingName); if (!existing) continue;
+            if (shared && formationAllowsSharedMembers(*existing)) continue;
             const auto &used=existing->GetStringArrayParameter("Add");
             for (const auto &member:members) if (std::find(used.begin(),used.end(),member.toStdString())!=used.end())
-               return "Member "+member+" already belongs to formation "+QString::fromStdString(existingName)+". Choose disjoint members for the copy.";
+               return "Member "+member+" already belongs to formation "+QString::fromStdString(existingName)+". Choose disjoint members, or enable AllowSharedMembers on both formations.";
          }
       }
       QString firstCommand; for (const auto &node:missionState.nodes) if (node.type!="BeginMissionSequence") { firstCommand=node.statement; break; }
-      const auto candidate=cloneResourceSource(expectedScript,original,name,firstCommand,cloneColorDefaults(*object));
-      QtResourcePreview draft(object->Clone()); draft->SetName(name.toStdString(),name.toStdString());
+      const auto candidate=cloneResourceSource(expectedScript,*object,name,firstCommand,cloneConfigurationDefaults(*object),policy,sourcePolicy==ResourceCloneSourcePolicy::CopyIncludedStatements);
+      auto draft=resourceCloneDraft(*object,name,policy);
       auto changes=settings;
       // Scalar forms submit Value even unchanged. Keep the original initializer's
       // source spelling when cloning without an edit, just like ordinary fields.
@@ -2542,11 +3113,11 @@ QString MainWindow::cloneResource(const QString &original,const QString &request
    catch (const std::exception &error) { return QString::fromUtf8(error.what()); }
 }
 
-void MainWindow::showCloneResource(const QString &original)
+void MainWindow::showCloneResource(const QString &original,ResourceClonePolicy policy)
 {
    if (!ready || running || !modelValid || editor->toPlainText()!=builtScript) { statusBar()->showMessage("Build the current script before cloning a resource"); return; }
    auto *object=Moderator::Instance()->GetConfiguredObject(original.toStdString());
-   if (!resourceCanBeCloned(object)) { statusBar()->showMessage("Select a resource that can be cloned"); return; }
+   if (!resourceCanBeCloned(object,policy)) { statusBar()->showMessage("Select a resource that can be cloned"); return; }
    for (auto *child:workspace->subWindowList()) if (auto *panel=dynamic_cast<EditablePanel *>(child->widget());panel && panel->hasUnappliedInput()) {
       statusBar()->showMessage("Apply or discard the open panel changes before cloning a resource"); return;
    }
@@ -2554,18 +3125,34 @@ void MainWindow::showCloneResource(const QString &original)
    try {
       const auto suggested=QString::fromStdString(Moderator::Instance()->GetNewName(original.toStdString(),2));
       QString firstCommand; for (const auto &node:missionState.nodes) if (node.type!="BeginMissionSequence") { firstCommand=node.statement; break; }
-      const auto preview=cloneResourceSource(snapshot,original,suggested,firstCommand,cloneColorDefaults(*object));
-      QtResourcePreview draft(object->Clone()); draft->SetName(suggested.toStdString(),suggested.toStdString());
-      QDialog dialog(this); dialog.setObjectName("cloneResourceDialog"); dialog.setWindowTitle("Clone "+original);
+      QString preview; bool needsSourceCopy=false;
+      try { preview=cloneResourceSource(snapshot,*object,suggested,firstCommand,cloneConfigurationDefaults(*object),policy); }
+      catch (const CloneIncludeExpansionRequired &) {
+         preview=cloneResourceSource(snapshot,*object,suggested,firstCommand,cloneConfigurationDefaults(*object),policy,true);
+         needsSourceCopy=true;
+      }
+      auto draft=resourceCloneDraft(*object,suggested,policy);
+      const bool bodyCopy=dynamic_cast<CelestialBody *>(object)!=nullptr;
+      QDialog dialog(this); dialog.setObjectName("cloneResourceDialog"); dialog.setWindowTitle((bodyCopy ? "Copy " : "Clone ")+original);
       const auto helpTopic=QString::fromStdString(object->GetTypeName()); dialog.setProperty("helpTopic",helpTopic);
       auto *layout=new QVBoxLayout(&dialog); auto *form=new QFormLayout; layout->addLayout(form);
       form->addRow("Source",new QLabel(original+" — "+QString::fromStdString(object->GetTypeName()),&dialog));
+      if (auto *body=dynamic_cast<CelestialBody *>(draft.get());body && body->UsesDefaultBodyModel())
+         form->addRow("Physical model",new QLabel(QString::fromStdString(body->GetPhysicalBodyName()),&dialog));
       auto *name=new QLineEdit(&dialog); name->setObjectName("resourceName"); name->setPlaceholderText(suggested);
       name->setToolTip("Leave blank to use the suggested available name."); form->addRow("Name (optional)",name);
-      auto *status=new QLabel("Configure the copy here. Clone commits its name and settings together.",&dialog); status->setObjectName("resourceCloneStatus"); status->setWordWrap(true);
+      QCheckBox *copyIncludes=nullptr;
+      if (needsSourceCopy) {
+         copyIncludes=new QCheckBox("Copy included statements into this script",&dialog);
+         copyIncludes->setObjectName("cloneCopyIncludes"); layout->addWidget(copyIncludes);
+         auto *notice=new QLabel("This clone needs the included statements from the last successful Build in their existing order. The files stay unchanged. This script will use the copied statements, so later edits to those files will no longer update it. Undo restores the include lines.",&dialog);
+         notice->setObjectName("cloneIncludeNotice"); notice->setWordWrap(true); layout->addWidget(notice);
+      }
+      auto *status=new QLabel(bodyCopy ? "Configure the copy here. Copy commits its name and settings together." : "Configure the copy here. Clone commits its name and settings together.",&dialog); status->setObjectName("resourceCloneStatus"); status->setWordWrap(true);
       auto *panel=new ResourceEditor(*draft,[&](const QMap<QString,QString> &changes) {
+         if (copyIncludes && !copyIncludes->isChecked()) return QString("Choose whether to copy the included statements before cloning.");
          if (name->text().trimmed().isEmpty()) name->setText(QString::fromStdString(Moderator::Instance()->GetNewName(original.toStdString(),2)));
-         return cloneResource(original,name->text().trimmed(),snapshot,changes);
+         return cloneResource(original,name->text().trimmed(),snapshot,changes,policy,copyIncludes?ResourceCloneSourcePolicy::CopyIncludedStatements:ResourceCloneSourcePolicy::PreserveIncludes);
       },&dialog,preview,true,true);
       panel->onStatus=[status](const QString &message) { status->setText(message); };
       panel->onApplied=[&] { dialog.accept(); };
@@ -2573,7 +3160,11 @@ void MainWindow::showCloneResource(const QString &original)
       if (auto *message=panel->findChild<QLabel *>("resourceStatus")) message->hide();
       contextHelp->attach(panel,QString::fromStdString(object->GetTypeName()));
       layout->addWidget(panel,1); layout->addWidget(status);
-      auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel|QDialogButtonBox::Help,&dialog); buttons->setObjectName("resourceCloneButtons"); buttons->button(QDialogButtonBox::Ok)->setText("Clone"); layout->addWidget(buttons);
+      auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel|QDialogButtonBox::Help,&dialog); buttons->setObjectName("resourceCloneButtons"); buttons->button(QDialogButtonBox::Ok)->setText(bodyCopy ? "Copy" : "Clone"); layout->addWidget(buttons);
+      if (copyIncludes) {
+         buttons->button(QDialogButtonBox::Ok)->setEnabled(false);
+         connect(copyIncludes,&QCheckBox::toggled,buttons->button(QDialogButtonBox::Ok),&QPushButton::setEnabled);
+      }
       auto *help=buttons->button(QDialogButtonBox::Help); help->setObjectName("resourceCloneHelp"); help->setToolTip("Help for this resource (F1)");
       connect(buttons,&QDialogButtonBox::helpRequested,&dialog,[this,helpTopic] { contextHelp->show(helpTopic); });
       connect(buttons,&QDialogButtonBox::accepted,panel,&ResourceEditor::requestApply);
@@ -2668,6 +3259,7 @@ void MainWindow::openPathSettings(bool outputTab)
          for (auto *child:workspace->subWindowList()) if (dynamic_cast<EditablePanel *>(child->widget())) child->close();
          plots->clear(true); resources->clear(); mission->clear(); missionState={};
          reportFiles.clear(); ephemerisFiles.clear(); refreshOutput();
+         updateModelStatus();
          statusBar()->showMessage("Paths changed — rebuild the mission");
          return QString();
       },scriptPath,this);
@@ -2812,6 +3404,13 @@ void MainWindow::showCreateResource(const QString &initialType,const QString &ce
    connect(rows,&QSpinBox::valueChanged,&dialog,resizeArray); connect(columns,&QSpinBox::valueChanged,&dialog,resizeArray);
    outer->addWidget(status);
    auto *buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel|QDialogButtonBox::Help,&dialog);
+   auto *import=buttons->addButton("Import from catalog or file…",QDialogButtonBox::ActionRole);
+   import->setObjectName("newSpacecraftImport");
+   import->setVisible(type->currentText()=="Spacecraft");
+   connect(type,&QComboBox::currentTextChanged,import,[import](const QString &value) { import->setVisible(value=="Spacecraft"); });
+   connect(import,&QPushButton::clicked,&dialog,[&] {
+      if (showImportSatellite()) dialog.reject();
+   });
    auto *help=buttons->button(QDialogButtonBox::Help); help->setObjectName("resourceCreationHelp"); help->setToolTip("Help for the selected resource (F1)");
    connect(buttons,&QDialogButtonBox::helpRequested,&dialog,[this,type] { contextHelp->show(type->currentText()); });
    buttons->setObjectName("resourceCreationButtons"); buttons->button(QDialogButtonBox::Ok)->setText("Create"); outer->addWidget(buttons);
@@ -2823,6 +3422,8 @@ void MainWindow::showCreateResource(const QString &initialType,const QString &ce
       } else if (*active) (*active)->requestApply();
    });
    dialog.resize(850,740); name->setFocus();
+   dialog.setWindowFlag(Qt::WindowMaximizeButtonHint,true);
+   dialog.setWindowState(Qt::WindowMaximized);
    if (dialog.exec()==QDialog::Accepted) {
       auto *navigation=findChild<QDockWidget *>("navigation");
       navigation->show(); navigation->findChild<QTabWidget *>()->setCurrentWidget(resources);
@@ -2930,7 +3531,8 @@ void MainWindow::setScriptDirectory()
    // Stream interpretation does not set the script folder as the engine's
    // filename overload does. Keep input/include lookup tied to this document
    // without changing the process directory used for startup data assets.
-   const auto directory = scriptPath.isEmpty() ? startupDirectory : QFileInfo(scriptPath).absolutePath();
+   const auto bridgeDirectory=mcpBridge ? mcpBridge->projectDirectory() : QString();
+   const auto directory = !bridgeDirectory.isEmpty() ? bridgeDirectory : scriptPath.isEmpty() ? startupDirectory : QFileInfo(scriptPath).absolutePath();
    if (!setGmatScriptDirectory(directory))
       throw std::runtime_error("The script directory is unavailable: " + directory.toStdString());
 }
@@ -2988,7 +3590,11 @@ QString MainWindow::applyModelScript(const QString &requested,const std::functio
    try {
       setScriptDirectory();
       std::istringstream stream(candidate.toStdString());
-      if (!qtInterpretScript(stream)) error = "The mission rejected these changes. See Message Window.";
+      if (!qtInterpretScript(stream)) {
+         QStringList details;
+         for (const auto &message:Moderator::GetScriptInterpreter()->GetErrorList()) details.append(QString::fromStdString(message));
+         error=details.isEmpty() ? "The mission rejected these changes. See Message Window." : details.join('\n');
+      }
       else { retainImplicitIds(candidate); QtPlotReceiver::validateCameraReferences(cameras); if (validate) error=validate(); }
    } catch (BaseException &exception) { error = QString::fromStdString(exception.GetFullMessage()); }
    catch (const std::exception &exception) { error = QString::fromUtf8(exception.what()); }
@@ -3424,10 +4030,11 @@ QString MainWindow::summaryText(int index,const QString &frame,bool physicsOnly,
    if (!ready || running || !modelValid || !summaryAvailable || editor->toPlainText()!=builtScript)
       throw std::runtime_error("Run the current mission before inspecting its summary. Rebuilding or editing invalidates the previous results.");
    if (!summaryFrames().contains(frame)) throw std::runtime_error("Choose a coordinate system with a non-spacecraft origin and no spacecraft-dependent axes.");
-   QVector<GmatCommand *> commands;
-   snapshotMission(Moderator::Instance()->GetFirstCommand(),missionState.canonicalScript,builtScript,&commands);
-   if (index<-1 || index>=commands.size()) throw std::runtime_error("This command no longer exists. Reopen its panel.");
-   auto *command=index<0 ? Moderator::Instance()->GetFirstCommand() : commands[index];
+   // Solver execution can change generating strings (for example a Vary's
+   // corrected initial guess). Match the selected node to its pre-run command
+   // identity rather than locating those changed strings in the built script.
+   if (index<-1 || index>=runCommands.size()) throw std::runtime_error("This command no longer exists. Reopen its panel.");
+   auto *command=index<0 ? Moderator::Instance()->GetFirstCommand() : runCommands[index];
    if (!command) throw std::runtime_error("The mission has no commands to summarize.");
    SummaryNames names(Moderator::Instance()->GetFirstCommand());
    const auto name=command->GetSummaryName();

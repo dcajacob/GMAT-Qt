@@ -33,6 +33,11 @@
 #include "StringUtil.hpp"  // for ToReal()
 #include "MessageInterface.hpp"
 #include "Optimizer.hpp"
+#include <cmath>
+#include <array>
+#include <algorithm>
+#include <memory>
+#include <typeinfo>
 
 //#define DEBUG_NONLINEAR_CONSTRAINT_PARSE 1
 //#define DEBUG_NONLINEAR_CONSTRAINT_INIT 1
@@ -177,6 +182,7 @@ NonlinearConstraint& NonlinearConstraint::operator=(const NonlinearConstraint& n
 {
    if (this != &nlc)
    {
+      ClearWrappers();
       SolverSequenceCommand::operator=(nlc);
       optimizerName          = nlc.optimizerName;
       optimizer              = NULL;
@@ -662,11 +668,21 @@ void NonlinearConstraint::SetField(const Integer id, const Real value)
 
    if (id == RHS_CONSTRAINT_VALUE)
       if (arg2)
-         arg2->SetReal(value);
+      {
+         if (!arg2->SetReal(value))
+            throw CommandException("NonlinearConstraint could not update its right-hand value.");
+         return;
+      }
 
    if (id == TOLERANCE)
       if (tolerance)
-         tolerance->SetReal(value);
+      {
+         if (!tolerance->SetReal(value))
+            throw CommandException("NonlinearConstraint could not update its tolerance.");
+         // This wrapper-backed numeric setting has STRING_TYPE script
+         // metadata. Do not mutate it then fall through to a type error.
+         return;
+      }
 
    SolverSequenceCommand::SetField(id, value);
 }
@@ -1041,23 +1057,61 @@ bool NonlinearConstraint::SetElementWrapper(ElementWrapper *toWrapper,
       withName.c_str());
    #endif
 
-   if (arg1Name == withName)
+   // Numeric operands are values owned by their roles. Deliberate references
+   // to the same native Variable/array element/Parameter remain shared.
+   const std::array<const std::string*, 3> names{{&arg1Name, &arg2Name, &toleranceName}};
+   const std::array<ElementWrapper**, 3> destinations{{&arg1, &arg2, &tolerance}};
+   std::array<ElementWrapper*, 3> previous, proposed;
+   for (std::size_t i = 0; i < destinations.size(); ++i)
+      previous[i] = proposed[i] = *destinations[i];
+
+   std::vector<std::unique_ptr<ElementWrapper>> literals;
+   literals.reserve(destinations.size());
+   for (std::size_t i = 0; i < names.size(); ++i)
    {
-      arg1   = toWrapper;
+      if (*names[i] != withName) continue;
       retval = true;
+      if (toWrapper->GetWrapperType() != Gmat::NUMBER_WT)
+         proposed[i] = toWrapper;
+      else
+      {
+         ElementWrapper *raw = toWrapper->Clone();
+         bool borrowed = raw == toWrapper ||
+            std::find(previous.begin(), previous.end(), raw) != previous.end() ||
+            std::find(oldWrappers.begin(), oldWrappers.end(), raw) != oldWrappers.end();
+         for (const auto &copy : literals) if (copy.get() == raw) borrowed = true;
+         if (!raw || borrowed)
+            throw CommandException("Constraint literal Clone returned a null or borrowed wrapper.");
+         std::unique_ptr<ElementWrapper> copy(raw);
+         if (typeid(*copy) != typeid(*toWrapper) ||
+               copy->GetWrapperType() != Gmat::NUMBER_WT ||
+               copy->GetDataType() != Gmat::REAL_TYPE)
+            throw CommandException("Constraint literal Clone returned an incompatible wrapper.");
+         proposed[i] = copy.get();
+         literals.push_back(std::move(copy));
+      }
    }
-   
-   if (arg2Name == withName)
+   if (!retval) return false;
+
+   // Publish only after cloning and ownership staging succeed completely.
+   WrapperArray retiring(oldWrappers);
+   retiring.erase(std::remove_if(retiring.begin(), retiring.end(),
+      [&](ElementWrapper *wrapper)
+      {
+         return std::find(proposed.begin(), proposed.end(), wrapper) != proposed.end();
+      }), retiring.end());
+   auto retire = [&](ElementWrapper *wrapper)
    {
-      arg2   = toWrapper;
-      retval = true;
-   }
-       
-   if (toleranceName == withName)
-   {
-      tolerance = toWrapper;
-      retval    = true;
-   }
+      if (wrapper && std::find(proposed.begin(), proposed.end(), wrapper) == proposed.end() &&
+            std::find(retiring.begin(), retiring.end(), wrapper) == retiring.end())
+         retiring.push_back(wrapper);
+   };
+   for (auto *wrapper : previous) retire(wrapper);
+   retire(toWrapper);
+   oldWrappers.swap(retiring);
+   for (std::size_t i = 0; i < destinations.size(); ++i)
+      *destinations[i] = proposed[i];
+   for (auto &copy : literals) copy.release();
 
    return retval;
 }
@@ -1068,40 +1122,11 @@ bool NonlinearConstraint::SetElementWrapper(ElementWrapper *toWrapper,
 //------------------------------------------------------------------------------
 void NonlinearConstraint::ClearWrappers()
 {
-   std::vector<ElementWrapper*> temp;
-   if (arg1)
-   {
-      temp.push_back(arg1);
-      arg1 = NULL;
-   }
-   if (arg2)
-   {
-      if (find(temp.begin(), temp.end(), arg2) == temp.end())
-      {
-         temp.push_back(arg2);
-         arg2 = NULL;
-      }
-   }
-   if (tolerance)
-   {
-      if (find(temp.begin(), temp.end(), tolerance) == temp.end())
-      {
-         temp.push_back(tolerance);
-         tolerance = nullptr;
-      }
-   }
-   
-   ElementWrapper *wrapper;
-   for (UnsignedInt i = 0; i < temp.size(); ++i)
-   {
-      wrapper = temp[i];
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Remove
-         (wrapper, wrapper->GetDescription(), "NonlinearConstraint::ClearWrappers()",
-          GetTypeName() + " deleting wrapper");
-      #endif
-      delete wrapper;
-   }
+   // Keep retired bindings until deletion, including accepted numeric templates.
+   CollectOldWrappers(&arg1);
+   CollectOldWrappers(&arg2);
+   CollectOldWrappers(&tolerance);
+   DeleteOldWrappers();
 }
 
 
@@ -1136,6 +1161,9 @@ bool NonlinearConstraint::Initialize()
       throw CommandException(
          "Optimizer not initialized for NonlinearConstraint command\n  \""
          + generatingString + "\"\n");
+
+   if (!arg1 || !arg2)
+      throw CommandException("NonlinearConstraint requires two operand wrappers.");
    
    // Set references for the wrappers   
    #ifdef DEBUG_NONLINEAR_CONSTRAINT_PARAM
@@ -1189,138 +1217,88 @@ bool NonlinearConstraint::Initialize()
 //------------------------------------------------------------------------------
 bool NonlinearConstraint::Execute()
 {
+   if (!optimizer || !arg1 || !arg2)
+      throw CommandException("NonlinearConstraint requires a bound optimizer and two operand wrappers.");
+
    #ifdef DEBUG_NONLINEAR_CONSTRAINT_EXEC
    MessageInterface::ShowMessage
-      ("NonlinearConstraint::Execute() optimizerDataFinalized=%d\n, optimizer="
-            "%s, arg1=%p, arg2=%p, tolerance = %p\n", optimizerDataFinalized,
-            optimizer, arg1, arg2, tolerance);
-   MessageInterface::ShowMessage
-      ("   arg1Name=%s\n", arg1Name.c_str());
-   MessageInterface::ShowMessage
-      ("   arg2Name=%s\n", arg2Name.c_str());
-   MessageInterface::ShowMessage
-      ("   toleranceName=%s\n", toleranceName.c_str());
+      ("NonlinearConstraint::Execute() optimizerDataFinalized=%d, optimizer=%p, "
+       "arg1=%p, arg2=%p, tolerance=%p\n", optimizerDataFinalized,
+       optimizer, arg1, arg2, tolerance);
    #endif
-   
-   bool retval = true;
-   if (!optimizerDataFinalized) 
-   {
-      // Tell the optimizer about the constraint
-      Real conData;
-      conData = 54321.0;
-      constraintId = optimizer->SetSolverResults(&conData, arg1Name,
-                     isIneqString);
 
+   if (!optimizerDataFinalized)
+   {
+      // Native registration placeholder: the actual constraint is evaluated
+      // during nominal/perturbation passes, after ordinary mission commands.
+      Real conData = 54321.0;
+      constraintId = optimizer->SetSolverResults(&conData, arg1Name, isIneqString);
       optimizerDataFinalized = true;
-      return retval;
+      return true;
    }
-   
-   //#ifdef DEBUG_NLC_VALUES
-   //   MessageInterface::ShowMessage("NLC:Execute - desiredValue = %.12f\n",
-   //      desiredValue);
-   //#endif
-   
+
+   // Evaluate each live operand once before changing solver or report data.
+   const Real desired = arg2->EvaluateRealForCalculation();
+   const Real achieved = arg1->EvaluateRealForCalculation();
+   const Real within = tolerance ? tolerance->EvaluateRealForCalculation() : -1.0;
    Integer ineqSign = 0;
-   Real constraintValue = -999.99;
-   // Evaluate variable and pass it to the optimizer
-   if ( (arg1 != NULL) && (arg2 != NULL) )
+   Real constraintValue;
+   Real nextDeltaTolerance = deltaTolerance;
+   switch (op)
    {
-      desiredValue    = arg2->EvaluateReal();
-      constraintValue = arg1->EvaluateReal();
-
-      // Get and save current tolerance value
-      if (tolerance)
-         toleranceValue = tolerance->EvaluateReal();
-
-      panelDesired = desiredValue;
-      panelAchieved = constraintValue;
-
-      #ifdef DEBUG_NLC_VALUES
-         MessageInterface::ShowMessage("NLC:Execute - desiredValue = %.12f\n",
-            desiredValue);
-         MessageInterface::ShowMessage("NLC:Execute - (1) constraintValue = %.12f\n",
-            constraintValue);
-      #endif
-      switch (op)
-      {
-         case EQUAL:
-            constraintValue = constraintValue - desiredValue;
-            if (tolerance)
-               deltaTolerance  = fabs(constraintValue) - toleranceValue;
-            ineqSign = 0;
-            break;
-         case LESS_THAN_OR_EQUAL:
-            constraintValue = constraintValue - desiredValue;
-            if (tolerance)
-               deltaTolerance  = constraintValue - toleranceValue;
-            ineqSign = -1;
-            break;
-         case GREATER_THAN_OR_EQUAL:
-            constraintValue = desiredValue - constraintValue;
-            if (tolerance)
-               deltaTolerance  = toleranceValue - constraintValue;
-            ineqSign = 1;
-            break;
-         default:
-            break;
-      }
-      #ifdef DEBUG_NLC_VALUES
-         MessageInterface::ShowMessage("NLC:Execute - (2) constraintValue now = %.12f\n",
-            constraintValue);
-         MessageInterface::ShowMessage(
-            "NonlinearConstraint::Execute: ID = %d, IneqString = %s Sign=%d desired = %.16f, achieved = %.16f, delta = %.16f, expected =  %.16f\n", 
-            constraintId, isIneqString.c_str(), ineqSign, desiredValue, panelAchieved, 
-            desiredValue-panelAchieved, constraintValue);
-
+      case EQUAL:
+         constraintValue = achieved - desired;
          if (tolerance)
-            MessageInterface::ShowMessage("Tolerance: %lf  DeltaTolerance: %le\n",
-                  toleranceValue, deltaTolerance);
-      #endif
-
-      optimizer->SetResultValue(constraintId, constraintValue, isIneqString);
-
-      Real within = -1.0;
-
-      if (tolerance)
-      {
-         within = tolerance->EvaluateReal();
-         if ((within <= 0.0) && !toleranceWarningIssued)
-         {
-            std::string warning = "**** WARNING **** The tolerance on the "
-                  "nonlinear constraint ";
-            warning += arg1Name + " is not positive.  The feasibility "
-                  "tolerance will be used instead.\n";
-            MessageInterface::ShowMessage(warning.c_str());
-
-            toleranceWarningIssued = true;
-         }
-      }
-
-      ((Optimizer *) optimizer)->SetConstraintValues(constraintId, desiredValue, 
-         panelAchieved, ineqSign, within);
-
-      #ifdef DEBUG_NONLINEAR_CONSTRAINT_EXEC
-         MessageInterface::ShowMessage
-            ("   constraint=%s, %p\n", constraint->GetTypeName().c_str(), constraint);
-         MessageInterface::ShowMessage("   Parameter target: %s constraintValue = %lf\n",
-            constraint->GetTypeName().c_str(), constraintValue);
-      #endif
+            nextDeltaTolerance = fabs(constraintValue) - within;
+         break;
+      case LESS_THAN_OR_EQUAL:
+         constraintValue = achieved - desired;
+         if (tolerance)
+            nextDeltaTolerance = constraintValue - within;
+         ineqSign = -1;
+         break;
+      case GREATER_THAN_OR_EQUAL:
+         constraintValue = desired - achieved;
+         if (tolerance)
+            nextDeltaTolerance = within - constraintValue;
+         ineqSign = 1;
+         break;
+      default:
+         throw CommandException("NonlinearConstraint has an invalid comparison operator.");
    }
-   else 
+   if (!std::isfinite(constraintValue))
+      throw CommandException("NonlinearConstraint residual is non-finite.");
+
+   // Preserve the native finite, nonpositive-tolerance fallback. A missing
+   // tolerance still passes -1 so the optimizer uses feasibility tolerance.
+   if (tolerance && within <= 0.0 && !toleranceWarningIssued)
    {
-      // isn't this an error???
-      //constraintValue = -999.99;  // what to do here?
-      //constraintValue = constraintObject->GetRealParameter(parmId);  // again,no clue
-      optimizer->SetResultValue(constraintId, constraintValue, isIneqString);
-      #ifdef DEBUG_NONLINEAR_CONSTRAINT_EXEC
-         MessageInterface::ShowMessage("   Object target: constraintValue = %lf\n", 
-         constraintValue);
-      #endif
+      std::string warning = "**** WARNING **** The tolerance on the nonlinear constraint ";
+      warning += arg1Name + " is not positive.  The feasibility tolerance will be used instead.\n";
+      MessageInterface::ShowMessage(warning.c_str());
+      toleranceWarningIssued = true;
    }
 
+   desiredValue = desired;
+   panelDesired = desired;
+   panelAchieved = achieved;
+   if (tolerance)
+      toleranceValue = within;
+   deltaTolerance = nextDeltaTolerance;
+
+   #ifdef DEBUG_NLC_VALUES
+   MessageInterface::ShowMessage
+      ("NonlinearConstraint::Execute: ID=%d type=%s sign=%d desired=%.16f, "
+       "achieved=%.16f residual=%.16f tolerance=%.16f\n",
+       constraintId, isIneqString.c_str(), ineqSign, desiredValue,
+       panelAchieved, constraintValue, within);
+   #endif
+
+   optimizer->SetResultValue(constraintId, constraintValue, isIneqString);
+   ((Optimizer*)optimizer)->SetConstraintValues(constraintId, desiredValue,
+         panelAchieved, ineqSign, within);
    BuildCommandSummary(true);
-   
-   return retval;
+   return true;
 }
 
 
@@ -1388,3 +1366,15 @@ const std::string& NonlinearConstraint::GetGeneratingString(Gmat::WriteMode mode
 }
 
 
+
+void NonlinearConstraint::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   ClearWrappers();
+   optimizer = nullptr;
+   constraintId = -1;
+   optimizerDataFinalized = false;
+   interpreted = false;
+   toleranceWarningIssued = false;
+   SolverSequenceCommand::RetireFunctionBindings(store);
+}

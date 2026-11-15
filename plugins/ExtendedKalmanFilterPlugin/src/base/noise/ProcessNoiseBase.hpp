@@ -42,6 +42,8 @@
 class KALMAN_API ProcessNoiseBase : public GmatBase
 {
 public:
+   static constexpr unsigned int NativeValueProviderDepth = GmatBase::NativeValueProviderDepth + 1;
+
    ProcessNoiseBase(const std::string &itsTypeName, 
       const std::string &itsName, const std::string &itsShortName);
 
@@ -53,6 +55,9 @@ public:
    virtual std::string     GetShortName();
    virtual void            SetSolarSystem(SolarSystem *ss);
    virtual bool            Initialize();
+   bool RebindFunctionValueReferencesImpl(const GmatBase &source,
+         SolarSystem *solarSystem,
+         const std::function<GmatBase*(GmatBase*)> &resolve);
 
    virtual Rmatrix66       GetProcessNoise(const GmatEpoch elapsedTime, const GmatTime &epoch) = 0;
 

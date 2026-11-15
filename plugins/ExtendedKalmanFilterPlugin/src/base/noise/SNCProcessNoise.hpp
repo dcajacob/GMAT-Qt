@@ -83,6 +83,10 @@ public:
                                          const Real value);
 
    
+   const std::string&       GetGeneratingString(Gmat::WriteMode mode = Gmat::SCRIPTING,
+                                  const std::string &prefix = "",
+                                  const std::string &useName = "") override;
+
    virtual GmatTime         GetGmatTimeParameter(const Integer id) const;
    virtual GmatTime         SetGmatTimeParameter(const Integer id,
                                              const GmatTime value);

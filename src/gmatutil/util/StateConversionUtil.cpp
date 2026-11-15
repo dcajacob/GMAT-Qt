@@ -32,6 +32,9 @@
 //------------------------------------------------------------------------------
 
 #include <sstream>                 // for <<
+#include <algorithm>
+#include <cmath>
+#include <limits>
 #include "utildefs.hpp"
 #include "StateConversionUtil.hpp"
 #include "GmatDefaults.hpp"
@@ -114,7 +117,7 @@ const bool         StateConversionUtil::REQUIRES_CB_ORIGIN[StateTypeCount] =
    false, // "SphericalRADEC"
    true,  // "Equinoctial"
    true,  // "ModifiedEquinoctial"
-   false, // "AlternateEquinoctial"
+   true,  // "AlternateEquinoctial"
    true,  // "Delaunay"
    true,  // "Planetodetic"
    true,  // "OutgoingAsymptote"
@@ -163,6 +166,102 @@ bool StateConversionUtil::possibleInaccuracyShortWritten      = false;
 bool StateConversionUtil::possibleInaccuracyLongWritten       = false;
 bool StateConversionUtil::inaccuracyCriticalAngleWritten      = false;
 
+namespace
+{
+// The Brouwer fixed-point inverse can cease to be contractive near a critical
+// inclination even when the forward model has a valid inverse. Preserve the
+// ordinary fixed-point result and use this bounded fallback only on failure.
+bool RefineBrouwerMeanLong(Real mu, const Rvector6 &target, Rvector6 &mean,
+      Real tolerance)
+{
+   const Real positionScale = Rvector3(target[0], target[1], target[2]).GetMagnitude();
+   const Real velocityScale = Rvector3(target[3], target[4], target[5]).GetMagnitude();
+   if (!(positionScale > 0.0) || !(velocityScale > 0.0)) return false;
+   const Rvector6 osculating = StateConversionUtil::CartesianToKeplerian(mu, target, "MA");
+   const Real variableScale[6] = {std::max(1.0, std::abs(osculating[0])), 1.0,
+                                 180.0, 180.0, 180.0, 180.0};
+   auto evaluate = [&](const Rvector6 &value, Rvector6 &residual)
+   {
+      for (Integer i = 0; i < 6; ++i) if (!std::isfinite(value[i])) return false;
+      if (value[0]*(1.0-value[1]) < 3000.0 || value[1] < 0.0 || value[1] >= 0.99 ||
+            value[2] < 0.0 || value[2] > 180.0) return false;
+      try
+      {
+         const Rvector6 actual = StateConversionUtil::BrouwerMeanLongToCartesian(mu, value);
+         for (Integer i = 0; i < 6; ++i)
+         {
+            residual[i] = (actual[i]-target[i])/(i < 3 ? positionScale : velocityScale);
+            if (!std::isfinite(residual[i])) return false;
+         }
+         return true;
+      }
+      catch (BaseException &) { return false; }
+   };
+   Rvector6 residual;
+   auto normalize = [&]()
+   {
+      for (Integer i = 3; i < 6; ++i)
+      {
+         mean[i] = GmatMathUtil::Mod(mean[i], 360.0);
+         if (mean[i] < 0.0) mean[i] += 360.0;
+      }
+   };
+   Real bestError = evaluate(mean, residual) ? residual.GetMagnitude() :
+         std::numeric_limits<Real>::infinity();
+   if (bestError <= tolerance) return true;
+   Rvector6 seeds[3] = {mean, osculating, osculating};
+   const Real critical = std::acos(std::sqrt(0.2))*DEG_PER_RAD;
+   seeds[2][2] = 2.0*(osculating[2] <= 90.0 ? critical : 180.0-critical)-osculating[2];
+   for (const Rvector6 &seed : seeds)
+   {
+      Rvector6 trial = seed;
+      for (Integer iteration = 0; iteration < 60; ++iteration)
+      {
+         if (!evaluate(trial, residual)) break;
+         const Real error = residual.GetMagnitude();
+         if (error < bestError) { bestError = error; mean = trial; }
+         if (error <= tolerance)
+         {
+            normalize();
+            return true;
+         }
+         Rmatrix66 jacobian;
+         bool feasible = true;
+         for (Integer column = 0; column < 6; ++column)
+         {
+            Rvector6 plus = trial, minus = trial, high, low;
+            plus[column] += 1.0e-7*variableScale[column];
+            minus[column] -= 1.0e-7*variableScale[column];
+            if (!evaluate(plus, high) || !evaluate(minus, low)) { feasible = false; break; }
+            for (Integer row = 0; row < 6; ++row)
+               jacobian(row, column) = (high[row]-low[row])/2.0e-7;
+         }
+         if (!feasible) break;
+         Rvector6 step;
+         try { step = jacobian.Inverse()*residual; }
+         catch (BaseException &) { break; }
+         bool improved = false;
+         Real fraction = 1.0;
+         for (Integer backtrack = 0; backtrack < 20; ++backtrack, fraction *= 0.5)
+         {
+            Rvector6 candidate = trial, candidateResidual;
+            for (Integer i = 0; i < 6; ++i)
+               candidate[i] -= fraction*variableScale[i]*step[i];
+            if (evaluate(candidate, candidateResidual) && candidateResidual.GetMagnitude() < error)
+            {
+               trial = candidate;
+               improved = true;
+               break;
+            }
+         }
+         if (!improved) break;
+      }
+   }
+   normalize();
+   return false;
+}
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -192,7 +291,7 @@ bool StateConversionUtil::inaccuracyCriticalAngleWritten      = false;
  * @param <mu>          gravitational constant for the central body
  * @param <flattening>  flattening coefficient for the central body
  * @param <eqRadius>    equatorial radius for the central body
- * @param <anomalyType> anomaly type string if toType is Mod/Keplerian
+ * @param <anomalyType> sixth-element anomaly for Mod/Keplerian input or output
  *
  * @return Converted states from the specific element type
  */
@@ -238,7 +337,7 @@ Rvector6 StateConversionUtil::Convert(const Real *state,
  * @param <mu>          gravitational constant for the central body
  * @param <flattening>  flattening coefficient for the central body
  * @param <eqRadius>    equatorial radius for the central body
- * @param <anomalyType> anomaly type string if toType is Mod/Keplerian
+ * @param <anomalyType> sixth-element anomaly for Mod/Keplerian input or output
  *
  * @return Converted states from the specific element type
  */
@@ -358,7 +457,8 @@ Rvector6 StateConversionUtil::ConvertFromCartesian(const std::string &toType, co
    }
    else if (toType == "Delaunay") // Modified by M.H.
    {
-      Rvector6 kepl = CartesianToKeplerian(mu, state, anomalyType);
+      // KeplerianToDelaunay consumes TA regardless of the display selector.
+      Rvector6 kepl = CartesianToKeplerian(mu, state, "TA");
       #ifdef DEBUG_STATE_CONVERSION
       MessageInterface::ShowMessage("   CartesianToKeplerian = %s", kepl.ToString().c_str());
       #endif
@@ -442,7 +542,11 @@ Rvector6 StateConversionUtil::ConvertFromKeplerian(const std::string &toType, co
    }
    else if ( toType == "Delaunay" ) // Modified by M.H.
    {
-      outState = KeplerianToDelaunay(state, mu);
+      Rvector6 keplerian = state;
+      if (GetAnomalyType(anomalyType) != TA)
+         keplerian[5] = ConvertToTrueAnomaly(anomalyType, state[5] * RAD_PER_DEG,
+                                           state[1]) * DEG_PER_RAD;
+      outState = KeplerianToDelaunay(keplerian, mu);
    }
    else if (toType == "Planetodetic") // Modified by M.H.
    {
@@ -528,6 +632,9 @@ Rvector6 StateConversionUtil::ConvertFromModKeplerian(const std::string &toType,
    }
    else if (toType == "Delaunay") // Modified by M.H.
    {
+      if (GetAnomalyType(anomalyType) != TA)
+         keplerian[5] = ConvertToTrueAnomaly(anomalyType, keplerian[5] * RAD_PER_DEG,
+                                           keplerian[1]) * DEG_PER_RAD;
       outState = KeplerianToDelaunay(keplerian, mu);
    }
    else if (toType == "Planetodetic") // Modified by M.H.
@@ -610,7 +717,7 @@ Rvector6 StateConversionUtil::ConvertFromSphericalAZFPA(const std::string &toTyp
    }
    else if (toType == "Delaunay") // Modified by M.H.
    {
-      Rvector6 keplerian = CartesianToKeplerian(mu, cartesian, anomalyType);
+      Rvector6 keplerian = CartesianToKeplerian(mu, cartesian, "TA");
       outState = KeplerianToDelaunay(keplerian,mu);
    }
    else if (toType == "Planetodetic") // Modified by M.H.
@@ -687,7 +794,7 @@ Rvector6 StateConversionUtil::ConvertFromSphericalRADEC(const std::string &toTyp
    }
    else if (toType == "Delaunay") // Modified by M.H.
    {
-      Rvector6 keplerian = CartesianToKeplerian(mu, cartesian, anomalyType);
+      Rvector6 keplerian = CartesianToKeplerian(mu, cartesian, "TA");
       outState = KeplerianToDelaunay(keplerian, mu);
    }
    else if (toType == "Planetodetic") // Modified by M.H.
@@ -764,7 +871,7 @@ Rvector6 StateConversionUtil::ConvertFromEquinoctial(const std::string &toType, 
    }
    else if (toType == "Delaunay") // Modified by M.H.
    {
-      Rvector6 keplerian = CartesianToKeplerian(mu, cartState, anomalyType);
+      Rvector6 keplerian = CartesianToKeplerian(mu, cartState, "TA");
       outState = KeplerianToDelaunay(keplerian, mu);
    }
    else if (toType == "Planetodetic") // Modified by M.H.
@@ -842,7 +949,7 @@ Rvector6 StateConversionUtil::ConvertFromModEquinoctial(const std::string &toTyp
    }
    else if (toType == "Delaunay") // Modified by M.H.
    {
-      Rvector6 keplerian = CartesianToKeplerian(mu, cartState, anomalyType);
+      Rvector6 keplerian = CartesianToKeplerian(mu, cartState, "TA");
       outState = KeplerianToDelaunay(keplerian, mu);
    }
    else if (toType == "Planetodetic") // Modified by M.H.
@@ -913,7 +1020,7 @@ Rvector6 StateConversionUtil::ConvertFromAltEquinoctial(const std::string &toTyp
    }
    else if (toType == "Delaunay") // Modified by M.H.
    {
-      Rvector6 keplerian = CartesianToKeplerian(mu, cartState, anomalyType);
+      Rvector6 keplerian = CartesianToKeplerian(mu, cartState, "TA");
       outState = KeplerianToDelaunay(keplerian, mu);
    }
    else if (toType == "Planetodetic") // Modified by M.H.
@@ -955,15 +1062,18 @@ Rvector6 StateConversionUtil::ConvertFromDelaunay(const std::string &toType, con
 #ifdef DEBUG_STATE_CONVERSION
    MessageInterface::ShowMessage("   DelaunayToKeplerian = %s", kepl.ToString().c_str());
 #endif
-   //It should call KeplerianToCartesian() (LOJ: 2013.11.12)
-   //Rvector6 cart = CartesianToKeplerian(mu, state, anomalyType);
-   Rvector6 cart = KeplerianToCartesian(mu, kepl, anomalyType);
+   // DelaunayToKeplerian returns TA. The selector affects only a requested
+   // Keplerian output, not the physical Cartesian state used by other routes.
+   Rvector6 cart = KeplerianToCartesian(mu, kepl, "TA");
    if (toType == "Cartesian")
    {
       outState = cart;
    }
    else if (toType == "Keplerian" || toType == "ModifiedKeplerian")
    {
+      if (GetAnomalyType(anomalyType) != TA)
+         kepl[5] = ConvertFromTrueAnomaly(anomalyType, kepl[5] * RAD_PER_DEG,
+                                         kepl[1]) * DEG_PER_RAD;
       if (toType == "ModifiedKeplerian")
          outState =  KeplerianToModKeplerian(kepl);
       else
@@ -1062,7 +1172,7 @@ Rvector6 StateConversionUtil::ConvertFromPlanetodetic(const std::string &toType,
    }
    else if (toType == "Delaunay") // Modified by M.H.
    {
-      Rvector6 kepl = CartesianToKeplerian(mu, cart, anomalyType);
+      Rvector6 kepl = CartesianToKeplerian(mu, cart, "TA");
       outState = KeplerianToDelaunay(kepl, mu);
    }
    else if (toType == "OutgoingAsymptote" ||
@@ -2558,7 +2668,7 @@ Rvector6 StateConversionUtil::ModEquinoctialToCartesian(const Rvector6& modequin
 /**
  * Converts from Keplerian to Delaunay
  *
- * @param <keplerian>Keplerian state
+ * @param <keplerian>Keplerian state with true anomaly in degrees
  * @param <mu>              Gravitational constant for the central body
  *
  * @return Spacecraft orbit state converted from Keplerian to Delaunay
@@ -2694,7 +2804,7 @@ Rvector6 StateConversionUtil::KeplerianToDelaunay(const Rvector6& keplerian, con
  * @param <keplerian>Delaunay state
  * @param <mu>              Gravitational constant for the central body
  *
- * @return Spacecraft orbit state converted from Delaunay to Keplerian
+ * @return Spacecraft orbit state converted from Delaunay to Keplerian, with TA
  */
 //---------------------------------------------------------------------------
 Rvector6 StateConversionUtil::DelaunayToKeplerian(const Rvector6& delaunay, const Real& mu)
@@ -4284,6 +4394,8 @@ Rvector6 StateConversionUtil::CartesianToBrouwerMeanLong(Real mu, const Rvector6
 	{
 		blmean[5]=blmean[5] + 360.0;
 	}
+	if (emag > tol)
+      RefineBrouwerMeanLong(mu, cartesian, blmean, tol);
 	return blmean;
 }
 
@@ -4515,7 +4627,7 @@ Rvector6 StateConversionUtil::BrouwerMeanLongToOsculatingElements(Real mu, const
 	Real    sinDH;
 	Real    dlt1e;
 	if (bisubc >= 0.001)
-	{	// modifications for critical inclination
+	{	// Preserve the existing early warning near critical inclination.
 	   if (!criticalInclinationWritten)
 	   {
          MessageInterface::ShowMessage(
@@ -4523,6 +4635,12 @@ Rvector6 StateConversionUtil::BrouwerMeanLongToOsculatingElements(Real mu, const
                "inclination 63 or 117 DEG. There is a possible inaccuracy.\n");
          criticalInclinationWritten = true;
 	   }
+   }
+   // Keep BROLYD's original correction cutoff separate from the warning.
+   // Dropping valid corrections at the warning threshold changes the mean
+   // convention and breaks reconstruction in the intervening domain.
+   if (bisubc >= 0.1)
+   {
 		dlt1e = 0.0;
       // Suppress the singular correction, not the mean longitude itself.
       // Retaining the base angle preserves rotation about the zonal axis.
@@ -5021,11 +5139,8 @@ Real StateConversionUtil::EccentricToTrueAnomaly(Real eaRadians, Real ecc, bool 
    Real sinTA = (Sqrt(1.0 - e2) * Sin(eaRadians)) / oneMinusECosE;
    Real cosTA = (cosE - ecc) / oneMinusECosE;
    Real ta    =  ATan2(sinTA, cosTA);
-   if (modBy2Pi)
-   {
-      while (ta)
-         ta -= TWO_PI;
-   }
+   if (modBy2Pi && ta < 0.0)
+      ta += TWO_PI;
    return ta;
 }
 
@@ -5052,15 +5167,12 @@ Real StateConversionUtil::HyperbolicToTrueAnomaly(Real haRadians, Real ecc, bool
       throw UtilityException("StateConversionUtil::HyperbolicToTrueAnomaly - error converting - divide by zero.\n");
    }
 
-   Real sinTA = (Sqrt(e2 - 1.0) * Sinh(haRadians)) / oneMinusECoshH;
+   Real sinTA = -(Sqrt(e2 - 1.0) * Sinh(haRadians)) / oneMinusECoshH;
    Real cosTA = (coshH - ecc) / oneMinusECoshH;
    Real ta    = ATan2(sinTA, cosTA);
 
-   if (modBy2Pi)
-   {
-      while (ta)
-         ta -= TWO_PI;
-   }
+   if (modBy2Pi && ta < 0.0)
+      ta += TWO_PI;
    return ta;
 }
 
@@ -5416,9 +5528,24 @@ Real StateConversionUtil::CartesianToHA(Real mu, const Rvector3 &pos,
    MessageInterface::ShowMessage("CartesianToHA() ");
    #endif
 
-   Real ta = CartesianToTA(mu, pos, vel, true);
    Real ecc = CartesianToECC(mu, pos, vel);
-   Real ha = TrueToHyperbolicAnomaly(ta, ecc);
+   Real ha = 0.0;
+   if (ecc >= 1.0 + GmatOrbitConstants::KEP_TOL)
+   {
+      // Recover sinh(H) from energy and radial velocity. Passing through true
+      // anomaly loses accuracy near the hyperbolic asymptote, where tanh(H/2)
+      // is almost one. Keep the small angular-momentum terms through the
+      // invariant calculation as well.
+      const long double x = pos[0], y = pos[1], z = pos[2];
+      const long double vx = vel[0], vy = vel[1], vz = vel[2];
+      const long double gm = mu;
+      const long double radius = std::sqrt(x*x + y*y + z*z);
+      const long double alpha = 2.0L/radius - (vx*vx + vy*vy + vz*vz)/gm;
+      const long double hx = y*vz - z*vy, hy = z*vx - x*vz, hz = x*vy - y*vx;
+      const long double eccentricity = std::sqrt(1.0L - alpha*(hx*hx + hy*hy + hz*hz)/gm);
+      const long double sinhH = (x*vx + y*vy + z*vz)*std::sqrt(-alpha/gm)/eccentricity;
+      ha = static_cast<Real>(std::asinh(sinhH));
+   }
 
    #ifdef DEBUG_KEPLERIAN_HA
    MessageInterface::ShowMessage("returning %f\n", ha);
@@ -7973,10 +8100,38 @@ Integer StateConversionUtil::ComputeKeplToCart(Real grav, Real elem[6], Real r[3
         per = elem[4]*RAD_PER_DEG,
        anom = elem[5]*RAD_PER_DEG;
 
+   if (anomalyType == HA && ecc > 1.0 && sma < 0.0)
+   {
+      const long double a = -static_cast<long double>(sma), e = ecc;
+      if (Abs(sma*(1.0-ecc*ecc)) < INFINITE_TOL) return 2;
+      const long double h = static_cast<long double>(elem[5])*RAD_PER_DEG;
+      const long double ch = std::cosh(h), sh = std::sinh(h);
+      const long double beta = std::sqrt((e-1.0L)*(e+1.0L));
+      const long double denominator = e*ch-1.0L;
+      const long double x = a*(e-ch), y = a*beta*sh;
+      const long double speed = std::sqrt(static_cast<long double>(grav)/a);
+      const long double vx = -speed*sh/denominator;
+      const long double vy = speed*beta*ch/denominator;
+      const long double ci = std::cos(static_cast<long double>(inc)), si = std::sin(static_cast<long double>(inc));
+      const long double cn = std::cos(static_cast<long double>(raan)), sn = std::sin(static_cast<long double>(raan));
+      const long double cp = std::cos(static_cast<long double>(per)), sp = std::sin(static_cast<long double>(per));
+      const long double u[3] = {cn*cp-sn*sp*ci, sn*cp+cn*sp*ci, sp*si};
+      const long double w[3] = {-cn*sp-sn*cp*ci, -sn*sp+cn*cp*ci, cp*si};
+      for (Integer i = 0; i < 3; ++i)
+      {
+         r[i] = static_cast<Real>(x*u[i]+y*w[i]);
+         v[i] = static_cast<Real>(vx*u[i]+vy*w[i]);
+         if (!std::isfinite(r[i]) || !std::isfinite(v[i])) return 3;
+      }
+      return 0;
+   }
+
    // **************
-   // taken from old code above; necessary to avoid crash, but not in spec
-   // if input keplerian anomaly is MA, convert to TA  <<<< what about HA or EA?????   wcs 2011.11.23 ????
-   if (anomalyType == MA)
+   // Cartesian geometry below uses true anomaly. EA and HA must be converted
+   // as well; treating their numeric angles as TA silently changes the orbit.
+   if (anomalyType == EA || anomalyType == HA)
+      anom = ConvertToTrueAnomaly(anomalyType, anom, ecc);
+   else if (anomalyType == MA)
    {
       Real ta;
       Integer iter;

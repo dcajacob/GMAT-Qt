@@ -3824,6 +3824,12 @@
     <guilabel>Planetodetic</guilabel> state type cannot be selected untill the
     <guilabel>CoordinateSystem</guilabel> has <guilabel>BodyFixed</guilabel>
     axes.</para>
+
+    <para><guilabel>AlternateEquinoctial</guilabel> also requires a celestial
+    body at the coordinate-system origin, because its conversion uses the
+    body's gravitational constant just as <guilabel>Equinoctial</guilabel>
+    does. Calculated-point origins, such as a barycenter, have no such
+    gravitational constant.</para>
   </refsection>
 
   <refsection xml:id="Resources_SpacecraftOrbitState_Remarks">
@@ -4075,6 +4081,13 @@
       <guilabel>DelaunayL</guilabel>, which is not a real value when
       <guilabel>SMA</guilabel> is negative. The table below describes the
       elements of the <guilabel>Delaunay</guilabel> state.</para>
+
+      <para><guilabel>Delaunayl</guilabel> always represents mean anomaly,
+      independently of the spacecraft's <guilabel>AnomalyType</guilabel>
+      selector. That selector determines the sixth element when entering or
+      displaying a <guilabel>Keplerian</guilabel> or
+      <guilabel>ModifiedKeplerian</guilabel> state; it does not change the
+      angle convention of a <guilabel>Delaunay</guilabel> state.</para>
 
       <informaltable colsep="0" frame="topbot">
         <tgroup cols="2">

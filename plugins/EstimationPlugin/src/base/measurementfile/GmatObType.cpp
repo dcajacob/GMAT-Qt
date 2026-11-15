@@ -96,7 +96,8 @@ GmatObType::~GmatObType()
 GmatObType::GmatObType(const GmatObType& ot) :
    ObType         (ot),
    epochPrecision (ot.epochPrecision),
-   dataPrecision  (ot.dataPrecision)
+   dataPrecision  (ot.dataPrecision),
+   warn2WayDepricated (ot.warn2WayDepricated)
 {
    #ifdef DEBUG_OBTYPE_CREATION_INITIALIZATION
 	  MessageInterface::ShowMessage("GmatObType copy constructor (a GMATInternal obtype) from <%s,%p> to <%s,%p>\n", ot.GetName().c_str(), &ot, GetName().c_str(), this);
@@ -123,8 +124,10 @@ GmatObType& GmatObType::operator=(const GmatObType& ot)
 
    if (this != &ot)
    {
+      ObType::operator=(ot);
       epochPrecision = ot.epochPrecision;
       dataPrecision  = ot.dataPrecision;
+      warn2WayDepricated = ot.warn2WayDepricated;
    }
 
    return *this;

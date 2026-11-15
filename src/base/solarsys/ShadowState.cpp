@@ -33,6 +33,44 @@
 #include "SolarSystemException.hpp"
 #include "RealUtilities.hpp"
 #include "MessageInterface.hpp"
+#include <algorithm>
+#include <cmath>
+#include <array>
+
+namespace
+{
+struct PenumbraGeometry
+{
+   const ShadowState *owner;
+   const Real *state;
+   std::array<long double,3> sunVector;
+   Real sunRadius;
+   Real bodyRadius;
+   Real bodyAngle;
+   Real sunAngle;
+   PenumbraGeometry *previous;
+
+   PenumbraGeometry(const ShadowState *object, const Real *position, const Real *sun,
+         const Real *bodyToSun,
+         Real solarRadius, Real occultingRadius, Real apparentBody, Real apparentSun) :
+      owner(object), state(position), sunRadius(solarRadius),
+      bodyRadius(occultingRadius), bodyAngle(apparentBody), sunAngle(apparentSun), previous(Active())
+   {
+      bool closed = true;
+      for (Integer i=0;i<3;++i)
+         closed = closed && position[i] - bodyToSun[i] == sun[i];
+      for (Integer i=0;i<3;++i)
+         sunVector[i] = closed ? static_cast<long double>(position[i]) - bodyToSun[i] : sun[i];
+      Active() = this;
+   }
+   ~PenumbraGeometry() { Active() = previous; }
+   static PenumbraGeometry *&Active()
+   {
+      static thread_local PenumbraGeometry *geometry = nullptr;
+      return geometry;
+   }
+};
+}
 
 //#define DEBUG_SHADOW_STATE
 //#define DEBUG_SHADOW_STATE1
@@ -195,8 +233,20 @@ Real ShadowState::FindShadowState(Real *state,  Real *sbSun,
       //Based on Equation 3.87 in Montenbruck 3.4.2 where apparentDistFromSunToBody is c
       //This equation calculates the angle between the Sun and the shadow body as seen from the SC
       //It has been adapted for efficiency and availability of parameters
-      Real c = acos(-unitBodyToSat[0]*unitSatToSun[0]
-      -unitBodyToSat[1]*unitSatToSun[1]-unitBodyToSat[2]*unitSatToSun[2]);
+      long double separationCross[3];
+      for (Integer i = 0; i < 3; ++i)
+      {
+         const Integer j = (i + 1) % 3, k = (i + 2) % 3;
+         separationCross[i] = static_cast<long double>(state[j]) * sunSat[k] -
+            static_cast<long double>(state[k]) * sunSat[j];
+      }
+      long double crossSquared = 0, separationDot = 0;
+      for (Integer i = 0; i < 3; ++i)
+      {
+         crossSquared += separationCross[i] * separationCross[i];
+         separationDot += static_cast<long double>(state[i]) * sunSat[i];
+      }
+      const Real c = static_cast<Real>(std::atan2(std::sqrt(crossSquared), separationDot));
       
       if (a + b <= c)
       {
@@ -217,6 +267,7 @@ Real ShadowState::FindShadowState(Real *state,  Real *sbSun,
           // This is the penumbra case
          Real pcbrad  = asin(bodyRad/satToBodyDist);
          Real psunrad = asin(sunRad/satToSunDist);
+         PenumbraGeometry geometry(this, state, sunSat, sbSun, sunRad, bodyRad, pcbrad, psunrad);
          
          #ifdef DEBUG_SHADOW_STATE1
             MessageInterface::ShowMessage("  apparentDistFromSunToBody = %.12lf     apparentSunRadius = %.12lf  apparentBodyRadius = %.12lf\n", apparentDistFromSunToBody, apparentSunRadius, apparentBodyRadius);
@@ -259,32 +310,33 @@ Real ShadowState::FindShadowState(Real *state,  Real *sbSun,
 Real ShadowState::GetPercentSunInPenumbra(Real *state,
                   Real pcbrad, Real psunrad, Real *unitSunToSat)
 {
-   Real mag = sqrt(state[0]*state[0] +
-                   state[1]*state[1] +
-                   state[2]*state[2]);
-
-   // Montenbruck and Gill, eq. 3.87
-   Real c = acos((-state[0]*unitSunToSat[0] -
-                   state[1]*unitSunToSat[1] -
-                   state[2]*unitSunToSat[2]) / mag);
-
-   Real a2 = psunrad*psunrad;
-   Real b2 = pcbrad*pcbrad;
-
-   // Montenbruck and Gill, eq. 3.93
-   Real x = (c*c + a2 - b2) / (2.0 * c);
-   #ifdef DEBUG_SHADOW_STATE1
-         MessageInterface::ShowMessage("   sqrt in penumbra calc = %12.10f,  x = %.12lf  c = %.12lf  a = %.12lf  b = %.12lf\n",a2 - x*x, x, c, psunrad, pcbrad);
-   #endif
-
-   Real y = sqrt(a2 - x*x);
-
-   // Montenbruck and Gill, eq. 3.92
-   Real area = a2*acos(x/psunrad) +
-               b2*acos((c-x)/pcbrad)
-               - c*y;
-
-   // Montenbruck and Gill, eq. 3.94
-   return 1.0 - area / (GmatMathConstants::PI * a2);
+   const auto *geometry = PenumbraGeometry::Active();
+   const bool precise = geometry && geometry->owner == this && geometry->state == state &&
+      geometry->bodyAngle == pcbrad && geometry->sunAngle == psunrad;
+   long double separationCross[3];
+   long double crossSquared = 0, separationDot = 0, bodySquared = 0, sunSquared = 0;
+   for (Integer i = 0; i < 3; ++i)
+   {
+      const Integer j = (i + 1) % 3, k = (i + 2) % 3;
+      const long double sunI = precise ? geometry->sunVector[i] : -unitSunToSat[i];
+      const long double sunJ = precise ? geometry->sunVector[j] : -unitSunToSat[j];
+      const long double sunK = precise ? geometry->sunVector[k] : -unitSunToSat[k];
+      separationCross[i] = static_cast<long double>(state[j]) * sunK -
+         static_cast<long double>(state[k]) * sunJ;
+      crossSquared += separationCross[i] * separationCross[i];
+      separationDot += static_cast<long double>(state[i]) * sunI;
+      bodySquared += static_cast<long double>(state[i]) * state[i];
+      sunSquared += sunI * sunI;
+   }
+   const long double c = std::atan2(std::sqrt(crossSquared), separationDot);
+   const long double a = precise ? std::asin(geometry->sunRadius / std::sqrt(sunSquared)) : psunrad;
+   const long double b = precise ? std::asin(geometry->bodyRadius / std::sqrt(bodySquared)) : pcbrad;
+   const long double a2 = a * a, b2 = b * b;
+   const long double x = (c * c + a2 - b2) / (2 * c);
+   const long double y = std::sqrt(std::max(0.0L, a2 - x * x));
+   const long double first = std::acos(std::max(-1.0L, std::min(1.0L, x / a)));
+   const long double second = std::acos(std::max(-1.0L, std::min(1.0L, (c - x) / b)));
+   const long double area = a2 * first + b2 * second - c * y;
+   return static_cast<Real>(1 - area / (std::acos(-1.0L) * a2));
 }
 

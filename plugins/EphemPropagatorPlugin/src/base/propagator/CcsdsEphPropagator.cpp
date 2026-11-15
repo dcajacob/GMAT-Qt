@@ -1040,7 +1040,7 @@ void CcsdsEphPropagator::UpdateState()
    if (ephemCoord)
    {
       // std::memcpy(state, theState.GetDataVector(), 6 * sizeof(Real));
-      Real *ephemState = new Real[6];
+      Real ephemState[6];
       std::memcpy(ephemState, theState.GetDataVector(), 6 * sizeof(Real));
 
       // Update state and j2kState
@@ -1054,7 +1054,6 @@ void CcsdsEphPropagator::UpdateState()
          cc.Convert(currentEpoch, ephemState, ephemCoord, state, j2k);
          //cc.Convert(currentEpoch, state, ephemCoord, j2kState, j2k);
       } 
-      delete[] ephemState;
    }
    else 
       std::memcpy(state, theState.GetDataVector(), 6 * sizeof(Real));

@@ -39,6 +39,47 @@
 #include "ParameterInfo.hpp"
 #include <algorithm>
 #include <sstream>
+#include <exception>
+#include <mutex>
+
+namespace {
+struct CalleeView {
+   Function *function;
+   std::weak_ptr<const void> functionIdentity, commandIdentity;
+};
+struct CalleeViews {
+   std::mutex mutex;
+   std::map<const CallFunction*, CalleeView> entries;
+};
+CalleeViews& ObservedCallees() {
+   static auto *registry = new CalleeViews;
+   return *registry;
+}
+void ForgetCallee(const CallFunction *command) noexcept {
+   try {
+      auto &registry = ObservedCallees();
+      std::lock_guard<std::mutex> lock(registry.mutex);
+      registry.entries.erase(command);
+   } catch (...) {}
+}
+void RememberCallee(const CallFunction *command, Function *function) {
+   if (!function) { ForgetCallee(command); return; }
+   CalleeView view{function, function->GetLifetimeToken(), command->GetLifetimeToken()};
+   auto &registry = ObservedCallees();
+   std::lock_guard<std::mutex> lock(registry.mutex);
+   registry.entries[command] = std::move(view);
+}
+Function* ObservedCallee(const CallFunction *command, Function *active) {
+   auto &registry = ObservedCallees();
+   std::lock_guard<std::mutex> lock(registry.mutex);
+   const auto found = registry.entries.find(command);
+   if (found == registry.entries.end()) return active;
+   const auto &view = found->second;
+   if (active && active != view.function) return active;
+   return GmatBase::IsLiveReference(command, view.commandIdentity) &&
+         GmatBase::IsLiveReference(view.function, view.functionIdentity) ? view.function : nullptr;
+}
+}
 
 
 //#define DEBUG_CALL_FUNCTION_PARAM
@@ -108,6 +149,8 @@ CallFunction::CallFunction(const std::string &type) :
 {
    mNumInputParams = 0;
    mNumOutputParams = 0;
+   // Programmatically constructed calls use canonical bracketed output syntax.
+   mOutputBracketSyntax = true;
    
    parameterCount = CallFunctionParamCount;
    objectTypeNames.push_back("CallFunction");
@@ -119,6 +162,7 @@ CallFunction::CallFunction(const std::string &type) :
 //------------------------------------------------------------------------------
 CallFunction::~CallFunction()
 {
+   ForgetCallee(this);
    if (callcmds)
       delete callcmds;
 }
@@ -137,6 +181,7 @@ CallFunction::CallFunction(const CallFunction& cf) :
 {
    mNumInputParams = cf.mNumInputParams;
    mNumOutputParams = cf.mNumOutputParams;
+   mOutputBracketSyntax = cf.mOutputBracketSyntax;
    
    objectArray = cf.objectArray;
    mInputList = cf.mInputList;
@@ -160,6 +205,8 @@ CallFunction& CallFunction::operator=(const CallFunction& cf)
 {
    if (this == &cf)
       return *this;
+
+   ForgetCallee(this);
    
    GmatCommand::operator=(cf);
    
@@ -168,6 +215,7 @@ CallFunction& CallFunction::operator=(const CallFunction& cf)
    mFunctionPathAndName = cf.mFunctionPathAndName;
    mNumInputParams = cf.mNumInputParams;
    mNumOutputParams = cf.mNumOutputParams;
+   mOutputBracketSyntax = cf.mOutputBracketSyntax;
    
    objectArray = cf.objectArray;
    mInputList = cf.mInputList;
@@ -203,12 +251,12 @@ std::string CallFunction::FormEvalString()
    if (mOutputList.size() > 1)
    {
       evalString = evalString + "[";
-      Parameter *param = (Parameter *)mOutputList[0];
+      GmatBase *param = mOutputList[0];
       evalString = evalString + param->GetName();
       
       for (unsigned int i=1; i<mOutputList.size(); i++)
       {
-         param = (Parameter *)mOutputList[i];
+         param = mOutputList[i];
          evalString = evalString +", " + param->GetName();
       }
       
@@ -216,7 +264,7 @@ std::string CallFunction::FormEvalString()
    }
    else if (mOutputList.size() == 1)
    {
-      Parameter *param = (Parameter *)mOutputList[0];
+      GmatBase *param = mOutputList[0];
       evalString = "[" + evalString + param->GetName() + "]";
       evalString = evalString +" = ";
    }
@@ -238,12 +286,12 @@ std::string CallFunction::FormEvalString()
    // input parameters
    if (mInputList.size() > 0)
    {
-      Parameter *param = (Parameter *)mInputList[0];
+      GmatBase *param = mInputList[0];
       evalString = evalString + param->GetName();
 
       for (unsigned int i=1; i<mInputList.size(); i++)
       {
-         param = (Parameter *)mInputList[i];
+         param = mInputList[i];
          evalString = evalString + ", " + param->GetName();
       }
    }
@@ -258,6 +306,11 @@ std::string CallFunction::FormEvalString()
 //------------------------------------------------------------------------------
 // bool AddInputParameter(const std::string &paramName, Integer index)
 //------------------------------------------------------------------------------
+void CallFunction::SetOutputBracketSyntax(bool bracketed)
+{
+   mOutputBracketSyntax = bracketed;
+}
+
 bool CallFunction::AddInputParameter(const std::string &paramName, Integer index)
 {
    if (paramName != "" && index == mNumInputParams)
@@ -367,8 +420,43 @@ bool CallFunction::HasOtherReferenceToObject(const std::string &withName)
  * @param <map> Pointer to the local object map
  */
 //------------------------------------------------------------------------------
+void CallFunction::RebindClonedCommandLinks(const GmatCommand &source,
+      const std::function<GmatCommand*(const GmatCommand*)> &resolve)
+{
+   ForgetCallee(this);
+   GmatCommand::RebindClonedCommandLinks(source, resolve);
+   fm.SetExpressionEnvironment(nullptr, nullptr, nullptr);
+   mFunction = nullptr;
+   mFunctionPathAndName.clear();
+   objectArray.clear();
+   std::fill(mInputList.begin(), mInputList.end(), nullptr);
+   std::fill(mOutputList.begin(), mOutputList.end(), nullptr);
+   isGmatFunction = false;
+   isMatlabFunction = false;
+   isBuiltinGmatFunction = false;
+}
+
+void CallFunction::RetireFunctionBindings(ObjectMap *store)
+{
+   if (!store || objectMap != store) return;
+   std::exception_ptr firstError;
+   try { fm.Finalize(); }
+   catch (...) { firstError = std::current_exception(); }
+   fm.RetireExpressionContext();
+   mFunction = nullptr;
+   objectArray.clear();
+   std::fill(mInputList.begin(), mInputList.end(), nullptr);
+   std::fill(mOutputList.begin(), mOutputList.end(), nullptr);
+   isGmatFunction = false;
+   isMatlabFunction = false;
+   isBuiltinGmatFunction = false;
+   GmatCommand::RetireFunctionBindings(store);
+   if (firstError) std::rethrow_exception(firstError);
+}
+
 void CallFunction::SetObjectMap(std::map<std::string, GmatBase *> *map)
 {
+   ForgetCallee(this);
    GmatCommand::SetObjectMap(map);
    fm.SetObjectMap(map);
 }
@@ -385,60 +473,25 @@ void CallFunction::SetObjectMap(std::map<std::string, GmatBase *> *map)
 //------------------------------------------------------------------------------
 void CallFunction::SetGlobalObjectMap(std::map<std::string, GmatBase *> *map)
 {
-   #ifdef DEBUG_GLOBAL_OBJECT_MAP
-   MessageInterface::ShowMessage
-      ("CallFunction::SetGlobalObjectMap() entered, mFunctionName='%s', "
-       "map=<%p>\n", mFunctionName.c_str(), map);
-   #endif
-   
    GmatCommand::SetGlobalObjectMap(map);
-   
-   // Now, find the function object
-   GmatBase *mapObj = FindObject(mFunctionName);
-   
-   #ifdef DEBUG_GLOBAL_OBJECT_MAP
-   MessageInterface::ShowMessage
-      ("   mapObj=<%p><%s>'%s'\n", mapObj,
-       mapObj ? mapObj->GetTypeName().c_str() : "NULL",
-       mapObj ? mapObj->GetName().c_str() : "NULL");
-   #endif
-   
-   if (mapObj == NULL)
-   {
-      //throw CommandException("CallFunction command cannot find Function " +
-      //         mFunctionName + "\n");
-      ; // leave NULL for now
-   }
-   else
-   {
-      mFunction = (Function *)mapObj;
-      
-      #ifdef DEBUG_GLOBAL_OBJECT_MAP
-      MessageInterface::ShowMessage
-         ("   mFunction=<%p><%s>\n", mFunction, mFunction->GetName().c_str());
-      #endif
-      
-      // Set GmatFunction to FunctionManager (loj: 2008.09.03)
-      // Set BuiltinGmatFunction to FunctionManager (loj: 2016.05.04)
-      //if (mapObj->GetTypeName() == "GmatFunction")
-      if (mapObj->IsOfType("GmatFunction") || mapObj->IsOfType("BuiltinGmatFunction"))
+   GmatBase *object = nullptr;
+   if (!IsOfType("CallPythonFunction"))
+      for (ObjectMap *scope : {objectMap, globalObjectMap})
       {
-         #ifdef DEBUG_FUNCTION
-         MessageInterface::ShowMessage
-            ("CallFunction::SetGlobalObjectMap() setting function<%p>'%s' to FunctionManager\n",
-             mFunction, mFunction ? mFunction->GetName().c_str() : "NULL");
-         #endif
-         mFunction->SetCallDescription(GetGeneratingString(Gmat::NO_COMMENTS));
-         fm.SetFunction(mFunction);
+         if (!scope) continue;
+         const auto found = scope->find(mFunctionName);
+         if (found == scope->end()) continue;
+         object = found->second;
+         break; // A local null declaration also shadows a global callee.
       }
-   }
-   fm.SetGlobalObjectMap(map);
-   
-   #ifdef DEBUG_GLOBAL_OBJECT_MAP
-   MessageInterface::ShowMessage("CallFunction::SetGlobalObjectMap() exiting\n");
-   #endif
+   auto *function = dynamic_cast<Function*>(object);
+   fm.SetExpressionEnvironment(dynamic_cast<ObjectManagedFunction*>(function), objectMap, map);
+   mFunction = function;
+   RememberCallee(this, function);
+   if (object && !function)
+      throw CommandException("Call resource \"" + mFunctionName + "\" is not a Function.\n");
+   if (function) function->SetCallDescription(GetGeneratingString(Gmat::NO_COMMENTS));
 }
-
 
 //------------------------------------------------------------------------------
 // bool HasAFunction()
@@ -668,10 +721,17 @@ bool CallFunction::SetStringParameter(const Integer id, const std::string &value
    switch (id)
    {
    case FUNCTION_NAME:
-      mFunctionName = value;
-      mFunctionPathAndName = value;
-      fm.SetFunctionName(value);
+   {
+      std::string name(value), path(value);
+      fm.SetExpressionFunctionName(value);
+      if (mFunctionName != value) {
+         mFunction = nullptr;
+         ForgetCallee(this);
+      }
+      mFunctionName.swap(name);
+      mFunctionPathAndName.swap(path);
       return true;
+   }
    case ADD_INPUT:
       return AddInputParameter(value, mNumInputParams);
    case ADD_OUTPUT:
@@ -918,7 +978,9 @@ GmatBase* CallFunction::GetRefObject(const UnsignedInt type,
                            + name + "not found\n");
          
       case Gmat::FUNCTION:
-         return mFunction;
+         // Runtime bindings still retire. The public inspector can observe
+         // the actual callee while its native identity remains alive.
+         return ObservedCallee(this, mFunction);
          
       case Gmat::COMMAND:
          return callcmds;
@@ -957,11 +1019,12 @@ bool CallFunction::SetRefObject(GmatBase *obj, const UnsignedInt type,
    switch (type)
    {
    case Gmat::PARAMETER:
+      if (!dynamic_cast<Parameter*>(obj)) return false;
       for (int i=0; i<mNumInputParams; i++)
       {
          if (mInputNames[i] == name)
          {
-            mInputList[i] = (Parameter*)obj;
+            mInputList[i] = obj;
             return true;
          }
       }
@@ -970,15 +1033,21 @@ bool CallFunction::SetRefObject(GmatBase *obj, const UnsignedInt type,
       {
          if (mOutputNames[i] == name)
          {
-            mOutputList[i] = (Parameter*)obj;
+            mOutputList[i] = obj;
             return true;
          }
       }
       
+      return false;
+
    case Gmat::FUNCTION:
       if (name == mFunctionName)
       {
-         mFunction = (Function *)obj;
+         auto *function = dynamic_cast<Function*>(obj);
+         if (!function) return false;
+         fm.SetExpressionEnvironment(dynamic_cast<ObjectManagedFunction*>(function), objectMap, globalObjectMap);
+         mFunction = function;
+         RememberCallee(this, function);
          if (mFunction)
          {
             mFunctionPathAndName = mFunction->GetFunctionPathAndName();
@@ -992,7 +1061,6 @@ bool CallFunction::SetRefObject(GmatBase *obj, const UnsignedInt type,
                   ("   Setting function<%p>'%s' to FunctionManager\n",
                    mFunction, mFunction ? mFunction->GetName().c_str() : "NULL");
                #endif
-               fm.SetFunction(mFunction);
                isGmatFunction = false;
                isMatlabFunction = false;
                isBuiltinGmatFunction = true;
@@ -1004,7 +1072,6 @@ bool CallFunction::SetRefObject(GmatBase *obj, const UnsignedInt type,
                   ("CallFunction::SetRefObject() Setting function<%p>'%s' to FunctionManager\n",
                    mFunction, mFunction ? mFunction->GetName().c_str() : "NULL");
                #endif
-               fm.SetFunction(mFunction);
                isGmatFunction = true;
                isMatlabFunction = false;
                isBuiltinGmatFunction = false;
@@ -1060,6 +1127,11 @@ ObjectArray& CallFunction::GetRefObjectArray(const UnsignedInt type)
 //------------------------------------------------------------------------------
 bool CallFunction::Initialize()
 {
+   fm.SetSolarSystem(solarSys);
+   fm.SetTransientForces(forces);
+   fm.SetInternalCoordinateSystem(internalCoordSys);
+   fm.SetPublisher(publisher);
+
    #ifdef DEBUG_CALL_FUNCTION_INIT
       MessageInterface::ShowMessage
          ("CallFunction::Initialize() this=<%p> entered\n   command = '%s'\n   "

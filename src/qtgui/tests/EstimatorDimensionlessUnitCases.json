@@ -1,0 +1,29 @@
+{
+  "cases": [
+    {
+      "key": "BatchEstimatorRatios",
+      "group": "EstimatorRatios",
+      "object": "Probe",
+      "fixture": "Create BatchEstimator Probe;\nProbe.ILSEMultiplicativeConstant = 2.5;\nProbe.OLSEMultiplicativeConstant = 3.5;\nProbe.RelativeTol = 0.0007;\n",
+      "route": "table",
+      "units": {
+        "ILSEMultiplicativeConstant": "dimensionless",
+        "OLSEMultiplicativeConstant": "dimensionless",
+        "RelativeTol": "dimensionless"
+      }
+    },
+    {
+      "key": "BatchEstimatorInvRatios",
+      "group": "EstimatorRatios",
+      "object": "Probe",
+      "fixture": "Create BatchEstimatorInv Probe;\nProbe.ILSEMultiplicativeConstant = 2.5;\nProbe.OLSEMultiplicativeConstant = 3.5;\nProbe.RelativeTol = 0.0007;\n",
+      "route": "table",
+      "units": {
+        "ILSEMultiplicativeConstant": "dimensionless",
+        "OLSEMultiplicativeConstant": "dimensionless",
+        "RelativeTol": "dimensionless"
+      }
+    }
+  ],
+  "scope": "Three independently documented normalized estimator controls; current and deprecated factory aliases of the same native BatchEstimator. No claim for conditional RMS tolerances, other blank fields, mission execution or whole-row completion."
+}

@@ -137,6 +137,7 @@ public:
    
    //----- object map
    void SetObjectMap(ObjectMap *objMap);
+   std::function<void()> CaptureInterpreterContext();
    void SetObjectManageOption(Integer option);
    Integer GetObjectManageOption();
    void ResetObjectPointer(ObjectMap *objMap, GmatBase *newobj,

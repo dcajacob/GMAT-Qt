@@ -32,11 +32,28 @@
 
 #include <sstream>
 #include "Solver.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration solverValueProvider({
+   Solver::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const Solver*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<Solver*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
+#include <typeinfo>
 #include "MessageInterface.hpp"
 #include "ISolverListener.hpp"
 #include "FileManager.hpp"
 #include "OwnedPlot.hpp"            // Replace with a proxy
 #include "StringUtil.hpp"
+#include <cmath>
+#include <array>
 
 //#define DEBUG_SOLVER_INIT
 //#define DEBUG_SOLVER_CALC
@@ -133,6 +150,7 @@ Solver::Solver(const std::string &type, const std::string &name) :
    //variableMaximum         (NULL),
    //variableMaximumStep     (NULL),
    pertNumber              (-999), // is this right?
+   lastUnperturbedValue    (0.0),
    instanceNumber          (0),    // 0 indicates 1st instance w/ this name
    registeredVariableCount (0),
    registeredComponentCount(0),
@@ -192,7 +210,7 @@ Solver::Solver(const Solver &sol) :
    requiresVariables       (sol.requiresVariables),
    needsServerStartup      (sol.needsServerStartup),
    currentState            (sol.currentState),
-   nestedState             (sol.currentState),
+   nestedState             (sol.nestedState),
    textFileMode            (sol.textFileMode),
    showProgress            (sol.showProgress),
    progressStyle           (sol.progressStyle),
@@ -206,6 +224,7 @@ Solver::Solver(const Solver &sol) :
    //variableMaximum         (NULL),
    //variableMaximumStep     (NULL),
    pertNumber              (sol.pertNumber),
+   lastUnperturbedValue    (sol.lastUnperturbedValue),
    solverTextFile          (sol.solverTextFile),
    solverTextFileFullPath  (sol.solverTextFileFullPath),
    instanceNumber          (sol.instanceNumber),
@@ -217,6 +236,7 @@ Solver::Solver(const Solver &sol) :
    AllowIndependentPerts   (sol.AllowIndependentPerts),
    solverMode              (sol.solverMode),
    currentMode             (sol.currentMode),
+   exitModeText            (sol.exitModeText),
    exitMode                (sol.exitMode),
    status                  (Gmat::CREATED),
    plotCount               (sol.plotCount),
@@ -236,8 +256,7 @@ Solver::Solver(const Solver &sol) :
    //variableMaximumStep.clear();
 
    isInitialized = false;
-
-   GmatGlobal::Instance()->SetSolverStatus(instanceName, status);
+   // A copy does not publish runtime state for the source's resource name.
 }
 
 
@@ -255,6 +274,9 @@ Solver& Solver::operator=(const Solver &sol)
    if (&sol == this)
       return *this;
 
+   if (textFile.is_open()) textFile.close();
+   delete plotter;
+   plotter = nullptr;
    GmatBase::operator=(sol);
 
    registeredVariableCount  = sol.registeredVariableCount;
@@ -267,6 +289,14 @@ Solver& Solver::operator=(const Solver &sol)
    solverTextFileFullPath   = sol.solverTextFileFullPath;
 
    variableNames.clear();
+   variable.clear();
+   unscaledVariable.clear();
+   variableInitialValues.clear();
+   perturbation.clear();
+   variableMinimum.clear();
+   variableMaximum.clear();
+   variableMaximumStep.clear();
+   pertDirection.clear();
    //variable.clear();
    //perturbation.clear();
    //variableMinimum.clear();
@@ -277,15 +307,17 @@ Solver& Solver::operator=(const Solver &sol)
    requiresVariables     = sol.requiresVariables;
    needsServerStartup    = sol.needsServerStartup;
    currentState          = sol.currentState;
-   nestedState           = sol.currentState;
+   nestedState           = sol.nestedState;
    textFileMode          = sol.textFileMode;
    showProgress          = sol.showProgress;
    progressStyle         = sol.progressStyle;
    debugString           = sol.debugString;
    instanceNumber        = sol.instanceNumber;
    pertNumber            = sol.pertNumber;
+   lastUnperturbedValue  = sol.lastUnperturbedValue;
    solverMode            = sol.solverMode;
    currentMode           = sol.currentMode;
+   exitModeText          = sol.exitModeText;
    exitMode              = sol.exitMode;
    status                = Gmat::COPIED;
    plotCount             = sol.plotCount;
@@ -297,8 +329,6 @@ Solver& Solver::operator=(const Solver &sol)
    AllowRangeLimits      = sol.AllowRangeLimits;
    AllowStepsizeLimit    = sol.AllowStepsizeLimit;
    AllowIndependentPerts = sol.AllowIndependentPerts;
-   
-   GmatGlobal::Instance()->SetSolverStatus(instanceName, status);
 
    return *this;
 }
@@ -313,6 +343,95 @@ Solver& Solver::operator=(const Solver &sol)
  *  @return true on success, false (or throws a SolverException) on failure
  */
 //------------------------------------------------------------------------------
+bool Solver::HasSolverValueReferenceProvider() const
+{
+   const auto provider = FindNativeValueProvider(*this, NativeValueOperation::SolverProvider);
+   return provider.solverProvider && provider.solverProvider(this);
+}
+
+void Solver::PrepareClonedSolverValue(const Solver &source)
+{
+   const auto provider = FindNativeValueProvider(*this, NativeValueOperation::SolverClone);
+   if (provider.solverClone)
+   {
+      provider.solverClone(this, source);
+      return;
+   }
+   throw SolverException("This solver needs a complete native value provider.\n");
+}
+
+void Solver::CheckSolverValueType(const Solver &source) const
+{
+   if (&source == this || typeid(*this) != typeid(source) ||
+         GetTypeName() != source.GetTypeName() ||
+         !HasSolverValueReferenceProvider() || !source.HasSolverValueReferenceProvider())
+      throw SolverException("Incompatible retained solver value.\n");
+   // These native backends do not create this legacy plot member. Other
+   // providers must disclose and copy any owned plot instead of losing it.
+   if (plotter || source.plotter)
+      throw SolverException("An owned solver plot needs its own value provider.\n");
+}
+
+bool Solver::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &)
+{
+   if (!HasSolverValueReferenceProvider()) return false;
+   const auto *source = dynamic_cast<const Solver*>(&original);
+   if (!source) throw SolverException("Incompatible solver reference source.\n");
+   CheckSolverValueType(*source);
+   // Numerical data is retained, while execution and file/engine connections
+   // remain dormant until the ordinary native command initialization path.
+   isInitialized = false;
+   return true;
+}
+
+void Solver::CopySolverValueData(const Solver &source)
+{
+   CheckSolverValueType(source);
+   if (textFile.is_open()) textFile.close();
+   isInternal = source.isInternal;
+   requiresVariables = source.requiresVariables;
+   needsServerStartup = source.needsServerStartup;
+   currentState = source.currentState;
+   nestedState = source.nestedState;
+   textFileMode = source.textFileMode;
+   showProgress = source.showProgress;
+   progressStyle = source.progressStyle;
+   debugString = source.debugString;
+   variableCount = source.variableCount;
+   variableNames = source.variableNames;
+   variable = source.variable;
+   unscaledVariable = source.unscaledVariable;
+   variableInitialValues = source.variableInitialValues;
+   iterationsTaken = source.iterationsTaken;
+   maxIterations = source.maxIterations;
+   perturbation = source.perturbation;
+   variableMinimum = source.variableMinimum;
+   variableMaximum = source.variableMaximum;
+   variableMaximumStep = source.variableMaximumStep;
+   pertNumber = source.pertNumber;
+   lastUnperturbedValue = source.lastUnperturbedValue;
+   pertDirection = source.pertDirection;
+   solverTextFile = source.solverTextFile;
+   solverTextFileFullPath = source.solverTextFileFullPath;
+   instanceNumber = source.instanceNumber;
+   registeredVariableCount = source.registeredVariableCount;
+   registeredComponentCount = source.registeredComponentCount;
+   AllowScaleFactors = source.AllowScaleFactors;
+   AllowRangeLimits = source.AllowRangeLimits;
+   AllowStepsizeLimit = source.AllowStepsizeLimit;
+   AllowIndependentPerts = source.AllowIndependentPerts;
+   solverMode = source.solverMode;
+   currentMode = source.currentMode;
+   exitModeText = source.exitModeText;
+   exitMode = source.exitMode;
+   status = source.status;
+   plotCount = source.plotCount;
+   hasFired = source.hasFired;
+   isNested = source.isNested;
+   isInitialized = false;
+}
+
 bool Solver::Initialize()
 {
    // Setup the variable data structures
@@ -387,6 +506,46 @@ bool Solver::Finalize()
 }
 
 
+namespace
+{
+std::array<Real, 6> checkedSolverVariableData(const Real *input, bool independentPerturbations)
+{
+   if (!input)
+      throw SolverException("Solver variable data is NULL; six values are required.");
+   const std::array<Real, 6> values{{input[0], input[1], input[2], input[3], input[4], input[5]}};
+   const Real *data = values.data();
+   if (!std::isfinite(data[0]) || !std::isfinite(data[1]) || !std::isfinite(data[5]))
+      throw SolverException("Solver initial values and perturbation must be finite.");
+   if (std::isnan(data[2]) || std::isnan(data[3]) || std::isnan(data[4]))
+      throw SolverException("Solver bounds and maximum step cannot be NaN.");
+   if (data[2] >= data[3])
+   {
+      std::stringstream message;
+      message << "Minimum allowed variable value (received " << data[2]
+              << ") must be less than maximum (received " << data[3] << ")";
+      throw SolverException(message.str());
+   }
+   if (data[4] <= 0.0)
+   {
+      std::stringstream message;
+      message << "Largest allowed step must be positive! (received " << data[4] << ")";
+      throw SolverException(message.str());
+   }
+   if (independentPerturbations && data[1] == 0.0)
+      throw SolverException("Variable perturbation must be nonzero for this solver.");
+   return values;
+}
+}
+
+void Solver::ValidateVariableDataIndex(UnsignedInt index) const
+{
+   if (index >= variable.size() || index >= variableInitialValues.size() ||
+       index >= perturbation.size() || index >= variableMinimum.size() ||
+       index >= variableMaximum.size() || index >= variableMaximumStep.size() ||
+       index >= unscaledVariable.size())
+      throw SolverException("Solver variable data index is outside the initialized arrays.");
+}
+
 //------------------------------------------------------------------------------
 //  Integer SetSolverVariables(Real *data, const std::string &name)
 //------------------------------------------------------------------------------
@@ -394,8 +553,10 @@ bool Solver::Finalize()
  * Derived classes use this method to pass in parameter data specific to
  * the algorithm implemented.
  * 
- * @param <data> An array of data appropriate to the variables used in the
- *               algorithm.
+ * @param <data> Six values: scaled initial value, perturbation, lower bound,
+ *               upper bound, maximum step and physical initial value.
+ *               Bounds and maximum step may be infinite; other values must
+ *               be finite.
  * @param <name> A label for the data parameter.  Defaults to the empty
  *               string.
  * 
@@ -404,58 +565,22 @@ bool Solver::Finalize()
 //------------------------------------------------------------------------------
 Integer Solver::SetSolverVariables(Real *data, const std::string &name)
 {
+   if (variableCount < 0 || static_cast<UnsignedInt>(variableCount) >= variableNames.size())
+      throw SolverException("Solver variable registration index is out of range.");
    if (variableNames[variableCount] != name)
       throw SolverException("Mismatch between parsed and configured variable");
 
-   //variable[variableCount] = data[0];
-   //perturbation[variableCount] = data[1];
-   try
-   {
-      variable.at(variableCount) = data[0];
-      variableInitialValues.at(variableCount) = data[0];
-      perturbation.at(variableCount) = data[1];
-   }
-   catch(const std::exception &)
-   {
-      throw SolverException(
-              "Range error setting variable or perturbation in "
-              "SetSolverVariables\n");
-   }
-   // Sanity check min and max
-   if (data[2] >= data[3])
-   {
-      std::stringstream errMsg;
-      errMsg << "Minimum allowed variable value (received " << data[2]
-             << ") must be less than maximum (received " << data[3] << ")";
-      throw SolverException(errMsg.str());
-   }
-   if (data[4] <= 0.0)
-   {
-      std::stringstream errMsg;
-      errMsg << "Largest allowed step must be positive! (received "
-             << data[4] << ")";
-      throw SolverException(errMsg.str());
-   }
-
-   //variableMinimum[variableCount] = data[2];
-   //variableMaximum[variableCount] = data[3];
-   //variableMaximumStep[variableCount] = data[4];
-   try
-   {
-      variableMinimum.at(variableCount)           = data[2];
-      variableMaximum.at(variableCount)           = data[3];
-      variableMaximumStep.at(variableCount)       = data[4];
-      unscaledVariable.at(variableCount)          = data[5];
-   }
-   catch(const std::exception &)
-   {
-      throw SolverException(
-            "Range error setting variable min/max in SetSolverVariables\n");
-   }
-   
-   ++variableCount;
-
-   return variableCount-1;
+   // Validate the entire six-field payload and destination before any write.
+   const std::array<Real, 6> values = checkedSolverVariableData(data, AllowIndependentPerts);
+   ValidateVariableDataIndex(variableCount);
+   variable[variableCount] = values[0];
+   variableInitialValues[variableCount] = values[0];
+   perturbation[variableCount] = values[1];
+   variableMinimum[variableCount] = values[2];
+   variableMaximum[variableCount] = values[3];
+   variableMaximumStep[variableCount] = values[4];
+   unscaledVariable[variableCount] = values[5];
+   return variableCount++;
 }
 
 
@@ -463,87 +588,74 @@ Integer Solver::SetSolverVariables(Real *data, const std::string &name)
 // bool Solver::RefreshSolverVariables(Real *data, const std::string &name)
 //------------------------------------------------------------------------------
 /**
- * Refreshes Variable data to the current Mission Control Sequence values.
+ * Refreshes variable data from the current Mission Control Sequence values.
  *
- * Updates the solver's variable parameters for elements that change as the
- * result of previous commands -- for instance, Variable updates in a script,
- * where the Variable is used to set a parameter on the Solver's variable data.
- *
- * @param <data> An array of data appropriate to the variables used in the
- *               algorithm.
- * @param <name> A label for the data parameter.
- *
- * @return true is the data was updated, false if not.
+ * @param <data> Six values: scaled initial value, perturbation, lower bound,
+ *               upper bound, maximum step and physical initial value.
+ *               Bounds and maximum step may be infinite; other values must
+ *               be finite.
+ * @param <name> The variable's configured name.
+ * @return true if data was refreshed or retained, false if the name is absent.
  */
 //------------------------------------------------------------------------------
 bool Solver::RefreshSolverVariables(Real *data, const std::string &name)
 {
-   bool retval = false;
-
    if (hasFired && (exitMode == RETAIN))
       return true;
 
    #ifdef DEBUG_SAVEANDCONTINUE
-      MessageInterface::ShowMessage("Resetting variables for %s\n",
-            instanceName.c_str());
+   MessageInterface::ShowMessage("Resetting variables for %s\n", instanceName.c_str());
    #endif
 
-   // Find index of the variable
+   std::array<Real, 6> values{};
+   bool found = false;
    for (UnsignedInt n = 0; n < variableNames.size(); ++n)
-   {
-      std::string varName = variableNames[n];
-      if (varName == name)
+      if (variableNames[n] == name)
       {
-         try
-         {
-            variable.at(n) = data[0];
-            variableInitialValues.at(n) = data[0];
-            perturbation.at(n) = data[1];
-         }
-         catch(const std::exception &)
-         {
-            throw SolverException(
-                    "Range error setting variable or perturbation in "
-                    "SetSolverVariables\n");
-         }
-         // Sanity check min and max
-         if (data[2] >= data[3])
-         {
-            std::stringstream errMsg;
-            errMsg << "Minimum allowed variable value (received " << data[2]
-                   << ") must be less than maximum (received " << data[3] << ")";
-            throw SolverException(errMsg.str());
-         }
-         if (data[4] <= 0.0)
-         {
-            std::stringstream errMsg;
-            errMsg << "Largest allowed step must be positive! (received "
-                   << data[4] << ")";
-            throw SolverException(errMsg.str());
-         }
-
-         //variableMinimum[variableCount] = data[2];
-         //variableMaximum[variableCount] = data[3];
-         //variableMaximumStep[variableCount] = data[4];
-         try
-         {
-            variableMinimum.at(n)           = data[2];
-            variableMaximum.at(n)           = data[3];
-            variableMaximumStep.at(n)       = data[4];
-            unscaledVariable.at(n)          = data[5];
-         }
-         catch(const std::exception &)
-         {
-            throw SolverException(
-                  "Range error setting variable min/max in "
-                  "RefreshSolverVariables\n");
-         }
-
-         retval = true;
+         if (!found)
+            values = checkedSolverVariableData(data, AllowIndependentPerts);
+         ValidateVariableDataIndex(n);
+         found = true;
       }
-   }
+   if (!found)
+      return false;
 
-   return retval;
+   // Keep the native all-matching-name behavior, but validate every destination
+   // before updating any of them. SaveAndContinue's no-op remains above checks.
+   for (UnsignedInt n = 0; n < variableNames.size(); ++n)
+      if (variableNames[n] == name)
+      {
+         variable[n] = values[0];
+         variableInitialValues[n] = values[0];
+         perturbation[n] = values[1];
+         variableMinimum[n] = values[2];
+         variableMaximum[n] = values[3];
+         variableMaximumStep[n] = values[4];
+         unscaledVariable[n] = values[5];
+      }
+   return true;
+}
+
+// Refresh one registered control without merging equal literal spellings.
+// Named resource controls continue to use the all-matching-name method above.
+bool Solver::RefreshSolverVariable(Real *data, Integer id, const std::string &name)
+{
+   if (hasFired && (exitMode == RETAIN))
+      return true;
+   if (id < 0 || static_cast<UnsignedInt>(id) >= variableNames.size() ||
+         variableNames[id] != name)
+      return false;
+
+   const std::array<Real, 6> values = checkedSolverVariableData(data, AllowIndependentPerts);
+   ValidateVariableDataIndex(id);
+   variable[id] = values[0];
+   variableInitialValues[id] = values[0];
+   perturbation[id] = values[1];
+   variableMinimum[id] = values[2];
+   variableMaximum[id] = values[3];
+   variableMaximumStep[id] = values[4];
+   unscaledVariable[id] = values[5];
+   return true;
 }
 
 
@@ -1572,6 +1684,7 @@ std::string Solver::GetProgressString()
 void Solver::FreeArrays()
 {
    variable.clear();
+   unscaledVariable.clear();
    variableInitialValues.clear();
    perturbation.clear();
    variableMinimum.clear();

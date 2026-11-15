@@ -1,13 +1,29 @@
-// Internal serialization checks for CCSDS 502.0-B-1, sections 4.3.1, 4.3.3(h),
-// and 4.3.6. These helpers do not change the stored identifiers or comments.
+// Internal serialization checks for CCSDS 502.0-B-1, sections 4.3.1, 4.3.3,
+// 4.3.5 and 4.3.6. These helpers do not change stored values.
 #ifndef CcsdsOemB1Text_hpp
 #define CcsdsOemB1Text_hpp
 
 #include "UtilityException.hpp"
+#include <cmath>
 #include <string>
 
 namespace CcsdsOemB1Text
 {
+   static inline void RequireState(Real epoch, const Real *state, Integer size)
+   {
+      // B-1 decimal fields cannot represent NaN or infinity. Check before
+      // buffering so an invalid sample cannot flush or enter a valid segment.
+      if (!std::isfinite(epoch))
+         throw UtilityException("CCSDS OEM 1.0 EPOCH must be finite");
+      if (!state || size < 6)
+         throw UtilityException("CCSDS OEM 1.0 requires six Cartesian state components");
+      const char *fields[] = {"X", "Y", "Z", "X_DOT", "Y_DOT", "Z_DOT"};
+      for (Integer i = 0; i < 6; ++i)
+         if (!std::isfinite(state[i]))
+            throw UtilityException(std::string("CCSDS OEM 1.0 ") + fields[i] +
+               " must be finite");
+   }
+
    static inline std::string MetadataLine(const std::string &field, const std::string &value)
    {
       return field + std::string(field.size() < 21 ? 21-field.size() : 1, ' ') + "= " + value + "\n";

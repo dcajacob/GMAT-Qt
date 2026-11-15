@@ -43,6 +43,7 @@ public:
    Optimize(const Optimize& o);
    Optimize& operator=(const Optimize& o);
    virtual ~Optimize();
+   void RetireFunctionBindings(ObjectMap *store) override;
     
    // Inherited methods that need some enhancement from the base class
    virtual bool        Append(GmatCommand *cmd);

@@ -47,6 +47,7 @@ class GMAT_API Achieve : public SolverSequenceCommand
 public:
    Achieve();
    virtual ~Achieve();
+   void RetireFunctionBindings(ObjectMap *store) override;
     
    Achieve(const Achieve& t);
    Achieve&             operator=(const Achieve& t);
@@ -76,6 +77,10 @@ public:
    virtual Real        SetRealParameter(const Integer id,
                                         const Real value);
    virtual std::string GetStringParameter(const Integer id) const;
+   virtual bool        GetBooleanParameter(const Integer id) const;
+   virtual bool        GetBooleanParameter(const std::string &label) const;
+   virtual bool        SetBooleanParameter(const Integer id, const bool value);
+   virtual bool        SetBooleanParameter(const std::string &label, const bool value);
    virtual bool        SetStringParameter(const Integer id,
                                           const char *value);
    virtual bool        SetStringParameter(const Integer id, 
@@ -113,7 +118,7 @@ protected:
    /// Name of the goal
    std::string         goalName;
    /// Target value for the goal
-   ElementWrapper      *goal;   // can be any kind of wrapper except a NumberWrapper
+   ElementWrapper      *goal;   // NumberWrapper requires explicit opt-in
    /// String form of target value for the goal
    std::string         achieveName;  // arg1
    /// Parameter used for floating end point goals
@@ -130,6 +135,8 @@ protected:
    bool                targeterDataFinalized;
    /// Last computed achieved value, defaulted to 0.0
    Real                achievedValue;
+   bool                allowConstantGoal;
+   bool                constantGoalOptionSpecified;
    
    void SetTolerance(Real value);
    
@@ -140,6 +147,7 @@ protected:
       goalValueID,
       toleranceID,
       achievedValueID,
+      allowConstantGoalID,
       AchieveParamCount
    };
    static const std::string

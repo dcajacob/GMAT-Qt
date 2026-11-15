@@ -1,0 +1,65 @@
+#define main retainedCommandLifecycleMain
+#include "NasaCommandLifecycleTests.cpp"
+#undef main
+#include "AcceptancePlatform.hpp"
+#include "AcceptanceView.hpp"
+#include "Achieve.hpp"
+#include "Moderator.hpp"
+#include "SolverBranchCommand.hpp"
+#include "Solver.hpp"
+#include <QCheckBox>
+#include <QScrollArea>
+#include <QTest>
+
+int main(int argc,char **argv)
+{
+   QApplication app(argc,argv);app.setOrganizationName("GMATTests");app.setApplicationName("AchieveConstantGoal");
+   try{
+      require(argc==2&&acceptanceWidgetPlatform(),"Supply constant-goal GUI startup");TestSettings settings;QTemporaryDir files;require(files.isValid(),"Constant-goal files unavailable");
+      const auto startup=QFileInfo(argv[1]).absoluteFilePath();QDir::setCurrent(QFileInfo(startup).absolutePath());CommandCase test(startup,QJsonObject{{"key","AchieveConstantGoal"}});acceptanceView(test.window);
+      const auto evidence=qEnvironmentVariable("GMAT_QT_ACCEPTANCE_DIR");auto save=[&](const QString &name,const QByteArray &bytes){if(!evidence.isEmpty()){QFile file(QDir(evidence).filePath(name));require(file.open(QIODevice::WriteOnly)&&file.write(bytes)==bytes.size(),"Constant-goal evidence write failed");}};
+      const auto report=files.filePath("constant goals.csv");const QString oldStatement="Achieve 'Goal Δ' DC(Quantity = 9, {Tolerance = 0.0000000001});";
+      QString initial="% Preserve constant-goal source Ω\nCreate Variable U Quantity Keep After;\nU = 1;\nQuantity = 0;\nKeep = 41;\nAfter = 0;\nCreate DifferentialCorrector DC;\nDC.ShowProgress = false;\nDC.MaximumIterations = 10;\nDC.ReportFile = '"+files.filePath("DC.txt")+"';\nCreate ReportFile Values;\nValues.Filename = '"+report+"';\nValues.WriteHeaders = false;\nValues.FixedWidth = false;\nValues.Delimiter = ',';\nValues.Precision = 17;\nBeginMissionSequence;\nTarget DC {SolveMode = Solve, ExitMode = SaveAndContinue, ShowProgressWindow = false};\nVary DC(U = 1, {Perturbation = 0.01, Lower = -10, Upper = 10, MaxStep = 10});\nQuantity = 2 * U + 1;\n"+oldStatement+"\nEndTarget;\nAfter = 7;\nReport Values U Quantity Keep After;\n% Preserve final source Ω\n";
+      test.script->setPlainText(initial);require(test.window.buildScript(),"Reference Goal baseline Build failed");save("initial.script",initial.toUtf8());
+      auto nativeGoal=[&]{SolverBranchCommand *branch=nullptr;for(auto *c=Moderator::Instance()->GetFirstCommand();c;c=c->GetNextWhileExecuting())if(c->GetTypeName()=="Target"){branch=dynamic_cast<SolverBranchCommand *>(c);break;}require(branch,"Actual target branch absent");Achieve *goal=nullptr;for(auto *c=branch->GetChildCommand(0);c&&c!=branch;c=c->GetNextWhileExecuting())if((goal=dynamic_cast<Achieve *>(c)))break;require(goal,"Actual measured Goal command absent");return QPair<SolverBranchCommand *,Achieve *>{branch,goal};};
+      auto configured=[&]{QJsonObject result;for(const auto &name:QStringList{"U","Quantity","Keep","After"}){auto *o=Moderator::Instance()->GetConfiguredObject(name.toStdString());require(o,"Configured variable absent");result[name]=o->GetRealParameter("Value");}return result;};
+      QJsonArray runs,rejections,pickers,operations;
+      auto run=[&](const QString &name,bool constant,double measured){
+         QFile::remove(report);require(test.window.runMission()==MainWindow::RunResult::Completed,"Constant-goal GUI mission did not complete");QFile file(report);require(file.open(QIODevice::ReadOnly),"Constant-goal report missing");const auto raw=file.readAll();save(name+"-values.csv",raw);const auto fields=QString::fromUtf8(raw).trimmed().split(',');require(fields.size()==4,"Constant-goal report width differs");const QList<double> truth{constant?1.:4.,constant?3.:9.,41.,7.};QJsonArray values;
+         for(int i=0;i<4;++i){bool ok=false;double value=fields[i].toDouble(&ok);require(ok&&std::isfinite(value)&&std::abs(value-truth[i])<=(i<2?1e-8:0),"Constant-goal raw result differs from independent linear/literal truth");values.append(value);}
+         const auto native=nativeGoal();auto *solver=dynamic_cast<Solver *>(native.first->GetClone(0));require(solver&&solver->GetIntegerParameter(solver->GetParameterID("IntegerSolverStatus"))==Gmat::CONVERGED,"Actual GUI target solver did not converge");const auto id=native.second->GetParameterID("AchievedValue");const auto value=native.second->GetRealParameter(id);require(std::abs(value-measured)<1e-8&&value==native.second->GetNumber(id)&&native.second->GetBooleanParameter("AllowConstantGoal")==constant,"Actual measured Goal/accessors/policy differ");
+         runs.append(QJsonObject{{"phase",name},{"constant",constant},{"measured",value},{"values",values},{"expected",QJsonArray{truth[0],truth[1],truth[2],truth[3]}},{"source",test.script->toPlainText()}});
+      };
+      run("default-reference",false,9);const auto nativeBaseline=configured();
+      auto open=[&]{test.context(test.index("Goal Δ"),"Edit command…");test.child()->showNormal();test.child()->resize(test.area->viewport()->size());acceptanceView(*test.child());};
+      auto reveal=[&](QWidget *widget){require(widget&&widget->isEnabled(),"Constant-goal control absent/disabled");for(auto *p=widget->parentWidget();p;p=p->parentWidget())if(auto *scroll=qobject_cast<QScrollArea *>(p))scroll->ensureWidgetVisible(widget);test.events();require(widget->isVisible(),"Constant-goal control hidden");acceptanceView(*test.child());};
+      auto field=[&](const QString &name){auto *f=test.child()->findChild<QLineEdit *>("commandField_"+name);reveal(f);return f;};
+      auto enter=[&](const QString &name,const QString &value){auto *f=field(name);f->setFocus();f->selectAll();QTest::keyClicks(f,value);test.events();require(field(name)->text()==value,"Constant-goal typed input lost");};
+      auto check=[&]{auto *control=test.child()->findChild<QCheckBox *>("commandCheck_AllowConstantGoal");reveal(control);return control;};
+      auto toggle=[&](bool value){if(check()->isChecked()!=value)QTest::mouseClick(check(),Qt::LeftButton,Qt::NoModifier,QPoint(8,check()->height()/2));test.events();require(check()->isChecked()==value,"Constant-goal option click lost");};
+      auto click=[&](QDialogButtonBox::StandardButton action){auto *buttons=test.child()->findChild<QDialogButtonBox *>();require(buttons&&buttons->button(action),"Constant-goal panel action absent");reveal(buttons->button(action));QTest::mouseClick(buttons->button(action),Qt::LeftButton);test.events();};
+      auto defaults=[&]{auto *button=test.child()->findChild<QPushButton *>("commandAddOptions");reveal(button);QTest::mouseClick(button,Qt::LeftButton);test.events();require(!check()->isChecked(),"Native constant-goal default is not false");};
+      auto picker=[&](const QString &literal,bool allowed,bool accept){
+         auto *button=test.child()->findChild<QPushButton *>("commandChoose_Goal");reveal(button);bool delivered=false;std::exception_ptr failure;QTimer timer;timer.setSingleShot(true);
+         QObject::connect(&timer,&QTimer::timeout,&test.window,[&]{try{auto *dialog=qobject_cast<QDialog *>(QApplication::activeModalWidget());require(dialog&&dialog->objectName()=="reportParameterDialog","Actual measured Goal selector missing");delivered=true;acceptanceView(*dialog);auto *entry=dialog->findChild<QComboBox *>("reportParameterEntry");auto *buttons=dialog->findChild<QDialogButtonBox *>();require(entry&&entry->isEditable()&&buttons,"Measured Goal selector controls absent");entry->setEditText(literal);test.events();require(buttons->button(QDialogButtonBox::Ok)->isEnabled()==allowed,"Measured Goal selector numeric policy differs");pickers.append(QJsonObject{{"value",literal},{"allowed",allowed},{"accepted",accept}});QTest::mouseClick(buttons->button(accept?QDialogButtonBox::Ok:QDialogButtonBox::Cancel),Qt::LeftButton);}catch(...){failure=std::current_exception();if(auto *dialog=qobject_cast<QDialog *>(QApplication::activeModalWidget()))dialog->reject();}});
+         timer.start(0);QTest::mouseClick(button,Qt::LeftButton);timer.stop();if(failure)std::rethrow_exception(failure);require(delivered,"Goal selector returned without modal delivery");test.events();if(accept)require(field("Goal")->text()==literal,"Selected finite literal was not the measured Goal");
+      };
+      auto reject=[&](const QString &literal){
+         const auto before=test.script->toPlainText();const auto steps=test.script->document()->availableUndoSteps();const auto native=configured();enter("Goal",literal);
+         for(auto action:{QDialogButtonBox::Apply,QDialogButtonBox::Ok}){QPointer<QMdiSubWindow> owner=test.child();click(action);auto *status=owner?owner->findChild<QLabel *>("commandStatus"):nullptr;require(owner&&owner==test.child()&&test.script->toPlainText()==before&&test.script->document()->availableUndoSteps()==steps&&configured()==native&&field("Goal")->text()==literal&&status&&!status->text().isEmpty(),"Invalid numeric Goal changed source/model/history or closed its panel");rejections.append(QJsonObject{{"value",literal},{"action",action==QDialogButtonBox::Apply?"Apply":"OK"},{"status",status->text()}});}
+      };
+      open();const auto initialSteps=test.script->document()->availableUndoSteps();defaults();picker("1.25",false,false);reject("1.25");click(QDialogButtonBox::Cancel);require(test.script->toPlainText()==initial&&test.script->document()->availableUndoSteps()==initialSteps&&configured()==nativeBaseline,"Default-option draft Cancel changed source/native/history");operations.append("default-false-and-draft-cancel");
+      QString previous=initial;
+      for(int sample=0;sample<2;++sample){
+         const QString goal=sample?"-2.5e-1":"1.25",desired=sample?"-0.25":"1.25";const double measured=sample?-.25:1.25;open();if(!test.child()->findChild<QCheckBox *>("commandCheck_AllowConstantGoal"))defaults();toggle(true);
+         if(!sample){for(const auto &bad:QStringList{"nan","inf","1e309"})picker(bad,false,false);reject("1e309");}
+         picker(goal,true,true);enter("Value",desired);require(test.script->toPlainText()==previous,"Pending constant-goal edit committed before Apply");
+         click(QDialogButtonBox::Apply);const auto applied=test.script->toPlainText();const auto oldGoal=sample?QString("Achieve 'Goal Δ' DC(1.25 = 1.25, {Tolerance = 0.0000000001, AllowConstantGoal = true});"):oldStatement;
+         const auto newGoal="Achieve 'Goal Δ' DC("+goal+" = "+desired+", {Tolerance = 0.0000000001, AllowConstantGoal = true});";require(applied==QString(previous).replace(oldGoal,newGoal),"Opt-in Goal edit changed unrelated source or serialized the wrong option");save(QString("literal-%1.script").arg(sample),applied.toUtf8());test.close();test.script->undo();require(test.script->toPlainText()==previous&&test.window.buildScript(),"Constant-goal Undo did not restore exact prior source");test.script->redo();require(test.script->toPlainText()==applied&&test.window.buildScript(),"Constant-goal Redo did not restore exact policy/source");run(QString("literal-%1").arg(sample),true,measured);
+         const auto path=files.filePath(QString("Goal Δ %1.script").arg(sample));require(test.window.saveScriptTo(path)&&test.window.loadScript(path)&&test.window.buildScript()&&test.script->toPlainText()==applied,"Constant-goal Unicode Save/reopen changed source");run(QString("reopened-%1").arg(sample),true,measured);
+         open();toggle(false);picker(goal,false,false);reject(goal);click(QDialogButtonBox::Cancel);require(test.script->toPlainText()==applied&&nativeGoal().second->GetBooleanParameter("AllowConstantGoal"),"False-policy draft Cancel changed the retained true policy");previous=applied;operations.append(QString("literal-%1-edit-history-reopen").arg(sample));
+      }
+      open();toggle(false);enter("Goal","Quantity");enter("Value","9");click(QDialogButtonBox::Apply);const auto compatibility=test.script->toPlainText();require(compatibility==QString(initial).replace(oldStatement,"Achieve 'Goal Δ' DC(Quantity = 9, {Tolerance = 0.0000000001, AllowConstantGoal = false});"),"Explicit false reference compatibility serialization differs");test.close();run("explicit-false-reference",false,9);save("explicit-false-reference.script",compatibility.toUtf8());operations.append("explicit-false-reference-compatible");
+      save("messages.txt",test.window.findChild<QPlainTextEdit *>("messageWindow")->toPlainText().toUtf8());const QJsonObject proof{{"checkpoint","numeric-measured-Achieve-Goal"},{"outcome","passed"},{"runs",runs},{"picker_checks",pickers},{"rejections",rejections},{"operations",operations},{"original_assertion_changes",0},{"scope","Opted-in finite literal measured Goal, preserved default/explicit false behavior and actual editor transactions. No whole Achieve type parent or solver science qualification."}};save("proof.json",QJsonDocument(proof).toJson());std::cout<<"NASA_CHECK "<<QJsonDocument(proof).toJson(QJsonDocument::Compact).constData()<<std::endl;return 0;
+   }catch(BaseException &e){std::cerr<<e.GetFullMessage()<<std::endl;}catch(std::exception &e){std::cerr<<e.what()<<std::endl;}return 1;
+}

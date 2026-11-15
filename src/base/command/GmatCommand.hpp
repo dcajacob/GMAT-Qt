@@ -35,6 +35,9 @@
 
 
 #include <map>              // for mapping between object names and types
+#include <functional>
+#include <utility>
+#include <typeinfo>
 #include "gmatdefs.hpp"
 #include "GmatBase.hpp"
 #include "CommandException.hpp"
@@ -87,6 +90,10 @@ public:
    GmatCommand(const GmatCommand &c);
    // Assignment operator
    GmatCommand&         operator=(const GmatCommand &c);
+
+   // Definition links are structural; GetNext() may instead report an active
+   // execution cursor. The bool marks native deletion ownership of each edge.
+   using DefinitionCommandLinks = std::vector<std::pair<GmatCommand*, bool>>;
    
    void                 SetGeneratingString(const std::string &gs);
    virtual const std::string&  
@@ -248,7 +255,20 @@ public:
    virtual void        SetDataPublishingFlag(bool allow) { isAllowDataPublishing = allow; };
    virtual bool        GetDataPublishingFlag() { return isAllowDataPublishing; };
 
+   virtual DefinitionCommandLinks GetDefinitionCommandLinks() const;
+   virtual void RebindClonedCommandLinks(const GmatCommand &source,
+         const std::function<GmatCommand*(const GmatCommand*)> &resolve);
+   virtual void DetachCommandLinks() noexcept;
+   // Called before this actual function scope is destroyed, after RunComplete.
+   virtual void RetireFunctionBindings(ObjectMap *store);
+   virtual ObjectArray GetCommandOwnedObjects() const;
+
 protected:
+   // Resources can be borrowed by owned branch and following commands. Keep
+   // their owners through this command's destructor, which retires next first.
+   std::vector<std::shared_ptr<const void>> commandResourceOwners;
+   void RetainCommandResourceOwner(const std::shared_ptr<const void> &owner);
+
    enum
    {
       COMMENT = GmatBaseParamCount,

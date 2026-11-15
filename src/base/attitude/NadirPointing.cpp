@@ -38,6 +38,7 @@
 //#define DEBUG_NADIR_REF_OBJECT
 
 #include "Attitude.hpp"
+#include <memory>
 #include "AttitudeException.hpp"
 #include "MessageInterface.hpp"
 
@@ -167,7 +168,9 @@ bool NadirPointing::Initialize()
 //------------------------------------------------------------------------------
 GmatBase* NadirPointing::Clone() const
 {
-	return (new NadirPointing(*this)); //???(YRL)
+	std::unique_ptr<NadirPointing> value(new NadirPointing(*this));
+   value->RebindFunctionValueContext(*this);
+   return value.release(); //???(YRL)
 }
 
 
@@ -730,13 +733,23 @@ std::vector<Rmatrix33> NadirPointing::GetRotationMatrixDerivative(GmatTime &atTi
    // RBi calculation using TRIAD (from LVLH to body frame)
    Rmatrix33 RiB = TRIAD(bodyAlignmentVector, bodyConstraintVector, referenceVector, constraintVector);
 
-   std::vector<Rmatrix33> MTDeriv;
-   MTDeriv.push_back(dxHatdr*RiB);
-   MTDeriv.push_back(dyHatdr*RiB);
-   MTDeriv.push_back(dzHatdr*RiB);
-   MTDeriv.push_back(dxHatdv*RiB);
-   MTDeriv.push_back(dyHatdv*RiB);
-   MTDeriv.push_back(dzHatdv*RiB);
+   // Each matrix differentiates the full body-to-inertial rotation with
+   // respect to one state coordinate, ordered x, y, z, vx, vy, vz.
+   std::vector<Rmatrix33> MTDeriv(6);
+   for (Integer coordinate = 0; coordinate < 3; ++coordinate)
+   {
+      for (Integer row = 0; row < 3; ++row)
+      {
+         MTDeriv[coordinate](row, 0) = dxHatdr(row, coordinate);
+         MTDeriv[coordinate](row, 1) = dyHatdr(row, coordinate);
+         MTDeriv[coordinate](row, 2) = dzHatdr(row, coordinate);
+         MTDeriv[coordinate + 3](row, 0) = dxHatdv(row, coordinate);
+         MTDeriv[coordinate + 3](row, 1) = dyHatdv(row, coordinate);
+         MTDeriv[coordinate + 3](row, 2) = dzHatdv(row, coordinate);
+      }
+   }
+   for (auto &derivative : MTDeriv)
+      derivative = derivative * RiB;
    
    return MTDeriv;
 }
@@ -757,5 +770,7 @@ void NadirPointing::Copy(const GmatBase *original)
       throw GmatBaseException("Cannot copy incompatible object into NadirPointing");
    if (source == this)
       return;
+   const auto previousContext = GetFunctionValueContext();
    operator=(*source);
+   RebindFunctionValueContext(*source);
 }

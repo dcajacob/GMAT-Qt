@@ -28,7 +28,24 @@
  */
 //------------------------------------------------------------------------------
 
+#include "ExpressionBinding.hpp"
+#include <memory>
+#include <typeinfo>
 #include "Pause.hpp"
+#include "NativeValueProvider.hpp"
+
+namespace
+{
+const NativeValueProviderRegistration pauseValueProvider({
+   Pause::NativeValueProviderDepth,
+   [](const GmatBase *object) { return dynamic_cast<const Pause*>(object) != nullptr; },
+   nullptr,
+   [](GmatBase *object, const GmatBase &source, SolarSystem *system, const std::function<GmatBase*(GmatBase*)> &resolve) { return dynamic_cast<Pause*>(object)->RebindFunctionValueReferencesImpl(source, system, resolve); },
+   nullptr,
+   nullptr,
+   nullptr
+});
+}
 #include "FunctionException.hpp"
 #include "RealUtilities.hpp"       // for Pause()
 #include "MessageInterface.hpp"
@@ -65,7 +82,9 @@
  */
 //------------------------------------------------------------------------------
 Pause::Pause(const std::string &typeStr, const std::string &name) :
-   BuiltinGmatFunction(typeStr, name)
+   BuiltinGmatFunction(typeStr, name),
+   pauseValue (0),
+   pauseReal (0.0)
 {
    objectTypeNames.push_back(typeStr);
    objectTypeNames.push_back("Pause");
@@ -102,9 +121,9 @@ Pause::~Pause()
  */
 //------------------------------------------------------------------------------
 Pause::Pause(const Pause &f) :
-   BuiltinGmatFunction  (f),
-   pauseValue           (f.pauseValue),
-   pauseReal            (f.pauseReal)
+   BuiltinGmatFunction(f),
+   pauseValue (f.pauseValue),
+   pauseReal (f.pauseReal)
 {
 }
 
@@ -122,13 +141,10 @@ Pause::Pause(const Pause &f) :
 //------------------------------------------------------------------------------
 Pause& Pause::operator=(const Pause &f)
 {
-   if (this != &f)
-   {
-      BuiltinGmatFunction::operator=(f);
-      pauseValue = f.pauseValue;
-      pauseReal  = f.pauseReal;
-   }
-
+   if (this == &f) return *this;
+   BuiltinGmatFunction::operator=(f);
+   pauseValue = f.pauseValue;
+   pauseReal = f.pauseReal;
    return *this;
 }
 
@@ -163,9 +179,7 @@ void Pause::SetOutputTypes(WrapperTypeArray &outputTypes,
    #endif
 
    // Set output wrapper type for Pause
-   outputWrapperTypes = outputTypes;
-   outputRowCounts = rowCounts;
-   outputColCounts = colCounts;
+   Function::SetOutputTypes(outputTypes, rowCounts, colCounts);
 }
 
 //------------------------------------------------------------------------------
@@ -379,7 +393,15 @@ void Pause::Finalize(bool cleanUp)
 //------------------------------------------------------------------------------
 GmatBase* Pause::Clone() const
 {
-   return (new Pause(*this));
+   std::unique_ptr<Pause> value;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      value.reset(new Pause(*this));
+   }
+   if (typeid(*value) != typeid(*this))
+      throw FunctionException("A derived Pause must provide its complete Clone.\n");
+   value->RebindFunctionValueContext(*this);
+   return value.release();
 }
 
 
@@ -394,5 +416,38 @@ GmatBase* Pause::Clone() const
 //---------------------------------------------------------------------------
 void Pause::Copy(const GmatBase* orig)
 {
-   operator=(*((Pause *)(orig)));
+   const auto *source = dynamic_cast<const Pause*>(orig);
+   if (!source || typeid(*this) != typeid(Pause) || typeid(*this) != typeid(*source))
+      throw FunctionException("Incompatible Pause value copy or missing derived Copy.\n");
+   if (source == this) return;
+   const auto previousContext = GetFunctionValueContext();
+   const auto previousFunctionBindings = functionBindings;
+   const auto previousObjectBindings = objectBindings;
+   {
+      FunctionValueCopyGuard nativeCopy;
+      operator=(*source);
+   }
+   RebindFunctionValueContext(*source);
+}
+
+
+bool Pause::RebindFunctionValueReferencesImpl(const GmatBase &original,
+      SolarSystem *, const std::function<GmatBase*(GmatBase*)> &resolve)
+{
+   const auto *source = dynamic_cast<const Pause*>(&original);
+   if (!source || typeid(*this) != typeid(Pause) || typeid(original) != typeid(Pause))
+      throw FunctionException("Derived Pause references need their own passive provider.\n");
+   RebindObjectManagedFunctionValue(*source, resolve);
+   return true;
+}
+
+bool Pause::HasFunctionValueReferenceProvider() const
+{
+   return typeid(*this) == typeid(Pause);
+}
+
+std::unique_ptr<FunctionInvocationState> Pause::SuspendInvocationState()
+{
+   return CaptureInvocationFields(BuiltinGmatFunction::SuspendInvocationState(),
+         pauseValue, pauseReal);
 }
