@@ -1,9 +1,15 @@
 GMAT Qt desktop alpha
 =====================
 
-GMAT Qt provides a Qt 6 desktop interface and related engine improvements for
-NASA's General Mission Analysis Tool. Version 0.1.0-alpha.4 provides prebuilt
-packages for Linux x86-64, Windows x64, and Apple Silicon and Intel Macs.
+GMAT Qt is an independent fork of NASA's
+`General Mission Analysis Tool (GMAT) <https://github.com/nasa/GMAT>`_.
+It adds a Qt 6 desktop interface and includes changes to the GMAT engine and
+plugins. The upstream `GMAT project website <https://gmat.atlassian.net/wiki/spaces/GW/overview>`_
+provides project information and documentation, and the
+`NASA GMAT Git repository <https://github.com/nasa/GMAT>`_ hosts the upstream source.
+
+Version 0.1.0-alpha.4 provides prebuilt packages for Linux x86-64, Windows x64,
+and Apple Silicon and Intel Macs.
 
 For the user-facing changes from stock GMAT R2026a, engine compatibility,
 validation scope and exact source inventories, see
