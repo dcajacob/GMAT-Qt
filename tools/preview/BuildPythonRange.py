@@ -137,6 +137,17 @@ def main():
         assert len(candidates) == 1, candidates
         destination = root/'Contents/MacOS'/executable if args.platform.startswith('macos') else root/'bin'/executable
         shutil.copy2(candidates[0], destination)
+        if args.platform.startswith('macos'):
+            for line in subprocess.check_output(['otool', '-L', str(destination)], text=True).splitlines()[1:]:
+                old = line.strip().split(' (', 1)[0]
+                if old.startswith(('/usr/lib/', '/System/')):
+                    continue
+                suffix = old[old.index('/Qt')+1:] if '/Qt' in old and '.framework/' in old else Path(old).name
+                matches = [p for p in root.rglob(Path(old).name) if p.is_file() and p.as_posix().endswith(suffix)]
+                assert matches, ('Unpackaged GUI dependency', old)
+                dependency = min(matches, key=lambda p: len(str(p)))
+                replacement = '@executable_path/'+os.path.relpath(dependency, destination.parent)
+                subprocess.run(['install_name_tool', '-change', old, replacement, str(destination)], check=True)
         metadata['gui_source_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     metadata.update(python_versions=list(VERSIONS), python_builds=versions,
                     bindings_source_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
@@ -159,7 +170,7 @@ def main():
             for line in dependencies:
                 old = line.strip().split(' (', 1)[0]
                 for native, path in native_libraries.items():
-                    if Path(old).name == path.name:
+                    if Path(old).name.startswith('lib'+native) and Path(old).name.endswith('.dylib'):
                         replacement = '@loader_path/'+os.path.relpath(path, extension.parent)
                         subprocess.run(['install_name_tool', '-change', old, replacement, str(extension)], check=True)
             subprocess.run(['codesign', '--force', '--sign', '-', str(extension)], check=True)
