@@ -70,7 +70,7 @@ try:
 except Exception:
     pass
 else:
-    raise AssertionError('Unknown class must be rejected')
+    raise AssertionError('Unknown field must be rejected')
 print(json.dumps({'status':'passed', 'python':sys.version, 'implementation':sys.implementation.name}))
 ''')
     builder.ROOT, builder.LOGS = workspace/'package-probe', output/'package-checks'

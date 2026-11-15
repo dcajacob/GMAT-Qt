@@ -85,6 +85,11 @@ add_library(GmatQtFrontend STATIC McpBridge.cpp McpBridge.hpp MainWindow.cpp Mai
    PlotModel.cpp PlotModel.hpp PlotWidget.cpp PlotWidget.hpp PlotIcons.hpp QtPlotReceiver.cpp QtPlotReceiver.hpp)
 target_link_libraries(GmatQtFrontend PUBLIC Qt6::Widgets Qt6::OpenGLWidgets GmatBase GmatUtil ${OPENSCENEGRAPH_LIBRARIES})
 target_link_libraries(GmatQtFrontend PUBLIC Qt6::Network)
+if(WIN32)
+   target_link_libraries(GmatQtFrontend PRIVATE advapi32)
+elseif(APPLE)
+   target_link_libraries(GmatQtFrontend PRIVATE "-framework Security" "-framework CoreFoundation")
+endif()
 target_include_directories(GmatQtFrontend PUBLIC ${OPENSCENEGRAPH_INCLUDE_DIRS})
 get_filename_component(qt_osg_library_dir "${OSG_LIBRARY_RELEASE}" DIRECTORY)
 target_compile_definitions(GmatQtFrontend PRIVATE
@@ -6903,11 +6908,6 @@ if(GMAT_QT_BUILD_TESTS)
    set_tests_properties(QtGui.McpBridge PROPERTIES LABELS qt-gui TIMEOUT 60)
 endif()
 
-if(WIN32)
-   target_link_libraries(GmatQtFrontend PRIVATE advapi32)
-elseif(APPLE)
-   target_link_libraries(GmatQtFrontend PRIVATE "-framework Security" "-framework CoreFoundation")
-endif()
 
 if(GMAT_QT_BUILD_TESTS AND WIN32)
    set_property(TEST QtGui.McpBridge PROPERTY ENVIRONMENT "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:GmatQt>")
