@@ -3,6 +3,9 @@ name: Python 3.12-3.15 archive qualification
 on:
   workflow_dispatch:
     inputs:
+      complete_run:
+        description: Complete only a pending Python-free archive check
+        default: ''
       base_run:
         description: Run containing the qualified native alpha archives
         default: '43679260817'
@@ -33,6 +36,7 @@ permissions:
 
 jobs:
   package:
+    if: inputs.complete_run == ''
     strategy:
       fail-fast: false
       matrix:
@@ -119,7 +123,9 @@ jobs:
               builder.run([sys.executable, '-m', 'aqt', 'install-qt', 'linux', 'desktop', '6.10.2', 'linux_gcc_64', '-O', builder.DEPS/'qt'], 'qt-install')
               paths = [builder.DEPS/'qt/6.10.2/gcc_64', pathlib.Path('/usr')]
           elif target.startswith('windows'):
-              if not (builder.DEPS/'osg/include/osg/Node').exists():
+              if not (builder.DEPS/'osg/lib/OpenThreads.lib').exists():
+                  receipt = builder.DEPS/'osg/preview-sdk-sha256.json'
+                  receipt.unlink(missing_ok=True)
                   paths = list(builder.dependencies(target))
               else:
                   builder.run([sys.executable, '-m', 'pip', 'install', 'aqtinstall==3.3.0'], 'aqt-install')
@@ -184,4 +190,34 @@ jobs:
             build/python-range/result/staging/*/bin/gmatpy/
             build/python-range/result/staging/*/GMAT-Qt.app/Contents/Resources/gmatpy/
             build/preview-package/logs/
+          retention-days: 30
+
+  complete:
+    if: inputs.complete_run != ''
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-range-${{ inputs.version }}-${{ inputs.platform }}
+          run-id: ${{ inputs.complete_run }}
+          github-token: ${{ github.token }}
+          path: build/range-completion
+      - name: Prepare the remaining startup check
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xauth libgl1 libglu1-mesa libxcb-cursor0 libxkbcommon-x11-0
+          python tools/preview/CompletePythonRange.py --archive build/range-completion/dist/GMAT-Qt-${{ inputs.version }}-${{ inputs.platform }}.tar.gz --output build/range-completion/verification
+      - name: Run Python-free startup and finalize
+        run: |
+          /usr/bin/cmake -P build/range-completion/verification/without-python.cmake
+          python tools/preview/QualifyPythonRange.py --finish --output build/range-completion/verification
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: python-range-${{ inputs.version }}-${{ inputs.platform }}
+          path: build/range-completion/
           retention-days: 30

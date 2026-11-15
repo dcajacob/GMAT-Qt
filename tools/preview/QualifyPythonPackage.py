@@ -68,6 +68,10 @@ def write_no_python_check(target, root, workspace, logs):
         environment += ['QT_QPA_PLATFORM=xcb', 'LIBGL_ALWAYS_SOFTWARE=1']
         arguments = ['xvfb-run', '-a', '-s', '-screen 0 1600x1000x24', *arguments]
     command = ' '.join(bracket(value) for value in [*environment, *arguments])
+    # A pip-installed cmake may live inside the Python directory being hidden.
+    # Resolve an independent CMake executable before moving that directory.
+    cmake = shutil.which('cmake', path='/usr/bin:/bin') if target.startswith('linux') else None
+    cmake_command = bracket(cmake) if cmake else '"${CMAKE_COMMAND}"'
     text = f'''cmake_minimum_required(VERSION 3.21)
 function(move_python source destination)
   file(RENAME "${{source}}" "${{destination}}" RESULT moved)
@@ -80,7 +84,7 @@ function(move_python source destination)
   endif()
 endfunction()
 move_python({bracket(python_root)} {bracket(hidden)})
-execute_process(COMMAND "${{CMAKE_COMMAND}}" -E env {command}
+execute_process(COMMAND {cmake_command} -E env {command}
   WORKING_DIRECTORY {bracket(workspace)} RESULT_VARIABLE result TIMEOUT 60
   OUTPUT_FILE {bracket(logs/'without-python.stdout')}
   ERROR_FILE {bracket(logs/'without-python.stderr')})
