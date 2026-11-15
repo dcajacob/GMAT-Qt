@@ -65,6 +65,7 @@ public:
 protected:
    
    virtual Rvector          Interpolate(Real atEpoch);
+   bool GetUsableIndexRange(Integer &first, Integer &last) override;
 };
 
 #endif // CCSDSOEMSegment_hpp

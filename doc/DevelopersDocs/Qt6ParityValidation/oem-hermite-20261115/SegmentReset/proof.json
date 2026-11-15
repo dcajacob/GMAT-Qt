@@ -1,0 +1,18 @@
+{
+    "case": "WindowSplit",
+    "degrees": [
+        7,
+        7
+    ],
+    "gui_apply_undo_redo_save_reopen": true,
+    "interpolator": "Hermite",
+    "max_position_error_km": 1.7953573205886642e-06,
+    "max_velocity_error_km_s": 1.9354092772871923e-09,
+    "native_quintic_rolling_clone_reset": true,
+    "original_position_tolerance": 2e-05,
+    "original_velocity_tolerance": 2e-08,
+    "outcome": "passed",
+    "readback_reference": "independent confluent divided differences",
+    "reader_roundtrip": true,
+    "strict_input_and_output_rejection": false
+}

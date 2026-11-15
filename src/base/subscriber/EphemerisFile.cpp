@@ -854,6 +854,8 @@ bool EphemerisFile::Validate()
 //------------------------------------------------------------------------------
 bool EphemerisFile::Initialize()
 {
+   Publisher::SetIntegrationStepConsumer(this,
+         fileFormat == "CCSDS-OEM" && interpolatorName == "Hermite");
    #ifdef DEBUG_EPHEMFILE_INIT
    MessageInterface::ShowMessage
       ("EphemerisFile::Initialize() <%p>'%s' entered, spacecraftName='%s', active=%d, "
@@ -1410,7 +1412,8 @@ Integer EphemerisFile::SetIntegerParameter(const Integer id, const Integer value
    {
    case INTERPOLATION_ORDER:
    {
-      bool violatesHermiteOddness = false;
+      bool violatesHermiteOddness = fileFormat == "CCSDS-OEM" &&
+            interpolatorName == "Hermite" && value < 3;
       if (interpolatorName == "Hermite")
       {
          // Make sure the number is odd
@@ -1432,6 +1435,7 @@ Integer EphemerisFile::SetIntegerParameter(const Integer id, const Integer value
             se.SetDetails(errorMessageFormat.c_str(),
                           GmatStringUtil::ToString(value, 1).c_str(),
                           GetParameterText(INTERPOLATION_ORDER).c_str(),
+                          fileFormat == "CCSDS-OEM" ? "Odd Integer Number in [3, 9]" :
                           "1 <= Odd Integer Number <= 10");
          }
          else
@@ -1665,7 +1669,13 @@ bool EphemerisFile::SetStringParameter(const Integer id, const std::string &valu
    // Interpolator is now set along with file format (bug 2219); if the parm is
    // passed in, just ensure compatibility
    case INTERPOLATOR:
-      if (fileFormat == "CCSDS-OEM" || fileFormat == "Code-500" ||
+      if (fileFormat == "CCSDS-OEM")
+      {
+         if (value != "Lagrange" && value != "Hermite")
+            throw SubscriberException("CCSDS-OEM requires a Lagrange or Hermite interpolator");
+         interpolatorName = value;
+      }
+      else if (fileFormat == "Code-500" ||
           fileFormat == "STK-TimePosVel" || fileFormat == "CK")
       {
          //if (value != "Lagrange")                                                    // made changes by TUAN NGUYEN 
@@ -2045,11 +2055,16 @@ void EphemerisFile::ValidateParameters(bool forInitialization)
             ("FileFormat \"" + fileFormat + "\" and StateType " + "\"" + stateType +
              "\" does not match for the EphemerisFile \"" + GetName() + "\"");
       
+      if (fileFormat == "CCSDS-OEM" && interpolatorName == "Hermite" &&
+            (interpolationOrder < 3 || GmatMathUtil::IsEven(interpolationOrder)))
+         throw SubscriberException("CCSDS-OEM Hermite interpolation requires an odd degree from 3 to 9");
+
       // check interpolator type
       if (stepSize != "IntegratorSteps")
       {
          // check for StateType Cartesian and Interpolator
-         if (stateType == "Cartesian" && interpolatorName != "Lagrange")
+         if (stateType == "Cartesian" && interpolatorName != "Lagrange" &&
+               !(fileFormat == "CCSDS-OEM" && interpolatorName == "Hermite"))
             throw SubscriberException
                ("The Interpolator must be \"Lagrange\" for StateType of \"Cartesian\" for "
                 "the EphemerisFile \"" + GetName() + "\"");
@@ -2427,6 +2442,8 @@ void EphemerisFile::CreateEphemerisWriter()
    candidate->SetBackgroundGeneration(generateInBackground);
    if (!candidate->Initialize())
       throw SubscriberException("Cannot initialize the ephemeris writer for '"+fullPathFileName+"'");
+   if (auto *writer = dynamic_cast<EphemWriterWithInterpolator *>(candidate.get()))
+      writer->SetInterpolationBounds(epochFormat, initialEpochStr, finalEpochStr);
    candidate->CreateEphemerisFile(usingDefaultFileName,stateType,outputFormat,covFormat);
    isEphemFileOpened=candidate->IsEphemFileOpened();
    ephemWriter=candidate.release();
@@ -3539,6 +3556,33 @@ bool EphemerisFile::Distribute(const Real *dat, Integer len)
       spk->SetPublishedEpoch(precise ? &epoch : NULL);
    }
    
+   if (fileFormat == "CCSDS-OEM" && interpolatorName == "Hermite")
+   {
+      GmatTime epoch;
+      bool precise = Publisher::GetPublishedSpacecraftEpoch(dat, len, spacecraft, epoch) ||
+            Publisher::GetPublishedEpoch(dat, len, epoch);
+      // Committed integration records retain local-second timing even when
+      // the ordinary spacecraft packet uses a rounded MJD clock.
+      if (const auto *steps = Publisher::GetPublishedIntegrationSteps(dat, len))
+         for (auto step = steps->rbegin(); step != steps->rend(); ++step)
+         {
+            const auto sample = std::find_if(step->states.begin(), step->states.end(),
+                  [&](const Publisher::CartesianSample &value) {
+                     return value.object == spacecraft &&
+                           std::abs(value.epoch.GetMjd() - currEpochInDays) < 1.0e-11;
+                  });
+            if (sample != step->states.end())
+            {
+               epoch = sample->epoch;
+               precise = true;
+               break;
+            }
+         }
+      if (precise)
+         if (auto *writer = dynamic_cast<EphemWriterWithInterpolator *>(ephemWriter))
+            writer->SetPublishedEpoch(epoch);
+   }
+
    // To compute block time span for use in the error message (LOJ: 2014.04.30)
    // Save block begin time
    if (blockBeginA1Mjd == -999.999)

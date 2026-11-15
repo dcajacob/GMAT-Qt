@@ -912,13 +912,13 @@ void EphemWriterCCSDS::FinishUpWritingOrbitData()
          Integer numPoints = interpolator->GetPointCount();
          RequireInterpolationData(numPoints,"interpolation input samples");
 
-         if (numPoints < (interpolationOrder + 1))
+         if (numPoints < GetInterpolationPointCount())
             MessageInterface::ShowMessage("WARNING: Not enough points provided to "
                "the " + interpolatorName + " interpolator of order " +
                GmatStringUtil::ToString(interpolationOrder, 0) + " for ephemeris "
                "file \"" + fileName + "\", segment " +
                GmatStringUtil::ToString(numSegments, 0) + ". The order will be "
-               "reduced to " + GmatStringUtil::ToString(numPoints - 1, 0) +
+               "reduced to " + GmatStringUtil::ToString(GetSupportedInterpolationOrder(numPoints), 0) +
                " for this segment.\n");
 
          allowLowerOrder = true;
@@ -1329,10 +1329,7 @@ void EphemWriterCCSDS::WriteCcsdsOemMetaData()
    if (metaDataWriteOption == 2)
    {
       RequireInterpolationData(numPoints,"exported OEM records");
-      if (numPoints <= interpolationOrder)
-      {
-         actualInterpOrder = numPoints > 0 ? numPoints - 1 : 0;
-      }
+      actualInterpOrder = GetSupportedInterpolationOrder(numPoints);
    }
    
    // Format interpolation order, width of 2 with left justified

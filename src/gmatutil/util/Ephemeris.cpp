@@ -384,9 +384,11 @@ Rvector6 Ephemeris::InterpolatePoint(const GmatTime &forEpoch)
    if (distance == 0.0)
       return theEphem[segNo].points[index].posvel;
 
-   Integer maxOrder = theEphem[segNo].points.size() - 1;
-   if (maxOrder > order)
-      maxOrder = order;
+   const Integer available = theEphem[segNo].points.size();
+   const Integer requestedPoints = useHermite ? (order + 1) / 2 : order + 1;
+   // Here currentOrder tracks the number of intervals in the node stencil.
+   // Hermite supplies two constraints (position and velocity) at each node.
+   const Integer maxOrder = std::min(available, requestedPoints) - 1;
 
    if (currentOrder != maxOrder || !interp ||
          (useHermite != (dynamic_cast<HermiteInterpolator*>(interp) != NULL)))
@@ -408,7 +410,7 @@ Rvector6 Ephemeris::InterpolatePoint(const GmatTime &forEpoch)
       currentOrder = maxOrder;
    }
 
-   if ((currentOrder < order) && warnInterpolationDegradation)
+   if ((currentOrder + 1 < requestedPoints) && warnInterpolationDegradation)
    {
       MessageInterface::ShowMessage("**** WARNING **** Interpolation for the "
             "ephemeris file %s is being performed using a lower order "
@@ -438,8 +440,7 @@ Rvector6 Ephemeris::InterpolatePoint(const GmatTime &forEpoch)
       interp->AddPoint((theEphem[segNo].points[startIndex+i].GetEpoch() - anchor).GetTimeInSec(),
             theEphem[segNo].points[startIndex+i].posvel.GetDataVector());
 
-   // Use derivative data for problems with lower than 7th order polynomials
-   if ((useHermite) && (currentOrder < 7))
+   if (useHermite)
    {
       Real vel[6];
       for (UnsignedInt i = 0; i <= currentOrder; ++i)
