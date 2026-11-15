@@ -70,7 +70,8 @@ folder as its argument. On Mac, pass the ``GMAT-Qt.app`` path.
 
    import gmatpy as gmat
 
-   gmat.Setup(str(binary / "gmat_startup_file.txt"))
+   os.chdir(binary)
+   gmat.Setup("gmat_startup_file.txt")
    satellite = gmat.Construct("Spacecraft", "Sat")
    print(satellite.GetName())
 
@@ -84,6 +85,11 @@ Optional GMAT MCP setup
 Download and extract the `GMAT MCP 0.4.0rc1 bundle <https://github.com/dcajacob/GMAT-mcp/releases/tag/v0.4.0rc1>`_.
 Its installer creates a virtual environment and installs hash-verified
 dependencies. Use the matching CPython 3.12 interpreter for the GMAT worker.
+
+On **Intel Mac**, this MCP bundle builds its ``cryptography`` dependency from
+source. Install Apple's Command Line Tools with ``xcode-select --install``,
+then install ``openssl@3``, ``rust`` and ``pkg-config`` with Homebrew before
+running the MCP installer. This dependency build can take several minutes.
 
 On Linux and Mac, replace the example paths below with absolute paths. For
 ``--root``, use the extracted GMAT Qt folder on Linux or ``GMAT-Qt.app`` on Mac.
