@@ -106,7 +106,10 @@ def main():
         gh('release', 'create', TAG, '--target', source, '--draft', '--prerelease',
            '--title', 'GMAT Qt 0.1.0-alpha.4', '--notes-file', str(METADATA / 'RELEASE-NOTES.md'),
            '--latest=false')
-    release = api(f'repos/{repository}/releases/tags/{TAG}')
+        existing = next(release for release in api(f'repos/{repository}/releases?per_page=100')
+                        if release['tag_name'] == TAG)
+    release_path = f'repos/{repository}/releases/{existing["id"]}'
+    release = api(release_path)
     assert release['draft'] and release['prerelease']
     assert release['target_commitish'] == source
     present = {asset['name']: asset for asset in release['assets']}
@@ -114,14 +117,20 @@ def main():
     for name, asset in present.items():
         assert asset['digest'] == 'sha256:' + expected[name]['sha256'], name
         assert asset['size'] == expected[name]['size'], name
-    missing = [str(dist / name) for name in expected if name not in present]
-    if missing:
-        gh('release', 'upload', TAG, *missing)
-    release = api(f'repos/{repository}/releases/tags/{TAG}')
+    for name in expected:
+        if name not in present:
+            gh('api', '--method', 'POST',
+               f'https://uploads.github.com/{release_path}/assets?name={name}',
+               '--header', 'Content-Type: application/octet-stream', '--input', str(dist / name))
+    release = api(release_path)
     check_assets(release, expected)
-    gh('release', 'edit', TAG, '--draft=false', '--prerelease', '--latest=false',
-       '--title', 'GMAT Qt 0.1.0-alpha.4', '--notes-file', str(METADATA / 'RELEASE-NOTES.md'))
-    release = api(f'repos/{repository}/releases/tags/{TAG}')
+    publication = ROOT / 'publish-request.json'
+    publication.write_text(json.dumps({
+        'draft': False, 'prerelease': True, 'make_latest': 'false',
+        'name': 'GMAT Qt 0.1.0-alpha.4',
+        'body': (METADATA / 'RELEASE-NOTES.md').read_text()}))
+    gh('api', '--method', 'PATCH', release_path, '--input', str(publication))
+    release = api(release_path)
     assert release['prerelease'] and not release['draft']
     assert release['body'].strip() == (METADATA / 'RELEASE-NOTES.md').read_text().strip()
     check_assets(release, expected)
