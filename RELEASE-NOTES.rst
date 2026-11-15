@@ -20,9 +20,11 @@ passed with the original numerical tolerances across all four platforms.
 Windows OEM input and output preserve Unicode filenames.
 
 The standard archives include the core, station and navigation Python bindings
-for CPython 3.12. Select the archive matching Linux x86-64, Windows x64,
+for CPython 3.12, 3.13, 3.14 and 3.15. The package selects the bindings for
+the running interpreter. Select the archive matching Linux x86-64, Windows x64,
 macOS Apple Silicon or macOS Intel and install matching-architecture Python
-when using the API. The GUI runs without Python, and the live MCP bridge is
+when using the API. These bindings target standard GIL-enabled CPython builds.
+The GUI runs without Python, and the live MCP bridge is
 enabled with ``--mcp-bridge``. Earlier releases remain available unchanged.
 
 Changes in alpha.4

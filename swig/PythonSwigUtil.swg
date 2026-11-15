@@ -28,7 +28,7 @@ SWIGINTERN void GMAT_PyException(const char *exception, const char *msg) {
   Py_DECREF(pmodule);
   PyObject* arglist = Py_BuildValue("(s)", msg);
   PyObject* excep = PyObject_CallObject(pclass, arglist);
-  PyErr_SetString((PyObject*)(excep->ob_type), msg);
+  PyErr_SetString((PyObject*)Py_TYPE(excep), msg);
   Py_DECREF(pclass);
   Py_DECREF(arglist);
   Py_DECREF(excep);

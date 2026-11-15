@@ -321,7 +321,7 @@ endif()
 # ====================================================================
 # Find Python
 # User can set GMAT_PYTHON3X_ROOT_DIR to use a custom installation of Python 3.X
-SET(GMAT_PYTHON3_VERSIONS 3.9 3.10 3.11 3.12 3.13 3.14 CACHE STRING "Python3 versions supported by GMAT.")
+SET(GMAT_PYTHON3_VERSIONS 3.9 3.10 3.11 3.12 3.13 3.14 3.15 CACHE STRING "Python3 versions supported by GMAT.")
 foreach(GMAT_Python3_Version ${GMAT_PYTHON3_VERSIONS})
   STRING(REPLACE "." ";" VERSION_LIST ${GMAT_Python3_Version})
   list(GET VERSION_LIST 1 GMAT_Python3_MinorVersion)

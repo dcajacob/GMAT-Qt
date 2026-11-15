@@ -1,0 +1,149 @@
+name: Python 3.12-3.15 archive qualification
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_run:
+        description: Run containing the qualified native alpha archives
+        default: '43679260817'
+        required: true
+      version:
+        description: Package version
+        default: '0.1.0-alpha.5'
+        required: true
+      platform:
+        type: choice
+        default: all
+        options: [all, linux-x86_64, windows-x64, macos-arm64, macos-x64]
+  workflow_call:
+    inputs:
+      base_run:
+        type: string
+        required: true
+      version:
+        type: string
+        required: true
+      platform:
+        type: string
+        default: all
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include: >-
+          ${{ fromJSON(inputs.platform == 'linux-x86_64' &&
+          '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"}]' ||
+          inputs.platform == 'windows-x64' &&
+          '[{"runner":"windows-2022","platform":"windows-x64"}]' ||
+          inputs.platform == 'macos-arm64' &&
+          '[{"runner":"macos-15","platform":"macos-arm64"}]' ||
+          inputs.platform == 'macos-x64' &&
+          '[{"runner":"macos-15-intel","platform":"macos-x64"}]' ||
+          '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"},
+          {"runner":"windows-2022","platform":"windows-x64"},
+          {"runner":"macos-15","platform":"macos-arm64"},
+          {"runner":"macos-15-intel","platform":"macos-x64"}]') }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: alpha-${{ inputs.version }}-${{ matrix.platform }}
+          run-id: ${{ inputs.base_run }}
+          github-token: ${{ github.token }}
+          path: build/python-range/base
+      - uses: actions/setup-python@v5
+        id: py315
+        with:
+          python-version: '3.15'
+      - uses: actions/setup-python@v5
+        id: py314
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-python@v5
+        id: py313
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-python@v5
+        id: py312
+        with:
+          python-version: '3.12'
+      - name: Select interpreters and separate versioned build cache
+        shell: bash
+        run: |
+          echo 'GMAT_PYTHON_312=${{ steps.py312.outputs.python-path }}' >> "$GITHUB_ENV"
+          echo 'GMAT_PYTHON_313=${{ steps.py313.outputs.python-path }}' >> "$GITHUB_ENV"
+          echo 'GMAT_PYTHON_314=${{ steps.py314.outputs.python-path }}' >> "$GITHUB_ENV"
+          echo 'GMAT_PYTHON_315=${{ steps.py315.outputs.python-path }}' >> "$GITHUB_ENV"
+          python -m pip install swig==4.5.1 cmake==4.4.5
+      - name: Windows compiler environment
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Linux display dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb xauth gdb libgl1 libglu1-mesa libxcb-cursor0 libxkbcommon-x11-0
+      - name: Mac MCP build dependencies
+        if: runner.os == 'macOS'
+        run: brew install openssl@3 rust pkg-config
+      - name: Fetch matching CSPICE headers
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib, subprocess, sys, zipfile
+          sys.path.insert(0, 'tools/preview')
+          from BuildPreviewPackage import download
+          root = pathlib.Path('build/python-range').resolve()
+          target = '${{ matrix.platform }}'
+          toolkit = {'windows-x64':'PC_Windows_VisualC_64bit', 'linux-x86_64':'PC_Linux_GCC_64bit',
+                     'macos-arm64':'MacM1_OSX_clang_64bit', 'macos-x64':'MacIntel_OSX_AppleC_64bit'}[target]
+          name = 'cspice.zip' if target.startswith('windows') else 'cspice.tar.Z'
+          download('https://naif.jpl.nasa.gov/pub/naif/toolkit/C/'+toolkit+'/packages/'+name, root/name)
+          if name.endswith('.zip'):
+              with zipfile.ZipFile(root/name) as z:
+                  z.extractall(root)
+          else:
+              subprocess.run(['tar','-xf',str(root/name),'-C',str(root)],check=True)
+          PY
+      - name: Build version-specific wrappers and fresh archive
+        run: python tools/preview/BuildPythonRange.py --platform ${{ matrix.platform }} --archive-dir build/python-range/base --output build/python-range/result --cspice-include build/python-range/cspice/include
+      - name: Qualify each Python version on a clean extraction
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib, subprocess
+          root = pathlib.Path('build/python-range/result')
+          archive, = [p for p in (root/'dist').iterdir() if p.name.endswith(('.zip','.tar.gz'))]
+          subprocess.run(['python','tools/preview/QualifyPythonRange.py', '--platform','${{ matrix.platform }}',
+              '--archive',str(archive),'--output',str(root/'verification'),
+              '--base-receipt','build/python-range/base/${{ matrix.platform }}-api-verification.json'],check=True)
+          PY
+      - name: Launch with CPython unavailable
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then
+            sudo -n "$(command -v cmake)" -P build/python-range/result/verification/without-python.cmake
+          else
+            cmake -P build/python-range/result/verification/without-python.cmake
+          fi
+          python tools/preview/QualifyPythonRange.py --finish --output build/python-range/result/verification
+      - name: Retain versioned archive and qualification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-range-${{ inputs.version }}-${{ matrix.platform }}
+          path: |
+            build/python-range/result/dist/
+            build/python-range/result/verification/
+            build/python-range/result/*.log
+          retention-days: 30

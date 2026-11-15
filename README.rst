@@ -21,6 +21,11 @@ For the user-facing changes from stock GMAT R2026a, engine compatibility,
 validation scope and exact source inventories, see
 `GMAT Qt differences <GMAT-Qt-Differences.rst>`_.
 
+The upcoming alpha.5 archives add the Hermite endpoint fix and Python API
+bindings for CPython 3.12, 3.13, 3.14 and 3.15. Python-version selection is
+automatic. Use a standard GIL-enabled CPython installation matching your
+platform architecture. The published alpha.4 instructions below use Python 3.12.
+
 Download alpha.4
 ----------------
 

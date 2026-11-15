@@ -138,8 +138,12 @@ async def qualify(args):
                     'GmatQt.exe' if os.name == 'nt' else 'GmatQt')
             environment = dict(os.environ, QT_QPA_PLATFORM='offscreen',
                                QT_MAC_DISABLE_FOREGROUND_APPLICATION_TRANSFORM='1')
+            prefix = []
+            if sys.platform.startswith('linux'):
+                environment.update(QT_QPA_PLATFORM='xcb', LIBGL_ALWAYS_SOFTWARE='1')
+                prefix = ['xvfb-run', '-a', '-s', '-screen 0 1600x1000x24']
             with (output/'desktop.log').open('w') as log:
-                gui = subprocess.Popen([str(launcher), '--mcp-bridge', '--mcp-discovery-dir',
+                gui = subprocess.Popen([*prefix, str(launcher), '--mcp-bridge', '--mcp-discovery-dir',
                     str(workspace/'desktops'), '--settings-dir', str(workspace/'settings'), str(script)],
                     env=environment, cwd=output, stdout=log, stderr=subprocess.STDOUT)
             async with asyncio.timeout(60):

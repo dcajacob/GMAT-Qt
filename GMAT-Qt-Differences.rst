@@ -132,6 +132,10 @@ and `reused-evidence record <tools/preview/releases/0.1.0-alpha.4/reused-evidenc
 Additional engine changes in alpha.5
 ------------------------------------
 
+The alpha.5 archives also include Python API bindings for CPython 3.12 through
+3.15. The loader selects the bindings matching the running interpreter.
+
+
 CCSDS OEM output offers an explicit Hermite option. Set
 ``Interpolator = Hermite`` and choose odd InterpolationOrder 3, 5, 7 or 9.
 The method uses sampled position and velocity constraints. Lagrange remains the
