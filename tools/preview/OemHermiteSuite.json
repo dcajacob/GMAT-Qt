@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "name": "OEM Hermite targeted platform qualification",
+  "graphics_profile": "offscreen",
+  "fixtures": [
+    "src/qtgui/tests/NasaOemShortWindowCases.json",
+    "src/qtgui/tests/NasaOemRecordSupportCases.json"
+  ],
+  "cases": [
+    {
+      "name": "QtGui.OemHermiteNarrowAtLast",
+      "target": "GmatQtOemHermiteTests",
+      "source": "src/qtgui/tests/OemHermiteTests.cpp"
+    },
+    {
+      "name": "QtGui.OemHermiteSingleRecord",
+      "target": "GmatQtOemHermiteTests",
+      "source": "src/qtgui/tests/OemHermiteTests.cpp"
+    },
+    {
+      "name": "QtGui.OemHermiteLongBuffer",
+      "target": "GmatQtOemHermiteTests",
+      "source": "src/qtgui/tests/OemHermiteTests.cpp"
+    },
+    {
+      "name": "QtGui.OemHermiteSegmentReset",
+      "target": "GmatQtOemHermiteTests",
+      "source": "src/qtgui/tests/OemHermiteTests.cpp"
+    },
+    {
+      "name": "QtGui.OemHermiteFixedStep",
+      "target": "GmatQtOemHermiteTests",
+      "source": "src/qtgui/tests/OemHermiteTests.cpp"
+    },
+    {
+      "name": "QtGui.InterpolationSufficiencyPolicy",
+      "target": "GmatQtInterpolationSufficiencyTests",
+      "source": "src/qtgui/tests/InterpolationSufficiencyTests.cpp"
+    }
+  ]
+}
