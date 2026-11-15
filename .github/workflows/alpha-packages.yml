@@ -18,6 +18,10 @@ on:
         description: Optional run containing matching API-enabled native inputs
         default: ''
         required: false
+      qualify_archive_run:
+        description: Qualify an existing archive without rebuilding or repackaging
+        default: ''
+        required: false
       reuse_hermite:
         description: Reuse qualified Windows and Mac Hermite builds
         type: boolean
@@ -33,7 +37,7 @@ permissions:
 
 jobs:
   package:
-    if: "!contains(github.event.head_commit.message, '[shared-suite]') && !contains(github.event.head_commit.message, '[complete-macos:') && inputs.complete_run == ''"
+    if: "!contains(github.event.head_commit.message, '[shared-suite]') && !contains(github.event.head_commit.message, '[complete-macos:') && inputs.complete_run == '' && inputs.qualify_archive_run == ''"
     strategy:
       fail-fast: false
       matrix:
@@ -240,4 +244,48 @@ jobs:
           name: alpha-${{ inputs.version || '0.1.0-alpha.5' }}-${{ matrix.platform }}
           path: build/preview-package/dist/*
           if-no-files-found: warn
+          retention-days: 30
+
+  qualify_existing_linux:
+    if: inputs.qualify_archive_run != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: alpha-${{ inputs.version }}-linux-x86_64
+          run-id: ${{ inputs.qualify_archive_run }}
+          github-token: ${{ github.token }}
+          path: build/preview-package/dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: diagnostics-${{ inputs.version }}-linux-x86_64
+          run-id: ${{ inputs.qualify_archive_run }}
+          github-token: ${{ github.token }}
+          path: build/preview-package/logs
+      - name: Install private display dependencies
+        run: sudo apt-get update && sudo apt-get install -y xvfb xauth libgl1 libglu1-mesa libxkbcommon-x11-0 libxcb-cursor0
+      - name: Qualify missing archive paths and reuse package passes
+        run: python tools/preview/ResumeLinuxArchive.py
+      - name: Start the extracted GUI without CPython
+        run: cmake -P build/preview-package/logs/archive-qualification/without-python.cmake
+      - name: Finalize archive qualification
+        run: python -c "import sys; sys.path.insert(0, 'tools/preview'); from QualifyPythonPackage import finish; finish('linux-x86_64')"
+      - name: Preserve diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-${{ inputs.version }}-linux-x86_64
+          path: build/preview-package/logs/
+          retention-days: 30
+      - name: Preserve unchanged archive and completed receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha-${{ inputs.version }}-linux-x86_64
+          path: build/preview-package/dist/*
           retention-days: 30

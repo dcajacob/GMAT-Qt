@@ -103,7 +103,7 @@ file(WRITE {bracket(report)} "{{\\"status\\":\\"passed\\",\\"python_installation
         'gui': str(launcher), 'environment': environment, 'arguments': arguments}, indent=2)+'\n')
 
 
-def qualify(target, archive):
+def qualify(target, archive, previous_package=None):
     original_root, original_logs = builder.ROOT, builder.LOGS
     logs = original_logs/'archive-qualification'
     logs.mkdir(parents=True, exist_ok=True)
@@ -172,8 +172,14 @@ def qualify(target, archive):
             'GmatQt.exe' if target.startswith('windows') else 'GmatQt')
         # This invokes the existing package mission and save/reopen assertions
         # against the extracted archive while the build outputs are unavailable.
-        package_result = builder.probe(target, payload, executable, model_reader=False,
-                                       record_in_payload=False)
+        if previous_package is None:
+            package_result = builder.probe(target, payload, executable, model_reader=False,
+                                           record_in_payload=False)
+        else:
+            package_result = previous_package
+            assert package_result['status'] == 'passed'
+            assert package_result['commit'] == metadata['package_source_commit']
+            assert package_result['version'] == builder.PACKAGE_VERSION
         from OemArchiveCheck import check as check_oem
         oem_result = check_oem(root, target, logs/'hermite', environment)
         from EventArchiveCheck import check as check_events
@@ -200,7 +206,8 @@ def qualify(target, archive):
                'qualification_library_environment': {key: environment.get(key, '')
                    for key in ['LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'PYTHONPATH']},
                'original_build_outputs_hidden_during_checks': True,
-               'full_regression_run': False}
+               'full_regression_run': False,
+               'package_pass_reused': previous_package is not None}
     (logs/'verification.json').write_text(json.dumps(receipt, indent=2)+'\n')
 
 

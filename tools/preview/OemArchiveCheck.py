@@ -57,10 +57,14 @@ BeginMissionSequence;
 {spec['mission']}
 """, encoding='utf-8')
     env = dict(environment, QT_QPA_PLATFORM='offscreen')
+    if target.startswith('linux'):
+        env.update(QT_QPA_PLATFORM='xcb', LIBGL_ALWAYS_SOFTWARE='1')
     if target.startswith('windows'):
         env['QT_QPA_FONTDIR'] = str(Path(os.environ.get('SystemRoot', 'C:/Windows')) / 'Fonts')
     command = [str(executable), str(script), '--startup', str(startup), '--run',
                '--screenshot', str(output / 'result.png'), '--settings-dir', str(output / 'settings')]
+    if target.startswith('linux'):
+        command = ['xvfb-run', '-a', '-s', '-screen 0 1600x1000x24', *command]
     with (output / 'run.log').open('wb') as log:
         result = subprocess.run(command, cwd=output, env=env, stdout=log,
                                 stderr=subprocess.STDOUT, timeout=180)
