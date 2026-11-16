@@ -57,10 +57,13 @@ jobs:
           
       - name: Start Xvfb with XFCE desktop
         run: |
-          # Start Xvfb with a good resolution
+          # Start Xvfb with 1920x1080 resolution
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
           sleep 2
+          
+          # Verify resolution
+          xdpyinfo -display :99 | grep dimensions
           
           # Start XFCE window manager for proper window management
           xfwm4 &
@@ -68,7 +71,7 @@ jobs:
           
           # Start XFCE panel for desktop chrome
           xfce4-panel &
-          sleep 2
+          sleep 3
           
           # Set software OpenGL
           export LIBGL_ALWAYS_SOFTWARE=1
@@ -132,8 +135,17 @@ jobs:
           # Maximize and run
           GMAT_WINDOW=$(xdotool search --name "GMAT" | head -1)
           if [ -n "$GMAT_WINDOW" ]; then
+            echo "Found GMAT window: $GMAT_WINDOW"
             xdotool windowactivate $GMAT_WINDOW
+            sleep 1
+            # Maximize via wmctrl
             wmctrl -i -r $GMAT_WINDOW -b add,maximized_vert,maximized_horz
+            sleep 1
+            # Also resize explicitly to 1920x1080
+            xdotool windowsize $GMAT_WINDOW 1920 1080
+            sleep 2
+            # Move to 0,0 to ensure it fills screen
+            xdotool windowmove $GMAT_WINDOW 0 0
             sleep 2
             xdotool key F7
             sleep 8
@@ -184,6 +196,11 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      
       - name: Install tesseract OCR
         shell: pwsh
         run: |
@@ -300,23 +317,28 @@ jobs:
           Get-Content "$env:TEMP\windows-ocr.txt"
           
           # Strict verification
+          $exitCode = 0
           $ocrText = Get-Content "$env:TEMP\windows-ocr.txt" -Raw
           if ($ocrText -match "(?i)(Mission failed|Build failed|ERROR.*Exception|Convert OpenFrames|Build this script to update them|not permitted)") {
             Write-Host "FAILED: Found error text in OCR"
-            exit 1
+            $exitCode = 1
           }
           
           # Check for success indicators
           if ($ocrText -notmatch "(?i)(Mission completed|Total Run Time|DefaultOrbitView|DefaultGroundTrackPlot)") {
             Write-Host "FAILED: No mission success indicators found"
-            exit 1
+            $exitCode = 1
           }
           
-          Write-Host "PASSED: Strict verification"
+          if ($exitCode -eq 0) {
+            Write-Host "PASSED: Strict verification"
+          }
           
           Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
           Move-Item "$env:TEMP\screenshot-windows.png" ..\screenshot-windows.png
           Move-Item "$env:TEMP\windows-ocr.txt" ..\windows-ocr.txt
+          
+          exit $exitCode
           
       - name: Upload Windows screenshot and OCR
         if: always()
@@ -327,12 +349,29 @@ jobs:
             screenshot-windows.png
             windows-ocr.txt
           retention-days: 30
+      
+      - name: Commit debug screenshots on failure
+        if: failure()
+        run: |
+          mkdir -p docs/screenshots/alpha.5/debug
+          cp screenshot-windows.png docs/screenshots/alpha.5/debug/ || true
+          cp windows-ocr.txt docs/screenshots/alpha.5/debug/ || true
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots/alpha.5/debug/ || true
+          git commit -m "Debug: Windows screenshot iteration ${{ github.run_number }}" || true
+          git push || true
 
   screenshot-macos-arm64:
     name: Screenshot macOS Apple Silicon
     runs-on: macos-15
     timeout-minutes: 20
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      
       - name: Install tesseract OCR
         run: |
           brew install tesseract
@@ -431,21 +470,26 @@ jobs:
           cat /tmp/macos-ocr.txt || true
           
           # Strict verification
+          EXIT_CODE=0
           OCR_TEXT=$(cat /tmp/macos-ocr.txt || echo "")
           if echo "$OCR_TEXT" | grep -iE "Mission failed|Build failed|ERROR.*Exception|Convert OpenFrames|Build this script to update them|not permitted"; then
             echo "FAILED: Found error text in OCR"
-            exit 1
+            EXIT_CODE=1
           fi
           
           # Check for success indicators
           if ! echo "$OCR_TEXT" | grep -iE "Mission completed|Total Run Time|DefaultOrbitView|DefaultGroundTrackPlot"; then
             echo "FAILED: No mission success indicators found"
-            exit 1
+            EXIT_CODE=1
           fi
           
-          echo "PASSED: Strict verification"
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "PASSED: Strict verification"
+          fi
           
           kill $GMAT_PID 2>/dev/null || pkill -f "GmatQt" || true
+          
+          exit $EXIT_CODE
           
       - name: Upload macOS ARM64 screenshot and OCR
         if: always()
@@ -456,6 +500,18 @@ jobs:
             /tmp/screenshot-macos-arm64.png
             /tmp/macos-ocr.txt
           retention-days: 30
+      
+      - name: Commit debug screenshots on failure
+        if: failure()
+        run: |
+          mkdir -p docs/screenshots/alpha.5/debug
+          cp /tmp/screenshot-macos-arm64.png docs/screenshots/alpha.5/debug/ || true
+          cp /tmp/macos-ocr.txt docs/screenshots/alpha.5/debug/ || true
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots/alpha.5/debug/ || true
+          git commit -m "Debug: macOS ARM64 screenshot iteration ${{ github.run_number }}" || true
+          git push || true
 
   combine-screenshots:
     name: Combine all screenshots
