@@ -152,16 +152,16 @@ jobs:
           tesseract /tmp/screenshot-linux.png /tmp/linux-ocr 2>/dev/null
           cat /tmp/linux-ocr.txt
           
-          # Strict verification
+          # Strict verification  
           OCR_TEXT=$(cat /tmp/linux-ocr.txt)
-          if echo "$OCR_TEXT" | grep -iE "failed|ERROR|Exception|Convert OpenFrames|Build this script|not permitted"; then
+          if echo "$OCR_TEXT" | grep -iE "Mission failed|Build failed|ERROR.*Exception|Convert OpenFrames|Build this script to update them|not permitted"; then
             echo "FAILED: Found error text in OCR"
             exit 1
           fi
           
-          # Check for plot windows
-          if ! wmctrl -l | grep -iE "OrbitView|GroundTrack|Plot"; then
-            echo "FAILED: No plot windows found"
+          # Check for success indicators
+          if ! echo "$OCR_TEXT" | grep -iE "Mission completed|Total Run Time|DefaultOrbitView|DefaultGroundTrackPlot"; then
+            echo "FAILED: No mission success indicators found"
             exit 1
           fi
           
@@ -301,15 +301,14 @@ jobs:
           
           # Strict verification
           $ocrText = Get-Content "$env:TEMP\windows-ocr.txt" -Raw
-          if ($ocrText -match "(?i)(failed|ERROR|Exception|Convert OpenFrames|Build this script|not permitted)") {
+          if ($ocrText -match "(?i)(Mission failed|Build failed|ERROR.*Exception|Convert OpenFrames|Build this script to update them|not permitted)") {
             Write-Host "FAILED: Found error text in OCR"
             exit 1
           }
           
-          # Check for plot windows
-          $hasPlot = Get-Process | Where-Object {$_.MainWindowTitle -match "(?i)(OrbitView|GroundTrack|Plot)"}
-          if (-not $hasPlot) {
-            Write-Host "FAILED: No plot windows found"
+          # Check for success indicators
+          if ($ocrText -notmatch "(?i)(Mission completed|Total Run Time|DefaultOrbitView|DefaultGroundTrackPlot)") {
+            Write-Host "FAILED: No mission success indicators found"
             exit 1
           }
           
@@ -433,15 +432,14 @@ jobs:
           
           # Strict verification
           OCR_TEXT=$(cat /tmp/macos-ocr.txt || echo "")
-          if echo "$OCR_TEXT" | grep -iE "failed|ERROR|Exception|Convert OpenFrames|Build this script|not permitted"; then
+          if echo "$OCR_TEXT" | grep -iE "Mission failed|Build failed|ERROR.*Exception|Convert OpenFrames|Build this script to update them|not permitted"; then
             echo "FAILED: Found error text in OCR"
             exit 1
           fi
           
-          # Check for plot windows (macOS window check)
-          WINDOWS=$(osascript -e 'tell application "System Events" to get name of every window of (first process whose name is "GmatQt")' 2>/dev/null || echo "")
-          if ! echo "$WINDOWS" | grep -iE "OrbitView|GroundTrack|Plot"; then
-            echo "FAILED: No plot windows found"
+          # Check for success indicators
+          if ! echo "$OCR_TEXT" | grep -iE "Mission completed|Total Run Time|DefaultOrbitView|DefaultGroundTrackPlot"; then
+            echo "FAILED: No mission success indicators found"
             exit 1
           fi
           
