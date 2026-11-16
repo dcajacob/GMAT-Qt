@@ -85,7 +85,7 @@ jobs:
           # Create simple native OrbitView script
           cat > /tmp/simple_orbit.script << 'SCRIPT_EOF'
           Create Spacecraft DefaultSC;
-          DefaultSC.Epoch = '01 Jan 2024 12:00:00.000';
+          DefaultSC.Epoch = 01 Jan 2024 12:00:00.000;
           DefaultSC.X = 7100;
           DefaultSC.Y = 0;
           DefaultSC.Z = 1300;
@@ -229,7 +229,7 @@ jobs:
           # Create simple native OrbitView script (same as Linux)
           @'
           Create Spacecraft DefaultSC;
-          DefaultSC.Epoch = '01 Jan 2024 12:00:00.000';
+          DefaultSC.Epoch = 01 Jan 2024 12:00:00.000;
           DefaultSC.X = 7100;
           DefaultSC.Y = 0;
           DefaultSC.Z = 1300;
@@ -363,7 +363,7 @@ jobs:
           # Create simple native OrbitView script (same as Linux/Windows)
           cat > /tmp/simple_orbit.script << 'SCRIPT_EOF'
           Create Spacecraft DefaultSC;
-          DefaultSC.Epoch = '01 Jan 2024 12:00:00.000';
+          DefaultSC.Epoch = 01 Jan 2024 12:00:00.000;
           DefaultSC.X = 7100;
           DefaultSC.Y = 0;
           DefaultSC.Z = 1300;
