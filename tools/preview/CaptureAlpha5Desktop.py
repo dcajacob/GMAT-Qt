@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import shutil
 import socket
 import struct
 import subprocess
@@ -130,12 +131,25 @@ def main():
             executable = bundle/'Contents/MacOS/GmatQt'
             samples = bundle/'Contents/Resources/samples'
 
+        environment = os.environ.copy()
+        renderer = 'platform default'
+        if target.startswith('windows'):
+            # The hosted VM lacks an OpenGL-capable display driver. Use the
+            # Mesa renderer shipped with Qt, for both Qt and the OSG imports.
+            driver = executable.with_name('opengl32.dll')
+            shutil.copy2(executable.with_name('opengl32sw.dll'), driver)
+            environment.update(QT_OPENGL='desktop', QT_OPENGL_DLL=str(driver))
+            renderer = 'bundled Mesa software OpenGL'
+        elif target.startswith('linux'):
+            renderer = 'Mesa software OpenGL'
+
         discovery = work/'private-discovery'
         mission = samples/MISSION
         command = [str(executable), '--settings-dir', str(work/'settings'), '--mcp-bridge',
                    '--mcp-discovery-dir', str(discovery), '--convert-views', '--run', str(mission)]
         with (output/'gmat.log').open('w', encoding='utf-8') as log:
-            process = subprocess.Popen(command, cwd=work, stdout=log, stderr=subprocess.STDOUT)
+            process = subprocess.Popen(command, cwd=work, env=environment, stdout=log,
+                                       stderr=subprocess.STDOUT)
             try:
                 endpoint = mission_endpoint(process, discovery)
                 picture = output/f'GMAT-Qt-alpha5-MarsOrbit-{target}.png'
@@ -150,6 +164,7 @@ def main():
                     'archive': asset, 'archive_sha256': ARCHIVE_SHA256[target],
                     'mission': MISSION, 'mission_sha256': digest(mission),
                     'view': 'OFI_MarsMJ2KView converted to Qt OrbitView', 'last_propagate_days': 1,
+                    'renderer': renderer,
                     'run': endpoint, 'screenshot': picture.name, 'screenshot_sha256': digest(picture),
                     'pixels': [width, height],
                 }

@@ -16,15 +16,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - runner: ubuntu-24.04
-            platform: linux-x86_64
-          - runner: windows-2022
-            platform: windows-x64
-          - runner: macos-15
-            platform: macos-arm64
-          - runner: macos-15-intel
-            platform: macos-x64
+        include: >-
+          ${{ fromJSON(contains(github.event.head_commit.message, '[windows-only]') &&
+          '[{"runner":"windows-2022","platform":"windows-x64"}]' ||
+          '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"},
+            {"runner":"windows-2022","platform":"windows-x64"},
+            {"runner":"macos-15","platform":"macos-arm64"},
+            {"runner":"macos-15-intel","platform":"macos-x64"}]') }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     steps:
