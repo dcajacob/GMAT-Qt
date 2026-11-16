@@ -8,6 +8,9 @@ on:
         required: true
         default: 'v0.1.0-alpha.5'
         type: string
+  push:
+    branches:
+      - 'cursor/screenshots-workflow-08fd'
 
 permissions:
   contents: read
@@ -34,17 +37,18 @@ jobs:
           
       - name: Download Linux release package
         run: |
+          TAG="${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
+          VERSION="${TAG#v}"
           wget -O gmat-qt.tar.gz \
-            "https://github.com/dcajacob/GMAT-Qt/releases/download/${{ inputs.release_tag }}/GMAT-Qt-${TAG#v}-linux-x86_64.tar.gz"
-        env:
-          TAG: ${{ inputs.release_tag }}
+            "https://github.com/dcajacob/GMAT-Qt/releases/download/$TAG/GMAT-Qt-$VERSION-linux-x86_64.tar.gz"
           
       - name: Extract package
         run: |
           tar -xzf gmat-qt.tar.gz
           ls -la
-          TAG="${{ inputs.release_tag }}"
-          echo "GMAT_DIR=GMAT-Qt-${TAG#v}-linux-x86_64" >> $GITHUB_ENV
+          TAG="${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
+          VERSION="${TAG#v}"
+          echo "GMAT_DIR=GMAT-Qt-$VERSION-linux-x86_64" >> $GITHUB_ENV
           
       - name: Start Xvfb with XFCE desktop
         run: |
@@ -110,7 +114,7 @@ jobs:
       - name: Download Windows release package
         shell: pwsh
         run: |
-          $tag = "${{ inputs.release_tag }}"
+          $tag = "${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
           $version = $tag.TrimStart('v')
           $url = "https://github.com/dcajacob/GMAT-Qt/releases/download/$tag/GMAT-Qt-$version-windows-x64.zip"
           Write-Host "Downloading from: $url"
@@ -121,10 +125,10 @@ jobs:
         run: |
           Expand-Archive -Path gmat-qt.zip -DestinationPath .
           Get-ChildItem
-          $tag = "${{ inputs.release_tag }}"
+          $tag = "${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
           $version = $tag.TrimStart('v')
           $gmatDir = "GMAT-Qt-$version-windows-x64"
-          Write-Host "GMAT_DIR=$gmatDir" >> $env:GITHUB_ENV
+          "GMAT_DIR=$gmatDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           
       - name: Launch GMAT-Qt and capture screenshot
         shell: pwsh
@@ -169,7 +173,7 @@ jobs:
     steps:
       - name: Download macOS ARM64 release package
         run: |
-          TAG="${{ inputs.release_tag }}"
+          TAG="${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
           VERSION="${TAG#v}"
           curl -L -o gmat-qt.zip \
             "https://github.com/dcajacob/GMAT-Qt/releases/download/$TAG/GMAT-Qt-$VERSION-macos-arm64.zip"
@@ -178,7 +182,7 @@ jobs:
         run: |
           unzip gmat-qt.zip
           ls -la
-          TAG="${{ inputs.release_tag }}"
+          TAG="${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
           VERSION="${TAG#v}"
           echo "GMAT_DIR=GMAT-Qt-$VERSION-macos-arm64" >> $GITHUB_ENV
           
@@ -218,7 +222,7 @@ jobs:
     steps:
       - name: Download macOS Intel release package
         run: |
-          TAG="${{ inputs.release_tag }}"
+          TAG="${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
           VERSION="${TAG#v}"
           curl -L -o gmat-qt.zip \
             "https://github.com/dcajacob/GMAT-Qt/releases/download/$TAG/GMAT-Qt-$VERSION-macos-x64.zip"
@@ -227,7 +231,7 @@ jobs:
         run: |
           unzip gmat-qt.zip
           ls -la
-          TAG="${{ inputs.release_tag }}"
+          TAG="${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
           VERSION="${TAG#v}"
           echo "GMAT_DIR=GMAT-Qt-$VERSION-macos-x64" >> $GITHUB_ENV
           
