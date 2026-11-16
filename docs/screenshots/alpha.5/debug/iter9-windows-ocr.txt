@@ -1,0 +1,60 @@
+C:\ProgramData\GitHub\Host X = + v
+
+NFO", "ts" :1794863551.2315576, "Logger" : "hosted-compute-agent", "msg": "", "orchestration_id" : "9bcO1da8-
+14. screenshot-windows .__default" , "source_correlation_id" :"81c5736a-23ad~7ebf—7U59-87¢
+
+‘traceparent" :"00-66bbf58U2167086a38cdUdub102e96b3-9F9695cc90974281-01"}
+7911863551 . 630843, "Logger" : "hosted-compute-agent" , "msg":"Current runner version: '2.338.2
+9bc01da8-3210-896a-b916-b8e5b746e32U. screenshot-windows.__default", "source_correlation_
+"81c5736a-23ad-7ebf—-7459-87cfd62a6afe" , "traceparent" : "00-66bbF5842167086a38cdUdub102e96b3-9F9695cc 99974281
+
+ogger" : "hosted-compute-agent", "msg" :"2026-11-16 21:12:31Z: Listening
+9bcO1da8-3210-896a-b916-b8e5b746e32U. screenshot-windows.__default", "source_corr
+-raceparent" : "@0-66bbf5842167086a38cdldub192e96b3-9F9695cc
+
+90974281-01"}
+
+NFO", "ts" :1794863552.7768095, "Logger’
+orchestration_id":
+"81c5736a-23ad-7ebf—-7U59-87cfd62a6at
+102e96b3-99695cc90974281-01"}
+{"Level": "INFO", "ts" :179U863552.7771497, "Logger"
+d
+
+‘Tebf-7U59-87cfd62a6afe" ,
+"hca.phase.duration" , "metric_value
+nf/a"}
+
+{"Level": "INFO" , "ts" :179U863552.7771497, "Logger" : "hosted-compute-agent", "msg": "client metric
+d" :"9bcO1da8-3210-896a-b916-b8e5b746e32U. screenshot-windows.__default", "source_correlation_id
+‘Tebf-759-87cfd62a6afe" , "traceparent" : "00-66bbf5842167086a38cdUdUb192e96b3-9F9695cc90971281-0.
+"hca.phase.duration" , "metric_value":1837, "metric_type": “distribution_ms" , "phase": "overall"
+a"
+
+{"leve NFO" , "ts" :179U863552.77766U7, "Logger" :"hosted-compute-agent","msg":"Parsed job started messag ii
+chestration_id" :"9bc01da8-3210-806a-b916-b8e5b7U16e32U. screenshot-windows.__default" , "source_correlation_id
+1c5736a-23ad-7ebf-7U59-87cFd62a6af O-66bbF5842167086a38cddub102e96b3-9F9695cc99974281-01
+
+jobNam creenshot Windows x64"}
+
+hosted-compute-agent", "msg" :"2026-11-16 21:12:32Z: Running j
+‘9bcO1da8-3210-896a-b916-b8e5b746e32U. screenshot-windows.__defa
+-raceparen' }0-66bbF5842167086a38cdudub
+
+hosted-compute-agent", "msg": "client metric’
+
+bcO1da8-3210-806a-b916—b8e5b746e32U . screenshot-windows.__default", "source_correlation.
+
+'00-66bbF58U2167086a38cdudUb102e96b3-9F9695cc90974281-0:
+
+"traceparent":
+distribution_ms", "phase
+
+1822, "metric_type
+
+rs
+
+Test Mode
+Windows Server 2025 Datacenter
+Build 26100.ge_release.240331-1435
+
