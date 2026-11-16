@@ -73,31 +73,40 @@ jobs:
         run: |
           cd "$GMAT_DIR"
           
-          # Create a script to open a tutorial
-          cat > /tmp/open_tutorial.sh << 'EOF'
-          #!/bin/bash
-          set -x
-          
-          # Launch GMAT-Qt in background
+          # Launch GMAT-Qt with the tutorial script
           ./run-gmat samples/Tut_Mars_B_Plane_Targeting.script &
           GMAT_PID=$!
           
-          # Wait for window to appear and render
+          # Wait for window to appear and load
+          sleep 12
+          
+          # Try to simulate F5 key (Run) using xdotool
+          sudo apt-get install -y xdotool
+          
+          # Find the GMAT window and activate it
+          for i in {1..10}; do
+            WINDOW_ID=$(xdotool search --name "GMAT" | head -1)
+            if [ -n "$WINDOW_ID" ]; then
+              echo "Found GMAT window: $WINDOW_ID"
+              xdotool windowactivate $WINDOW_ID
+              sleep 2
+              # Press F5 to run the mission
+              xdotool key F5
+              echo "Sent F5 key to run mission"
+              break
+            fi
+            sleep 1
+          done
+          
+          # Wait for mission to run and 3D view to populate
           sleep 15
           
-          # Run the mission
-          # Note: This would require GUI automation, so we'll just wait for initial load
-          sleep 10
-          
-          # Take screenshot
+          # Take full screenshot
           scrot -o /tmp/screenshot-linux.png
           
           # Kill GMAT
           kill $GMAT_PID || true
-          EOF
-          
-          chmod +x /tmp/open_tutorial.sh
-          /tmp/open_tutorial.sh
+          wait $GMAT_PID 2>/dev/null || true
           
       - name: Upload Linux screenshot
         uses: actions/upload-artifact@v4
@@ -136,14 +145,34 @@ jobs:
           $gmatDir = $env:GMAT_DIR
           Set-Location $gmatDir
           
-          # Launch GMAT-Qt
-          $process = Start-Process -FilePath ".\bin\GmatQt.exe" -ArgumentList "samples\Tut_Mars_B_Plane_Targeting.script" -PassThru
+          # Launch GMAT-Qt with the tutorial script
+          $process = Start-Process -FilePath ".\bin\GmatQt.exe" -ArgumentList "samples\Tut_Mars_B_Plane_Targeting.script" -PassThru -WindowStyle Normal
           
-          # Wait for window and rendering
-          Start-Sleep -Seconds 20
+          # Wait for window to appear and load
+          Start-Sleep -Seconds 15
+          
+          # Try to send F5 key to run the mission
+          Add-Type -AssemblyName System.Windows.Forms
+          # Bring window to front
+          $sig = @'
+          [DllImport("user32.dll")]
+          public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+          [DllImport("user32.dll")]
+          public static extern bool SetForegroundWindow(IntPtr hWnd);
+          '@
+          $type = Add-Type -MemberDefinition $sig -Name WindowAPI -PassThru
+          $type::SetForegroundWindow($process.MainWindowHandle)
+          Start-Sleep -Seconds 2
+          
+          # Send F5 key
+          [System.Windows.Forms.SendKeys]::SendWait("{F5}")
+          Write-Host "Sent F5 key to run mission"
+          
+          # Wait for mission to run and 3D view to populate
+          Start-Sleep -Seconds 15
           
           # Take screenshot using .NET
-          Add-Type -AssemblyName System.Windows.Forms,System.Drawing
+          Add-Type -AssemblyName System.Drawing
           $screens = [Windows.Forms.Screen]::AllScreens
           $screen = $screens[0]
           $bitmap = New-Object Drawing.Bitmap $screen.Bounds.Width, $screen.Bounds.Height
@@ -196,11 +225,27 @@ jobs:
         run: |
           cd "$GMAT_DIR"
           
-          # Launch GMAT-Qt with a tutorial script
-          open -a "$PWD/GMAT-Qt.app" --args "samples/Tut_Mars_B_Plane_Targeting.script" &
+          # Launch GMAT-Qt with the tutorial script
+          open -a "$PWD/GMAT-Qt.app" --args "samples/Tut_Mars_B_Plane_Targeting.script"
           
-          # Wait for window to appear and render
-          sleep 20
+          # Wait for window to appear and load
+          sleep 15
+          
+          # Use AppleScript to send F5 key (Run mission)
+          osascript <<EOF
+          tell application "System Events"
+            tell process "GmatQt"
+              set frontmost to true
+              delay 2
+              key code 96  -- F5 key
+            end tell
+          end tell
+          EOF
+          
+          echo "Sent F5 key to run mission"
+          
+          # Wait for mission to run and 3D view to populate
+          sleep 15
           
           # Take full-screen screenshot
           screencapture -x /tmp/screenshot-macos-arm64.png
@@ -245,11 +290,27 @@ jobs:
         run: |
           cd "$GMAT_DIR"
           
-          # Launch GMAT-Qt with a tutorial script
-          open -a "$PWD/GMAT-Qt.app" --args "samples/Tut_Mars_B_Plane_Targeting.script" &
+          # Launch GMAT-Qt with the tutorial script
+          open -a "$PWD/GMAT-Qt.app" --args "samples/Tut_Mars_B_Plane_Targeting.script"
           
-          # Wait for window to appear and render
-          sleep 20
+          # Wait for window to appear and load
+          sleep 15
+          
+          # Use AppleScript to send F5 key (Run mission)
+          osascript <<EOF
+          tell application "System Events"
+            tell process "GmatQt"
+              set frontmost to true
+              delay 2
+              key code 96  -- F5 key
+            end tell
+          end tell
+          EOF
+          
+          echo "Sent F5 key to run mission"
+          
+          # Wait for mission to run and 3D view to populate
+          sleep 15
           
           # Take full-screen screenshot
           screencapture -x /tmp/screenshot-macos-x64.png
