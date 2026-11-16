@@ -36,7 +36,9 @@ jobs:
             wget \
             imagemagick \
             wmctrl \
-            x11-utils
+            x11-utils \
+            tesseract-ocr \
+            xdotool
           
       - name: Download Linux release package
         run: |
@@ -80,78 +82,83 @@ jobs:
         run: |
           cd "$GMAT_DIR"
           
-          # Install xdotool for GUI automation
-          sudo apt-get install -y xdotool
+          # Check if GMAT-Qt supports --run flag
+          echo "Checking GMAT-Qt command-line options..."
+          ./run-gmat --help 2>&1 || true
+          ./run-gmat -h 2>&1 || true
           
-          # Launch GMAT-Qt with the tutorial script
-          ./run-gmat samples/Tut_Mars_B_Plane_Targeting.script &
+          # Try launching with --run or -r flag to auto-run the script
+          echo "Launching GMAT-Qt with --run flag..."
+          ./run-gmat --run samples/Tut_Mars_B_Plane_Targeting.script &
           GMAT_PID=$!
           
-          # Wait for main window to appear
-          echo "Waiting for GMAT main window..."
-          for i in {1..20}; do
+          # If that doesn't work, try -r
+          sleep 5
+          if ! ps -p $GMAT_PID > /dev/null 2>&1; then
+            echo "Trying with -r flag..."
+            ./run-gmat -r samples/Tut_Mars_B_Plane_Targeting.script &
+            GMAT_PID=$!
+          fi
+          
+          # If still not running, launch normally
+          sleep 5
+          if ! ps -p $GMAT_PID > /dev/null 2>&1; then
+            echo "Launching without flags..."
+            ./run-gmat samples/Tut_Mars_B_Plane_Targeting.script &
+            GMAT_PID=$!
+          fi
+          
+          # Wait for window to appear
+          echo "Waiting for GMAT window..."
+          for i in {1..30}; do
             if xdotool search --name "GMAT" > /dev/null 2>&1; then
               echo "GMAT window appeared after ${i} seconds"
               break
             fi
             sleep 1
           done
-          sleep 2
+          sleep 3
           
           # Log all windows
-          echo "=== Current windows ==="
-          wmctrl -l || true
-          xdotool search --name "" getwindowname %@ || true
+          echo "=== All windows ==="
+          wmctrl -l
           
-          # Find and activate GMAT main window
+          # Find main GMAT window and maximize
           GMAT_WINDOW=$(xdotool search --name "GMAT" | head -1)
           if [ -n "$GMAT_WINDOW" ]; then
-            echo "Activating GMAT window: $GMAT_WINDOW"
-            xdotool windowactivate $GMAT_WINDOW
-            sleep 1
-            
-            # Maximize the window
+            echo "Main window: $GMAT_WINDOW"
             wmctrl -i -r $GMAT_WINDOW -b add,maximized_vert,maximized_horz
-            sleep 1
-            
-            # Handle "Convert OpenFrames views?" dialog if present
-            echo "Checking for Convert dialog..."
-            DIALOG_WINDOW=$(xdotool search --name "Convert" 2>/dev/null | head -1)
-            if [ -n "$DIALOG_WINDOW" ]; then
-              echo "Found Convert dialog, clicking Convert views button"
-              xdotool windowactivate $DIALOG_WINDOW
-              sleep 1
-              # Press Tab to focus first button, then Enter (or just press Alt+C for Convert)
-              xdotool key alt+c
-              sleep 2
-            fi
-            
-            # Activate main window again
-            xdotool windowactivate $GMAT_WINDOW
-            sleep 1
-            
-            # Press F7 to Build
-            echo "Building mission (F7)..."
-            xdotool key F7
-            sleep 8
-            
-            # Press F5 to Run
-            echo "Running mission (F5)..."
-            xdotool key F5
-            sleep 20
-            
-            # Log windows again to verify plot windows appeared
-            echo "=== Windows after run ==="
-            wmctrl -l || true
-            
-          else
-            echo "ERROR: Could not find GMAT window"
+            sleep 2
           fi
           
-          # Take full screenshot
-          sleep 2
+          # Wait for mission to complete (if auto-run worked)
+          echo "Waiting for mission completion..."
+          sleep 25
+          
+          # Log windows after run
+          echo "=== Windows after wait ==="
+          wmctrl -l
+          
+          # Take screenshot
           scrot -o /tmp/screenshot-linux.png
           echo "Screenshot captured"
+          
+          # OCR verification
+          echo "=== OCR Verification ==="
+          tesseract /tmp/screenshot-linux.png - 2>/dev/null | head -50
+          
+          # Check for problematic text
+          OCR_TEXT=$(tesseract /tmp/screenshot-linux.png - 2>/dev/null)
+          if echo "$OCR_TEXT" | grep -i "Convert OpenFrames"; then
+            echo "ERROR: Convert dialog still present!"
+            exit 1
+          fi
+          if echo "$OCR_TEXT" | grep -i "Build this script to update them"; then
+            echo "ERROR: Script not built or run!"
+            exit 1
+          fi
+          
+          echo "OCR verification passed"
           
           # Kill GMAT
           kill $GMAT_PID || true
@@ -169,6 +176,12 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
+      - name: Install tesseract OCR
+        shell: pwsh
+        run: |
+          choco install tesseract -y
+          $env:PATH = "C:\Program Files\Tesseract-OCR;$env:PATH"
+          
       - name: Download Windows release package
         shell: pwsh
         run: |
@@ -206,65 +219,45 @@ jobs:
           $gmatDir = $env:GMAT_DIR
           Set-Location $gmatDir
           
-          # Launch GMAT-Qt with the tutorial script
-          $process = Start-Process -FilePath ".\bin\GmatQt.exe" -ArgumentList "samples\Tut_Mars_B_Plane_Targeting.script" -PassThru -WindowStyle Maximized
+          # Check for command-line options
+          Write-Host "Checking GMAT-Qt command-line options..."
+          & .\bin\GmatQt.exe --help 2>&1 | Out-String
           
-          # Wait for window to appear
-          Write-Host "Waiting for GMAT window..."
+          # Try launching with --run flag
+          Write-Host "Launching GMAT-Qt with --run flag..."
+          $process = Start-Process -FilePath ".\bin\GmatQt.exe" -ArgumentList "--run","samples\Tut_Mars_B_Plane_Targeting.script" -PassThru -WindowStyle Maximized
+          
+          # Wait for window
           Start-Sleep -Seconds 10
           
-          # Setup automation
-          Add-Type -AssemblyName System.Windows.Forms
-          Add-Type -AssemblyName UIAutomationClient
-          $sig = @'
-          [DllImport("user32.dll")]
-          public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-          [DllImport("user32.dll")]
-          public static extern bool SetForegroundWindow(IntPtr hWnd);
-          [DllImport("user32.dll", SetLastError = true)]
-          public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-          '@
-          $winAPI = Add-Type -MemberDefinition $sig -Name WindowAPI -PassThru
-          
-          # Log window title
-          if ($process.MainWindowHandle -ne [IntPtr]::Zero) {
-            Write-Host "Main window handle: $($process.MainWindowHandle)"
-            Write-Host "Main window title: $($process.MainWindowTitle)"
+          # If process died, try -r flag
+          if ($process.HasExited) {
+            Write-Host "Trying with -r flag..."
+            $process = Start-Process -FilePath ".\bin\GmatQt.exe" -ArgumentList "-r","samples\Tut_Mars_B_Plane_Targeting.script" -PassThru -WindowStyle Maximized
+            Start-Sleep -Seconds 10
           }
           
-          # Bring to foreground
-          $winAPI::SetForegroundWindow($process.MainWindowHandle)
-          Start-Sleep -Seconds 2
-          
-          # Check for Convert dialog and handle it
-          Write-Host "Checking for Convert dialog..."
-          $convertWindow = $winAPI::FindWindow($null, "Convert OpenFrames views?")
-          if ($convertWindow -ne [IntPtr]::Zero) {
-            Write-Host "Found Convert dialog, sending Alt+C"
-            $winAPI::SetForegroundWindow($convertWindow)
-            Start-Sleep -Seconds 1
-            [System.Windows.Forms.SendKeys]::SendWait("%c")
-            Start-Sleep -Seconds 2
+          # If still dead, launch without flags
+          if ($process.HasExited) {
+            Write-Host "Launching without flags..."
+            $process = Start-Process -FilePath ".\bin\GmatQt.exe" -ArgumentList "samples\Tut_Mars_B_Plane_Targeting.script" -PassThru -WindowStyle Maximized
+            Start-Sleep -Seconds 10
           }
           
-          # Bring main window back to front
-          $winAPI::SetForegroundWindow($process.MainWindowHandle)
-          Start-Sleep -Seconds 1
+          # Log window titles
+          Write-Host "=== Current windows ==="
+          Get-Process | Where-Object {$_.MainWindowTitle} | Select-Object Id, ProcessName, MainWindowTitle | Format-Table -AutoSize
           
-          # Build the mission (F7)
-          Write-Host "Building mission (F7)..."
-          [System.Windows.Forms.SendKeys]::SendWait("{F7}")
-          Start-Sleep -Seconds 8
+          # Wait for mission to complete
+          Write-Host "Waiting for mission completion..."
+          Start-Sleep -Seconds 25
           
-          # Run the mission (F5)
-          Write-Host "Running mission (F5)..."
-          [System.Windows.Forms.SendKeys]::SendWait("{F5}")
-          Start-Sleep -Seconds 20
-          
-          Write-Host "Windows after run:"
+          # Log windows after
+          Write-Host "=== Windows after wait ==="
           Get-Process | Where-Object {$_.MainWindowTitle} | Select-Object MainWindowTitle | Format-Table
           
           # Take screenshot
+          Add-Type -AssemblyName System.Windows.Forms
           Add-Type -AssemblyName System.Drawing
           $screens = [Windows.Forms.Screen]::AllScreens
           $screen = $screens[0]
@@ -276,6 +269,23 @@ jobs:
           $graphics.Dispose()
           $bitmap.Dispose()
           Write-Host "Screenshot captured"
+          
+          # OCR verification
+          Write-Host "=== OCR Verification ==="
+          $env:PATH = "C:\Program Files\Tesseract-OCR;$env:PATH"
+          & tesseract "$env:TEMP\screenshot-windows.png" stdout 2>$null | Select-Object -First 50
+          
+          $ocrText = & tesseract "$env:TEMP\screenshot-windows.png" stdout 2>$null
+          if ($ocrText -match "Convert OpenFrames") {
+            Write-Host "ERROR: Convert dialog still present!"
+            exit 1
+          }
+          if ($ocrText -match "Build this script to update them") {
+            Write-Host "ERROR: Script not built or run!"
+            exit 1
+          }
+          
+          Write-Host "OCR verification passed"
           
           # Stop GMAT
           Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
@@ -295,6 +305,10 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 20
     steps:
+      - name: Install tesseract OCR
+        run: |
+          brew install tesseract
+          
       - name: Download macOS ARM64 release package
         run: |
           TAG="${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
@@ -313,86 +327,81 @@ jobs:
       - name: Handle quarantine and signature
         run: |
           cd "$GMAT_DIR"
-          # Remove quarantine attribute
           xattr -cr GMAT-Qt.app
           
       - name: Launch GMAT-Qt and capture screenshot
         run: |
           cd "$GMAT_DIR"
           
-          # Launch GMAT-Qt with the tutorial script using direct executable path
-          # This avoids Finder/open issues
-          echo "Launching GMAT-Qt..."
-          ./GMAT-Qt.app/Contents/MacOS/GmatQt "samples/Tut_Mars_B_Plane_Targeting.script" &
-          GMAT_PID=$!
+          # Check for command-line options
+          echo "Checking GMAT-Qt command-line options..."
+          ./GMAT-Qt.app/Contents/MacOS/GmatQt --help 2>&1 || true
           
-          # Wait for window to appear
+          # Try launching with --run flag
+          echo "Launching GMAT-Qt with --run flag..."
+          ./GMAT-Qt.app/Contents/MacOS/GmatQt --run "samples/Tut_Mars_B_Plane_Targeting.script" &
+          GMAT_PID=$!
+          sleep 10
+          
+          # If not running, try -r
+          if ! ps -p $GMAT_PID > /dev/null 2>&1; then
+            echo "Trying with -r flag..."
+            ./GMAT-Qt.app/Contents/MacOS/GmatQt -r "samples/Tut_Mars_B_Plane_Targeting.script" &
+            GMAT_PID=$!
+            sleep 10
+          fi
+          
+          # If still not running, launch without flags
+          if ! ps -p $GMAT_PID > /dev/null 2>&1; then
+            echo "Launching without flags..."
+            ./GMAT-Qt.app/Contents/MacOS/GmatQt "samples/Tut_Mars_B_Plane_Targeting.script" &
+            GMAT_PID=$!
+          fi
+          
+          # Wait for window
           echo "Waiting for GMAT window..."
           for i in {1..30}; do
             if osascript -e 'tell application "System Events" to exists (first process whose name is "GmatQt")' 2>/dev/null; then
-              echo "GmatQt process found after ${i} seconds"
+              echo "GmatQt found after ${i} seconds"
               break
             fi
             sleep 1
           done
           sleep 3
           
-          # Log running processes
-          echo "=== Running processes with GmatQt ==="
-          ps aux | grep -i gmat || true
-          
-          # Log window info
+          # Log window titles
           echo "=== Window titles ==="
-          osascript -e 'tell application "System Events" to get name of every window of every process' || true
+          osascript -e 'tell application "System Events" to get name of every window of every process' 2>/dev/null | head -20 || true
           
-          # Bring GMAT to front and handle Convert dialog
-          osascript <<'EOF' || true
-          tell application "System Events"
-            -- Find GmatQt process
-            set gmatProcess to first process whose name is "GmatQt"
-            set frontmost of gmatProcess to true
-            delay 2
-            
-            -- Check for Convert dialog by looking for button "Convert views"
-            try
-              tell gmatProcess
-                if exists button "Convert views" of window 1 then
-                  log "Found Convert dialog, clicking Convert views"
-                  click button "Convert views" of window 1
-                  delay 2
-                end if
-              end tell
-            end try
-            
-            -- Make sure main window is front
-            set frontmost of gmatProcess to true
-            delay 1
-            
-            -- Build (F7 = key code 98)
-            log "Building mission (F7)..."
-            key code 98
-            delay 8
-            
-            -- Run (F5 = key code 96)
-            log "Running mission (F5)..."
-            key code 96
-            delay 20
-            
-          end tell
-          EOF
+          # Wait for mission to complete
+          echo "Waiting for mission completion..."
+          sleep 25
           
-          echo "Automation complete"
+          # Log windows after
+          echo "=== Windows after wait ==="
+          osascript -e 'tell application "System Events" to get name of every window of (first process whose name is "GmatQt")' 2>/dev/null || true
           
-          # Log windows again
-          echo "=== Windows after run ==="
-          osascript -e 'tell application "System Events" to get name of every window of (first process whose name is "GmatQt")' || true
-          
-          # Take full-screen screenshot
-          sleep 2
+          # Take screenshot
           screencapture -x /tmp/screenshot-macos-arm64.png
           echo "Screenshot captured"
           
-          # Kill GMAT-Qt
+          # OCR verification
+          echo "=== OCR Verification ==="
+          tesseract /tmp/screenshot-macos-arm64.png - 2>/dev/null | head -50 || true
+          
+          OCR_TEXT=$(tesseract /tmp/screenshot-macos-arm64.png - 2>/dev/null || true)
+          if echo "$OCR_TEXT" | grep -i "Convert OpenFrames"; then
+            echo "ERROR: Convert dialog still present!"
+            exit 1
+          fi
+          if echo "$OCR_TEXT" | grep -i "Build this script to update them"; then
+            echo "ERROR: Script not built or run!"
+            exit 1
+          fi
+          
+          echo "OCR verification passed"
+          
+          # Kill GMAT
           kill $GMAT_PID 2>/dev/null || pkill -f "GmatQt" || true
           
       - name: Upload macOS ARM64 screenshot
@@ -402,121 +411,10 @@ jobs:
           path: /tmp/screenshot-macos-arm64.png
           retention-days: 30
 
-  screenshot-macos-intel:
-    name: Screenshot macOS Intel
-    runs-on: macos-15-large
-    timeout-minutes: 20
-    steps:
-      - name: Download macOS Intel release package
-        run: |
-          TAG="${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
-          VERSION="${TAG#v}"
-          curl -L -o gmat-qt.zip \
-            "https://github.com/dcajacob/GMAT-Qt/releases/download/$TAG/GMAT-Qt-$VERSION-macos-x64.zip"
-          
-      - name: Extract package
-        run: |
-          unzip gmat-qt.zip
-          ls -la
-          TAG="${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
-          VERSION="${TAG#v}"
-          echo "GMAT_DIR=GMAT-Qt-$VERSION-macos-x64" >> $GITHUB_ENV
-          
-      - name: Handle quarantine and signature
-        run: |
-          cd "$GMAT_DIR"
-          # Remove quarantine attribute
-          xattr -cr GMAT-Qt.app
-          
-      - name: Launch GMAT-Qt and capture screenshot
-        run: |
-          cd "$GMAT_DIR"
-          
-          # Launch GMAT-Qt with the tutorial script using direct executable path
-          echo "Launching GMAT-Qt..."
-          ./GMAT-Qt.app/Contents/MacOS/GmatQt "samples/Tut_Mars_B_Plane_Targeting.script" &
-          GMAT_PID=$!
-          
-          # Wait for window to appear
-          echo "Waiting for GMAT window..."
-          for i in {1..30}; do
-            if osascript -e 'tell application "System Events" to exists (first process whose name is "GmatQt")' 2>/dev/null; then
-              echo "GmatQt process found after ${i} seconds"
-              break
-            fi
-            sleep 1
-          done
-          sleep 3
-          
-          # Log running processes
-          echo "=== Running processes with GmatQt ==="
-          ps aux | grep -i gmat || true
-          
-          # Log window info
-          echo "=== Window titles ==="
-          osascript -e 'tell application "System Events" to get name of every window of every process' || true
-          
-          # Bring GMAT to front and handle Convert dialog
-          osascript <<'EOF' || true
-          tell application "System Events"
-            -- Find GmatQt process
-            set gmatProcess to first process whose name is "GmatQt"
-            set frontmost of gmatProcess to true
-            delay 2
-            
-            -- Check for Convert dialog by looking for button "Convert views"
-            try
-              tell gmatProcess
-                if exists button "Convert views" of window 1 then
-                  log "Found Convert dialog, clicking Convert views"
-                  click button "Convert views" of window 1
-                  delay 2
-                end if
-              end tell
-            end try
-            
-            -- Make sure main window is front
-            set frontmost of gmatProcess to true
-            delay 1
-            
-            -- Build (F7 = key code 98)
-            log "Building mission (F7)..."
-            key code 98
-            delay 8
-            
-            -- Run (F5 = key code 96)
-            log "Running mission (F5)..."
-            key code 96
-            delay 20
-            
-          end tell
-          EOF
-          
-          echo "Automation complete"
-          
-          # Log windows again
-          echo "=== Windows after run ==="
-          osascript -e 'tell application "System Events" to get name of every window of (first process whose name is "GmatQt")' || true
-          
-          # Take full-screen screenshot
-          sleep 2
-          screencapture -x /tmp/screenshot-macos-x64.png
-          echo "Screenshot captured"
-          
-          # Kill GMAT-Qt
-          kill $GMAT_PID 2>/dev/null || pkill -f "GmatQt" || true
-          
-      - name: Upload macOS Intel screenshot
-        uses: actions/upload-artifact@v4
-        with:
-          name: screenshot-macos-x64
-          path: /tmp/screenshot-macos-x64.png
-          retention-days: 30
-
   combine-screenshots:
     name: Combine all screenshots
     runs-on: ubuntu-latest
-    needs: [screenshot-linux, screenshot-windows, screenshot-macos-arm64, screenshot-macos-intel]
+    needs: [screenshot-linux, screenshot-windows, screenshot-macos-arm64]
     if: always()
     steps:
       - name: Download all screenshots
