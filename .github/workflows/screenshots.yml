@@ -28,6 +28,7 @@ jobs:
             xvfb \
             xfce4 \
             xfce4-terminal \
+            xfwm4 \
             scrot \
             mesa-utils \
             libgl1-mesa-dri \
@@ -56,6 +57,10 @@ jobs:
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
           sleep 2
+          
+          # Start XFCE window manager for proper window management
+          xfwm4 --daemon
+          sleep 1
           
           # Start XFCE panel for desktop chrome
           xfce4-panel &
