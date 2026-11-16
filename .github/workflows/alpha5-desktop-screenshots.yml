@@ -17,7 +17,9 @@ jobs:
       fail-fast: false
       matrix:
         include: >-
-          ${{ fromJSON(contains(github.event.head_commit.message, '[ground-track]') &&
+          ${{ fromJSON(contains(github.event.head_commit.message, '[targeting]') &&
+          '[{"runner":"ubuntu-24.04","platform":"linux-x86_64","options":"--targeting","screen":"1920x1080x24"}]' ||
+          contains(github.event.head_commit.message, '[ground-track]') &&
           '[{"runner":"ubuntu-24.04","platform":"linux-x86_64","options":"--ground-track"}]' ||
           contains(github.event.head_commit.message, '[windows-only]') &&
           '[{"runner":"windows-2022","platform":"windows-x64"}]' ||
@@ -39,13 +41,13 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends xvfb xauth dbus-x11 xfce4-session xfce4-panel xfce4-settings xfwm4 xfdesktop4 wmctrl xdotool imagemagick libgl1 libglu1-mesa libxcb-cursor0 libxkbcommon-x11-0
+          sudo apt-get install -y --no-install-recommends xvfb xauth dbus-x11 xfce4-session xfce4-panel xfce4-settings xfwm4 xfdesktop4 wmctrl xdotool imagemagick python3-gi gir1.2-atspi-2.0 at-spi2-core libgl1 libglu1-mesa libxcb-cursor0 libxkbcommon-x11-0
       - name: Capture the Linux desktop
         if: runner.os == 'Linux'
         run: |
-          QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s '-screen 0 1600x1000x24' dbus-run-session -- bash -e -c '
+          QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s '-screen 0 ${{ matrix.screen || '1600x1000x24' }}' dbus-run-session -- bash -e -c '
             startxfce4 > "$RUNNER_TEMP/xfce.log" 2>&1 &
-            python tools/preview/CaptureAlpha5Desktop.py linux-x86_64 ${{ matrix.options }}
+            /usr/bin/python3 tools/preview/CaptureAlpha5Desktop.py linux-x86_64 ${{ matrix.options }}
           '
       - name: Capture the native desktop
         if: runner.os != 'Linux'
