@@ -82,33 +82,22 @@ jobs:
         run: |
           cd "$GMAT_DIR"
           
-          # Check if GMAT-Qt supports --run flag
-          echo "Checking GMAT-Qt command-line options..."
-          ./run-gmat --help 2>&1 || true
-          ./run-gmat -h 2>&1 || true
+          # Modify the tutorial script to replace OpenFramesInterface with OrbitView
+          echo "Creating modified tutorial script..."
+          cp samples/Tut_Mars_B_Plane_Targeting.script /tmp/tutorial_modified.script
           
-          # Try launching with --run or -r flag to auto-run the script
-          echo "Launching GMAT-Qt with --run flag..."
-          ./run-gmat --run samples/Tut_Mars_B_Plane_Targeting.script &
+          # Replace OpenFramesInterface with OrbitView in the script
+          sed -i 's/OpenFramesInterface/OrbitView/g' /tmp/tutorial_modified.script
+          sed -i 's/Create OpenFramesView/Create OrbitView/g' /tmp/tutorial_modified.script
+          
+          echo "Modified script created"
+          
+          # Launch GMAT-Qt with modified script
+          echo "Launching GMAT-Qt..."
+          ./run-gmat /tmp/tutorial_modified.script &
           GMAT_PID=$!
           
-          # If that doesn't work, try -r
-          sleep 5
-          if ! ps -p $GMAT_PID > /dev/null 2>&1; then
-            echo "Trying with -r flag..."
-            ./run-gmat -r samples/Tut_Mars_B_Plane_Targeting.script &
-            GMAT_PID=$!
-          fi
-          
-          # If still not running, launch normally
-          sleep 5
-          if ! ps -p $GMAT_PID > /dev/null 2>&1; then
-            echo "Launching without flags..."
-            ./run-gmat samples/Tut_Mars_B_Plane_Targeting.script &
-            GMAT_PID=$!
-          fi
-          
-          # Wait for window to appear
+          # Wait for window
           echo "Waiting for GMAT window..."
           for i in {1..30}; do
             if xdotool search --name "GMAT" > /dev/null 2>&1; then
@@ -119,24 +108,30 @@ jobs:
           done
           sleep 3
           
-          # Log all windows
+          # Log windows
           echo "=== All windows ==="
           wmctrl -l
           
-          # Find main GMAT window and maximize
+          # Find and maximize main window
           GMAT_WINDOW=$(xdotool search --name "GMAT" | head -1)
           if [ -n "$GMAT_WINDOW" ]; then
             echo "Main window: $GMAT_WINDOW"
+            xdotool windowactivate $GMAT_WINDOW
             wmctrl -i -r $GMAT_WINDOW -b add,maximized_vert,maximized_horz
             sleep 2
+            
+            # Build (F7) and Run (F5)
+            echo "Building (F7)..."
+            xdotool key F7
+            sleep 8
+            
+            echo "Running (F5)..."
+            xdotool key F5
+            sleep 25
           fi
           
-          # Wait for mission to complete (if auto-run worked)
-          echo "Waiting for mission completion..."
-          sleep 25
-          
-          # Log windows after run
-          echo "=== Windows after wait ==="
+          # Log windows after
+          echo "=== Windows after run ==="
           wmctrl -l
           
           # Take screenshot
@@ -147,7 +142,6 @@ jobs:
           echo "=== OCR Verification ==="
           tesseract /tmp/screenshot-linux.png - 2>/dev/null | head -50
           
-          # Check for problematic text
           OCR_TEXT=$(tesseract /tmp/screenshot-linux.png - 2>/dev/null)
           if echo "$OCR_TEXT" | grep -i "Convert OpenFrames"; then
             echo "ERROR: Convert dialog still present!"
@@ -219,45 +213,47 @@ jobs:
           $gmatDir = $env:GMAT_DIR
           Set-Location $gmatDir
           
-          # Check for command-line options
-          Write-Host "Checking GMAT-Qt command-line options..."
-          & .\bin\GmatQt.exe --help 2>&1 | Out-String
+          # Modify tutorial script to replace OpenFramesInterface with OrbitView
+          Write-Host "Creating modified tutorial script..."
+          $scriptContent = Get-Content "samples\Tut_Mars_B_Plane_Targeting.script" -Raw
+          $scriptContent = $scriptContent -replace 'OpenFramesInterface','OrbitView'
+          $scriptContent = $scriptContent -replace 'Create OpenFramesView','Create OrbitView'
+          $scriptContent | Set-Content "$env:TEMP\tutorial_modified.script"
+          Write-Host "Modified script created"
           
-          # Try launching with --run flag
-          Write-Host "Launching GMAT-Qt with --run flag..."
-          $process = Start-Process -FilePath ".\bin\GmatQt.exe" -ArgumentList "--run","samples\Tut_Mars_B_Plane_Targeting.script" -PassThru -WindowStyle Maximized
-          
-          # Wait for window
+          # Launch GMAT-Qt with modified script
+          Write-Host "Launching GMAT-Qt..."
+          $process = Start-Process -FilePath ".\bin\GmatQt.exe" -ArgumentList "$env:TEMP\tutorial_modified.script" -PassThru -WindowStyle Maximized
           Start-Sleep -Seconds 10
           
-          # If process died, try -r flag
-          if ($process.HasExited) {
-            Write-Host "Trying with -r flag..."
-            $process = Start-Process -FilePath ".\bin\GmatQt.exe" -ArgumentList "-r","samples\Tut_Mars_B_Plane_Targeting.script" -PassThru -WindowStyle Maximized
-            Start-Sleep -Seconds 10
-          }
-          
-          # If still dead, launch without flags
-          if ($process.HasExited) {
-            Write-Host "Launching without flags..."
-            $process = Start-Process -FilePath ".\bin\GmatQt.exe" -ArgumentList "samples\Tut_Mars_B_Plane_Targeting.script" -PassThru -WindowStyle Maximized
-            Start-Sleep -Seconds 10
-          }
-          
-          # Log window titles
+          # Log windows
           Write-Host "=== Current windows ==="
           Get-Process | Where-Object {$_.MainWindowTitle} | Select-Object Id, ProcessName, MainWindowTitle | Format-Table -AutoSize
           
-          # Wait for mission to complete
-          Write-Host "Waiting for mission completion..."
+          # Send F7 (Build) and F5 (Run)
+          Add-Type -AssemblyName System.Windows.Forms
+          $sig = @'
+          [DllImport("user32.dll")]
+          public static extern bool SetForegroundWindow(IntPtr hWnd);
+          '@
+          $winAPI = Add-Type -MemberDefinition $sig -Name WinAPI -PassThru
+          
+          $winAPI::SetForegroundWindow($process.MainWindowHandle)
+          Start-Sleep -Seconds 2
+          
+          Write-Host "Building (F7)..."
+          [System.Windows.Forms.SendKeys]::SendWait("{F7}")
+          Start-Sleep -Seconds 8
+          
+          Write-Host "Running (F5)..."
+          [System.Windows.Forms.SendKeys]::SendWait("{F5}")
           Start-Sleep -Seconds 25
           
           # Log windows after
-          Write-Host "=== Windows after wait ==="
+          Write-Host "=== Windows after run ==="
           Get-Process | Where-Object {$_.MainWindowTitle} | Select-Object MainWindowTitle | Format-Table
           
           # Take screenshot
-          Add-Type -AssemblyName System.Windows.Forms
           Add-Type -AssemblyName System.Drawing
           $screens = [Windows.Forms.Screen]::AllScreens
           $screen = $screens[0]
@@ -290,7 +286,7 @@ jobs:
           # Stop GMAT
           Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
           
-          # Move screenshot to known location
+          # Move screenshot
           Move-Item "$env:TEMP\screenshot-windows.png" ..\screenshot-windows.png
           
       - name: Upload Windows screenshot
@@ -333,30 +329,17 @@ jobs:
         run: |
           cd "$GMAT_DIR"
           
-          # Check for command-line options
-          echo "Checking GMAT-Qt command-line options..."
-          ./GMAT-Qt.app/Contents/MacOS/GmatQt --help 2>&1 || true
+          # Modify tutorial script to replace OpenFramesInterface with OrbitView
+          echo "Creating modified tutorial script..."
+          cp samples/Tut_Mars_B_Plane_Targeting.script /tmp/tutorial_modified.script
+          sed -i '' 's/OpenFramesInterface/OrbitView/g' /tmp/tutorial_modified.script
+          sed -i '' 's/Create OpenFramesView/Create OrbitView/g' /tmp/tutorial_modified.script
+          echo "Modified script created"
           
-          # Try launching with --run flag
-          echo "Launching GMAT-Qt with --run flag..."
-          ./GMAT-Qt.app/Contents/MacOS/GmatQt --run "samples/Tut_Mars_B_Plane_Targeting.script" &
+          # Launch GMAT-Qt
+          echo "Launching GMAT-Qt..."
+          ./GMAT-Qt.app/Contents/MacOS/GmatQt /tmp/tutorial_modified.script &
           GMAT_PID=$!
-          sleep 10
-          
-          # If not running, try -r
-          if ! ps -p $GMAT_PID > /dev/null 2>&1; then
-            echo "Trying with -r flag..."
-            ./GMAT-Qt.app/Contents/MacOS/GmatQt -r "samples/Tut_Mars_B_Plane_Targeting.script" &
-            GMAT_PID=$!
-            sleep 10
-          fi
-          
-          # If still not running, launch without flags
-          if ! ps -p $GMAT_PID > /dev/null 2>&1; then
-            echo "Launching without flags..."
-            ./GMAT-Qt.app/Contents/MacOS/GmatQt "samples/Tut_Mars_B_Plane_Targeting.script" &
-            GMAT_PID=$!
-          fi
           
           # Wait for window
           echo "Waiting for GMAT window..."
@@ -369,16 +352,29 @@ jobs:
           done
           sleep 3
           
-          # Log window titles
+          # Log windows
           echo "=== Window titles ==="
           osascript -e 'tell application "System Events" to get name of every window of every process' 2>/dev/null | head -20 || true
           
-          # Wait for mission to complete
-          echo "Waiting for mission completion..."
-          sleep 25
+          # Build and Run with AppleScript
+          osascript <<'EOF' || true
+          tell application "System Events"
+            set gmatProcess to first process whose name is "GmatQt"
+            set frontmost of gmatProcess to true
+            delay 2
+            
+            -- Build (F7 = key code 98)
+            key code 98
+            delay 8
+            
+            -- Run (F5 = key code 96)
+            key code 96
+            delay 25
+          end tell
+          EOF
           
           # Log windows after
-          echo "=== Windows after wait ==="
+          echo "=== Windows after run ==="
           osascript -e 'tell application "System Events" to get name of every window of (first process whose name is "GmatQt")' 2>/dev/null || true
           
           # Take screenshot
