@@ -1,0 +1,57 @@
+name: Alpha.5 desktop screenshots
+
+on:
+  push:
+    branches: [codex/alpha5-desktop-screenshots]
+    paths:
+      - '.github/workflows/alpha5-desktop-screenshots.yml'
+      - 'tools/preview/CaptureAlpha5Desktop.py'
+      - 'tools/preview/CaptureAlpha5Windows.ps1'
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux-x86_64
+          - runner: windows-2022
+            platform: windows-x64
+          - runner: macos-15
+            platform: macos-arm64
+          - runner: macos-15-intel
+            platform: macos-x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the Linux desktop and capture tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb xauth dbus-x11 xfce4-session xfce4-panel xfce4-settings xfwm4 xfdesktop4 wmctrl xdotool imagemagick libgl1 libglu1-mesa libxcb-cursor0 libxkbcommon-x11-0
+      - name: Capture the Linux desktop
+        if: runner.os == 'Linux'
+        run: |
+          QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s '-screen 0 1600x1000x24' dbus-run-session -- bash -e -c '
+            startxfce4 > "$RUNNER_TEMP/xfce.log" 2>&1 &
+            python tools/preview/CaptureAlpha5Desktop.py linux-x86_64
+          '
+      - name: Capture the native desktop
+        if: runner.os != 'Linux'
+        run: python tools/preview/CaptureAlpha5Desktop.py ${{ matrix.platform }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alpha5-desktop-${{ matrix.platform }}
+          path: desktop-capture/
+          retention-days: 30
