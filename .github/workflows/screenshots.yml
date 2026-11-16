@@ -1,0 +1,286 @@
+name: Marketing Screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag to capture screenshots from'
+        required: true
+        default: 'v0.1.0-alpha.5'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  screenshot-linux:
+    name: Screenshot Linux x86-64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Install desktop environment and tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            xvfb \
+            xfce4 \
+            xfce4-terminal \
+            scrot \
+            mesa-utils \
+            libgl1-mesa-dri \
+            libglx-mesa0 \
+            wget \
+            imagemagick
+          
+      - name: Download Linux release package
+        run: |
+          wget -O gmat-qt.tar.gz \
+            "https://github.com/dcajacob/GMAT-Qt/releases/download/${{ inputs.release_tag }}/GMAT-Qt-${TAG#v}-linux-x86_64.tar.gz"
+        env:
+          TAG: ${{ inputs.release_tag }}
+          
+      - name: Extract package
+        run: |
+          tar -xzf gmat-qt.tar.gz
+          ls -la
+          TAG="${{ inputs.release_tag }}"
+          echo "GMAT_DIR=GMAT-Qt-${TAG#v}-linux-x86_64" >> $GITHUB_ENV
+          
+      - name: Start Xvfb with XFCE desktop
+        run: |
+          # Start Xvfb with a good resolution
+          Xvfb :99 -screen 0 1920x1080x24 &
+          export DISPLAY=:99
+          sleep 2
+          
+          # Start XFCE panel for desktop chrome
+          xfce4-panel &
+          sleep 2
+          
+          # Set software OpenGL
+          export LIBGL_ALWAYS_SOFTWARE=1
+          export MESA_GL_VERSION_OVERRIDE=3.3
+          
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+          echo "LIBGL_ALWAYS_SOFTWARE=1" >> $GITHUB_ENV
+          echo "MESA_GL_VERSION_OVERRIDE=3.3" >> $GITHUB_ENV
+          
+      - name: Launch GMAT-Qt and capture screenshot
+        run: |
+          cd "$GMAT_DIR"
+          
+          # Create a script to open a tutorial
+          cat > /tmp/open_tutorial.sh << 'EOF'
+          #!/bin/bash
+          set -x
+          
+          # Launch GMAT-Qt in background
+          ./run-gmat samples/Tut_Mars_B_Plane_Targeting.script &
+          GMAT_PID=$!
+          
+          # Wait for window to appear and render
+          sleep 15
+          
+          # Run the mission
+          # Note: This would require GUI automation, so we'll just wait for initial load
+          sleep 10
+          
+          # Take screenshot
+          scrot -o /tmp/screenshot-linux.png
+          
+          # Kill GMAT
+          kill $GMAT_PID || true
+          EOF
+          
+          chmod +x /tmp/open_tutorial.sh
+          /tmp/open_tutorial.sh
+          
+      - name: Upload Linux screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-linux-x86_64
+          path: /tmp/screenshot-linux.png
+          retention-days: 30
+
+  screenshot-windows:
+    name: Screenshot Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Download Windows release package
+        shell: pwsh
+        run: |
+          $tag = "${{ inputs.release_tag }}"
+          $version = $tag.TrimStart('v')
+          $url = "https://github.com/dcajacob/GMAT-Qt/releases/download/$tag/GMAT-Qt-$version-windows-x64.zip"
+          Write-Host "Downloading from: $url"
+          Invoke-WebRequest -Uri $url -OutFile gmat-qt.zip
+          
+      - name: Extract package
+        shell: pwsh
+        run: |
+          Expand-Archive -Path gmat-qt.zip -DestinationPath .
+          Get-ChildItem
+          $tag = "${{ inputs.release_tag }}"
+          $version = $tag.TrimStart('v')
+          $gmatDir = "GMAT-Qt-$version-windows-x64"
+          Write-Host "GMAT_DIR=$gmatDir" >> $env:GITHUB_ENV
+          
+      - name: Launch GMAT-Qt and capture screenshot
+        shell: pwsh
+        run: |
+          $gmatDir = $env:GMAT_DIR
+          Set-Location $gmatDir
+          
+          # Launch GMAT-Qt
+          $process = Start-Process -FilePath ".\bin\GmatQt.exe" -ArgumentList "samples\Tut_Mars_B_Plane_Targeting.script" -PassThru
+          
+          # Wait for window and rendering
+          Start-Sleep -Seconds 20
+          
+          # Take screenshot using .NET
+          Add-Type -AssemblyName System.Windows.Forms,System.Drawing
+          $screens = [Windows.Forms.Screen]::AllScreens
+          $screen = $screens[0]
+          $bitmap = New-Object Drawing.Bitmap $screen.Bounds.Width, $screen.Bounds.Height
+          $graphics = [Drawing.Graphics]::FromImage($bitmap)
+          $graphics.CopyFromScreen($screen.Bounds.Location, [Drawing.Point]::Empty, $screen.Bounds.Size)
+          $bitmap.Save("$env:TEMP\screenshot-windows.png")
+          $graphics.Dispose()
+          $bitmap.Dispose()
+          
+          # Stop GMAT
+          Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+          
+          # Move screenshot to known location
+          Move-Item "$env:TEMP\screenshot-windows.png" ..\screenshot-windows.png
+          
+      - name: Upload Windows screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-windows-x64
+          path: screenshot-windows.png
+          retention-days: 30
+
+  screenshot-macos-arm64:
+    name: Screenshot macOS Apple Silicon
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - name: Download macOS ARM64 release package
+        run: |
+          TAG="${{ inputs.release_tag }}"
+          VERSION="${TAG#v}"
+          curl -L -o gmat-qt.zip \
+            "https://github.com/dcajacob/GMAT-Qt/releases/download/$TAG/GMAT-Qt-$VERSION-macos-arm64.zip"
+          
+      - name: Extract package
+        run: |
+          unzip gmat-qt.zip
+          ls -la
+          TAG="${{ inputs.release_tag }}"
+          VERSION="${TAG#v}"
+          echo "GMAT_DIR=GMAT-Qt-$VERSION-macos-arm64" >> $GITHUB_ENV
+          
+      - name: Handle quarantine and signature
+        run: |
+          cd "$GMAT_DIR"
+          # Remove quarantine attribute
+          xattr -cr GMAT-Qt.app
+          
+      - name: Launch GMAT-Qt and capture screenshot
+        run: |
+          cd "$GMAT_DIR"
+          
+          # Launch GMAT-Qt with a tutorial script
+          open -a "$PWD/GMAT-Qt.app" --args "samples/Tut_Mars_B_Plane_Targeting.script" &
+          
+          # Wait for window to appear and render
+          sleep 20
+          
+          # Take full-screen screenshot
+          screencapture -x /tmp/screenshot-macos-arm64.png
+          
+          # Kill GMAT-Qt
+          pkill -f "GMAT-Qt.app" || true
+          
+      - name: Upload macOS ARM64 screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-macos-arm64
+          path: /tmp/screenshot-macos-arm64.png
+          retention-days: 30
+
+  screenshot-macos-intel:
+    name: Screenshot macOS Intel
+    runs-on: macos-13
+    timeout-minutes: 20
+    steps:
+      - name: Download macOS Intel release package
+        run: |
+          TAG="${{ inputs.release_tag }}"
+          VERSION="${TAG#v}"
+          curl -L -o gmat-qt.zip \
+            "https://github.com/dcajacob/GMAT-Qt/releases/download/$TAG/GMAT-Qt-$VERSION-macos-x64.zip"
+          
+      - name: Extract package
+        run: |
+          unzip gmat-qt.zip
+          ls -la
+          TAG="${{ inputs.release_tag }}"
+          VERSION="${TAG#v}"
+          echo "GMAT_DIR=GMAT-Qt-$VERSION-macos-x64" >> $GITHUB_ENV
+          
+      - name: Handle quarantine and signature
+        run: |
+          cd "$GMAT_DIR"
+          # Remove quarantine attribute
+          xattr -cr GMAT-Qt.app
+          
+      - name: Launch GMAT-Qt and capture screenshot
+        run: |
+          cd "$GMAT_DIR"
+          
+          # Launch GMAT-Qt with a tutorial script
+          open -a "$PWD/GMAT-Qt.app" --args "samples/Tut_Mars_B_Plane_Targeting.script" &
+          
+          # Wait for window to appear and render
+          sleep 20
+          
+          # Take full-screen screenshot
+          screencapture -x /tmp/screenshot-macos-x64.png
+          
+          # Kill GMAT-Qt
+          pkill -f "GMAT-Qt.app" || true
+          
+      - name: Upload macOS Intel screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-macos-x64
+          path: /tmp/screenshot-macos-x64.png
+          retention-days: 30
+
+  combine-screenshots:
+    name: Combine all screenshots
+    runs-on: ubuntu-latest
+    needs: [screenshot-linux, screenshot-windows, screenshot-macos-arm64, screenshot-macos-intel]
+    if: always()
+    steps:
+      - name: Download all screenshots
+        uses: actions/download-artifact@v4
+        with:
+          path: screenshots
+          
+      - name: Create combined archive
+        run: |
+          cd screenshots
+          find . -name "*.png" -exec mv {} . \;
+          ls -la
+          zip -r ../screenshots-combined.zip *.png
+          
+      - name: Upload combined screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-combined
+          path: screenshots-combined.zip
+          retention-days: 30
