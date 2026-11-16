@@ -59,8 +59,8 @@ jobs:
           sleep 2
           
           # Start XFCE window manager for proper window management
-          xfwm4 --daemon
-          sleep 1
+          xfwm4 &
+          sleep 2
           
           # Start XFCE panel for desktop chrome
           xfce4-panel &
