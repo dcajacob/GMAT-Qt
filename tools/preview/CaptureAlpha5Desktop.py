@@ -48,7 +48,7 @@ def bridge(record, *operations):
     return reply['result']
 
 
-def mission_endpoint(process, discovery):
+def mission_endpoint(process, discovery, ground_track=False):
     deadline = time.monotonic() + 240
     while time.monotonic() < deadline:
         if process.poll() is not None:
@@ -63,28 +63,42 @@ def mission_endpoint(process, discovery):
                 continue
             status = state['run'].get('status')
             if status == 'succeeded' and not state['running']:
+                name = 'GEOSat' if ground_track else 'MPS1'
                 spacecraft = bridge(record, ('attach', {}), ('get_object', {
-                    'document_id': state['document_id'], 'name': 'MPS1',
+                    'document_id': state['document_id'], 'name': name,
                     'view': 'runtime', 'fields': ['Epoch'],
                 }))
                 context = spacecraft['context']
-                epoch = float(context['Epoch'])
-                if context['DateFormat'] != 'TAIModJulian' or abs(epoch - FINAL_MPS1_TAI_MJD) > 1e-7:
-                    raise RuntimeError(f'MPS1 did not reach the expected endpoint: {context}')
+                if ground_track:
+                    matches = (context['DateFormat'] == 'UTCGregorian' and
+                               context['Epoch'] == '06 Jan 2015 11:59:28.000')
+                else:
+                    matches = (context['DateFormat'] == 'TAIModJulian' and
+                               abs(float(context['Epoch']) - FINAL_MPS1_TAI_MJD) <= 1e-7)
+                if not matches:
+                    raise RuntimeError(f'{name} did not reach the expected endpoint: {context}')
                 return {'status': status, 'native_status': state['run']['native_status'],
-                        'MPS1_TAIModJulian': epoch}
+                        'spacecraft': name, 'epoch_format': context['DateFormat'], 'epoch': context['Epoch']}
             if status in ('failed', 'cancelled'):
                 raise RuntimeError(f'GMAT mission {status}')
         time.sleep(1)
     raise TimeoutError('Mars mission did not report a completed run')
 
 
-def capture(target, process, bundle, destination):
+def capture(target, process, bundle, destination, ground_track):
     if target.startswith('linux'):
         run('pgrep', '-x', 'xfce4-panel')
         run('wmctrl', '-lp')
         run('wmctrl', '-a', 'GMAT')
         run('wmctrl', '-r', 'GMAT', '-b', 'add,maximized_vert,maximized_horz')
+        if ground_track:
+            time.sleep(1)
+            run('xdotool', 'key', 'alt+w', 'sleep', '0.3', 'key', 't')
+            # The fixed 1600x1000 Xfce session and fresh settings place the
+            # global playback slider at this position. Scrub back into the
+            # first few orbits so individual ground tracks remain legible.
+            run('xdotool', 'mousemove', '536', '90', 'mousedown', '1',
+                'sleep', '0.2', 'mousemove', '435', '90', 'sleep', '0.2', 'mouseup', '1')
         run('xdotool', 'mousemove', '1599', '997')
         time.sleep(1)
         run('import', '-window', 'root', str(destination))
@@ -104,8 +118,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('target', choices=ARCHIVE_SHA256)
     parser.add_argument('--archive', type=Path)
+    parser.add_argument('--ground-track', action='store_true')
     args = parser.parse_args()
     target = args.target
+    if args.ground_track and target != 'linux-x86_64':
+        parser.error('The optional ground-track composition uses the Linux desktop layout')
+    mission_name = 'Ex_StationContactLocator.script' if args.ground_track else MISSION
+    scene = 'GroundTrack' if args.ground_track else 'MarsOrbit'
     output = Path('desktop-capture').resolve()
     output.mkdir(exist_ok=True)
 
@@ -144,16 +163,16 @@ def main():
             renderer = 'Mesa software OpenGL'
 
         discovery = work/'private-discovery'
-        mission = samples/MISSION
+        mission = samples/mission_name
         command = [str(executable), '--settings-dir', str(work/'settings'), '--mcp-bridge',
                    '--mcp-discovery-dir', str(discovery), '--convert-views', '--run', str(mission)]
         with (output/'gmat.log').open('w', encoding='utf-8') as log:
             process = subprocess.Popen(command, cwd=work, env=environment, stdout=log,
                                        stderr=subprocess.STDOUT)
             try:
-                endpoint = mission_endpoint(process, discovery)
-                picture = output/f'GMAT-Qt-alpha5-MarsOrbit-{target}.png'
-                capture(target, process, bundle, picture)
+                endpoint = mission_endpoint(process, discovery, args.ground_track)
+                picture = output/f'GMAT-Qt-alpha5-{scene}-{target}.png'
+                capture(target, process, bundle, picture, args.ground_track)
                 with picture.open('rb') as stream:
                     header = stream.read(24)
                 if header[:8] != b'\x89PNG\r\n\x1a\n':
@@ -162,8 +181,9 @@ def main():
                 receipt = {
                     'platform': target, 'system': platform.platform(), 'machine': platform.machine(),
                     'archive': asset, 'archive_sha256': ARCHIVE_SHA256[target],
-                    'mission': MISSION, 'mission_sha256': digest(mission),
-                    'view': 'OFI_MarsMJ2KView converted to Qt OrbitView', 'last_propagate_days': 1,
+                    'mission': mission_name, 'mission_sha256': digest(mission),
+                    'view': ('Linked playback with OrbitView and GroundTrackPlot' if args.ground_track
+                             else 'OFI_MarsMJ2KView converted to Qt OrbitView at Latest'),
                     'renderer': renderer,
                     'run': endpoint, 'screenshot': picture.name, 'screenshot_sha256': digest(picture),
                     'pixels': [width, height],

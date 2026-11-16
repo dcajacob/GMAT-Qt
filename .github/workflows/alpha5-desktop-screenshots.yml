@@ -17,7 +17,9 @@ jobs:
       fail-fast: false
       matrix:
         include: >-
-          ${{ fromJSON(contains(github.event.head_commit.message, '[windows-only]') &&
+          ${{ fromJSON(contains(github.event.head_commit.message, '[ground-track]') &&
+          '[{"runner":"ubuntu-24.04","platform":"linux-x86_64","options":"--ground-track"}]' ||
+          contains(github.event.head_commit.message, '[windows-only]') &&
           '[{"runner":"windows-2022","platform":"windows-x64"}]' ||
           '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"},
             {"runner":"windows-2022","platform":"windows-x64"},
@@ -29,6 +31,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          sparse-checkout: tools/preview
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -42,7 +45,7 @@ jobs:
         run: |
           QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s '-screen 0 1600x1000x24' dbus-run-session -- bash -e -c '
             startxfce4 > "$RUNNER_TEMP/xfce.log" 2>&1 &
-            python tools/preview/CaptureAlpha5Desktop.py linux-x86_64
+            python tools/preview/CaptureAlpha5Desktop.py linux-x86_64 ${{ matrix.options }}
           '
       - name: Capture the native desktop
         if: runner.os != 'Linux'
