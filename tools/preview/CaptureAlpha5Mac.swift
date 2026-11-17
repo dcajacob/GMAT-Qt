@@ -130,6 +130,19 @@ func transferTab(_ element: AXUIElement, depth: Int = 0) -> CGRect? {
     return nil
 }
 
+func bringLunarPlotForward() {
+    guard let screen = NSScreen.screens.first else { fail("No desktop") }
+    let menuHeight = screen.frame.maxY - screen.visibleFrame.maxY
+    // Click the unobstructed title bar, outside the plot and its playback controls.
+    let titleBar = CGPoint(x: 1520, y: menuHeight + 110)
+    mouse(.mouseMoved, titleBar)
+    usleep(80000)
+    mouse(.leftMouseDown, titleBar)
+    mouse(.leftMouseUp, titleBar)
+    usleep(350000)
+    CGWarpMouseCursorPosition(CGPoint(x: screen.frame.maxX-2, y: screen.frame.maxY-3))
+}
+
 func showTransferView(pid: pid_t) {
     guard let screen = NSScreen.screens.first, screen.frame.width >= 1920 && screen.frame.height >= 1080 else {
         fail("The transfer view needs an HD desktop")
@@ -152,10 +165,11 @@ if args.first == "configure" {
     configureFullHD()
 } else if args.count == 2, args.first == "fit", let pid = Int32(args.last!) {
     fitMainWindow(pid: pid)
-} else if args.first == "solver" {
+} else if args.first == "solver" || args.first == "lunar-solver" {
     extendSolverTable()
+    if args.first == "lunar-solver" { bringLunarPlotForward() }
 } else if args.count == 2, args.first == "transfer", let pid = Int32(args.last!) {
     showTransferView(pid: pid)
 } else {
-    fail("Usage: CaptureAlpha5Mac configure | fit PID | solver | transfer PID")
+    fail("Usage: CaptureAlpha5Mac configure | fit PID | solver | lunar-solver | transfer PID")
 }

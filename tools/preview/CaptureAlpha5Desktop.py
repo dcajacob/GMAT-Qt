@@ -238,8 +238,11 @@ def capture(target, process, bundle, destination, ground_track, tabs, native_sce
         run('pgrep', '-x', 'SystemUIServer')
         run('open', '-a', str(bundle))
         if native_scene:
-            arguments = ('transfer', str(process.pid)) if native_scene == 'MarsTransfer' else ('solver',)
-            run(str(mac_helper), *arguments)
+            if native_scene == 'MarsTransfer':
+                run(str(mac_helper), 'transfer', str(process.pid))
+            else:
+                action = 'lunar-solver' if native_scene == 'LunarInsertionTargeting' else 'solver'
+                run(str(mac_helper), action)
         time.sleep(2)
         run('screencapture', '-x', '-m', str(destination))
 
