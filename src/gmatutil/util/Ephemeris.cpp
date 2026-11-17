@@ -194,31 +194,15 @@ const RealArray& Ephemeris::GetSegmentTimes()
 //------------------------------------------------------------------------------
 Integer Ephemeris::FindSegment(const GmatEpoch forEpoch)
 {
-   Integer retval = -1;
-
+   Integer endpoint = -1;
    for (UnsignedInt i = 0; i < theEphem.size(); ++i)
    {
-      #ifdef DEBUG_INTERPOLATION
-         MessageInterface::ShowMessage("Checking if %.12lf is between %.12lf and %.12lf\n",
-               forEpoch, theEphem[i].segStart, theEphem[i].segEnd);
-      #endif
-
-      if ((theEphem[i].segStart <= forEpoch) && (forEpoch < theEphem[i].segEnd))
-      {
-         retval = i;
-         break;
-      }
-
-      // Special case: Only one point in the segment
-      if ((theEphem[i].segStart == forEpoch) && (forEpoch == theEphem[i].segEnd))
-         retval = i;
+      const auto &segment = theEphem[i];
+      if (segment.segStart > forEpoch) break;
+      if (forEpoch < segment.segEnd) return i;
+      if (forEpoch == segment.segEnd) endpoint = i;
    }
-
-   // Handle the last point on the ephemeris
-   if (forEpoch == a1EndEpoch)
-      retval = theEphem.size() - 1;
-
-   return retval;
+   return endpoint;
 }
 
 //------------------------------------------------------------------------------
@@ -318,11 +302,11 @@ Rvector6 Ephemeris::InterpolatePoint(const GmatEpoch forEpoch)
    {
       // Preserve a Real caller's rounded endpoint identity. Precise callers
       // retain their supplied clock, including sub-MJD-ulp outside queries.
-      const auto &points = theEphem[segment].points;
-      if (forEpoch == points.front().theEpoch)
-         query = points.front().GetEpoch();
-      else if (forEpoch == points.back().theEpoch)
-         query = points.back().GetEpoch();
+      const auto &span = theEphem[segment];
+      if (forEpoch == span.segStart)
+         query = span.StartEpoch();
+      else if (forEpoch == span.segEnd)
+         query = span.EndEpoch();
    }
    return InterpolatePoint(query);
 }
@@ -336,17 +320,13 @@ Rvector6 Ephemeris::InterpolatePoint(const GmatTime &forEpoch)
       const auto &segment = theEphem[i];
       if (segment.points.empty())
          continue;
-      const auto &first = segment.points.front();
-      const auto &last = segment.points.back();
-      const GmatTime start = first.theEpoch == segment.segStart ?
-            first.GetEpoch() : GmatTime(segment.segStart);
-      const GmatTime end = last.theEpoch == segment.segEnd ?
-            last.GetEpoch() : GmatTime(segment.segEnd);
-      if (start <= forEpoch && (forEpoch < end ||
-            (forEpoch == end && (start == end || i + 1 == theEphem.size()))))
+      if (segment.StartEpoch() > forEpoch) break;
+      const GmatTime end = segment.EndEpoch();
+      if (forEpoch <= end)
       {
          segNo = i;
-         break;
+         // A following segment owns a shared endpoint. A gap does not.
+         if (forEpoch < end) break;
       }
    }
    if (segNo == -1)

@@ -101,7 +101,7 @@ int main(int argc,char **argv)
     auto closeChoice=[&](QMessageBox::StandardButton decision) {
      std::exception_ptr failure; QTimer response; response.setInterval(10);
      QObject::connect(&response,&QTimer::timeout,&window,[&] { auto *box=qobject_cast<QMessageBox *>(QApplication::activeModalWidget()); if (!box) return; response.stop(); try { acceptanceView(*box); auto *button=box->button(decision); require(button,"Ephemeris close choice missing"); QTest::mouseClick(button,Qt::LeftButton); } catch (...) { failure=std::current_exception(); box->reject(); } });
-     response.start(); click(buttons,QDialogButtonBox::Close); response.stop(); if (failure) std::rethrow_exception(failure);
+     response.start(); child->close(); events(); response.stop(); if (failure) std::rethrow_exception(failure);
     };
     closeChoice(QMessageBox::Cancel); require(child&&child->isVisible()&&panel->hasChanges()&&pristine(),"Close Cancel lost the pending ephemeris draft");
     closeChoice(QMessageBox::Discard); require(!child&&pristine(),"Discarding the ephemeris draft changed configured mission/history");

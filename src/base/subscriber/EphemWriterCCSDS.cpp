@@ -33,6 +33,9 @@
 #include "FileUtil.hpp"              // for ParseFileExtension()
 #include "MessageInterface.hpp"
 #include "CcsdsOemB1Text.hpp"
+#include <cerrno>
+#include <cstdio>
+#include <filesystem>
 #include <sstream>                   // for <<, std::endl
 
 
@@ -450,6 +453,8 @@ void EphemWriterCCSDS::CreateEphemerisFile(bool useDefaultFileName,
       throw se;
    }
    
+   lastOemStop.clear();
+   nextArcNumber = 2;
    isEphemFileOpened = true;
    
    #ifdef DEBUG_EPHEMFILE_OPEN
@@ -530,7 +535,7 @@ bool EphemWriterCCSDS::IsBackwardPropAllowed(Real propDirection)
    // Write one time warning and continue for other types
    static bool firstTimeWarning = true;
    
-   if (propIndicator >= 3 ||
+   if ((propIndicator >= 3 && fileType != CCSDS_OEM) ||
        (propDirection == -1.0 && (ephemType != "CCSDS-OEM" && ephemType != "CCSDS-AEM")))
    {        
       if (firstTimeWarning)
@@ -917,9 +922,8 @@ void EphemWriterCCSDS::FinishUpWritingOrbitData()
                "the " + interpolatorName + " interpolator of order " +
                GmatStringUtil::ToString(interpolationOrder, 0) + " for ephemeris "
                "file \"" + fileName + "\", segment " +
-               GmatStringUtil::ToString(numSegments, 0) + ". The order will be "
-               "reduced to " + GmatStringUtil::ToString(GetSupportedInterpolationOrder(numPoints), 0) +
-               " for this segment.\n");
+               GmatStringUtil::ToString(numSegments, 0) + ". Interpolating with the " +
+               GmatStringUtil::ToString(numPoints, 0) + " available input samples.\n");
 
          allowLowerOrder = true;
          ProcessEpochsOnWaiting(false, false);
@@ -1257,6 +1261,29 @@ void EphemWriterCCSDS::WriteCcsdsOrbitDataSegment()
 //------------------------------------------------------------------------------
 // void WriteCcsdsOemMetaData()
 //------------------------------------------------------------------------------
+void EphemWriterCCSDS::OpenNextOemArc()
+{
+   // Reserve a new sibling, including when the mission is run more than once.
+   const auto original = std::filesystem::u8path(fullPathFileName);
+   for (;;)
+   {
+      const auto name = original.stem().u8string() + ".arc-" +
+            std::to_string(nextArcNumber++) + original.extension().u8string();
+      const auto path = original.parent_path() / std::filesystem::u8path(name);
+#ifdef _WIN32
+      auto *reserved = _wfopen(path.c_str(), L"wbx");
+#else
+      auto *reserved = std::fopen(path.c_str(), "wbx");
+#endif
+      if (!reserved && errno == EEXIST) continue;
+      if (!reserved || std::fclose(reserved) != 0 || !ccsdsOemWriter->OpenFile(path.u8string()))
+         throw SubscriberException("Unable to create OEM arc file '" + path.u8string() + "'");
+      WriteCcsdsHeader();
+      MessageInterface::ShowMessage("Writing the next propagation arc to '%s'\n", path.u8string().c_str());
+      return;
+   }
+}
+
 void EphemWriterCCSDS::WriteCcsdsOemMetaData()
 {
    #ifdef DEBUG_EPHEMFILE_METADATA
@@ -1330,6 +1357,14 @@ void EphemWriterCCSDS::WriteCcsdsOemMetaData()
    {
       RequireInterpolationData(numPoints,"exported OEM records");
       actualInterpOrder = GetSupportedInterpolationOrder(numPoints);
+      if (numPoints > 0 && ccsdsOemWriter)
+      {
+         ccsdsOemWriter->OrderPropagationArc(metaDataStart, metaDataStop);
+         metaDataStartStr = ccsdsOemWriter->FormatEpoch(metaDataStart);
+         metaDataStopStr = ccsdsOemWriter->FormatEpoch(metaDataStop);
+         if (!lastOemStop.empty() && metaDataStartStr < lastOemStop)
+            OpenNextOemArc();
+      }
    }
    
    // Format interpolation order, width of 2 with left justified
@@ -1376,9 +1411,11 @@ void EphemWriterCCSDS::WriteCcsdsOemMetaData()
          ccsdsOemWriter->SetMetaDataForWriting("STOP_TIME", metaDataStopStr);
          ccsdsOemWriter->SetMetaDataForWriting("INTERPOLATION", interpolatorName);
          ccsdsOemWriter->SetMetaDataForWriting("INTERPOLATION_DEGREE", interpOrdBuff);
-         ccsdsOemWriter->WriteDataComments();
-         ccsdsOemWriter->WriteMetaData();
-         ccsdsOemWriter->WriteDataSegment();
+         if (!ccsdsOemWriter->WriteDataComments() || !ccsdsOemWriter->WriteMetaData() ||
+               !ccsdsOemWriter->WriteDataSegment())
+            throw SubscriberException("Unable to write the OEM propagation arc for '" + fileName + "'");
+         if (numPoints > 0)
+            lastOemStop = metaDataStopStr;
       }
    }
    

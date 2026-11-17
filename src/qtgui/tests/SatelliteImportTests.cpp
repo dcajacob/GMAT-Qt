@@ -8,9 +8,8 @@
 #include "TestSettings.hpp"
 #include "BaseException.hpp"
 #include "StringUtil.hpp"
-#include "QtMessageReceiver.hpp"
-#include "MessageInterface.hpp"
 #include <QApplication>
+#include <QComboBox>
 #include <QAction>
 #include <QDir>
 #include <QFile>
@@ -62,8 +61,6 @@ int main(int argc,char **argv)
       const auto evidence=qEnvironmentVariable("GMAT_QT_ACCEPTANCE_DIR");
       if (!evidence.isEmpty()) QDir().mkpath(evidence);
       MainWindow window; require(window.initialize(startup),"Satellite test runtime failed");
-      if (auto *messages=dynamic_cast<QtMessageReceiver *>(MessageInterface::GetMessageReceiver()))
-         messages->SetMessageCallback(&window,[](const QString &message) { std::cerr<<message.toStdString(); });
       const auto lsk=FileManager::Instance()->GetFullPathname("LSK_FILE");
       SpiceInterface::NotifyKernelPoolChanged(); furnsh_c(lsk.c_str());
       const QByteArray tle="Vanguard\n1 00005U 58002B   00179.78495062  .00000023  00000-0  28098-4 0  4753\n2 00005  34.2682 348.7242 1859667 331.7664  19.3264 10.82419157413667\n";
@@ -135,6 +132,24 @@ int main(int argc,char **argv)
       // A1 epochs are stored as doubles. Their sub-microsecond quantization
       // becomes a few millimetres at this fixture's 7.5 km/s velocity.
       for (int i=0;i<6;++i) require(std::abs(sampled[i]-expectedSample[i])<(i<3 ? 1e-5 : 1e-10),"Imported OEM differs from its independent linear-state fixture");
+      // Only the second segment changes frame. Even a query in the first
+      // segment must fail before the mission can report a misframed state.
+      const auto mixedPath=scratch.filePath("mixed.oem");
+      auto later=oem.mid(oem.indexOf("META_START"));
+      later.replace("T12:","T13:").replace("REF_FRAME = EME2000","REF_FRAME = GRC");
+      write(mixedPath,oem+later);
+      auto mixedScript=editor->toPlainText();
+      require(mixedScript.contains(oemPath),"Missing OEM mission source path");
+      mixedScript.replace(oemPath,mixedPath);
+      editor->setPlainText(mixedScript);
+      auto *messages=window.findChild<QPlainTextEdit *>("messageWindow");
+      messages->clear();
+      require(window.buildScript(),"Mixed-frame propagation script did not build");
+      const auto mixedResult=window.runMission();
+      QApplication::processEvents();
+      require(mixedResult==MainWindow::RunResult::Failed &&
+            messages->toPlainText().contains("same CENTER_NAME and REF_FRAME"),
+            qPrintable("Unexpected mixed-frame mission result: "+messages->toPlainText()));
       QByteArray stk="stk.v.10.0\nBEGIN Ephemeris\nNumberOfEphemerisPoints 11\nScenarioEpoch 01 Jan 2000 12:00:00.000\nCentralBody Earth\nCoordinateSystem J2000\nDistanceUnit Kilometers\nEphemerisTimePosVel\n";
       for (int minute=0;minute<=10;++minute) stk+=QByteArray::number(minute*60)+" 7000 "+QByteArray::number(minute*450)+" 0 0 7.5 0\n";
       stk+="END Ephemeris\n";
@@ -169,9 +184,21 @@ int main(int argc,char **argv)
          try {
             require(dialog,"The Edit-menu import action did not open its dialog");
             dialog->findChild<QTabWidget *>("satelliteImportSource")->setCurrentIndex(1);
-            dialog->findChild<QLineEdit *>("satelliteImportFile")->setText(scratch.filePath("input.tle"));
-            dialog->findChild<QPushButton *>("readSatelliteFile")->click();
-            require(dialog->findChild<QListWidget *>("satelliteFileResults")->count()==1,"File import did not show dated records");
+            auto *path=dialog->findChild<QLineEdit *>("satelliteImportFile");
+            auto *load=dialog->findChild<QPushButton *>("readSatelliteFile");
+            auto *format=dialog->findChild<QComboBox *>("satelliteFileFormat");
+            auto *start=dialog->findChild<QLineEdit *>("satelliteFileEpoch");
+            auto *apply=dialog->findChild<QPushButton *>("importSatellite");
+            path->setText(oemPath); load->click();
+            require(format->currentText()=="CCSDS-OEM" && !start->text().isEmpty(),
+                  "OEM metadata was not populated");
+            path->setText(scratch.filePath("input.tle"));
+            require(start->text().isEmpty() && !apply->isEnabled(),
+                  "Changing file retained the previous OEM epoch");
+            load->click();
+            require(format->currentIndex()==0 && apply->isEnabled() &&
+                  dialog->findChild<QListWidget *>("satelliteFileResults")->count()==1,
+                  "TLE loaded after an OEM did not select the orbital record");
             app.processEvents();
             if (!evidence.isEmpty()) dialog->grab().save(evidence+"/import-dialog.png");
             dialog->findChild<QPushButton *>("importSatellite")->click();

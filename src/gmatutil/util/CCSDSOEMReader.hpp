@@ -48,8 +48,8 @@ public:
    /// segment, and check to make sure the segments are ordered
    /// correctly by increasing time
    virtual void            Initialize();
-   /// Returns the DCM from inertial-to-body given the input epoch
-   //virtual Rmatrix33       GetState(Real atEpoch);
+   Integer                 GetSegmentNumber(Real epoch) override;
+   /// Returns the Cartesian state at the requested epoch.
    virtual Rvector6        GetState(Real atEpoch);
 
 protected:

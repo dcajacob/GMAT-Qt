@@ -849,13 +849,20 @@ bool EphemerisFile::Validate()
 }
 
 
+bool EphemerisFile::NeedsOemSampleClocks() const
+{
+   return fileFormat == "CCSDS-OEM" && (interpolatorName == "Hermite" ||
+         (insufficientDataAction == "ReduceOrder" && interpolationOrder >= 5 &&
+          (stepSize != "IntegratorSteps" || initialEpochStr != "InitialSpacecraftEpoch" ||
+           finalEpochStr != "FinalSpacecraftEpoch")));
+}
+
 //------------------------------------------------------------------------------
 // virtual bool Initialize()
 //------------------------------------------------------------------------------
 bool EphemerisFile::Initialize()
 {
-   Publisher::SetIntegrationStepConsumer(this,
-         fileFormat == "CCSDS-OEM" && interpolatorName == "Hermite");
+   Publisher::SetIntegrationStepConsumer(this, NeedsOemSampleClocks());
    #ifdef DEBUG_EPHEMFILE_INIT
    MessageInterface::ShowMessage
       ("EphemerisFile::Initialize() <%p>'%s' entered, spacecraftName='%s', active=%d, "
@@ -3556,7 +3563,7 @@ bool EphemerisFile::Distribute(const Real *dat, Integer len)
       spk->SetPublishedEpoch(precise ? &epoch : NULL);
    }
    
-   if (fileFormat == "CCSDS-OEM" && interpolatorName == "Hermite")
+   if (NeedsOemSampleClocks())
    {
       GmatTime epoch;
       bool precise = Publisher::GetPublishedSpacecraftEpoch(dat, len, spacecraft, epoch) ||

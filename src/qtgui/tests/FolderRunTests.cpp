@@ -91,9 +91,16 @@ int main(int argc,char **argv)
       const auto stopped=window.runFolderScripts(options,views,cancel,[&](int,int,const FolderRunItem &) { cancel=true; }); require(stopped.cancelled && stopped.items.size()==1,"Between-script Stop executed further missions"); restored(); cancel=false;
       // Initialization and runtime errors must remain separate and must not
       // prevent the following mission from executing.
-      const auto blocked=files.filePath("blocked.eph"); require(QDir().mkpath(blocked),"Initialization fixture path missing"); write(QDir(blocked).filePath("retain"),"retain");
-      write(b,("Create Spacecraft Sat;\nCreate EphemerisFile Bad;\nBad.Spacecraft = Sat;\nBad.Filename = '"+blocked+"';\nBeginMissionSequence;\n").toUtf8());
-      const auto init=window.runFolderScripts(options,views,cancel); if (init.items[1].category!="Initialization error") std::cerr<<init.items[1].category.toStdString()<<"\n"<<init.items[1].details.toStdString(); require(init.items[1].category=="Initialization error" && init.items[2].category=="Completed","Initialization failure classification/recovery failed"); restored();
+      // The names are distinct at build time. Sandbox initialization resolves
+      // formation members and discovers that Sat would be propagated twice.
+      write(b,"Create Spacecraft Sat;\nCreate Formation F;\nF.Add = {Sat};\n"
+              "Create Propagator P;\nBeginMissionSequence;\nPropagate P(F, Sat);\n");
+      const auto init=window.runFolderScripts(options,views,cancel);
+      if (init.items[1].engineStatus!=-2) std::cerr<<init.summary().toStdString();
+      require(init.items[1].engineStatus==-2 && init.items[1].category=="Initialization error" &&
+            init.items[1].details.contains("Duplicate Spacecraft [Sat]") && init.items[2].category=="Completed",
+            "Initialization failure classification/recovery failed");
+      restored();
       write(b,"Create Spacecraft Sat;\nSat.DisplayStateType = Cartesian;\nSat.X = 0;\nSat.Y = 0;\nSat.Z = 0;\nCreate ForceModel FM;\nFM.PrimaryBodies = {};\nFM.PointMasses = {Earth};\nCreate Propagator P;\nP.FM = FM;\nBeginMissionSequence;\nPropagate P(Sat) {Sat.ElapsedSecs = 1};\n");
       const auto runtime=window.runFolderScripts(options,views,cancel); require(runtime.items[1].category=="Runtime error" && runtime.items[2].category=="Completed","Runtime failure classification/recovery failed"); restored();
       write(b,"Create Variable V;\nV = 0;\nBeginMissionSequence;\nWhile V >= 0;\n   V = V + 1;\nEndWhile;\n"); options.first=2; options.count=1;
@@ -105,6 +112,39 @@ int main(int argc,char **argv)
       const auto overwrite=window.runFolderScripts(options,views,cancel); require(overwrite.error.contains("cannot overwrite") && read(a)==good,"Comparison results overwrote a source mission"); restored(); options.compare=false; options.saveComparison=false;
       options.compare=true; options.saveComparison=true; options.comparisonFile=QDir(baseline).filePath("REFgood.txt");
       const auto baselineOverwrite=window.runFolderScripts(options,views,cancel); require(baselineOverwrite.error.contains("cannot overwrite") && read(options.comparisonFile)==expected,"Comparison export overwrote its baseline"); restored(); options.compare=false; options.saveComparison=false;
+      // The baseline and candidate can be the same file even with different
+      // output folders (absolute report paths) or a mission-time redirect.
+      FolderRunOptions guardedOptions=options;
+      guardedOptions.compare=true;
+      guardedOptions.outputDirectory=baseline;
+      guardedOptions.replacement="GMAT";
+      const auto reference=QDir(baseline).filePath("GMATgood.txt");
+      const QByteArray sentinel="1234\n";
+      write(reference,sentinel);
+      const auto sameDirectory=window.runFolderScripts(guardedOptions,views,cancel);
+      require(sameDirectory.items.size()==1 && sameDirectory.items[0].category=="Output error" &&
+            sameDirectory.items[0].comparison.isEmpty() && read(reference)==sentinel,
+            "Folder run overwrote and compared its own baseline");
+
+      guardedOptions.outputDirectory=output;
+      auto redirected=good;
+      redirected.replace("Report R V;", "R.Filename = '"+reference.toUtf8()+"';\nReport R V;");
+      write(a,redirected);
+      const auto duringMission=window.runFolderScripts(guardedOptions,views,cancel);
+      require(duringMission.items.size()==1 && duringMission.items[0].category!="Completed" &&
+            duringMission.items[0].details.contains("comparison baseline") && read(reference)==sentinel,
+            "Mission-time ReportFile redirect overwrote a comparison baseline");
+      guardedOptions.replacement="REF";
+      auto allowed=good;
+      allowed.replace("Report R V;", "R.Filename = 'GMATnew.txt';\nReport R V;");
+      write(a,allowed);
+      write(QDir(baseline).filePath("REFnew.txt"),expected);
+      const auto redirectedReport=window.runFolderScripts(guardedOptions,views,cancel);
+      require(redirectedReport.items.size()==1 && redirectedReport.items[0].category=="Completed" &&
+            redirectedReport.items[0].reports.value("R")==QDir(output).filePath("GMATnew.txt") &&
+            redirectedReport.items[0].comparison.contains("differences=0 errors=0"),
+            "Safe report redirect compared the original destination");
+      write(a,good); restored();
       auto collisionSource=good; collisionSource.replace("GMATgood.txt","FolderRunSummary.txt"); write(a,collisionSource);
       const auto collision=window.runFolderScripts(options,views,cancel); require(collision.error.isEmpty() && collision.summaryFile!=QDir(output).filePath("FolderRunSummary.txt") && read(QDir(output).filePath("FolderRunSummary.txt"))==expected,"Folder summary overwrote an active report"); restored(); write(a,good);
       options.outputDirectory=files.filePath("not-directory"); write(options.outputDirectory,"retain"); const auto badOutput=window.runFolderScripts(options,views,cancel); require(!badOutput.error.isEmpty() && read(options.outputDirectory)=="retain","Invalid output path was overwritten or accepted"); restored(); options.outputDirectory=output;

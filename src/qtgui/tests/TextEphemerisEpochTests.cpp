@@ -54,7 +54,7 @@ public:
       }
       segment.segStart=segment.points.front().theEpoch;segment.segEnd=segment.points.back().theEpoch;theEphem.push_back(segment);a1StartEpoch=theEphem.front().segStart;a1EndEpoch=segment.segEnd;
    }
-   void GetInterpolationInfoFromSegment(Integer segment)override{useHermite=segment%2==1;}
+   void GetInterpolationInfoFromSegment(Integer segment)override{useHermite=segment%2==1;order=useHermite?3:1;}
 };
 int main(int argc,char **argv)
 {
@@ -103,12 +103,12 @@ int main(int argc,char **argv)
             catch(BaseException &e){observation["outcome"]="exception";observation["message"]=QString::fromStdString(e.GetFullMessage());}observations.append(observation);
          }
       }
-      // The OEM reader's existing Lagrange-only policy stays enforced.
-      const auto invalidPath=directory.filePath("OEM-invalid-Hermite.txt");
+      // Both Lagrange and Hermite are supported. Reject an unknown method.
+      const auto invalidPath=directory.filePath("OEM-invalid-Spline.txt");
       QFile valid(directory.filePath("OEM-Lagrange-123456789-3-17.txt"));require(valid.open(QIODevice::ReadOnly),"OEM negative input missing");
-      auto invalid=valid.readAll().replace("INTERPOLATION = LAGRANGE","INTERPOLATION = HERMITE");QFile invalidFile(invalidPath);require(invalidFile.open(QIODevice::WriteOnly)&&invalidFile.write(invalid)>0,"OEM negative input write failed");invalidFile.close();save("OEM-invalid-Hermite-input.txt",invalid);
-      bool unsupportedRejected=false;try{CCSDSEphemerisFile reader;reader.OpenForRead(invalidPath.toStdString(),"TimePosVel");}catch(BaseException &e){unsupportedRejected=e.GetFullMessage().find("only supported value")!=std::string::npos;}
-      controls.append(QJsonObject{{"unsupported_oem_hermite_rejected",unsupportedRejected}});
+      auto invalid=valid.readAll().replace("INTERPOLATION = LAGRANGE","INTERPOLATION = SPLINE");QFile invalidFile(invalidPath);require(invalidFile.open(QIODevice::WriteOnly)&&invalidFile.write(invalid)>0,"OEM negative input write failed");invalidFile.close();save("OEM-invalid-Spline-input.txt",invalid);
+      bool unsupportedRejected=false;try{CCSDSEphemerisFile reader;reader.OpenForRead(invalidPath.toStdString(),"TimePosVel");}catch(BaseException &e){unsupportedRejected=e.GetFullMessage().find("Interpolation type \"SPLINE\" is not valid")!=std::string::npos;}
+      controls.append(QJsonObject{{"unsupported_oem_spline_rejected",unsupportedRejected}});
       // These adjacent precise epochs intentionally share a rounded MJD.
       CCSDSOEMSegment original;GmatTime first=CCSDSEMSegment::ParseEpochGT("2000-001T12:00:00.123456789"),next=first;next.AddSeconds(1e-8);
       Rvector a(6,1.,2.,3.,4.,5.,6.),b(6,2.,3.,4.,5.,6.,7.);require(original.AddData(first,a)&&original.AddData(next,b)&&original.AddData(next,b),"Precise OEM additions failed");

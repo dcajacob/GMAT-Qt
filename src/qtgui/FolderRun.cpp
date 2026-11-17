@@ -10,6 +10,7 @@
 #include <QEventLoop>
 #include <QTimer>
 #include <future>
+#include <filesystem>
 #include <limits>
 #include <cmath>
 
@@ -36,6 +37,28 @@ QStringList folderRunScripts(const QString &directory)
    }
    return result;
 }
+QString folderRunBaseline(const FolderRunOptions &options,const QString &report)
+{
+   QString name=QFileInfo(report).fileName();
+   return QDir(options.baselineDirectory).absoluteFilePath(name.replace("GMAT",options.replacement));
+}
+
+bool sameFolderRunFile(const QString &left,const QString &right)
+{
+   const QFileInfo a(left), b(right);
+   if (a == b) return true;
+   std::error_code error;
+   if (std::filesystem::equivalent(a.filesystemAbsoluteFilePath(),b.filesystemAbsoluteFilePath(),error))
+      return true;
+   // A new destination can still be reached through two names for its parent.
+   return QFileInfo(a.absolutePath()) == QFileInfo(b.absolutePath()) &&
+#ifdef Q_OS_WIN
+         a.fileName().compare(b.fileName(),Qt::CaseInsensitive)==0;
+#else
+         a.fileName()==b.fileName();
+#endif
+}
+
 QString validateFolderRun(const FolderRunOptions &options)
 {
    if (!QFileInfo(options.directory).isDir()) return "Choose an existing script folder.";
@@ -100,10 +123,7 @@ FolderRunResult runScriptFolder(const FolderRunOptions &options,const FolderScri
          if (options.compare && item.category=="Completed") {
             QVector<FileComparePair> pairs;
             for (auto it=item.reports.cbegin();it!=item.reports.cend();++it) {
-               auto name=QFileInfo(it.value()).fileName();
-               name.replace("GMAT",options.replacement);
-               pairs.append({QDir(options.baselineDirectory).filePath(name),it.value()});
-               protectedPaths.append(pairs.last().baseline);
+               pairs.append({folderRunBaseline(options,it.value()),it.value()});
             }
             if (pairs.isEmpty()) item.comparison="Comparison: no ReportFile outputs were produced.";
             else if (!comparisons.isValid()) item.comparison="Comparison error: the temporary results folder is unavailable.";
@@ -124,15 +144,16 @@ FolderRunResult runScriptFolder(const FolderRunOptions &options,const FolderScri
             comparisonText+=QString("\n%1 repeat %2\n").arg(script).arg(repeat)+item.comparison;
          }
          result.items.append(item); if (progress) progress(result.items.size(),scripts.size()*options.repeats,item);
-         protectedPaths.append(item.loadedScript); protectedPaths.append(item.reports.values());
+         const auto reportPaths=item.reports.values()+item.reservedReportPaths;
+         if (options.compare)
+            for (const auto &report:reportPaths) protectedPaths.append(folderRunBaseline(options,report));
+         protectedPaths.append(item.loadedScript); protectedPaths.append(reportPaths);
          if (item.category=="Interrupted" || cancel) { result.cancelled=true; break; }
       }
       if (result.cancelled) break;
    }
    const auto protectedFile=[&](const QString &candidate) {
-      const auto file=QFileInfo(candidate);
-      for (const auto &path:protectedPaths) if (file.absoluteFilePath()==QFileInfo(path).absoluteFilePath() ||
-         (!file.canonicalFilePath().isEmpty() && file.canonicalFilePath()==QFileInfo(path).canonicalFilePath())) return true;
+      for (const auto &path:protectedPaths) if (sameFolderRunFile(candidate,path)) return true;
       return false;
    };
    result.summaryFile=QDir(options.outputDirectory).filePath("FolderRunSummary.txt");

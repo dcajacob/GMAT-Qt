@@ -35,6 +35,8 @@
 #include "Rvector6.hpp"
 #include "Interpolator.hpp"
 #include "GmatTime.hpp"
+#include <optional>
+#include <utility>
 
 /**
  * Base class for the ephemeris file components.
@@ -81,6 +83,20 @@ public:
       GmatEpoch               segStart;
       GmatEpoch               segEnd;
       std::vector<EphemPoint> points;
+      // OEM metadata can place the usable boundary between support records.
+      std::optional<std::pair<GmatTime, GmatTime>> coverage;
+      GmatTime StartEpoch() const
+      {
+         if (coverage) return coverage->first;
+         return !points.empty() && segStart == points.front().theEpoch ?
+               points.front().GetEpoch() : GmatTime(segStart);
+      }
+      GmatTime EndEpoch() const
+      {
+         if (coverage) return coverage->second;
+         return !points.empty() && segEnd == points.back().theEpoch ?
+               points.back().GetEpoch() : GmatTime(segEnd);
+      }
    };
 
    /// The full ephem, consisting of one or more segments

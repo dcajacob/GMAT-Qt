@@ -75,6 +75,8 @@ protected:
    Real        metaDataStop;
    std::string metaDataStartStr;
    std::string metaDataStopStr;
+   std::string lastOemStop;
+   Integer     nextArcNumber = 2;
    Integer     metaDataWriteOption;
    std::ofstream::pos_type metaDataBegPosition;
    std::ofstream::pos_type metaDataEndPosition;
@@ -90,6 +92,7 @@ protected:
    
    // Data
    bool         OpenCcsdsEphemerisFile();
+   void         OpenNextOemArc();
    void         HandleCcsdsOrbitData(bool writeData, bool &timeToWrite);      
    void         FinishUpWritingOrbitData();
    void         FinishUpWritingAttitudeData();

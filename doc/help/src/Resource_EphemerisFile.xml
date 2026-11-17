@@ -29,10 +29,14 @@
     when that segment cannot supply the requested interpolation order, including
     segments closed by a maneuver, dynamics change or assignment. Error
     also requires enough exported OEM records to support the declared degree.
-    Normal startup continues collecting points; it does not fail just because
-    the interpolation buffer is still filling. The policy does not change the
-    interpolation method or extrapolate beyond the data. SPK and CK retain
-    their native kernel-writing requirements.</para>
+    Normal startup continues collecting points while the interpolation buffer
+    fills. Two samples give a linear Lagrange fallback. For a short Lagrange
+    OEM arc with at least three samples, GMAT can use both position and
+    velocity to calculate the Cartesian output state. It uses
+    those additional constraints when the resulting degree fits within the
+    requested order. The OEM interpolation metadata describes interpolation
+    between the exported records. SPK and CK retain their native kernel-writing
+    requirements.</para>
     <para>Reducing the order does not preserve the interpolation accuracy of
     the requested order. A tight integrator accuracy setting does not add
     interpolation constraints: sparse native samples can still produce errors
@@ -1546,12 +1550,14 @@ Export.InsufficientDataAction = ReduceOrder;</programlisting>
       event such as an impulsive burn and iterative process like differential
       correction.</para>
 
-      <para>Version 1 of CCSDS Orbit Data Messages (ODMs) document used to
-      require that the ephemeris be generated in increasing time order and
-      only going forward. However version 2 of CCSDS ODM document now allows
-      for ephemeris file to be generated backwards as well. Currently in GMAT,
-      when you propagate a spacecraft backwards in time, then the CCSDS
-      ephemeris is also generated backwards.</para>
+      <para>GMAT writes CCSDS-OEM samples in increasing time order, including
+      when the spacecraft propagates backwards. If a propagation arc starts
+      earlier than the last epoch already written, GMAT writes the arc to a
+      separate OEM in the same folder. For example, if the selected filename
+      is <filename>orbit.oem</filename>, the first arc uses that name and the
+      next file is <filename>orbit.arc-2.oem</filename>. GMAT skips numbers
+      already in use and reports each additional filename in the mission
+      messages.</para>
 
       <warning>
         <para>The Code500 ephemeris file requires fixed time steps and has a

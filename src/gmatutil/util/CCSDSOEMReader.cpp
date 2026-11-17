@@ -120,6 +120,15 @@ void CCSDSOEMReader::Initialize()
    // nothing else to do here at this time
 }
 
+Integer CCSDSOEMReader::GetSegmentNumber(Real epoch)
+{
+   if (!isInitialized) return -1;
+   // At a shared boundary the later segment owns the state.
+   for (Integer i = numSegments - 1; i >= 0; --i)
+      if (segments[i]->CoversEpoch(epoch)) return i;
+   return -1;
+}
+
 // -----------------------------------------------------------------------------
 // Rvector6 GetState(Real atEpoch)
 // -----------------------------------------------------------------------------
@@ -425,7 +434,7 @@ bool CCSDSOEMReader::ParseFile_v1()
 
    // 2.1. Now read meta data and ephemeris data
    // At this point, we've found the first META_START line
-   metaComment = "";
+   StringArray pendingMetaComments;
    dataComment = "";
 
    covComment  = "";
@@ -515,8 +524,9 @@ bool CCSDSOEMReader::ParseFile_v1()
             metaMap.clear();
 
             // comment in meta data block is added here
-            currentSegment->AddMetaComment(metaComment);
-            metaComment = "";
+            for (const auto &comment : pendingMetaComments)
+               currentSegment->AddMetaComment(comment);
+            pendingMetaComments.clear();
 
             #ifdef DEBUG_PARSE_OEM_FILE
             MessageInterface::ShowMessage("In CCSDSOEMReader, META_STOP processing end\n");
@@ -553,9 +563,9 @@ bool CCSDSOEMReader::ParseFile_v1()
                   throw UtilityException(errmsg);
                }
 
-			      GmatFileUtil::GetLine(&lineStr, metaComment);
-               currentSegment->AddMetaComment(metaComment);
-               metaComment = "";
+               GmatFileUtil::GetLine(&lineStr, metaComment);
+               pendingMetaComments.push_back(metaComment);
+               continue;
             }
             else
             {
