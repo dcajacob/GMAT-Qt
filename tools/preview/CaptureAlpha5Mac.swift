@@ -55,9 +55,10 @@ func children(_ element: AXUIElement) -> [AXUIElement] {
 }
 
 func locate(_ element: AXUIElement, role: String, prefix: String) -> AXUIElement? {
-    let label = [kAXTitleAttribute, kAXDescriptionAttribute, kAXIdentifierAttribute]
-        .compactMap { attribute(element, $0) as? String }.joined(separator: " ")
-    if attribute(element, kAXRoleAttribute) as? String == role && label.hasPrefix(prefix) { return element }
+    let labels = [kAXTitleAttribute, kAXDescriptionAttribute, kAXIdentifierAttribute]
+        .compactMap { attribute(element, $0) as? String }
+    if attribute(element, kAXRoleAttribute) as? String == role &&
+        labels.contains(where: { $0.hasPrefix(prefix) }) { return element }
     for child in children(element) {
         if let result = locate(child, role: role, prefix: prefix) { return result }
     }

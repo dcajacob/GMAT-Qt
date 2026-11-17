@@ -1,6 +1,7 @@
 """Capture bundled missions in the published GMAT Qt alpha.5 GUI."""
 
 import argparse
+from datetime import datetime
 import hashlib
 import json
 import os
@@ -89,6 +90,10 @@ def mission_endpoint(process, discovery, mission_name):
                 epoch = context['Epoch']
                 matches = (abs(float(epoch) - expected_epoch) <= 1e-7
                            if epoch_format == 'TAIModJulian' else epoch == expected_epoch)
+                if mission_name == 'Ex_MarsBPlane.script':
+                    pattern = '%d %b %Y %H:%M:%S.%f'
+                    offset = datetime.strptime(epoch, pattern) - datetime.strptime(expected_epoch, pattern)
+                    matches = abs(offset.total_seconds()) <= .002
                 if not matches or context['DateFormat'] != epoch_format:
                     raise RuntimeError(f'{name} did not reach the expected endpoint: {context}')
                 result = {'status': status, 'native_status': state['run']['native_status'],
@@ -98,6 +103,12 @@ def mission_endpoint(process, discovery, mission_name):
                     solvers = json.loads(solver_path.read_text(encoding='utf-8'))
                     if len(solvers) != 2 or any(s['convergence'] != 'converged' for s in solvers):
                         raise RuntimeError(f'{mission_name} did not converge in both targeting stages')
+                    if mission_name == 'Ex_MarsBPlane.script':
+                        goals = {goal['name']: goal['residual']
+                                 for solver in solvers for goal in solver['goals']}
+                        expected = {'MAVEN.MarsInertial.BdotT', 'MAVEN.MarsInertial.BdotR', 'MAVEN.Mars.RMAG'}
+                        if goals.keys() != expected or any(abs(residual) > .1 for residual in goals.values()):
+                            raise RuntimeError(f'Mars goals are outside their script tolerances: {goals}')
                     result['solvers'] = solvers
                 return result
             if status in ('failed', 'cancelled'):
