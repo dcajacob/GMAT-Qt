@@ -81,7 +81,7 @@ def run_after_fitting_mac_desktop(process, discovery, bundle, helper):
     bridge(record, ('attach', {}), ('start_run', args))
 
 
-def mac_presentation_script(original, path, plot):
+def mac_presentation_script(original, path, plot, weather_file=None):
     # Cocoa hides GMAT's dynamically populated Window menu. Set the sample's
     # plot placement through its own presentation fields. Keep all
     # mission commands, force models, goal tolerances, and camera fields intact.
@@ -91,6 +91,11 @@ def mac_presentation_script(original, path, plot):
         contents, count = re.subn(pattern, rb'\g<1>' + value, contents, flags=re.MULTILINE)
         if count != 1:
             raise RuntimeError(f'Missing {plot} presentation field {field!r}')
+    if weather_file is not None:
+        relative = b'../samples/SupportFiles/CSSI_2004To2026.txt'
+        if not weather_file.is_file() or contents.count(relative) != 1:
+            raise RuntimeError('Expected the packaged lunar space-weather input')
+        contents = contents.replace(relative, str(weather_file.resolve()).encode(), 1)
     path.write_bytes(contents)
     return path
 
@@ -323,7 +328,11 @@ def main():
             session.mkdir()
             discovery = session/'private-discovery'
             positioned_plot = views[0][1][0] if mac_helper and not args.mars_transfer else None
-            input_mission = (mac_presentation_script(mission, session/mission.name, positioned_plot)
+            # The macOS bundle stores the sample data under Resources.
+            # Resolve the bundled file explicitly in the temporary script.
+            weather_file = (samples/'SupportFiles/CSSI_2004To2026.txt'
+                            if mac_helper and args.lunar_targeting else None)
+            input_mission = (mac_presentation_script(mission, session/mission.name, positioned_plot, weather_file)
                              if positioned_plot else mission)
             run_options = [] if mac_helper else ['--run']
             command = [str(executable), '--settings-dir', str(session/'settings'), '--mcp-bridge',
@@ -365,6 +374,8 @@ def main():
                         if input_mission != mission:
                             receipt['presentation_changes'] = [f'{positioned_plot}.{field}' for field in ('UpperLeft', 'Size')]
                             receipt['presented_mission_sha256'] = digest(input_mission)
+                        if weather_file:
+                            receipt['resolved_packaged_input'] = {'file': weather_file.name, 'sha256': digest(weather_file)}
                         receipt_name = f'{scene}-receipt.json' if args.targeting else 'receipt.json'
                         (output/receipt_name).write_text(json.dumps(receipt, indent=2) + '\n')
                         print(json.dumps(receipt, indent=2), flush=True)
