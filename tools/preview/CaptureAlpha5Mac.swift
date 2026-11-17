@@ -107,7 +107,7 @@ func fitMainWindow(pid: pid_t) {
 func extendSolverTable() {
     // The shipped Qt solver starts with an 860x320 child at the top-left of
     // the workspace. Drag its bottom corner down to the message pane while
-    // leaving the Mars plot and its mission clock alone.
+    // leaving the orbit plot and its mission clock alone.
     guard let screen = NSScreen.screens.first else { fail("No desktop") }
     let bottom = screen.frame.maxY - screen.visibleFrame.minY
     drag(CGPoint(x: 1127, y: 438), CGPoint(x: 1127, y: bottom - 191))

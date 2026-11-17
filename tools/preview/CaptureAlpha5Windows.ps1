@@ -3,7 +3,8 @@ param(
     [string]$Destination,
     [switch]$ConfigureHD,
     [switch]$MarsTargeting,
-    [switch]$MarsTransfer
+    [switch]$MarsTransfer,
+    [switch]$LunarTargeting
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
@@ -70,7 +71,7 @@ $window = (Get-Process -Id $GmatPid).MainWindowHandle
 if ($window -eq [IntPtr]::Zero) { throw 'GMAT has no visible top-level window.' }
 [void][DesktopCapture]::ShowWindowAsync($window, 3)
 [void][DesktopCapture]::SetForegroundWindow($window)
-if ($MarsTargeting -or $MarsTransfer) {
+if ($MarsTargeting -or $MarsTransfer -or $LunarTargeting) {
     Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
     Start-Sleep -Seconds 1
     $root = [System.Windows.Automation.AutomationElement]::FromHandle($window)
@@ -78,7 +79,13 @@ if ($MarsTargeting -or $MarsTransfer) {
         [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
         [System.Windows.Automation.ControlType]::TabItem
     )
-    $tabNames = if ($MarsTransfer) { @('OFI_SolarSystemView') } else { @('OFI_MarsView', 'Solver') }
+    $tabNames = if ($MarsTransfer) {
+        @('OFI_SolarSystemView')
+    } elseif ($LunarTargeting) {
+        @('OFI_MoonInertialView', "Solver $([char]0x2014) Target 'Target Lunar Insertion'")
+    } else {
+        @('OFI_MarsView', 'Solver')
+    }
     foreach ($prefix in $tabNames) {
         $tabs = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $tabCondition)
         $tab = $tabs | Where-Object { $_.Current.Name.StartsWith($prefix) -and -not $_.Current.IsOffscreen } | Select-Object -First 1
@@ -93,7 +100,7 @@ if ($MarsTargeting -or $MarsTransfer) {
         [DesktopCapture]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero)
         Start-Sleep -Milliseconds 300
     }
-    if ($MarsTargeting) {
+    if ($MarsTargeting -or $LunarTargeting) {
         [System.Windows.Forms.SendKeys]::SendWait('%w')
         Start-Sleep -Milliseconds 300
         [System.Windows.Forms.SendKeys]::SendWait('t')

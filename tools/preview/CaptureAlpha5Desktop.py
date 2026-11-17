@@ -80,16 +80,16 @@ def run_after_fitting_mac_desktop(process, discovery, bundle, helper):
     bridge(record, ('attach', {}), ('start_run', args))
 
 
-def mac_presentation_script(original, path):
+def mac_presentation_script(original, path, plot):
     # Cocoa hides GMAT's dynamically populated Window menu. Set the sample's
-    # Mars plot placement through its own presentation fields. Keep all
+    # plot placement through its own presentation fields. Keep all
     # mission commands, force models, goal tolerances, and camera fields intact.
     contents = original.read_bytes()
     for field, value in [(b'UpperLeft', b'[ 0.524 0 ]'), (b'Size', b'[ 0.476 1 ]')]:
-        pattern = rb'(^OFI_MarsView\.' + field + rb'\s*= )\[[^\]]+\]'
+        pattern = rb'(^' + re.escape(plot.encode()) + rb'\.' + field + rb'\s*= )\[[^\]]+\]'
         contents, count = re.subn(pattern, rb'\g<1>' + value, contents, flags=re.MULTILINE)
         if count != 1:
-            raise RuntimeError(f'Missing Mars plot presentation field {field!r}')
+            raise RuntimeError(f'Missing {plot} presentation field {field!r}')
     path.write_bytes(contents)
     return path
 
@@ -124,7 +124,7 @@ def mission_endpoint(process, discovery, mission_name):
                 epoch = context['Epoch']
                 matches = (abs(float(epoch) - expected_epoch) <= 1e-7
                            if epoch_format == 'TAIModJulian' else epoch == expected_epoch)
-                if mission_name == 'Ex_MarsBPlane.script':
+                if mission_name in TARGETING_MISSIONS:
                     pattern = '%d %b %Y %H:%M:%S.%f'
                     offset = datetime.strptime(epoch, pattern) - datetime.strptime(expected_epoch, pattern)
                     matches = abs(offset.total_seconds()) <= .002
@@ -204,7 +204,8 @@ def capture(target, process, bundle, destination, ground_track, tabs, native_sce
         run('import', '-window', 'root', str(destination))
     elif target.startswith('windows'):
         script = Path(__file__).with_name('CaptureAlpha5Windows.ps1').resolve()
-        switches = {'MarsCaptureTargeting': '-MarsTargeting', 'MarsTransfer': '-MarsTransfer'}
+        switches = {'MarsCaptureTargeting': '-MarsTargeting', 'MarsTransfer': '-MarsTransfer',
+                    'LunarInsertionTargeting': '-LunarTargeting'}
         extra = (switches[native_scene],) if native_scene else ()
         prefix = ('powershell.exe', '-NoProfile', '-File', str(script), '-GmatPid', str(process.pid))
         try:
@@ -233,12 +234,16 @@ def main():
     scenes.add_argument('--targeting', action='store_true')
     scenes.add_argument('--mars-targeting', action='store_true')
     scenes.add_argument('--mars-transfer', action='store_true')
+    scenes.add_argument('--lunar-targeting', action='store_true')
     args = parser.parse_args()
     target = args.target
     if (args.ground_track or args.targeting) and target != 'linux-x86_64':
         parser.error('The additional compositions use the Linux desktop layout')
-    native_hd = args.mars_targeting or args.mars_transfer
-    if native_hd:
+    native_hd = args.mars_targeting or args.mars_transfer or args.lunar_targeting
+    if args.lunar_targeting:
+        lunar = 'Ex_LunarTransfer.script'
+        missions = {lunar: TARGETING_MISSIONS[lunar][2]}
+    elif native_hd:
         view_index = 0 if args.mars_transfer else 1
         missions = {'Ex_MarsBPlane.script': (TARGETING_MISSIONS['Ex_MarsBPlane.script'][2][view_index],)}
     elif args.targeting:
@@ -303,8 +308,9 @@ def main():
             session = work/mission.stem
             session.mkdir()
             discovery = session/'private-discovery'
-            input_mission = (mac_presentation_script(mission, session/mission.name)
-                             if mac_helper and args.mars_targeting else mission)
+            positioned_plot = views[0][1][0] if mac_helper and not args.mars_transfer else None
+            input_mission = (mac_presentation_script(mission, session/mission.name, positioned_plot)
+                             if positioned_plot else mission)
             run_options = [] if mac_helper else ['--run']
             command = [str(executable), '--settings-dir', str(session/'settings'), '--mcp-bridge',
                        '--mcp-discovery-dir', str(discovery), '--convert-views', *run_options, str(input_mission)]
@@ -338,7 +344,7 @@ def main():
                             'screenshot_sha256': digest(picture), 'pixels': pixels,
                         }
                         if input_mission != mission:
-                            receipt['presentation_changes'] = ['OFI_MarsView.UpperLeft', 'OFI_MarsView.Size']
+                            receipt['presentation_changes'] = [f'{positioned_plot}.{field}' for field in ('UpperLeft', 'Size')]
                             receipt['presented_mission_sha256'] = digest(input_mission)
                         receipt_name = f'{scene}-receipt.json' if args.targeting else 'receipt.json'
                         (output/receipt_name).write_text(json.dumps(receipt, indent=2) + '\n')
