@@ -3528,9 +3528,10 @@ bool GmatMainFrame::ShowSaveMessage()
       }
       else if (result == wxID_YES)
       {
+         bool scriptSaved = true;
          if (mScriptFilename == mTempScriptName)
          {
-            SaveScriptAs();
+            scriptSaved = SaveScriptAs();
          }
          else
          {
@@ -3538,7 +3539,7 @@ bool GmatMainFrame::ShowSaveMessage()
          }
          
          delete msgDlg;
-         return false;
+         return !scriptSaved;
       }
    }
    else

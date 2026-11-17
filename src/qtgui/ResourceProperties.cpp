@@ -652,7 +652,7 @@ QVector<ResourceProperty> resourceProperties(GmatBase &object)
             for (int i=0;i<StateConversionUtil::GetTypeCount();++i) {
                if (StateConversionUtil::RequiresCelestialBodyOrigin(types[i]) && (!origin || !origin->IsOfType(Gmat::CELESTIAL_BODY))) continue;
                if (StateConversionUtil::RequiresFixedCoordinateSystem(types[i]) && (!frame || !frame->AreAxesOfType("BodyFixedAxes"))) continue;
-               if ((types[i]=="BrouwerMeanShort" || types[i]=="BrouwerMeanLong") &&
+               if ((types[i]=="BrouwerMeanShort" || types[i]=="BrouwerMeanLong" || types[i]=="MeanEquinoctial") &&
                    (!origin || origin->GetName()!="Earth")) continue;
                field.choices.append(QString::fromStdString(types[i]));
             }
