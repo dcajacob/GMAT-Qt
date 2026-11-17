@@ -98,9 +98,30 @@ int main(int argc,char **argv) {
       };
       auto values=[&](ResourceEditor *panel,const QJsonObject &target,const QString &phase) {
          const auto names=target["names"].toArray(),wanted=target["values"].toArray(),units=target["units"].toArray();QJsonArray actual;
-         for(int i=0;i<6;++i){auto f=field(panel,names[i].toString());reveal(f.edit);f=field(panel,names[i].toString());bool valid=false;const double observed=f.edit->text().toDouble(&valid);double error=observed-wanted[i].toDouble();if(units[i].toString()=="deg")error=std::remainder(error,360.);
-            save("latest-field.json",QJsonDocument(QJsonObject{{"source",key},{"target",target["key"]},{"phase",phase},{"field",names[i]},{"actual",observed},{"expected",wanted[i]},{"unit",f.unit},{"expected_unit",units[i]},{"error",error}}).toJson());
-            require(valid&&std::isfinite(observed)&&std::abs(error)<=all["displayed_field_tolerance"].toDouble(),"Displayed conversion field differs from independent equation");require(f.unit==units[i].toString(),"Displayed conversion units differ");++displayedFields;++unitChecks;actual.append(QJsonObject{{"name",names[i]},{"value",observed},{"expected",wanted[i]},{"unit",f.unit}});}
+         require(units.size() == 6, "Expected six orbit element units in conversion fixture");
+         for (int i = 0; i < 6; ++i) {
+            require(units[i].isString(), "Missing orbit element unit in conversion fixture");
+            const QString unit = units[i].toString();
+            // The orbit reference encodes dimensionless elements with an empty unit.
+            const QString expectedLabel = unit.isEmpty() ? QStringLiteral("dimensionless") : unit;
+            const QString fieldName = names[i].toString();
+            reveal(field(panel, fieldName).edit);
+            const auto f = field(panel, fieldName);
+            bool valid = false;
+            const double observed = f.edit->text().toDouble(&valid);
+            double error = observed - wanted[i].toDouble();
+            if (unit == "deg") error = std::remainder(error, 360.);
+            save("latest-field.json", QJsonDocument(QJsonObject{
+               {"source",key}, {"target",target["key"]}, {"phase",phase}, {"field",fieldName},
+               {"actual",observed}, {"expected",wanted[i]}, {"unit",f.unit},
+               {"expected_unit",expectedLabel}, {"error",error}}).toJson());
+            require(valid && std::isfinite(observed) && std::abs(error) <= all["displayed_field_tolerance"].toDouble(),
+                    "Displayed conversion field differs from independent equation");
+            require(f.unit == expectedLabel, "Displayed conversion units differ");
+            ++displayedFields;
+            ++unitChecks;
+            actual.append(QJsonObject{{"name",fieldName},{"value",observed},{"expected",wanted[i]},{"unit",f.unit}});
+         }
          acceptanceView(*panel);return actual;
       };
       state("baseline",key);
