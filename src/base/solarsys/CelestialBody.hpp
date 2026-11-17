@@ -126,12 +126,7 @@ namespace Gmat
    enum RotationDataSource
    {
       DE_FILE = 0,  // use current default (or selected) DE file
-//      DE_405_FILE = 0,
-//      DE_421_FILE,
-//      DE_424_FILE,
-//      DE_430_FILE,
       IAU_2002,
-//      IAU_FILE,   // TBD
       FK5_IAU_1980,
       IAU_SIMPLIFIED,
       SPICE_KERNEL,
@@ -141,12 +136,7 @@ namespace Gmat
    const std::string ROTATION_DATA_SOURCE_STRINGS[RotationDataSrcCount] = 
    {
       "DEFile",
-//      "DE405File",
-//      "DE421File",
-//      "DE424File",
-//      "DE430File",
       "IAU2002",
-//      "IAUFile",  // TBD
       "FK5IAU1980",
       "IAUSimplified",
       "SPICE",
@@ -394,6 +384,8 @@ public:
    virtual bool     SetUpSPICE();
    bool IsSpiceSetUp();
 
+   void SetOrientationSpiceKernelNames(StringArray kernels);
+
    // need methods to get/set stateTime (a1MJD type)?
 
    
@@ -466,6 +458,7 @@ protected:
       // @todo - add Shape Models, etc.
       DSN_DIRECTORY,
       PHYSICAL_BODY,
+      ORIENTAION_SPICE_KERNEL_NAME,
       CelestialBodyParamCount
    };
    static const std::string PARAMETER_TEXT[CelestialBodyParamCount - SpacePointParamCount];
@@ -660,6 +653,8 @@ protected:
    StringArray               DSNMediaFileDirectories;
    std::vector<StringArray>  DSNCorrectionDataBase;
 
+   // Names of CK-type SPICE kernels for body orientation data
+   StringArray OrientationSpiceKernelNames;
    
    // initialize the body
    void             InitializeBody(std::string withBodyType = "Planet");
@@ -687,13 +682,15 @@ protected:
    bool Set3dModelFileName(const std::string &fileName,
                            bool writeWarning = false, bool validateOnly = false);
    bool LoadNeededKernels(bool orbit = true,  bool attitude = false,
-                          bool frame = true,  bool scClock  = false);
+                          bool frame = true,  bool scClock  = false, bool orientation = true);
    bool UnloadKernels(bool orbit = true,  bool attitude = false,
-                      bool frame = true,  bool scClock  = false);
+                      bool frame = true,  bool scClock  = false, bool orientation = true);
 
 
    
 private:
+
+   void ValidateOrientationSpiceKernel(const std::string &kernel) const;
 
    bool isFirstTimeMu;
    bool isFirstTimeRadius;

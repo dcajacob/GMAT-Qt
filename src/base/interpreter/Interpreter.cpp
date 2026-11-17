@@ -7054,7 +7054,8 @@ bool Interpreter::SetPropertyStringValue(GmatBase *obj, const Integer id,
                // CelestialBody has its own complete-list clear operation.
                // Do not discard the explicit empty snapshot as a no-op.
                if (obj->IsOfType(Gmat::CELESTIAL_BODY) &&
-                   property == "DSNMediaFileDirectories")
+                   (property == "DSNMediaFileDirectories" ||
+                    property == "OrientationSpiceKernelName"))
                   return obj->SetStringParameter(id, "{}");
             }
 

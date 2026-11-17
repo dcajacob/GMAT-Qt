@@ -29,7 +29,7 @@ QStringList spacecraftOrbitRepresentations(CoordinateSystem &frame)
       if (StateConversionUtil::RequiresFixedCoordinateSystem(types[i]) && !frame.AreAxesOfType("BodyFixedAxes")) continue;
       // Brouwer's fixed Earth zonal model is not available for other origins,
       // even if a user assigns that body an Earth-like gravitational constant.
-      if ((types[i]=="BrouwerMeanShort" || types[i]=="BrouwerMeanLong") &&
+      if ((types[i]=="BrouwerMeanShort" || types[i]=="BrouwerMeanLong" || types[i]=="MeanEquinoctial") &&
           (!frame.GetOrigin() || frame.GetOrigin()->GetName()!="Earth")) continue;
       choices.append(QString::fromStdString(types[i]));
    }

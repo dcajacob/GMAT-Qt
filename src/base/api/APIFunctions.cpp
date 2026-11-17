@@ -39,6 +39,8 @@
 #include "FileUtil.hpp"
 #include "ApiInterpreter.hpp"
 
+#include <memory>
+
 //------------------------------------------------------------------------------
 // std::string Help(std::string forItem)
 //------------------------------------------------------------------------------
@@ -629,6 +631,56 @@ GmatBase*   GetRuntimeObject(const std::string &objectname)
       Setup();
 
    return theModerator->GetInternalObject(objectname);
+}
+
+
+//------------------------------------------------------------------------------
+// Real   CalculateParameter(const std::string &paramType, GmatBase *owner,
+//                           GmatBase *depObject)
+//------------------------------------------------------------------------------
+/**
+ * Computes the value of a calculation parameter for a given object.
+ *
+ * @param paramType The script identifier for the parameter (e.g. "F107")
+ * @param owner The object the parameter is measured on
+ * @param depObject The secondary dependency object the parameter needs, if any
+ *
+ * @return The computed value of the parameter
+ */
+//------------------------------------------------------------------------------
+Real   CalculateParameter(const std::string &paramType, GmatBase *owner,
+                                    GmatBase *depObject)
+{
+   Moderator *theModerator = Moderator::Instance();
+   if (!theModerator->IsInitialized())
+      Setup();
+
+   if (owner == NULL)
+      throw APIException("CalculateParameter() requires a valid "
+            "owner object for parameter type \"" + paramType + "\"");
+
+   std::string ownerName = owner->GetName();
+   std::string depName = (depObject != NULL) ? depObject->GetName() : "";
+
+   std::string tempName = ownerName + "." +
+         (depName != "" ? depName + "." : "") + paramType;
+
+   std::unique_ptr<Parameter> param(theModerator->CreateParameter(paramType,
+         tempName, ownerName, depName, 0));
+
+   if (!param)
+      throw APIException("Unable to create a calculation parameter of type \"" +
+            paramType + "\"");
+
+   // CreateParameter resolves names using the configured object map. Use the
+   // supplied objects for evaluation, including initialized sandbox copies.
+   param->AddRefObject(owner);
+   if (depObject)
+      param->AddRefObject(depObject);
+
+   if (!param->Initialize())
+      throw APIException("Unable to initialize calculation parameter \"" + tempName + "\"");
+   return param->EvaluateReal();
 }
 
 
