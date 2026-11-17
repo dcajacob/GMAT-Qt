@@ -1,6 +1,7 @@
 """Capture bundled missions in the published GMAT Qt alpha.5 GUI."""
 
 import argparse
+import base64
 from datetime import datetime
 import hashlib
 import json
@@ -153,6 +154,12 @@ def mission_endpoint(process, discovery, mission_name):
                 if log.is_file():
                     lines = log.read_text(encoding='utf-8', errors='replace').splitlines()
                     print('\n'.join(lines[-45:]), flush=True)
+                # The GUI appends some native messages through queued signals.
+                # Read the live message pane after its queue has drained.
+                time.sleep(1)
+                messages = bridge(record, ('attach', {}), ('logs', {'limit': 65536}))
+                recent = base64.b64decode(messages['content']).decode('utf-8', errors='replace')
+                print('\n'.join(recent.splitlines()[-35:]), flush=True)
                 raise RuntimeError(f'GMAT mission {status}')
         time.sleep(1)
     raise TimeoutError(f'{mission_name} did not report a completed run')
@@ -332,7 +339,12 @@ def main():
                         except (RuntimeError, subprocess.CalledProcessError):
                             run('screencapture', '-x', '-m', str(output/'diagnostic.png'))
                             raise
-                    endpoint = mission_endpoint(process, discovery, mission_name)
+                    try:
+                        endpoint = mission_endpoint(process, discovery, mission_name)
+                    except RuntimeError:
+                        if mac_helper:
+                            run('screencapture', '-x', '-m', str(output/'diagnostic.png'))
+                        raise
                     for scene, tabs in views:
                         picture = output/f'GMAT-Qt-alpha5-{scene}-{target}.png'
                         capture(target, process, bundle, picture, args.ground_track, tabs,
