@@ -4,7 +4,9 @@ param(
     [switch]$ConfigureHD,
     [switch]$MarsTargeting,
     [switch]$MarsTransfer,
-    [switch]$LunarTargeting
+    [switch]$LunarTargeting,
+    [switch]$GroundTrack,
+    [int]$PlaybackPosition
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
@@ -71,7 +73,7 @@ $window = (Get-Process -Id $GmatPid).MainWindowHandle
 if ($window -eq [IntPtr]::Zero) { throw 'GMAT has no visible top-level window.' }
 [void][DesktopCapture]::ShowWindowAsync($window, 3)
 [void][DesktopCapture]::SetForegroundWindow($window)
-if ($MarsTargeting -or $MarsTransfer -or $LunarTargeting) {
+if ($MarsTargeting -or $MarsTransfer -or $LunarTargeting -or $GroundTrack) {
     Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
     Start-Sleep -Seconds 1
     $root = [System.Windows.Automation.AutomationElement]::FromHandle($window)
@@ -81,6 +83,8 @@ if ($MarsTargeting -or $MarsTransfer -or $LunarTargeting) {
     )
     $tabNames = if ($MarsTransfer) {
         @('OFI_SolarSystemView')
+    } elseif ($GroundTrack) {
+        @('OFI_ThreeDView', 'GroundTrackPlot')
     } elseif ($LunarTargeting) {
         @('OFI_MoonInertialView', "Solver $([char]0x2014) Target 'Target Lunar Insertion'")
     } else {
@@ -100,10 +104,22 @@ if ($MarsTargeting -or $MarsTransfer -or $LunarTargeting) {
         [DesktopCapture]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero)
         Start-Sleep -Milliseconds 300
     }
-    if ($MarsTargeting -or $LunarTargeting) {
+    if ($MarsTargeting -or $LunarTargeting -or $GroundTrack) {
         [System.Windows.Forms.SendKeys]::SendWait('%w')
         Start-Sleep -Milliseconds 300
         [System.Windows.Forms.SendKeys]::SendWait('t')
+    }
+    if ($GroundTrack) {
+        Start-Sleep -Milliseconds 500
+        $sliderCondition = [System.Windows.Automation.PropertyCondition]::new(
+            [System.Windows.Automation.AutomationElement]::NameProperty, 'All plots playback position'
+        )
+        $slider = $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $sliderCondition)
+        if (-not $slider) { throw 'Global playback slider is missing.' }
+        $range = $slider.GetCurrentPattern([System.Windows.Automation.RangeValuePattern]::Pattern)
+        $range.SetValue([double]$PlaybackPosition)
+        Start-Sleep -Milliseconds 300
+        if ($range.Current.Value -ne $PlaybackPosition) { throw 'Global playback slider did not settle.' }
     }
 }
 $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds

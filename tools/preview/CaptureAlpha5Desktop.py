@@ -28,6 +28,9 @@ ARCHIVE_SHA256 = {
 MISSION = 'Ex_MarsOrbit.script'
 # The last Propagate runs for a day starting at the first periapsis.
 FINAL_MPS1_TAI_MJD = 21646.24072759801
+GROUND_TRACK_MISSION = 'Ex_StationContactLocator.script'
+GROUND_TRACK_TABS = ('OFI_ThreeDView', 'GroundTrackPlot')
+GROUND_TRACK_PLAYBACK = 38
 
 
 TARGETING_MISSIONS = {
@@ -81,16 +84,15 @@ def run_after_fitting_mac_desktop(process, discovery, bundle, helper):
     bridge(record, ('attach', {}), ('start_run', args))
 
 
-def mac_presentation_script(original, path, plot, weather_file=None):
-    # Cocoa hides GMAT's dynamically populated Window menu. Set the sample's
-    # plot placement through its own presentation fields. Keep all
-    # mission commands, force models, goal tolerances, and camera fields intact.
+def mac_presentation_script(original, path, placements, weather_file=None):
+    # Cocoa hides GMAT's dynamically populated Window menu. Arrange the
+    # sample's plots using their presentation fields before launching.
     contents = original.read_bytes()
-    for field, value in [(b'UpperLeft', b'[ 0.524 0 ]'), (b'Size', b'[ 0.476 1 ]')]:
-        pattern = rb'(^' + re.escape(plot.encode()) + rb'\.' + field + rb'\s*= )\[[^\]]+\]'
-        contents, count = re.subn(pattern, rb'\g<1>' + value, contents, flags=re.MULTILINE)
+    for field, value in placements.items():
+        pattern = rb'(^' + re.escape(field.encode()) + rb'\s*= )\[[^\]]+\]'
+        contents, count = re.subn(pattern, rb'\g<1>' + value.encode(), contents, flags=re.MULTILINE)
         if count != 1:
-            raise RuntimeError(f'Missing {plot} presentation field {field!r}')
+            raise RuntimeError(f'Missing presentation field {field!r}')
     if weather_file is not None:
         relative = b'../samples/SupportFiles/CSSI_2004To2026.txt'
         if not weather_file.is_file() or contents.count(relative) != 1:
@@ -117,7 +119,7 @@ def mission_endpoint(process, discovery, mission_name):
             if status == 'succeeded' and not state['running']:
                 if mission_name == MISSION:
                     name, epoch_format, expected_epoch = 'MPS1', 'TAIModJulian', FINAL_MPS1_TAI_MJD
-                elif mission_name == 'Ex_StationContactLocator.script':
+                elif mission_name == GROUND_TRACK_MISSION:
                     name, epoch_format, expected_epoch = 'GEOSat', 'UTCGregorian', '06 Jan 2015 11:59:28.000'
                 else:
                     name, expected_epoch, _ = TARGETING_MISSIONS[mission_name]
@@ -170,7 +172,7 @@ def mission_endpoint(process, discovery, mission_name):
     raise TimeoutError(f'{mission_name} did not report a completed run')
 
 
-def select_workspace_tab(pid, title):
+def find_linux_control(pid, title, role):
     # This runs under Ubuntu's system Python, which supplies GObject bindings.
     import gi
     gi.require_version('Atspi', '2.0')
@@ -184,17 +186,27 @@ def select_workspace_tab(pid, title):
     remaining = [app]
     while remaining:
         node = remaining.pop()
-        if node.get_role() == Atspi.Role.PAGE_TAB and node.get_name().startswith(title):
+        if node.get_role() == getattr(Atspi.Role, role) and node.get_name().startswith(title):
             rectangle = node.get_component_iface().get_extents(Atspi.CoordType.SCREEN)
             if rectangle.width > 0 and rectangle.height > 0:
-                x = rectangle.x + rectangle.width//2
-                y = rectangle.y + rectangle.height//2
-                run('xdotool', 'mousemove', str(x), str(y), 'click', '1')
-                time.sleep(.25)
-                return
+                return node, rectangle
         remaining.extend(child for index in range(node.get_child_count())
                          if (child := node.get_child_at_index(index)) is not None)
-    raise RuntimeError(f'Workspace tab is missing or hidden: {title}')
+    raise RuntimeError(f'Control is missing or hidden: {title}')
+
+
+def select_workspace_tab(pid, title):
+    _, rectangle = find_linux_control(pid, title, 'PAGE_TAB')
+    x, y = rectangle.x + rectangle.width//2, rectangle.y + rectangle.height//2
+    run('xdotool', 'mousemove', str(x), str(y), 'click', '1')
+    time.sleep(.25)
+
+
+def set_linux_playback(pid, value):
+    node, _ = find_linux_control(pid, 'All plots playback position', 'SLIDER')
+    slider = node.get_value_iface()
+    if not slider.set_current_value(value) or slider.get_current_value() != value:
+        raise RuntimeError(f'Global playback slider did not settle at {value}')
 
 
 def capture(target, process, bundle, destination, ground_track, tabs, native_scene, mac_helper):
@@ -203,7 +215,7 @@ def capture(target, process, bundle, destination, ground_track, tabs, native_sce
         run('wmctrl', '-lp')
         run('wmctrl', '-a', 'GMAT')
         run('wmctrl', '-r', 'GMAT', '-b', 'add,maximized_vert,maximized_horz')
-        if ground_track:
+        if ground_track and not native_scene:
             time.sleep(1)
             run('xdotool', 'key', 'alt+w', 'sleep', '0.3', 'key', 't')
             # The fixed 1600x1000 Xfce session and fresh settings place the
@@ -217,6 +229,8 @@ def capture(target, process, bundle, destination, ground_track, tabs, native_sce
                 select_workspace_tab(process.pid, title)
             if len(tabs) == 2:
                 run('xdotool', 'key', 'alt+w', 'sleep', '0.3', 'key', 't')
+        if native_scene == 'GroundTrack':
+            set_linux_playback(process.pid, GROUND_TRACK_PLAYBACK)
         width, height = map(int, run('xdotool', 'getdisplaygeometry', capture_output=True).stdout.split())
         run('xdotool', 'mousemove', str(width - 1), str(height - 3))
         time.sleep(1)
@@ -224,8 +238,10 @@ def capture(target, process, bundle, destination, ground_track, tabs, native_sce
     elif target.startswith('windows'):
         script = Path(__file__).with_name('CaptureAlpha5Windows.ps1').resolve()
         switches = {'MarsCaptureTargeting': '-MarsTargeting', 'MarsTransfer': '-MarsTransfer',
-                    'LunarInsertionTargeting': '-LunarTargeting'}
+                    'LunarInsertionTargeting': '-LunarTargeting', 'GroundTrack': '-GroundTrack'}
         extra = (switches[native_scene],) if native_scene else ()
+        if native_scene == 'GroundTrack':
+            extra += ('-PlaybackPosition', str(GROUND_TRACK_PLAYBACK))
         prefix = ('powershell.exe', '-NoProfile', '-File', str(script), '-GmatPid', str(process.pid))
         try:
             run(*prefix, '-Destination', str(destination), *extra)
@@ -240,6 +256,12 @@ def capture(target, process, bundle, destination, ground_track, tabs, native_sce
         if native_scene:
             if native_scene == 'MarsTransfer':
                 run(str(mac_helper), 'transfer', str(process.pid))
+            elif native_scene == 'GroundTrack':
+                try:
+                    run(str(mac_helper), 'playback', str(process.pid), str(GROUND_TRACK_PLAYBACK))
+                except subprocess.CalledProcessError:
+                    run('screencapture', '-x', '-m', str(destination.with_name('diagnostic.png')))
+                    raise
             else:
                 action = 'lunar-solver' if native_scene == 'LunarInsertionTargeting' else 'solver'
                 run(str(mac_helper), action)
@@ -257,12 +279,15 @@ def main():
     scenes.add_argument('--mars-targeting', action='store_true')
     scenes.add_argument('--mars-transfer', action='store_true')
     scenes.add_argument('--lunar-targeting', action='store_true')
+    scenes.add_argument('--ground-track-hd', action='store_true')
     args = parser.parse_args()
     target = args.target
     if (args.ground_track or args.targeting) and target != 'linux-x86_64':
         parser.error('The additional compositions use the Linux desktop layout')
-    native_hd = args.mars_targeting or args.mars_transfer or args.lunar_targeting
-    if args.lunar_targeting:
+    native_hd = args.mars_targeting or args.mars_transfer or args.lunar_targeting or args.ground_track_hd
+    if args.ground_track_hd:
+        missions = {GROUND_TRACK_MISSION: (('GroundTrack', GROUND_TRACK_TABS),)}
+    elif args.lunar_targeting:
         lunar = 'Ex_LunarTransfer.script'
         missions = {lunar: TARGETING_MISSIONS[lunar][2]}
     elif native_hd:
@@ -271,7 +296,7 @@ def main():
     elif args.targeting:
         missions = {name: details[2] for name, details in TARGETING_MISSIONS.items()}
     elif args.ground_track:
-        missions = {'Ex_StationContactLocator.script': (('GroundTrack', ()),)}
+        missions = {GROUND_TRACK_MISSION: (('GroundTrack', ()),)}
     else:
         missions = {MISSION: (('MarsOrbit', ()),)}
     output = Path('desktop-capture').resolve()
@@ -322,7 +347,7 @@ def main():
         elif target.startswith('linux'):
             renderer = 'Mesa software OpenGL'
 
-        if args.targeting:
+        if args.targeting or (args.ground_track_hd and target.startswith('linux')):
             environment['QT_LINUX_ACCESSIBILITY_ALWAYS_ON'] = '1'
 
         for mission_name, views in missions.items():
@@ -330,13 +355,23 @@ def main():
             session = work/mission.stem
             session.mkdir()
             discovery = session/'private-discovery'
-            positioned_plot = views[0][1][0] if mac_helper and not args.mars_transfer else None
+            placements = {}
+            if mac_helper and args.ground_track_hd:
+                placements = {
+                    'GroundTrackPlot.UpperLeft': '[ 0 0 ]',
+                    'GroundTrackPlot.Size': '[ 0.499 0.985 ]',
+                    'OFI_ThreeDView.UpperLeft': '[ 0.5 0 ]',
+                    'OFI_ThreeDView.Size': '[ 0.499 0.985 ]',
+                }
+            elif mac_helper and not args.mars_transfer:
+                plot = views[0][1][0]
+                placements = {f'{plot}.UpperLeft': '[ 0.524 0 ]', f'{plot}.Size': '[ 0.476 1 ]'}
             # The macOS bundle stores the sample data under Resources.
             # Resolve the bundled file explicitly in the temporary script.
             weather_file = (samples/'SupportFiles/CSSI_2004To2026.txt'
                             if mac_helper and args.lunar_targeting else None)
-            input_mission = (mac_presentation_script(mission, session/mission.name, positioned_plot, weather_file)
-                             if positioned_plot else mission)
+            input_mission = (mac_presentation_script(mission, session/mission.name, placements, weather_file)
+                             if placements else mission)
             run_options = [] if mac_helper else ['--run']
             command = [str(executable), '--settings-dir', str(session/'settings'), '--mcp-bridge',
                        '--mcp-discovery-dir', str(discovery), '--convert-views', *run_options, str(input_mission)]
@@ -375,8 +410,11 @@ def main():
                             'screenshot_sha256': digest(picture), 'pixels': pixels,
                         }
                         if input_mission != mission:
-                            receipt['presentation_changes'] = [f'{positioned_plot}.{field}' for field in ('UpperLeft', 'Size')]
+                            receipt['presentation_changes'] = list(placements)
                             receipt['presented_mission_sha256'] = digest(input_mission)
+                        if args.ground_track_hd:
+                            receipt['playback'] = {'mode': 'interpolated steps', 'position': GROUND_TRACK_PLAYBACK,
+                                                   'range_maximum': 1000, 'paused': True}
                         if weather_file:
                             receipt['resolved_packaged_input'] = {'file': weather_file.name, 'sha256': digest(weather_file)}
                         receipt_name = f'{scene}-receipt.json' if args.targeting else 'receipt.json'

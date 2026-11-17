@@ -18,7 +18,12 @@ jobs:
       fail-fast: false
       matrix:
         include: >-
-          ${{ fromJSON(contains(github.event.head_commit.message, '[lunar-targeting-mac]') &&
+          ${{ fromJSON(contains(github.event.head_commit.message, '[ground-track-hd]') &&
+          '[{"runner":"ubuntu-24.04","platform":"linux-x86_64","options":"--ground-track-hd","screen":"1920x1080x24"},
+            {"runner":"windows-2022","platform":"windows-x64","options":"--ground-track-hd"},
+            {"runner":"macos-15","platform":"macos-arm64","options":"--ground-track-hd"},
+            {"runner":"macos-15-intel","platform":"macos-x64","options":"--ground-track-hd"}]' ||
+          contains(github.event.head_commit.message, '[lunar-targeting-mac]') &&
           '[{"runner":"macos-15","platform":"macos-arm64","options":"--lunar-targeting"},
             {"runner":"macos-15-intel","platform":"macos-x64","options":"--lunar-targeting"}]' ||
           contains(github.event.head_commit.message, '[lunar-targeting]') &&

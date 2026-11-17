@@ -160,6 +160,65 @@ func showTransferView(pid: pid_t) {
     CGWarpMouseCursorPosition(CGPoint(x: screen.frame.maxX-2, y: screen.frame.maxY-3))
 }
 
+func playbackSlider(_ element: AXUIElement, depth: Int = 0) -> AXUIElement? {
+    if depth >= 16 { return nil }
+    if (attribute(element, kAXRoleAttribute) as? String) == kAXSliderRole,
+       (attribute(element, kAXTitleAttribute) as? String) == "All plots playback position" {
+        return element
+    }
+    let children = attribute(element, kAXChildrenAttribute) as? [AXUIElement] ?? []
+    for child in children {
+        if let slider = playbackSlider(child, depth: depth+1) { return slider }
+    }
+    return nil
+}
+
+func playbackValue(_ slider: AXUIElement) -> Int? {
+    let value = attribute(slider, kAXValueAttribute)
+    if let number = value as? NSNumber { return number.intValue }
+    if let text = value as? String { return Int(text) }
+    return nil
+}
+
+func key(_ code: CGKeyCode) {
+    for pressed in [true, false] {
+        guard let event = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: pressed) else {
+            fail("Could not create a macOS keyboard event")
+        }
+        event.post(tap: .cghidEventTap)
+    }
+}
+
+func seekPausedPlayback(pid: pid_t, value: Int) {
+    guard let screen = NSScreen.screens.first else { fail("No desktop") }
+    let app = AXUIElementCreateApplication(pid)
+    guard let slider = playbackSlider(app), let frame = rect(slider) else {
+        fail("Global GMAT playback slider is missing")
+    }
+    let result = AXUIElementSetAttributeValue(slider, kAXValueAttribute as CFString, NSNumber(value: value))
+    if result != .success || playbackValue(slider) != value {
+        // The Qt Cocoa slider may expose a readable AX value only. Focus its
+        // handle, return to the start, and advance by exact slider steps.
+        let handle = CGPoint(x: frame.maxX-10, y: frame.midY)
+        mouse(.mouseMoved, handle)
+        usleep(70000)
+        mouse(.leftMouseDown, handle)
+        mouse(.leftMouseUp, handle)
+        usleep(100000)
+        key(115) // Home
+        usleep(100000)
+        for _ in 0..<value {
+            key(124) // Right Arrow
+            usleep(15000)
+        }
+    }
+    usleep(400000)
+    guard playbackValue(slider) == value else {
+        fail("Global playback slider did not settle at \(value), got \(String(describing: playbackValue(slider)))")
+    }
+    CGWarpMouseCursorPosition(CGPoint(x: screen.frame.maxX-2, y: screen.frame.maxY-3))
+}
+
 let args = CommandLine.arguments.dropFirst()
 if args.first == "configure" {
     configureFullHD()
@@ -170,6 +229,9 @@ if args.first == "configure" {
     if args.first == "lunar-solver" { bringLunarPlotForward() }
 } else if args.count == 2, args.first == "transfer", let pid = Int32(args.last!) {
     showTransferView(pid: pid)
+} else if args.count == 3, args.first == "playback",
+          let pid = Int32(args[args.startIndex+1]), let value = Int(args.last!), (0...1000).contains(value) {
+    seekPausedPlayback(pid: pid, value: value)
 } else {
-    fail("Usage: CaptureAlpha5Mac configure | fit PID | solver | lunar-solver | transfer PID")
+    fail("Usage: CaptureAlpha5Mac configure | fit PID | solver | lunar-solver | transfer PID | playback PID VALUE")
 }
