@@ -218,8 +218,8 @@ def capture(target, process, bundle, destination, ground_track, tabs, native_sce
         run('pgrep', '-x', 'SystemUIServer')
         run('open', '-a', str(bundle))
         if native_scene:
-            action = 'transfer' if native_scene == 'MarsTransfer' else 'solver'
-            run(str(mac_helper), action)
+            arguments = ('transfer', str(process.pid)) if native_scene == 'MarsTransfer' else ('solver',)
+            run(str(mac_helper), *arguments)
         time.sleep(2)
         run('screencapture', '-x', '-m', str(destination))
 

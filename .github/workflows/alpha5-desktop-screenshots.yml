@@ -18,7 +18,9 @@ jobs:
       fail-fast: false
       matrix:
         include: >-
-          ${{ fromJSON(contains(github.event.head_commit.message, '[mars-transfer]') &&
+          ${{ fromJSON(contains(github.event.head_commit.message, '[mars-transfer-arm]') &&
+          '[{"runner":"macos-26","platform":"macos-arm64","options":"--mars-transfer"}]' ||
+          contains(github.event.head_commit.message, '[mars-transfer]') &&
           '[{"runner":"windows-2022","platform":"windows-x64","options":"--mars-transfer"},
             {"runner":"macos-15","platform":"macos-arm64","options":"--mars-transfer"},
             {"runner":"macos-15-intel","platform":"macos-x64","options":"--mars-transfer"}]' ||

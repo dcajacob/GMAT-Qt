@@ -114,13 +114,31 @@ func extendSolverTable() {
     CGWarpMouseCursorPosition(CGPoint(x: screen.frame.maxX-2, y: screen.frame.maxY-3))
 }
 
-func showTransferView() {
-    guard let screen = NSScreen.screens.first, screen.frame.width == 1920 && screen.frame.height == 1080 else {
-        fail("The matching transfer tab position expects the runner's 1920x1080 desktop")
+func transferTab(_ element: AXUIElement, depth: Int = 0) -> CGRect? {
+    if depth >= 16 { return nil }
+    let role = attribute(element, kAXRoleAttribute) as? String
+    if role == kAXRadioButtonRole,
+       [kAXTitleAttribute, kAXDescriptionAttribute].contains(where: {
+           (attribute(element, $0) as? String) == "OFI_SolarSystemView"
+       }),
+       let frame = rect(element), !frame.isEmpty { return frame }
+    let property = role == kAXTabGroupRole ? kAXTabsAttribute : kAXChildrenAttribute
+    let children = attribute(element, property) as? [AXUIElement] ?? []
+    for child in children {
+        if let frame = transferTab(child, depth: depth+1) { return frame }
     }
-    // Fresh settings and the fitted main window place the Sun-centered
-    // view tab in this position on both macOS runner images.
-    let tab = CGPoint(x: 593, y: 109)
+    return nil
+}
+
+func showTransferView(pid: pid_t) {
+    guard let screen = NSScreen.screens.first, screen.frame.width >= 1920 && screen.frame.height >= 1080 else {
+        fail("The transfer view needs an HD desktop")
+    }
+    let app = AXUIElementCreateApplication(pid)
+    let frame = transferTab(app)
+    let menuHeight = screen.frame.maxY - screen.visibleFrame.maxY
+    // In the fitted desktop, the second workspace tab is the Sun-centered view.
+    let tab = frame.map { CGPoint(x: $0.midX, y: $0.midY) } ?? CGPoint(x: 593, y: menuHeight+84)
     mouse(.mouseMoved, tab)
     usleep(80000)
     mouse(.leftMouseDown, tab)
@@ -136,8 +154,8 @@ if args.first == "configure" {
     fitMainWindow(pid: pid)
 } else if args.first == "solver" {
     extendSolverTable()
-} else if args.first == "transfer" {
-    showTransferView()
+} else if args.count == 2, args.first == "transfer", let pid = Int32(args.last!) {
+    showTransferView(pid: pid)
 } else {
-    fail("Usage: CaptureAlpha5Mac configure | fit PID | solver | transfer")
+    fail("Usage: CaptureAlpha5Mac configure | fit PID | solver | transfer PID")
 }
