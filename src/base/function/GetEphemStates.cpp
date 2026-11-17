@@ -1308,8 +1308,8 @@ bool GetEphemStates::ReadCCSDSEphemerisFile()
    Rvector6 initialState, finalState;
    std::string centralBodyOnFile, csName;
    
-   CCSDSEphemerisFile *ccsdsEphemFile = new CCSDSEphemerisFile();
-   if (!ccsdsEphemFile->OpenForRead(fullpathFileName, "TimePosVel"))
+   CCSDSEphemerisFile ccsdsEphemFile;
+   if (!ccsdsEphemFile.OpenForRead(fullpathFileName, "TimePosVel"))
    {
       MessageInterface::ShowMessage
       ("*** ERROR *** Failed to open CCSDS ephemeris file: '%s'\n",
@@ -1319,8 +1319,7 @@ bool GetEphemStates::ReadCCSDSEphemerisFile()
 
    bool retval = false;
    // Get initial and final state
-   if (ccsdsEphemFile->
-      GetInitialAndFinalStates(initialEpoch, finalEpoch,
+   if (ccsdsEphemFile.GetInitialAndFinalStates(initialEpoch, finalEpoch,
          initialState, finalState, centralBodyOnFile, csName))
    {
 #ifdef DEBUG_READ_EPHEM
@@ -1384,10 +1383,7 @@ bool GetEphemStates::ReadCCSDSEphemerisFile()
       }
    }
    
-   // Close and delete CCSDS ephem
-   ccsdsEphemFile->CloseForRead();
-   
-   delete ccsdsEphemFile;
+   ccsdsEphemFile.CloseForRead();
 
 #ifdef DEBUG_READ_EPHEM
    MessageInterface::ShowMessage

@@ -58,13 +58,14 @@
 namespace
 {
 // Reuse the rolling sample buffer and stencil scheduling used by OEM output.
-// Ancillary fields retain their value-only interpolation. Cartesian position
-// and velocity come from one polynomial constrained by both at every node.
-class OemHermiteInterpolator : public LagrangeInterpolator
+// The Hermite path constrains Cartesian position and velocity at each node.
+// Ancillary fields retain their value-only interpolation.
+class OemCartesianInterpolator : public LagrangeInterpolator
 {
 public:
-   OemHermiteInterpolator(const std::string &name, Integer degree) :
-      LagrangeInterpolator(name, 34, (degree + 1) / 2 - 1),
+   OemCartesianInterpolator(const std::string &name, Integer degree, bool hermite) :
+      LagrangeInterpolator(name, 34, hermite ? (degree + 1) / 2 - 1 : degree),
+      useHermite(hermite),
       sampleTimes(bufferSize), hasPublishedEpoch(false), preciseClock(false), clockOrigin(0.0)
    {
    }
@@ -94,10 +95,10 @@ public:
    bool AddPoint(Real epoch, const Real *state) override
    {
       if (!std::isfinite(epoch) || !state)
-         throw InterpolatorException("OEM Hermite requires a finite epoch and Cartesian state.");
+         throw InterpolatorException("OEM interpolation requires a finite epoch and Cartesian state.");
       for (Integer i = 0; i < 6; ++i)
          if (!std::isfinite(state[i]))
-            throw InterpolatorException("OEM Hermite requires finite positions and velocities.");
+            throw InterpolatorException("OEM interpolation requires finite positions and velocities.");
       if (pointCount == 0)
       {
          preciseClock = hasPublishedEpoch;
@@ -120,13 +121,19 @@ public:
 
    Interpolator *Clone() const override
    {
-      return new OemHermiteInterpolator(*this);
+      return new OemCartesianInterpolator(*this);
    }
 
    bool Interpolate(Real epoch, Real *results) override
    {
       if (!LagrangeInterpolator::Interpolate(epoch, results))
          return false;
+
+      // Preserve the two-sample linear fallback. With three or more nodes
+      // on a short arc, their velocities can constrain a higher degree while
+      // staying within the requested order.
+      if (!useHermite && (order < 2 || 2 * order + 1 > baseOrder))
+         return true;
 
       const Integer count = order + 1;
       RealArray times(count);
@@ -147,7 +154,7 @@ public:
          // An exact final bound has its own conversion and takes precedence.
          auto bound = epochBounds.find(epoch);
          if (bound == epochBounds.end()) bound = epochBounds.begin();
-         query = (bound->second - preciseOrigin).GetTimeInSec() + epoch - bound->first;
+         query = (bound->second - preciseOrigin).GetTimeInSec() + (epoch - bound->first);
       }
       HermiteInterpolator stateInterpolator("", 6, count);
       for (Integer i = 0; i < count; ++i)
@@ -165,6 +172,7 @@ public:
    }
 
 private:
+   bool useHermite;
    std::map<Real, GmatTime> epochBounds;
    RealArray sampleTimes;
    GmatTime publishedEpoch;
@@ -388,26 +396,15 @@ void EphemWriterWithInterpolator::CreateInterpolator()
    }
    
    // Create Interpolator
-   if (interpolatorName == "Lagrange")
+   if (fileType == CCSDS_OEM && (interpolatorName == "Hermite" || interpolatorName == "Lagrange"))
    {
-      interpolator = new LagrangeInterpolator(ephemName + "_Lagrange", 34,
-                                              interpolationOrder);
-      #ifdef DEBUG_INTERPOLATOR_TRACE
-      MessageInterface::ShowMessage
-         ("===> CreateInterpolator() calling interpolator->SetForceInterpolation(false)\n");
-      #endif
-      // Set force interpolation to false to collect more data if needed
+      interpolator = new OemCartesianInterpolator(ephemName + "_" + interpolatorName,
+            interpolationOrder, interpolatorName == "Hermite");
       interpolator->SetForceInterpolation(false);
-      
-      #ifdef DEBUG_MEMORY
-      MemoryTracker::Instance()->Add
-         (interpolator, interpolator->GetName(), "EphemWriterWithInterpolator::CreateInterpolator()",
-          "interpolator = new LagrangeInterpolator()");
-      #endif
    }
-   else if (interpolatorName == "Hermite" && fileType == CCSDS_OEM)
+   else if (interpolatorName == "Lagrange")
    {
-      interpolator = new OemHermiteInterpolator(ephemName + "_Hermite", interpolationOrder);
+      interpolator = new LagrangeInterpolator(ephemName + "_Lagrange", 34, interpolationOrder);
       interpolator->SetForceInterpolation(false);
    }
    else if (interpolatorName == "SLERP")
@@ -415,6 +412,11 @@ void EphemWriterWithInterpolator::CreateInterpolator()
       throw SubscriberException("The SLERP Interpolator is not ready\n");
       //interpolator = new SLERP;
    }
+   #ifdef DEBUG_MEMORY
+   if (interpolator)
+      MemoryTracker::Instance()->Add(interpolator, interpolator->GetName(),
+            "EphemWriterWithInterpolator::CreateInterpolator()", "creating local interpolator");
+   #endif
    
    #ifdef DEBUG_EPHEMFILE_INTERPOLATOR
    MessageInterface::ShowMessage
@@ -886,9 +888,10 @@ void EphemWriterWithInterpolator::ProcessFinalDataOnWaiting(bool canFinish)
             // Check if current data needs to be written out
             if (fileType == CCSDS_OEM)
             {
-               // For CCSDS, write out final data if current epoch is after last epoch
-               if (currEpochInSecs > (lastEpochWrote + timeTolerance))
-                  writeFinalData = true;
+               // A reversal closes the previous arc before its successor starts.
+               const Real direction = propIndicator > 2 ? prevPropDirection : currPropDirection;
+               writeFinalData = lastEpochWrote == -999.999 ||
+                     direction * (currEpochInSecs - lastEpochWrote) > timeTolerance;
             }
             else if (fileType == STK_TIMEPOSVEL)
             {
@@ -1398,13 +1401,13 @@ Integer EphemWriterWithInterpolator::GetSupportedInterpolationOrder(Integer coun
 
 void EphemWriterWithInterpolator::SetPublishedEpoch(const GmatTime &epoch)
 {
-   if (auto *hermite = dynamic_cast<OemHermiteInterpolator *>(interpolator))
-      hermite->SetPublishedEpoch(epoch);
+   if (auto *cartesian = dynamic_cast<OemCartesianInterpolator *>(interpolator))
+      cartesian->SetPublishedEpoch(epoch);
 }
 
 void EphemWriterWithInterpolator::SetInterpolationBounds(const std::string &format,
       const std::string &initial, const std::string &final)
 {
-   if (auto *hermite = dynamic_cast<OemHermiteInterpolator *>(interpolator))
-      hermite->SetEpochBounds(format, initial, final);
+   if (auto *cartesian = dynamic_cast<OemCartesianInterpolator *>(interpolator))
+      cartesian->SetEpochBounds(format, initial, final);
 }

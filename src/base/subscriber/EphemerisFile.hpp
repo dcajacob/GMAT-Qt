@@ -249,6 +249,7 @@ protected:
    std::vector<PhysicalModel*>* transients;
    
    // Initialization
+   bool NeedsOemSampleClocks() const;
    void         ValidateParameters(bool forInitialization);
    Real         ConvertInitialAndFinalEpoch();
    void         InitializeData(bool saveEpochInfo = false);

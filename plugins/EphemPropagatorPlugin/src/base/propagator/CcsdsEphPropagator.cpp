@@ -181,7 +181,7 @@ CcsdsEphPropagator & CcsdsEphPropagator::operator=(const CcsdsEphPropagator & pr
       lastEpochGT = currentEpochGT = prop.currentEpochGT;
 
       if (hasPrecisionTime)
-         timeFromEphemStart = (lastEpochGT - GmatTime(ephemStart)).GetTimeInSec();
+         timeFromEphemStart = (lastEpochGT - GetEphemStartEpochGT()).GetTimeInSec();
       else
          timeFromEphemStart = (lastEpoch - ephemStart) * GmatTimeConstants::SECS_PER_DAY;
    }
@@ -669,16 +669,10 @@ bool CcsdsEphPropagator::Initialize()
             MessageInterface::ShowMessage("     successfully open ephem file with fullPath = <%s>\n", fullPath.c_str());
 #endif
 
-            Integer dumpdata = 0;
-#ifdef DEBUG_EPHEM_READ
-            dumpdata = 1;
-#endif
-            ephem.ReadDataRecords(dumpdata);
             SetEphemSpan();
             fileDataLoaded = true;
 
             // Setup central body
-            //centralBody = ephem.GetCentralBody();
             if (centralBody == "Moon")
                centralBody = "Luna";
             if (centralBody == "")     // CCSDS .e spec: Use "vehicle CB, and Earth by default"
@@ -696,15 +690,14 @@ bool CcsdsEphPropagator::Initialize()
                6 * sizeof(Real));
 
             // Setup ephem coordinate system and j2kBodyMJ2000Eq coordinate system
-            std::string axisSystemOnFile = ephem.GetReferenceFrame();
-            BuildCoordinates(ephem.GetReferenceFrame());
+            BuildCoordinates(ephem.GetReferenceFrame(0));
 
             if (hasPrecisionTime)
             {
 			      currentEpochGT = initialEpochGT;
 			      lastEpoch = currentEpoch;
 			      lastEpochGT = currentEpochGT;
-               timeFromEphemStart = (lastEpochGT - GmatTime(ephemStart)).GetTimeInSec();
+               timeFromEphemStart = (lastEpochGT - GetEphemStartEpochGT()).GetTimeInSec();
                UpdateState();
                UpdateSpaceObjectGT(currentEpochGT);
             }
@@ -770,6 +763,9 @@ bool CcsdsEphPropagator::Step()
    #endif
 
    bool retval = false;
+   if (ephem.theEphem.empty())
+      throw PropagatorException("Cannot step without a loaded CCSDS-OEM segment.");
+   const GmatTime endEpochGT = ephem.theEphem.back().EndEpoch();
 
    Rvector6  outState;
 
@@ -782,7 +778,7 @@ bool CcsdsEphPropagator::Step()
       if (lastEpochGT != currentEpochGT)
       {
          lastEpochGT = currentEpochGT;
-         timeFromEphemStart = (lastEpochGT - GmatTime(ephemStart)).GetTimeInSec();
+         timeFromEphemStart = (lastEpochGT - GetEphemStartEpochGT()).GetTimeInSec();
       }
    }
    else
@@ -800,7 +796,7 @@ bool CcsdsEphPropagator::Step()
    stepTaken = ephemStep;
 
    if (hasPrecisionTime)
-      currentEpochGT = GmatTime(ephemStart).AddSeconds(timeFromEphemStart);
+      currentEpochGT = GetEphemStartEpochGT().AddSeconds(timeFromEphemStart);
    else
       currentEpoch = ephemStart + timeFromEphemStart /
          GmatTimeConstants::SECS_PER_DAY;
@@ -823,10 +819,10 @@ bool CcsdsEphPropagator::Step()
       // Code to step to ephem bound before stepping out of bounds
    if (hasPrecisionTime)
    {
-      if ((lastEpochGT < GmatTime(ephemEnd)) && (currentEpochGT > GmatTime(ephemEnd)))
-         currentEpochGT = GmatTime(ephemEnd);
-      if ((lastEpochGT > GmatTime(ephemStart)) && (currentEpochGT < GmatTime(ephemStart)))
-         currentEpochGT = GmatTime(ephemStart);
+      if ((lastEpochGT < endEpochGT) && (currentEpochGT > endEpochGT))
+         currentEpochGT = endEpochGT;
+      if ((lastEpochGT > GetEphemStartEpochGT()) && (currentEpochGT < GetEphemStartEpochGT()))
+         currentEpochGT = GetEphemStartEpochGT();
       #ifdef DEBUG_PROPAGATION
       MessageInterface::ShowMessage("   --> Updated currentEpoch after step "
          "= %s\n", currentEpochGT.ToString().c_str());
@@ -849,17 +845,17 @@ bool CcsdsEphPropagator::Step()
    bool flagOutOfDomain = false;
    if (hasPrecisionTime)
    {
-      if (currentEpochGT < GmatTime(ephemStart))
+      if (currentEpochGT < GetEphemStartEpochGT())
       {
-         if ((GmatTime(ephemStart) - currentEpochGT).GetMjd() < 1.0e-10)
-            currentEpochGT = GmatTime(ephemStart);
+         if ((GetEphemStartEpochGT() - currentEpochGT).GetMjd() < 1.0e-10)
+            currentEpochGT = GetEphemStartEpochGT();
          else
             flagOutOfDomain = true;
       }
-      else if (currentEpochGT > GmatTime(ephemEnd))
+      else if (currentEpochGT > endEpochGT)
       {
-         if ((currentEpochGT - GmatTime(ephemEnd)).GetMjd() < 1.0e-10)
-            currentEpochGT = GmatTime(ephemEnd);
+         if ((currentEpochGT - endEpochGT).GetMjd() < 1.0e-10)
+            currentEpochGT = endEpochGT;
          else
             flagOutOfDomain = true;
       }
@@ -1075,7 +1071,7 @@ void CcsdsEphPropagator::SetEphemSpan(Integer whichOne)
    ephem.GetStartAndEndEpochs(ephemStart, ephemEnd, &ephemRecords);
    if (ephem.theEphem.empty() || ephem.theEphem.front().points.empty())
       throw PropagatorException("The ephemeris has no state at its start boundary.");
-   ephemStartGT = ephem.theEphem.front().points.front().GetEpoch();
+   ephemStartGT = ephem.theEphem.front().StartEpoch();
    spanStart.push_back(ephemStart);
    spanEnd.push_back(ephemEnd);
    if (!initialEphemEpochSet)
@@ -1098,7 +1094,7 @@ void CcsdsEphPropagator::BuildCoordinates(const std::string & coordinates)
 
    if (coordinates != "")
    {
-      std::string cb = ephem.GetCentralBody();
+      std::string cb = ephem.GetCentralBody(0);
       if ((coordinates != "EME2000") || (cb != "Earth"))
       {
 
@@ -1110,12 +1106,11 @@ void CcsdsEphPropagator::BuildCoordinates(const std::string & coordinates)
          //Here we are transforming from the central body in the ephem to Earth and back. This will
          //cause some noise depending on the distance to the body. 
 
-         std::string cb = ephem.GetCentralBody();
          if (cb == "Moon")
             cb = "Luna";
 
          // Setup ephem coordinate system and j2kBodyMJ2000Eq coordinate system                      
-         std::string axisSystemOnFile = ephem.GetReferenceFrame();                                   
+         std::string axisSystemOnFile = coordinates;
          if (axisSystemOnFile == "EME2000")                                                          
             axisSystemOnFile = "MJ2000Eq"; 
          else if (axisSystemOnFile == "ICRF")

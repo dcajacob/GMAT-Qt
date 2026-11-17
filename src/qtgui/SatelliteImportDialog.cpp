@@ -191,7 +191,13 @@ SatelliteImportDialog::SatelliteImportDialog(const QStringList &frames,const QSt
       }
    });
    auto invalidateFile=[this] { fileRecords.clear(); fileResults->clear(); };
-   connect(file,&QLineEdit::textChanged,this,invalidateFile);
+   connect(file,&QLineEdit::textChanged,this,[this,invalidateFile] {
+      invalidateFile();
+      fileFormat->setCurrentIndex(0);
+      fileEpoch->clear();
+      naif->clear();
+      status->clear();
+   });
    connect(fileFormat,&QComboBox::currentIndexChanged,this,invalidateFile);
    auto fileFormatChanged=[this,localForm] {
       const bool elements=fileFormat->currentIndex()==0;
@@ -359,18 +365,26 @@ void SatelliteImportDialog::loadFile()
    fileRecords.clear(); fileResults->clear();
    try {
       QFile input(file->text()); if (!input.open(QIODevice::ReadOnly)) throw std::runtime_error("The orbital file could not be opened.");
-      const auto header=QString::fromUtf8(input.peek(65536));
+      const auto bytes=input.peek(65536);
+      const auto header=QString::fromUtf8(bytes).trimmed();
       if (header.startsWith("CCSDS_OEM_VERS")) fileFormat->setCurrentText("CCSDS-OEM");
       else if (header.startsWith("stk.v")) fileFormat->setCurrentText("STK");
       else if (header.startsWith("DAF/SPK")) fileFormat->setCurrentText("SPK");
+      else if (bytes.startsWith("EPHEM   ")) fileFormat->setCurrentText("Code500");
+      else if (!bytes.contains('\0')) fileFormat->setCurrentIndex(0);
       if (fileFormat->currentIndex()==0) {
          if (input.size()>25*1024*1024) throw std::runtime_error("Select an orbital-elements file smaller than 25 MB.");
          fileRecords=parseSatelliteElements(input.readAll());
          for (auto &record:fileRecords) { record.source=QFileInfo(input).absoluteFilePath(); fileResults->addItem(record.name+" · "+record.catalogId+" · "+record.epoch); }
          if (!fileRecords.isEmpty()) fileResults->setCurrentRow(0);
       } else {
-         const auto epoch=QRegularExpression("START_TIME\\s*=\\s*(\\S+)").match(header);
-         if (epoch.hasMatch()) fileEpoch->setText(epoch.captured(1));
+         const QString metadata=header.section("META_STOP",0,0);
+         const auto timeField=[&metadata](const QString &key) {
+            return QRegularExpression("(?m)^\\s*"+key+"\\s*=\\s*(\\S+)").match(metadata).captured(1);
+         };
+         auto epoch=timeField("USEABLE_START_TIME");
+         if (epoch.isEmpty()) epoch=timeField("START_TIME");
+         if (!epoch.isEmpty()) fileEpoch->setText(epoch);
          const auto scenario=QRegularExpression("ScenarioEpoch\\s+([^\\r\\n]+)").match(header);
          if (scenario.hasMatch()) {
             const auto epoch=QLocale(QLocale::English).toDateTime(scenario.captured(1).simplified(),"d MMM yyyy HH:mm:ss.zzz");

@@ -18,6 +18,7 @@ struct FolderRunItem
    QString script,loadedScript,outputDirectory,category,details,comparison;
    int repeat=1,engineStatus=0;
    QMap<QString,QString> reports;
+   QStringList reservedReportPaths;
 };
 struct FolderRunResult
 {
@@ -27,6 +28,8 @@ struct FolderRunResult
    QString summary() const;
 };
 QStringList folderRunScripts(const QString &directory);
+QString folderRunBaseline(const FolderRunOptions &options,const QString &report);
+bool sameFolderRunFile(const QString &left,const QString &right);
 QString validateFolderRun(const FolderRunOptions &options);
 using FolderScriptRunner=std::function<FolderRunItem(const QString &,const QString &,int,const QString &)>;
 FolderRunResult runScriptFolder(const FolderRunOptions &options,const FolderScriptRunner &run,

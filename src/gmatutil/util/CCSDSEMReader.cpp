@@ -285,23 +285,14 @@ void CCSDSEMReader::Initialize()
       MessageInterface::ShowMessage("      in CCSDSEMReader::Initialize, segments have been validated.\n");
    #endif
    // Validate that the segments' start and stop times are in the correct order
-   Real currentStop  = (segments.at(0))->GetStopTime();
-   Real segStart, segStop;
-   for (Integer jj = 1; jj < numSegments; jj++)
+   for (Integer jj = 1; jj < numSegments; ++jj)
    {
-      segStart   = (segments.at(jj))->GetStartTime();
-      segStop    = (segments.at(jj))->GetStopTime();
-      #ifdef DEBUG_INIT_EM_FILE
-         MessageInterface::ShowMessage("--- last segment stop time = %12.10f, segment start = %12.10f\n",
-               currentStop, segStart);
-      #endif
-      if (segStart < currentStop)
+      if (segments[jj]->GetCoverageStart() < segments[jj-1]->GetCoverageStop())
       {
          std::string errmsg = "Error reading ephemeris message file \"";
          errmsg += emFile + "\".  ";
          errmsg += "Segment start and stop times are not properly ordered.\n";
          throw UtilityException(errmsg);
-         currentStop = segStop;
       }
    }
    #ifdef DEBUG_INIT_EM_FILE
@@ -329,7 +320,7 @@ bool CCSDSEMReader::SetFile(const std::string &theEMFile)
       MessageInterface::ShowMessage("     and number of segments = %d\n",
             numSegments);
    #endif
-   if (theEMFile != emFile)
+   if (theEMFile != emFile || !isInitialized)
    {
       emFile        = theEMFile;
       isInitialized = false;
@@ -338,6 +329,7 @@ bool CCSDSEMReader::SetFile(const std::string &theEMFile)
          delete segments[ii];
       }
       segments.clear();
+      currentSegment = NULL;
       numSegments = 0;
 
       Initialize();
@@ -425,11 +417,8 @@ Integer CCSDSEMReader::GetSegmentNumber(Real epoch)
 // -----------------------------------------------------------------------------
 CCSDSEMSegment* CCSDSEMReader::GetSegment(Real epoch)
 {
-   for (Integer ii = 0; ii < numSegments; ii++)
-   {
-      if ((segments.at(ii))->CoversEpoch(epoch)) return segments.at(ii);
-   }
-   return NULL;
+   const Integer index = GetSegmentNumber(epoch);
+   return index >= 0 ? segments.at(index) : NULL;
 }
 
 // -----------------------------------------------------------------------------

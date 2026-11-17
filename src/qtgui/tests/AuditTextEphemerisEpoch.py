@@ -65,7 +65,10 @@ def audit(proof,root=None):
             counts['queries']+=1
         check(set(identities.values())=={10} and len(identities)==180,'API/direction partition incomplete')
         check(len(proof['controls'])==6,'Copy/duplicate/leap controls missing')
-        check(proof['controls'][0]['unsupported_oem_hermite_rejected'],'Unsupported OEM interpolation method admitted')
+        method_control=proof['controls'][0]
+        # Older recorded proofs used Hermite before the reader supported it.
+        check(method_control.get('unsupported_oem_spline_rejected', method_control.get('unsupported_oem_hermite_rejected', False)),
+              'Unsupported OEM interpolation method admitted')
         for control in proof['controls'][1:4]:
             check(control['same_rounded_mjd'] and control['count']==2 and control['duplicate_rejected'] and control['data']==[2,3,4,5,6,7],'Precise duplicate/copy contract differs')
             target=D(21545)*86400+D('32.0343817')+D('.123456799')

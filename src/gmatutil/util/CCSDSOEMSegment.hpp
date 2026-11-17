@@ -46,6 +46,7 @@ public:
    virtual CCSDSEMSegment*  Clone() const;
    
    virtual bool         Validate(bool checkData = true);
+   bool                 CoversEpoch(Real epoch) override;
    virtual Rvector6     GetState(Real atEpoch);
    virtual std::string  GetMetaDataForWriting();
    std::string          GetDataComments() override;
@@ -59,6 +60,7 @@ public:
                                 bool justCheckDataSize = false);
    bool AddData(const GmatTime &epoch, Rvector data, bool justCheckDataSize = false);
    virtual bool         AddDataForWriting(Real epoch, Rvector &data);
+   void                 OrderPropagationArc(Real &start, Real &stop);
    
    virtual void         ClearMetaData();
    

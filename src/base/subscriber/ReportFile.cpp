@@ -745,6 +745,12 @@ std::unique_ptr<FunctionInvocationState> ReportFile::SuspendFunctionBindings()
 //------------------------------------------------------------------------------
 // virtual bool Initialize()
 //------------------------------------------------------------------------------
+ReportFile::OutputPathCheck &ReportFile::OutputPathValidator()
+{
+   static thread_local OutputPathCheck check;
+   return check;
+}
+
 bool ReportFile::Initialize()
 {
    #ifdef DEBUG_REPORTFILE_INIT
@@ -772,6 +778,7 @@ bool ReportFile::Initialize()
    // correctly in functions on Mac and Linux
    if (!dstream.is_open())
    {
+      if (OutputPathValidator()) OutputPathValidator()(fullPathFileName);
 #ifdef _WIN32
       const auto nativeReportPath = std::filesystem::u8path(fullPathFileName);
       std::error_code reportPathError;
@@ -1709,6 +1716,7 @@ bool ReportFile::OpenReportFile()
       ("ReportFile::OpenReportFile() entered, fullPathFileName = %s\n", fullPathFileName.c_str());
    #endif
    
+   if (OutputPathValidator()) OutputPathValidator()(fullPathFileName);
    if (dstream.is_open())
       dstream.close();
 

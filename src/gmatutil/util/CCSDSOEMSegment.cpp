@@ -135,6 +135,12 @@ bool CCSDSOEMSegment::Validate(bool checkData)
 }
 
 
+bool CCSDSOEMSegment::CoversEpoch(Real epoch)
+{
+   return usesUsableTimes ? epoch >= usableStartTime && epoch <= usableStopTime :
+         epoch >= startTime && epoch <= stopTime;
+}
+
 //------------------------------------------------------------------------------
 // Returns the cartesin orbit vecot at the specified input time.
 //------------------------------------------------------------------------------
@@ -146,6 +152,8 @@ Rvector6 CCSDSOEMSegment::GetState(Real atEpoch)
        atEpoch, (Integer) dataStore.size());
    #endif
    
+   if (usesUsableTimes && !CoversEpoch(atEpoch))
+      throw UtilityException(segError + "Specified epoch is outside the usable time range.");
    Rvector rvec = DetermineState(atEpoch);
    Rvector6 cart(rvec[0], rvec[1], rvec[2], rvec[3], rvec[4], rvec[5]);
    
@@ -315,6 +323,24 @@ bool CCSDSOEMSegment::AddData(const GmatTime &epoch, Rvector data, bool justChec
 }
 
 //------------------------------------------------------------------------------
+// Put a complete propagation arc in file order, keeping equal-epoch updates
+// in arrival order so the last published record wins during serialization.
+void CCSDSOEMSegment::OrderPropagationArc(Real &start, Real &stop)
+{
+   if (dataStore.empty())
+      throw UtilityException("Cannot order an empty OEM propagation arc");
+   const auto earlier = [](const EpochAndData *a, const EpochAndData *b)
+      { return a->epoch < b->epoch; };
+   if (!std::is_sorted(dataStore.begin(), dataStore.end(), earlier))
+   {
+      if (!std::is_sorted(dataStore.rbegin(), dataStore.rend(), earlier))
+         throw UtilityException("OEM propagation changed direction within a single arc");
+      std::stable_sort(dataStore.begin(), dataStore.end(), earlier);
+   }
+   start = dataStore.front()->epoch;
+   stop = dataStore.back()->epoch;
+}
+
 // Adds an epoch/data/accel to the dataStore for writing.
 //------------------------------------------------------------------------------
 bool CCSDSOEMSegment::AddDataForWriting(Real epoch, Rvector &data)
@@ -398,6 +424,14 @@ Rvector CCSDSOEMSegment::Interpolate(Real atEpoch)
 // its exact state even though it spans no interpolation interval.
 bool CCSDSOEMSegment::GetUsableIndexRange(Integer &first, Integer &last)
 {
+   // Samples outside the usable interval still support interpolation inside it.
+   // DetermineState enforces the query bounds.
+   if (usesUsableTimes && dataStore.size() >= 2)
+   {
+      first = 0;
+      last = static_cast<Integer>(dataStore.size()) - 1;
+      return true;
+   }
    if (interpolationMethod == "HERMITE" && interpolationDegree <= 1 && dataStore.size() == 1)
    {
       first = last = 0;

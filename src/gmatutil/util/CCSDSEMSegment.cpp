@@ -299,9 +299,13 @@ CCSDSEMSegment::CCSDSEMSegment(const CCSDSEMSegment &copy) :
    segError            (copy.segError),
    timeSystem          (copy.timeSystem),
    startTime           (copy.startTime),
+   startTimeStr(copy.startTimeStr),
    stopTime            (copy.stopTime),
+   stopTimeStr(copy.stopTimeStr),
    usableStartTime     (copy.usableStartTime),
+   usableStartTimeStr(copy.usableStartTimeStr),
    usableStopTime      (copy.usableStopTime),
+   usableStopTimeStr(copy.usableStopTimeStr),
    interpolationMethod (copy.interpolationMethod),
    interpolationDegree (copy.interpolationDegree),
    objectName          (copy.objectName),
@@ -353,9 +357,13 @@ CCSDSEMSegment& CCSDSEMSegment::operator=(const CCSDSEMSegment &copy)
    segError            = copy.segError;
    timeSystem          = copy.timeSystem;
    startTime           = copy.startTime;
+   startTimeStr = copy.startTimeStr;
    stopTime            = copy.stopTime;
+   stopTimeStr = copy.stopTimeStr;
    usableStartTime     = copy.usableStartTime;
+   usableStartTimeStr = copy.usableStartTimeStr;
    usableStopTime      = copy.usableStopTime;
+   usableStopTimeStr = copy.usableStopTimeStr;
    interpolationMethod = copy.interpolationMethod;
    interpolationDegree = copy.interpolationDegree;
    objectName          = copy.objectName;
@@ -449,7 +457,9 @@ bool CCSDSEMSegment::Validate(bool checkData)
       errmsg += "Required field START_TIME or STOP_TIME is missing.\n";
       throw UtilityException(errmsg);
    }
-   if (startTime > stopTime)
+   const auto start = ParseEpochGT(startTimeStr);
+   const auto stop = ParseEpochGT(stopTimeStr);
+   if (start > stop)
    {
       std::string errmsg = segError;
       errmsg += "START_TIME must be less than STOP_TIME.\n";
@@ -470,21 +480,23 @@ bool CCSDSEMSegment::Validate(bool checkData)
    if ((usableStartTime != UNSET_REAL) &&
        (usableStopTime  != UNSET_REAL))
    {
-      if ((usableStartTime < startTime) || (usableStartTime > stopTime))
+      const auto first = ParseEpochGT(usableStartTimeStr);
+      const auto last = ParseEpochGT(usableStopTimeStr);
+      if (first < start || first > stop)
       {
          std::string errmsg = segError;
          errmsg += "USEABLE_START_TIME must be ";
          errmsg += "between START_TIME and STOP_TIME.\n";
          throw UtilityException(errmsg);
       }
-      if ((usableStopTime < startTime) || (usableStopTime > stopTime))
+      if (last < start || last > stop)
       {
          std::string errmsg = segError;
          errmsg += "USEABLE_STOP_TIME must be ";
          errmsg += "between START_TIME and STOP_TIME.\n";
          throw UtilityException(errmsg);
       }
-      if (usableStartTime > usableStopTime)
+      if (first > last)
       {
          std::string errmsg = segError;
          errmsg += "USEABLE_START_TIME must be less than USEABLE_STOP_TIME.\n";
@@ -536,7 +548,6 @@ bool CCSDSEMSegment::SetMetaData(const std::string &fieldName,
             "Entering EMSegment::SetMetaData with field %s and value %s\n",
             fieldName.c_str(), value.c_str());
    #endif
-   Real theTime;
    if (fieldName == "COMMENT")
    {
       metaComments.push_back(value);
@@ -580,26 +591,26 @@ bool CCSDSEMSegment::SetMetaData(const std::string &fieldName,
    }
    else if (fieldName == "START_TIME")
    {
-      theTime   = ParseEpoch(value);
-      startTime = theTime;
+      startTime = ParseEpochGT(value).GetMjd();
+      startTimeStr = value;
       return true;
    }
    else if (fieldName == "USEABLE_START_TIME")
    {
-      theTime         = ParseEpoch(value);
-      usableStartTime = theTime;
+      usableStartTime = ParseEpochGT(value).GetMjd();
+      usableStartTimeStr = value;
       return true;
    }
    else if (fieldName == "USEABLE_STOP_TIME")
    {
-      theTime        = ParseEpoch(value);
-      usableStopTime = theTime;
+      usableStopTime = ParseEpochGT(value).GetMjd();
+      usableStopTimeStr = value;
       return true;
    }
    else if (fieldName == "STOP_TIME")
    {
-      theTime  = ParseEpoch(value);
-      stopTime = theTime;
+      stopTime = ParseEpochGT(value).GetMjd();
+      stopTimeStr = value;
       return true;
    }
    else if (fieldName == "INTERPOLATION")
@@ -949,6 +960,16 @@ bool CCSDSEMSegment::CoversEpoch(Real theEpoch)
 //------------------------------------------------------------------------------
 // Returns the start time of the data.
 //------------------------------------------------------------------------------
+GmatTime CCSDSEMSegment::GetCoverageStart() const
+{
+   return ParseEpochGT(usesUsableTimes ? usableStartTimeStr : startTimeStr);
+}
+
+GmatTime CCSDSEMSegment::GetCoverageStop() const
+{
+   return ParseEpochGT(usesUsableTimes ? usableStopTimeStr : stopTimeStr);
+}
+
 Real CCSDSEMSegment::GetStartTime() const
 {
 //   if (usesUsableTimes) return usableStartTime;

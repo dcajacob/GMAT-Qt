@@ -129,6 +129,8 @@ public:
    virtual bool         CoversEpoch(Real theEpoch);
    virtual Real         GetStartTime() const;
    virtual Real         GetStopTime() const;
+   GmatTime GetCoverageStart() const;
+   GmatTime GetCoverageStop() const;
    
    virtual std::string  GetMetaDataForWriting();
    virtual std::string  GetMetaComments();

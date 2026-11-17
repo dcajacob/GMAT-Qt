@@ -67,6 +67,8 @@
 #include "CalculatedPoint.hpp"
 #include "Barycenter.hpp"
 #include "EphemerisFile.hpp"
+#include "ReportFile.hpp"
+#include "SubscriberException.hpp"
 #include "EventLocatorDialog.hpp"
 #include "EventLocator.hpp"
 #include "CommandEditor.hpp"
@@ -2238,10 +2240,26 @@ FolderRunResult MainWindow::runFolderScripts(const FolderRunOptions &options,QtP
    QString buildFailureCategory,buildFailureDetails;
    bool built=false;
    try {
+      QStringList baselines;
+      const auto rememberBaseline=[&](const QString &path) {
+         const auto baseline=folderRunBaseline(options,path);
+         if (!baselines.contains(baseline)) baselines.append(baseline);
+      };
       result=runScriptFolder(options,[&](const QString &path,const QString &assetBase,int repeat,const QString &output) {
          QApplication::processEvents();
          FolderRunItem item; QString diagnostics; QScopedValueRollback<QString *> capture(folderMessages,&diagnostics); bool solverRun=false;
          if (cancel) { item.category="Interrupted"; return item; }
+         QScopedValueRollback<ReportFile::OutputPathCheck> restoreCheck(ReportFile::OutputPathValidator());
+         if (options.compare) {
+            ReportFile::OutputPathValidator()=[&](const std::string &destination) {
+               const QString path=QString::fromStdString(destination);
+               if (!item.reservedReportPaths.contains(path)) item.reservedReportPaths.append(path);
+               rememberBaseline(path);
+               for (const auto &baseline:baselines)
+                  if (sameFolderRunFile(path,baseline))
+                     throw SubscriberException("Report output would overwrite comparison baseline: "+baseline.toStdString());
+            };
+         }
          try {
             fm->SetAbsPathname("OUTPUT_PATH",(output+"/").toStdString()); fm->SetAbsPathname("VEHICLE_EPHEM_PATH",(output+"/").toStdString());
             receiver->SetLogPath(output.toStdString(),true); receiver->SetLogEnable(true);
@@ -2274,6 +2292,19 @@ FolderRunResult MainWindow::runFolderScripts(const FolderRunOptions &options,QtP
                   auto *object=Moderator::Instance()->GetConfiguredObject(name);
                   if (object && (object->IsOfType("ReportFile") || object->IsOfType("EphemerisFile")))
                      object->SetStringParameter("Filename",object->GetStringParameter("Filename"));
+                  if (!object || !object->IsOfType("ReportFile")) continue;
+                  const QString path=QString::fromStdString(object->GetStringParameter("FullPathFileName"));
+                  item.reports.insert(QString::fromStdString(name),path);
+                  if (options.compare) rememberBaseline(path);
+               }
+               if (options.compare) {
+                  for (const auto &path:item.reports) {
+                     try { ReportFile::OutputPathValidator()(path.toStdString()); }
+                     catch (SubscriberException &error) {
+                        item.category="Output error"; item.details=QString::fromStdString(error.GetFullMessage());
+                        return item;
+                     }
+                  }
                }
                batchListeners.missionStarted(); solverRun=true;
                item.engineStatus=Moderator::Instance()->RunMission();
@@ -2285,11 +2316,14 @@ FolderRunResult MainWindow::runFolderScripts(const FolderRunOptions &options,QtP
                case -5: item.category="Runtime error"; break;
                default: item.category="Unknown runtime error"; break;
                }
-               for (const auto &name:Moderator::Instance()->GetListOfObjects(Gmat::SUBSCRIBER)) {
-                  auto *object=Moderator::Instance()->GetConfiguredObject(name); if (!object || !object->IsOfType("ReportFile")) continue;
-                  const auto filename=QString::fromStdString(object->GetStringParameter("Filename"));
-                  item.reports.insert(QString::fromStdString(name),QFileInfo(filename).isAbsolute() ? filename : QDir(output).filePath(filename));
+               if (item.engineStatus==1) {
+                  for (auto it=item.reports.begin();it!=item.reports.end();++it) {
+                     auto *runtime=Moderator::Instance()->GetInternalObject(it.key().toStdString());
+                     if (runtime && runtime->IsOfType(Gmat::REPORT_FILE))
+                        it.value()=QString::fromStdString(runtime->GetStringParameter("FullPathFileName"));
+                  }
                }
+
             }
          } catch (BaseException &error) { item.category=built ? "Runtime error" : "Build error"; item.details=QString::fromStdString(error.GetFullMessage()); }
          catch (const std::exception &error) { item.category="Unknown error"; item.details=QString::fromUtf8(error.what()); }

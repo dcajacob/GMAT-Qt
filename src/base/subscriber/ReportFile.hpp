@@ -38,6 +38,7 @@
 
 #include "Subscriber.hpp"
 #include <fstream>
+#include <functional>
 
 #include "Parameter.hpp"
 #include <map>
@@ -58,6 +59,13 @@ public:
    ReportFile(const ReportFile &);
    ReportFile& operator=(const ReportFile&);
    
+#ifndef SWIG
+   // Folder comparisons install a scoped check on the mission thread. Clones
+   // and function-local reports must check runtime filename changes as well.
+   using OutputPathCheck = std::function<void(const std::string &)>;
+   static OutputPathCheck &OutputPathValidator();
+#endif
+
    // methods for this class
    std::string          GetDefaultFileName();
    std::string          GetFullPathFileName();

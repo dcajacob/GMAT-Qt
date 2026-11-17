@@ -1,5 +1,8 @@
 #include "FormationAcceptance.hpp"
 #include "ResourceEditor.hpp"
+#include "CCSDSEphemerisFile.hpp"
+#include "CCSDSEMSegment.hpp"
+#include <algorithm>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDateTime>
@@ -37,30 +40,44 @@ static void checkState(const QJsonArray &row,double seconds)
    }
 }
 
-static QJsonArray oem(const QByteArray &raw,int direction)
+static QJsonArray oemArc(const QString &path, int start, int stop)
 {
-   const auto epoch=QDateTime::fromString("2000-01-01T12:00:00.000Z",Qt::ISODateWithMs);
-   QJsonArray segments,rows;
-   auto finish=[&] { if (!rows.isEmpty()) { segments.append(rows); rows={}; } };
-   for (const auto &line:QString::fromUtf8(raw).split('\n')) {
-      const auto text=line.trimmed();
-      if (text=="META_START") finish();
+   const auto epoch = QDateTime::fromString("2000-01-01T12:00:00.000Z", Qt::ISODateWithMs);
+   CCSDSEphemerisFile reader;
+   require(reader.OpenForRead(path.toStdString(), "TimePosVel"), "GMAT could not load the direction arc");
+   const auto raw = read(path);
+   require(raw.count("META_START") == 1, "Expected one traversal per OEM");
+   QList<int> sampleTimes;
+   const int direction = stop > start ? 1 : -1;
+   for (int offset = 0; offset < std::abs(stop - start); offset += 10)
+      sampleTimes.append(start + direction * offset);
+   sampleTimes.append(stop);
+   if (direction < 0) std::reverse(sampleTimes.begin(), sampleTimes.end());
+   QJsonArray rows;
+   for (const auto &line : QString::fromUtf8(raw).split('\n'))
+   {
+      const auto text = line.trimmed();
       if (!QRegularExpression("^\\d{4}-\\d\\d-\\d\\dT").match(text).hasMatch()) continue;
-      const auto fields=text.split(QRegularExpression("\\s+"),Qt::SkipEmptyParts);
-      require(fields.size()==7,"Direction OEM field count differs");
-      auto date=fields[0]; if (!date.endsWith('Z')) date+='Z';
-      const auto parsed=QDateTime::fromString(date,Qt::ISODateWithMs);
-      require(parsed.isValid(),"Direction OEM epoch unreadable");
-      QJsonArray row{epoch.msecsTo(parsed)/1000.};
-      for (int i=1;i<7;++i) { bool ok=false; const double value=fields[i].toDouble(&ok); require(ok&&std::isfinite(value),"Direction OEM state nonfinite"); row.append(value); }
+      const auto fields = text.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+      require(fields.size() == 7, "Direction OEM field count differs");
+      const auto date = QDateTime::fromString(fields[0] + 'Z', Qt::ISODateWithMs);
+      require(date.isValid(), "Direction OEM epoch unreadable");
+      QJsonArray row{epoch.msecsTo(date) / 1000.};
+      const auto state = reader.InterpolatePoint(CCSDSEMSegment::ParseEpochGT(fields[0].toStdString()));
+      for (int i = 0; i < 6; ++i)
+      {
+         bool ok = false;
+         const double value = fields[i + 1].toDouble(&ok);
+         require(ok && std::isfinite(value) && std::abs(value - state[i]) < 1e-10,
+               "GMAT readback disagrees with the exported state");
+         row.append(value);
+      }
+      require(rows.size() < sampleTimes.size(), "Direction arc has extra records");
+      checkState(row, sampleTimes[rows.size()]);
       rows.append(row);
    }
-   finish(); require(segments.size()==2,"OEM direction change did not produce two independent arcs");
-   for (int s=0;s<2;++s) {
-      const auto samples=segments[s].toArray(); require(samples.size()==11,"Direction segment lacks exact fixed-step samples");
-      for (int i=0;i<11;++i) checkState(samples[i].toArray(),direction*(s==0?i*10:100-i*10));
-   }
-   return segments;
+   require(rows.size() == sampleTimes.size(), "Direction arc lacks exact fixed-step samples");
+   return rows;
 }
 
 int main(int argc,char **argv)
@@ -97,22 +114,46 @@ int main(int argc,char **argv)
       };
       configure(code500?"Code-500":"CCSDS-OEM");require(rig.window.saveScriptTo(saved)&&rig.window.loadScript(saved)&&rig.window.buildScript(),"Direction save/reload failed");
       const auto applied=rig.source->toPlainText();rig.save("mission.script",applied.toUtf8());QJsonArray runs;QByteArray rejectedBinary;
-      auto run=[&](bool failure) {
+      auto run=[&](bool failure, int duration = 100) {
+         const auto output = QString::fromStdString(Moderator::Instance()->GetConfiguredObject("Export")->GetStringParameter("Filename"));
+         const QFileInfo file(output);
+         auto arcPath = [&](int number) {
+            return file.dir().filePath(file.completeBaseName() + ".arc-" + QString::number(number) + "." + file.suffix());
+         };
+         const QByteArray existing("Existing ephemeris");
+         if (direction < 0) write(arcPath(2), existing);
          const auto runSource=rig.source->toPlainText();const int undo=rig.source->document()->availableUndoSteps();rig.messages->clear();acceptanceView(rig.window);const auto outcome=rig.window.runMission();events();acceptanceView(*rig.messages);
          const auto raw=read(rig.report);const auto lines=QString::fromUtf8(raw).trimmed().split('\n');require(lines.size()==(failure?1:2),"Direction mission continued after error or omitted final result");QJsonArray reports;
-         for (int r=0;r<lines.size();++r) {const auto fields=lines[r].split(',');require(fields.size()==8,"Direction report field count differs");QJsonArray row;for(const auto &field:fields){bool ok=false;const double value=field.toDouble(&ok);require(ok&&std::isfinite(value),"Direction report contains nonfinite state");row.append(value);}const auto sentinel=row.takeAt(7);require(sentinel.toDouble()==(r==0?0:9),"Direction terminal assignment executed at wrong time");checkState(row,r==0?direction*100:0);reports.append(row);}
+         for (int r=0;r<lines.size();++r) {const auto fields=lines[r].split(',');require(fields.size()==8,"Direction report field count differs");QJsonArray row;for(const auto &field:fields){bool ok=false;const double value=field.toDouble(&ok);require(ok&&std::isfinite(value),"Direction report contains nonfinite state");row.append(value);}const auto sentinel=row.takeAt(7);require(sentinel.toDouble()==(r==0?0:9),"Direction terminal assignment executed at wrong time");checkState(row,r==0?direction*duration:0);reports.append(row);}
          const auto diagnostic=rig.messages->toPlainText();
          if(failure)require(outcome==MainWindow::RunResult::Failed&&diagnostic.contains("non-monotonic invalid ephemeris")&&Moderator::Instance()->GetInternalObject("Done")->GetRealParameter("Value")==0,"Code500 reversal did not diagnose and stop before terminal assignment");
          else require(outcome==MainWindow::RunResult::Completed&&Moderator::Instance()->GetInternalObject("Done")->GetRealParameter("Value")==9,"Direction recovery/segmented mission did not complete");
          require(rig.source->toPlainText()==runSource,"Direction Run changed source");require(rig.source->document()->availableUndoSteps()==undo,"Direction Run changed Undo history");
-         const auto output=QString::fromStdString(Moderator::Instance()->GetConfiguredObject("Export")->GetStringParameter("Filename"));const auto payload=read(output);
+         const auto payload=read(output);
          if(failure){require(payload.size()==2800&&payload.startsWith("EPHEM   "),"Code500 reversal emitted data instead of stopping at its incomplete header");rejectedBinary=payload;}
          else if(code500)require(read(ephemeris)==rejectedBinary,"GUI format recovery overwrote the rejected Code500 artifact");
-         const QString phase=failure?"rejected":"completed";rig.save(phase+".csv",raw);rig.save(phase+"-messages.txt",diagnostic.toUtf8());rig.save(phase+".eph",payload);
-         QJsonObject entry{{"phase",phase},{"reports",reports},{"diagnostic",diagnostic},{"done",failure?0:9},{"configured_filename",output}};if(!failure)entry["segments"]=oem(payload,direction);runs.append(entry);
+         const QString phase=failure?"rejected":duration==100?"completed":"off-grid";rig.save(phase+".csv",raw);rig.save(phase+"-messages.txt",diagnostic.toUtf8());rig.save(phase+".eph",payload);
+         QJsonObject entry{{"phase",phase},{"reports",reports},{"diagnostic",diagnostic},{"done",failure?0:9},{"configured_filename",output}};if (!failure)
+         {
+            if (direction < 0) require(read(arcPath(2)) == existing, "Overwrote an existing arc file");
+            const auto next = arcPath(direction < 0 ? 3 : 2);
+            require(QDir::fromNativeSeparators(diagnostic).contains(next), "Mission messages omitted the return arc filename");
+            rig.save(phase + "-return.eph", read(next));
+            entry["segments"] = QJsonArray{oemArc(output, 0, direction * duration), oemArc(next, direction * duration, 0)};
+         }
+         runs.append(entry);
       };
       run(code500);
       if(code500){configure("CCSDS-OEM");rig.save("recovered.script",rig.source->toPlainText().toUtf8());require(rig.window.saveScriptTo(saved)&&rig.window.loadScript(saved)&&rig.window.buildScript(),"Direction recovery save/reload failed");run(false);}
+      else
+      {
+         QString offGrid = applied;
+         offGrid.replace("100}", "105}");
+         offGrid.replace(ephemeris, rig.files.filePath("Off-grid endpoint.eph"));
+         rig.source->setPlainText(offGrid);
+         require(rig.window.buildScript(), "Off-grid reversal mission failed to build");
+         run(false, 105);
+      }
       const QJsonObject proof{{"checkpoint","ephemeris-direction-"+key},{"outcome","passed"},{"case",key},{"direction",direction},{"runs",runs},{"facets",QJsonArray{"actual-ephemeris-format-checkbox-apply-save-reload","code500-stops-on-reversal-or-oem-segments-monotonic-arcs","independent-report-oem-circular-orbit-values-and-recovery"}},{"scope","Selected fixed-step direction change with actual resource form and native mission. Code500 refusal is a format-specific subscriber guard; this does not prove every raw interpolator rejects bad data. Independent circular orbit checks every OEM state. Native input/platform/stress/full-build and Code500 internal Toggle gap remain open."}};
       rig.save("proof.json",QJsonDocument(proof).toJson());std::cout<<"NASA_CHECK "<<QJsonDocument(proof).toJson(QJsonDocument::Compact).constData()<<std::endl;return 0;
    } catch (BaseException &e) {std::cerr<<"FAIL "<<e.GetFullMessage()<<std::endl;}

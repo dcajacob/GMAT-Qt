@@ -27,7 +27,6 @@
 
 #include "CCSDSEphemerisFile.hpp"
 #include "CCSDSOEMReader.hpp"
-#include "CCSDSAEMReader.hpp"
 #include "FileUtil.hpp"
 #include "FileTypes.hpp"
 #include "StringUtil.hpp"
@@ -100,6 +99,9 @@ CCSDSEphemerisFile& CCSDSEphemerisFile::operator=(const CCSDSEphemerisFile &copy
    if (&copy == this)
       return *this;
    
+   Ephemeris::operator=(copy);
+   theEphem.clear();
+   ephemRecords.clear();
    ccsdsFileNameForRead  = copy.ccsdsFileNameForRead;
    stateType             = copy.stateType;
 
@@ -164,10 +166,6 @@ bool CCSDSEphemerisFile::OpenForRead(const std::string &filename,
       ephemType.c_str(), ephemCovType.c_str(), filename.c_str());
 #endif
    
-   ccsdsFileNameForRead = filename;
-
-   bool retval = false;
-
    // Check ephem type
    // Currently only TimePos and TimePosVel are allowed
    /// @todo Do we allow TimePos?  ReadDataRecords seems to say no
@@ -176,14 +174,11 @@ bool CCSDSEphemerisFile::OpenForRead(const std::string &filename,
       UtilityException ue;
       ue.SetDetails("CCSDSEphemerisFile::OpenForRead() *** INTERNAL ERROR *** "
          "Only TimePos or TimePosVel is valid for read on CCSDS "
-         "ephemeris file '%s'.", ccsdsFileNameForRead.c_str());
+         "ephemeris file '%s'.", filename.c_str());
       throw ue;
    }
 
-   if ((ephemType == "TimePos") || (ephemType == "TimePosVel"))
-      stateType = "OEM";
-   else if ((ephemType == "TimeAngle") || (ephemType == "TimeAngleVel"))
-      stateType = "AEM";
+   stateType = "OEM";
 
    // Check covariance ephem type
    // Currently only "", TimePos, and TimePosVel are allowed
@@ -192,80 +187,12 @@ bool CCSDSEphemerisFile::OpenForRead(const std::string &filename,
       UtilityException ue;
       ue.SetDetails("CCSDSEphemerisFile::OpenForRead() *** INTERNAL ERROR *** "
          "Only "", TimePos, or TimePosVel is valid to read covariance on CCSDS "
-         "ephemeris file '%s'.", ccsdsFileNameForRead.c_str());
+         "ephemeris file '%s'.", filename.c_str());
       throw ue;
    }
    
-#ifdef DEBUG_CCSDS_FILE
-   MessageInterface::ShowMessage
-   ("CCSDSEphemerisFile::OpenForRead() fileReader = <%p>\n", fileReader);
-#endif
-   if (fileReader == NULL)
-   {
-      if (stateType == "OEM")
-         fileReader = new CCSDSOEMReader();
-      else if (stateType == "AEM")
-         fileReader = new CCSDSAEMReader();
-
-      fileReader->SetFile(ccsdsFileNameForRead);
-      Integer numOfSegs = fileReader->GetNumberOfSegments();
-      Real startEp = -1.0;
-
-      theEphem.clear();
-      ephemRecords.clear();
-
-      for (Integer i = 0; i < numOfSegs; ++i)
-      {
-         CCSDSEMSegment* ccsdsSegment = fileReader->GetSegment(i);
-         Integer numOfDataPoints = ccsdsSegment->GetNumberOfDataPoints();
-         
-         Segment newsegment;
-         for (Integer index = 0; index < numOfDataPoints; ++index)
-         {
-            // Get epoch and state from CCSDS segment
-            GmatTime epoch;
-            Rvector state;
-            ccsdsSegment->GetEpochAndData(index, epoch, state);
-            if (startEp == -1.0)
-               startEp = epoch.GetMjd();
-
-            // store epoch and state to Ephemeris' Segment
-            EphemPoint point;
-            point.theEpoch = epoch.GetMjd();
-         point.preciseEpoch = epoch;
-         point.hasPrecisionEpoch = true;
-            point.posvel = Rvector6(state[0], state[1], state[2], state[3], state[4], state[5]);
-            newsegment.points.push_back(point);
-
-            // Store time from start epoch and state to ephemRecords
-            EphemData eData;
-            eData.timeFromEpoch = (point.theEpoch - startEp) * GmatTimeConstants::SECS_PER_DAY;
-            for(Integer k = 0; k < 6; ++k)
-              eData.theState[k] = point.posvel(k);
-            ephemRecords.push_back(eData);
-         }
-         
-         newsegment.segStart = newsegment.points[0].theEpoch;
-         newsegment.segEnd   = newsegment.points[newsegment.points.size()-1].theEpoch;
-         theEphem.push_back(newsegment);
-      }
-      
-      a1StartEpoch = theEphem[0].points[0].theEpoch;
-      a1EndEpoch   = theEphem[theEphem.size()-1].points[theEphem[theEphem.size() - 1].points.size()-1].theEpoch;
-      scenarioEpochA1Mjd = a1StartEpoch;
-      
-      interpolatorName = fileReader->GetSegment(0)->GetStringMetaData("INTERPOLATION");
-      if (interpolatorName == "Lagrange")
-         useHermite = false;
-      
-      order = fileReader->GetSegment(0)->GetIntegerMetaData("INTERPOLATION_DEGREE");
-   }
-
-#ifdef DEBUG_CCSDS_FILE
-   MessageInterface::ShowMessage
-   ("CCSDSEphemerisFile::OpenForRead() end, filename='%s'\n", filename.c_str());
-#endif
-   return true;
+   ccsdsFileNameForRead = filename;
+   return ReadDataRecords();
 }
 
 
@@ -310,14 +237,12 @@ bool CCSDSEphemerisFile::GetInitialAndFinalStates(Real &initialA1Mjd, Real &fina
 
    bool lastStateFound = false;
    
-   if (ReadDataRecords())
+   if (!theEphem.empty() || ReadDataRecords())
    {
-      int numRecords = ephemRecords.size();
-      
       initialA1Mjd = a1StartEpoch;
       finalA1Mjd = a1EndEpoch;
-      initialState = ephemRecords[0].theState;
-      finalState = ephemRecords[numRecords - 1].theState;
+      initialState = InterpolatePoint(theEphem.front().StartEpoch());
+      finalState = InterpolatePoint(theEphem.back().EndEpoch());
 
       lastStateFound = true;
 
@@ -344,96 +269,76 @@ bool CCSDSEphemerisFile::GetInitialAndFinalStates(Real &initialA1Mjd, Real &fina
 //------------------------------------------------------------------------------
 bool CCSDSEphemerisFile::ReadDataRecords(int logOption)
 {
-   //Map of tested coordinate systems to be updated when new systems have been tested and verified to work.
-  //Add the central body as the key and then any coordinate systems verified for CCSDS-OEM files and that central body can be added in the value vector.
-   std::map<std::string, std::vector<std::string>> testedCoordinateSystems =
-   {
-      {"Earth",  {"EME2000", "GRC", "TDR", "TOD"}},
-      {"Luna",   {"EME2000"}},
-      {"Mars",   {"EME2000"}},
-      {"Sun",    {"EME2000"}}
-   };
-
-   std::vector<std::string> universallySupportedFrames = { "EME2000"};
-
-   bool retval = false;
-   retval = fileReader->SetFile(ccsdsFileNameForRead);
-
-   Integer numOfSegs = fileReader->GetNumberOfSegments();
-   Real startEp = -1.0;
-   
+   // A rejected replacement file must not leave old samples queryable with
+   // the new reader's segment metadata.
    theEphem.clear();
    ephemRecords.clear();
+   a1StartEpoch = a1EndEpoch = scenarioEpochA1Mjd = 0.0;
+   if (ccsdsFileNameForRead.empty()) return false;
+   // An explicit reread must also see repairs to the same file on disk.
+   delete fileReader;
+   fileReader = nullptr;
+   fileReader = new CCSDSOEMReader();
+   fileReader->SetFile(ccsdsFileNameForRead);
+   const Integer count = fileReader->GetNumberOfSegments();
+   const std::string body = GetCentralBody(0);
+   const std::string frame = GetReferenceFrame(0);
+   if (frame != "EME2000" && !(body == "Earth" &&
+         (frame == "GRC" || frame == "TDR" || frame == "TOD")))
+      throw UtilityException("Unsupported coordinate system " + frame + " for " + body +
+            " in CCSDS-OEM file " + ccsdsFileNameForRead);
 
-   for (Integer i = 0; i < numOfSegs; ++i)
+   std::vector<Segment> segments;
+   std::vector<EphemData> records;
+   for (Integer i = 0; i < count; ++i)
    {
-      CCSDSEMSegment* ccsdsSegment = fileReader->GetSegment(i);
-      Integer numOfDataPoints = ccsdsSegment->GetNumberOfDataPoints();
-      
-      Segment newsegment;
-      for (Integer index = 0; index < numOfDataPoints; ++index)
-      {
-         // Get epoch and state from CCSDS segment
-         GmatTime epoch;
-         Rvector state;
-         ccsdsSegment->GetEpochAndData(index, epoch, state);
-         if (startEp == -1.0)
-            startEp = epoch.GetMjd();
+      if (GetCentralBody(i) != body || GetReferenceFrame(i) != frame)
+         throw UtilityException("CCSDS-OEM propagation requires the same CENTER_NAME and "
+               "REF_FRAME in every segment. Segment " + std::to_string(i + 1) +
+               " differs in " + ccsdsFileNameForRead);
 
-         // store epoch and state to Ephemeris' Segment
+      auto *source = fileReader->GetSegment(i);
+      Segment segment;
+      const Integer size = source->GetNumberOfDataPoints();
+      if (size == 0)
+         throw UtilityException("Empty CCSDS-OEM segment in " + ccsdsFileNameForRead);
+      segment.points.reserve(size);
+      for (Integer j = 0; j < size; ++j)
+      {
          EphemPoint point;
-         point.theEpoch = epoch.GetMjd();
-         point.preciseEpoch = epoch;
+         Rvector state;
+         source->GetEpochAndData(j, point.preciseEpoch, state);
+         point.theEpoch = point.preciseEpoch.GetMjd();
          point.hasPrecisionEpoch = true;
          point.posvel = Rvector6(state[0], state[1], state[2], state[3], state[4], state[5]);
-         newsegment.points.push_back(point);
-
-         // Store time from start peoch and state to ephemRecords
-         EphemData eData;
-         eData.timeFromEpoch = (point.theEpoch - startEp) * GmatTimeConstants::SECS_PER_DAY;
-         for (Integer k = 0; k < 6; ++k)
-            eData.theState[k] = point.posvel(k);
-         ephemRecords.push_back(eData);
+         segment.points.push_back(point);
       }
-      
-      newsegment.segStart = newsegment.points[0].theEpoch;
-      newsegment.segEnd = newsegment.points[newsegment.points.size() - 1].theEpoch;
-      theEphem.push_back(newsegment);
+      const GmatTime start = std::max(source->GetCoverageStart(), segment.points.front().GetEpoch());
+      const GmatTime stop = std::min(source->GetCoverageStop(), segment.points.back().GetEpoch());
+      if (start > stop)
+         throw UtilityException("No state data covers the usable interval in " + ccsdsFileNameForRead);
+      segment.coverage = std::make_pair(start, stop);
+      segment.segStart = start.GetMjd();
+      segment.segEnd = stop.GetMjd();
+      segments.push_back(std::move(segment));
    }
+   const GmatTime origin = segments.front().StartEpoch();
+   for (const auto &segment : segments)
+      for (const auto &point : segment.points)
+      {
+         EphemData record;
+         record.timeFromEpoch = (point.GetEpoch() - origin).GetTimeInSec();
+         std::copy_n(point.posvel.GetDataVector(), 6, record.theState);
+         records.push_back(record);
+      }
 
-   a1StartEpoch = theEphem[0].points[0].theEpoch;
-   a1EndEpoch = theEphem[theEphem.size() - 1].points[theEphem[theEphem.size() - 1].points.size() - 1].theEpoch;
+   theEphem.swap(segments);
+   ephemRecords.swap(records);
+   a1StartEpoch = theEphem.front().segStart;
+   a1EndEpoch = theEphem.back().segEnd;
    scenarioEpochA1Mjd = a1StartEpoch;
-
-   interpolatorName = fileReader->GetSegment(0)->GetStringMetaData("INTERPOLATION");
-   if (interpolatorName == "Lagrange")
-      useHermite = false;
-
-   order = fileReader->GetSegment(0)->GetIntegerMetaData("INTERPOLATION_DEGREE");
-   
-   std::string cb = GetCentralBody();
-   if (cb == "Moon")
-      cb = "Luna";
-   std::string coordinates = GetReferenceFrame();
-   Integer runmode = GmatGlobal::Instance()->GetRunModeStartUp();
-
-   bool validCoordinateSystem = false;
-   if (std::find(universallySupportedFrames.begin(), universallySupportedFrames.end(), coordinates) != universallySupportedFrames.end())
-      validCoordinateSystem = true;
-   else if (testedCoordinateSystems.find(cb) != testedCoordinateSystems.end())
-      if ((std::count(testedCoordinateSystems[cb].begin(), testedCoordinateSystems[cb].end(), coordinates)))
-         validCoordinateSystem = true;
-
-   if (!validCoordinateSystem)
-   {
-      if (cb == "Luna")
-         cb = "Moon";
-      //did not find coordinates in central body list
-      std::string errmsg = "The coordinate system \"" + coordinates + "\" in use in ephemeris file \"" + ccsdsFileNameForRead + "\" is not supported for the central body \"" + cb + "\" for use by GMAT in a CCSDS-OEM ephemeris file.\n";
-      throw UtilityException(errmsg);
-   }
-
-   return retval;
+   GetInterpolationInfoFromSegment(0);
+   return true;
 }
 
 
