@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import socket
 import struct
@@ -58,6 +59,39 @@ def bridge(record, *operations):
                 if not reply['ok']:
                     raise RuntimeError(reply['error'])
     return reply['result']
+
+
+def run_after_fitting_mac_desktop(process, discovery, bundle, helper):
+    for _ in range(120):
+        files = list(discovery.glob('*.json'))
+        if files:
+            record = json.loads(files[0].read_text(encoding='utf-8'))
+            state = bridge(record, ('hello', {}))
+            break
+        if process.poll() is not None:
+            raise RuntimeError(f'GMAT exited with code {process.returncode}')
+        time.sleep(.5)
+    else:
+        raise TimeoutError('GMAT desktop bridge did not start')
+    run('open', '-a', str(bundle))
+    run(str(helper), 'fit', str(process.pid))
+    args = {'document_id': state['document_id'], 'expected_version': state['model_version'],
+            'directory': str(discovery.parent/'run'), 'owner': 'desktop'}
+    bridge(record, ('attach', {}), ('start_run', args))
+
+
+def mac_presentation_script(original, path):
+    # Cocoa hides GMAT's dynamically populated Window menu. Set the sample's
+    # Mars plot placement through its own presentation fields. Keep all
+    # mission commands, force models, goal tolerances, and camera fields intact.
+    contents = original.read_bytes()
+    for field, value in [(b'UpperLeft', b'[ 0.524 0 ]'), (b'Size', b'[ 0.476 1 ]')]:
+        pattern = rb'(^OFI_MarsView\.' + field + rb'\s*= )\[[^\]]+\]'
+        contents, count = re.subn(pattern, rb'\g<1>' + value, contents, flags=re.MULTILINE)
+        if count != 1:
+            raise RuntimeError(f'Missing Mars plot presentation field {field!r}')
+    path.write_bytes(contents)
+    return path
 
 
 def mission_endpoint(process, discovery, mission_name):
@@ -183,11 +217,7 @@ def capture(target, process, bundle, destination, ground_track, tabs, mars_targe
         run('pgrep', '-x', 'SystemUIServer')
         run('open', '-a', str(bundle))
         if mars_targeting:
-            try:
-                run(str(mac_helper), 'arrange', str(process.pid))
-            except subprocess.CalledProcessError:
-                run('screencapture', '-x', '-m', str(destination.with_name('diagnostic.png')))
-                raise
+            run(str(mac_helper), 'solver')
         time.sleep(2)
         run('screencapture', '-x', '-m', str(destination))
 
@@ -268,13 +298,21 @@ def main():
             session = work/mission.stem
             session.mkdir()
             discovery = session/'private-discovery'
+            input_mission = mac_presentation_script(mission, session/mission.name) if mac_helper else mission
+            run_options = [] if mac_helper else ['--run']
             command = [str(executable), '--settings-dir', str(session/'settings'), '--mcp-bridge',
-                       '--mcp-discovery-dir', str(discovery), '--convert-views', '--run', str(mission)]
+                       '--mcp-discovery-dir', str(discovery), '--convert-views', *run_options, str(input_mission)]
             log_name = f'{mission.stem}.log' if args.targeting else 'gmat.log'
             with (output/log_name).open('w', encoding='utf-8') as log:
                 process = subprocess.Popen(command, cwd=session, env=environment, stdout=log,
                                            stderr=subprocess.STDOUT)
                 try:
+                    if mac_helper:
+                        try:
+                            run_after_fitting_mac_desktop(process, discovery, bundle, mac_helper)
+                        except (RuntimeError, subprocess.CalledProcessError):
+                            run('screencapture', '-x', '-m', str(output/'diagnostic.png'))
+                            raise
                     endpoint = mission_endpoint(process, discovery, mission_name)
                     for scene, tabs in views:
                         picture = output/f'GMAT-Qt-alpha5-{scene}-{target}.png'
@@ -293,6 +331,9 @@ def main():
                             'view': view, 'renderer': renderer, 'run': endpoint, 'screenshot': picture.name,
                             'screenshot_sha256': digest(picture), 'pixels': pixels,
                         }
+                        if mac_helper:
+                            receipt['presentation_changes'] = ['OFI_MarsView.UpperLeft', 'OFI_MarsView.Size']
+                            receipt['presented_mission_sha256'] = digest(input_mission)
                         receipt_name = f'{scene}-receipt.json' if args.targeting else 'receipt.json'
                         (output/receipt_name).write_text(json.dumps(receipt, indent=2) + '\n')
                         print(json.dumps(receipt, indent=2), flush=True)

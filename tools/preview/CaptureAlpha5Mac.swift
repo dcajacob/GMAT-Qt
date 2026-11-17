@@ -20,7 +20,13 @@ func configureFullHD() {
     let usable = modes.filter { $0.width >= 1920 && $0.height >= 1080 }
         .sorted { $0.pixelWidth * $0.pixelHeight < $1.pixelWidth * $1.pixelHeight }
     for mode in usable {
-        if CGDisplaySetDisplayMode(display, mode, nil) == .success { return }
+        var configuration: CGDisplayConfigRef?
+        guard CGBeginDisplayConfiguration(&configuration) == .success else { continue }
+        if CGConfigureDisplayWithDisplayMode(configuration, display, mode, nil) != .success {
+            CGCancelDisplayConfiguration(configuration)
+            continue
+        }
+        if CGCompleteDisplayConfiguration(configuration, .forSession) == .success { return }
     }
     fail("No supported 1920x1080 or larger macOS desktop mode")
 }
@@ -50,21 +56,6 @@ func rect(_ element: AXUIElement) -> CGRect? {
     return CGRect(origin: point, size: size)
 }
 
-func children(_ element: AXUIElement) -> [AXUIElement] {
-    return attribute(element, kAXChildrenAttribute) as? [AXUIElement] ?? []
-}
-
-func locate(_ element: AXUIElement, role: String, prefix: String) -> AXUIElement? {
-    let labels = [kAXTitleAttribute, kAXDescriptionAttribute, kAXIdentifierAttribute]
-        .compactMap { attribute(element, $0) as? String }
-    if attribute(element, kAXRoleAttribute) as? String == role &&
-        labels.contains(where: { $0.hasPrefix(prefix) }) { return element }
-    for child in children(element) {
-        if let result = locate(child, role: role, prefix: prefix) { return result }
-    }
-    return nil
-}
-
 func mouse(_ type: CGEventType, _ point: CGPoint) {
     guard let event = CGEvent(mouseEventSource: nil, mouseType: type,
                               mouseCursorPosition: point, mouseButton: .left) else {
@@ -87,28 +78,7 @@ func drag(_ start: CGPoint, _ finish: CGPoint) {
     usleep(280000)
 }
 
-func moveAndResize(_ element: AXUIElement, to target: CGRect) {
-    guard let current = rect(element) else { fail("Missing initial child geometry") }
-    if abs(current.minX-target.minX) > 3 || abs(current.minY-target.minY) > 3 {
-        let from = CGPoint(x: current.midX, y: current.minY + 10)
-        let to = CGPoint(x: from.x + target.minX - current.minX, y: target.minY + 10)
-        drag(from, to)
-    }
-    guard let moved = rect(element) else { fail("Missing moved child geometry") }
-    let from = CGPoint(x: moved.maxX-2, y: moved.maxY-2)
-    let to = CGPoint(x: moved.minX + target.width-2, y: moved.minY + target.height-2)
-    if hypot(from.x-to.x, from.y-to.y) > 4 {
-        drag(from, to)
-    }
-    guard let finished = rect(element) else { fail("Missing final child geometry") }
-    print("Child frame \(current) -> \(finished); requested \(target)")
-    if abs(finished.minX-target.minX) > 12 || abs(finished.minY-target.minY) > 12 ||
-        abs(finished.width-target.width) > 20 || abs(finished.height-target.height) > 20 {
-        fail("Could not arrange the visible GMAT child window")
-    }
-}
-
-func layoutMars(pid: pid_t) {
+func fitMainWindow(pid: pid_t) {
     guard AXIsProcessTrusted() else { fail("macOS runner has not granted accessibility access") }
     guard let app = NSRunningApplication(processIdentifier: pid), let screen = NSScreen.screens.first else {
         fail("No running GMAT app or macOS display")
@@ -128,42 +98,29 @@ func layoutMars(pid: pid_t) {
               AXValueCreate(.cgSize, &size)!) == .success else { fail("Cannot fit GMAT above the Dock") }
     usleep(800000)
 
-    guard let solver = locate(main, role: kAXWindowRole, prefix: "Solver"),
-          let plot = locate(main, role: kAXWindowRole, prefix: "OFI_MarsView"),
-          let solverRect = rect(solver), let appRect = rect(main) else {
-        fail("The converged solver and Mars plot were not exposed by Qt accessibility")
+    guard let frame = rect(main), frame.width >= 1880, frame.height >= 940 else {
+        fail("GMAT window did not expand to the HD desktop above the Dock")
     }
-    // The native macOS Window menu has no items until first opened, so
-    // arrange the two MDI children via normal title bar and edge drags.
-    let left = solverRect.minX
-    let top = solverRect.minY
-    let right = appRect.maxX - 7
-    let bottom = appRect.maxY - 188
-    let half = floor((right-left)/2)
-    moveAndResize(solver, to: CGRect(x: left, y: top, width: half-2, height: bottom-top))
-    // Bring the partially obscured Mars plot forward using its normal
-    // workspace tab, then restore the child so its frame can be dragged.
-    guard let tab = locate(main, role: kAXRadioButtonRole, prefix: "OFI_MarsView"),
-          let tabRect = rect(tab) else { fail("No Mars plot workspace tab") }
-    let tabPoint = CGPoint(x: tabRect.midX, y: tabRect.midY)
-    mouse(.leftMouseDown, tabPoint)
-    mouse(.leftMouseUp, tabPoint)
-    usleep(500000)
-    guard let restore = locate(main, role: kAXButtonRole, prefix: "Restore window"),
-          let restoreRect = rect(restore) else { fail("No Mars plot restore control") }
-    let restorePoint = CGPoint(x: restoreRect.midX, y: restoreRect.midY)
-    mouse(.leftMouseDown, restorePoint)
-    mouse(.leftMouseUp, restorePoint)
-    usleep(500000)
-    moveAndResize(plot, to: CGRect(x: left+half, y: top, width: half, height: bottom-top))
+    print("GMAT frame above Dock: \(frame)")
+}
+
+func extendSolverTable() {
+    // The shipped Qt solver starts with an 860x320 child at the top-left of
+    // the workspace. Drag its bottom corner down to the message pane while
+    // leaving the Mars plot and its mission clock alone.
+    guard let screen = NSScreen.screens.first else { fail("No desktop") }
+    let bottom = screen.frame.maxY - screen.visibleFrame.minY
+    drag(CGPoint(x: 1127, y: 438), CGPoint(x: 1127, y: bottom - 191))
     CGWarpMouseCursorPosition(CGPoint(x: screen.frame.maxX-2, y: screen.frame.maxY-3))
 }
 
 let args = CommandLine.arguments.dropFirst()
 if args.first == "configure" {
     configureFullHD()
-} else if args.count == 2, args.first == "arrange", let pid = Int32(args.last!) {
-    layoutMars(pid: pid)
+} else if args.count == 2, args.first == "fit", let pid = Int32(args.last!) {
+    fitMainWindow(pid: pid)
+} else if args.first == "solver" {
+    extendSolverTable()
 } else {
-    fail("Usage: CaptureAlpha5Mac configure | arrange PID")
+    fail("Usage: CaptureAlpha5Mac configure | fit PID | solver")
 }
