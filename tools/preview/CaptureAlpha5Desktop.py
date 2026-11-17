@@ -31,6 +31,7 @@ FINAL_MPS1_TAI_MJD = 21646.24072759801
 GROUND_TRACK_MISSION = 'Ex_StationContactLocator.script'
 GROUND_TRACK_TABS = ('OFI_ThreeDView', 'GroundTrackPlot')
 GROUND_TRACK_PLAYBACK = 38
+PLAYBACK_CHECKPOINTS = {'GroundTrack': GROUND_TRACK_PLAYBACK, 'MarsOrbit': 1000}
 
 
 TARGETING_MISSIONS = {
@@ -205,6 +206,10 @@ def select_workspace_tab(pid, title):
 def set_linux_playback(pid, value):
     node, _ = find_linux_control(pid, 'All plots playback position', 'SLIDER')
     slider = node.get_value_iface()
+    # The unlinked slider initially shows 1000. Change it first so setting
+    # Latest emits the value change that links the views.
+    if slider.get_current_value() == value:
+        slider.set_current_value(0)
     if not slider.set_current_value(value) or slider.get_current_value() != value:
         raise RuntimeError(f'Global playback slider did not settle at {value}')
 
@@ -229,8 +234,8 @@ def capture(target, process, bundle, destination, ground_track, tabs, native_sce
                 select_workspace_tab(process.pid, title)
             if len(tabs) == 2:
                 run('xdotool', 'key', 'alt+w', 'sleep', '0.3', 'key', 't')
-        if native_scene == 'GroundTrack':
-            set_linux_playback(process.pid, GROUND_TRACK_PLAYBACK)
+        if native_scene in PLAYBACK_CHECKPOINTS:
+            set_linux_playback(process.pid, PLAYBACK_CHECKPOINTS[native_scene])
         width, height = map(int, run('xdotool', 'getdisplaygeometry', capture_output=True).stdout.split())
         run('xdotool', 'mousemove', str(width - 1), str(height - 3))
         time.sleep(1)
@@ -238,10 +243,11 @@ def capture(target, process, bundle, destination, ground_track, tabs, native_sce
     elif target.startswith('windows'):
         script = Path(__file__).with_name('CaptureAlpha5Windows.ps1').resolve()
         switches = {'MarsCaptureTargeting': '-MarsTargeting', 'MarsTransfer': '-MarsTransfer',
-                    'LunarInsertionTargeting': '-LunarTargeting', 'GroundTrack': '-GroundTrack'}
+                    'LunarInsertionTargeting': '-LunarTargeting', 'GroundTrack': '-GroundTrack',
+                    'MarsOrbit': '-MarsOrbit'}
         extra = (switches[native_scene],) if native_scene else ()
-        if native_scene == 'GroundTrack':
-            extra += ('-PlaybackPosition', str(GROUND_TRACK_PLAYBACK))
+        if native_scene in PLAYBACK_CHECKPOINTS:
+            extra += ('-PlaybackPosition', str(PLAYBACK_CHECKPOINTS[native_scene]))
         prefix = ('powershell.exe', '-NoProfile', '-File', str(script), '-GmatPid', str(process.pid))
         try:
             run(*prefix, '-Destination', str(destination), *extra)
@@ -256,9 +262,11 @@ def capture(target, process, bundle, destination, ground_track, tabs, native_sce
         if native_scene:
             if native_scene == 'MarsTransfer':
                 run(str(mac_helper), 'transfer', str(process.pid))
-            elif native_scene == 'GroundTrack':
+            elif native_scene in PLAYBACK_CHECKPOINTS:
                 try:
-                    run(str(mac_helper), 'playback', str(process.pid), str(GROUND_TRACK_PLAYBACK))
+                    if native_scene == 'MarsOrbit':
+                        run(str(mac_helper), 'mars-orbit', str(process.pid))
+                    run(str(mac_helper), 'playback', str(process.pid), str(PLAYBACK_CHECKPOINTS[native_scene]))
                 except subprocess.CalledProcessError:
                     run('screencapture', '-x', '-m', str(destination.with_name('diagnostic.png')))
                     raise
@@ -280,12 +288,16 @@ def main():
     scenes.add_argument('--mars-transfer', action='store_true')
     scenes.add_argument('--lunar-targeting', action='store_true')
     scenes.add_argument('--ground-track-hd', action='store_true')
+    scenes.add_argument('--mars-orbit-hd', action='store_true')
     args = parser.parse_args()
     target = args.target
     if (args.ground_track or args.targeting) and target != 'linux-x86_64':
         parser.error('The additional compositions use the Linux desktop layout')
-    native_hd = args.mars_targeting or args.mars_transfer or args.lunar_targeting or args.ground_track_hd
-    if args.ground_track_hd:
+    native_hd = (args.mars_targeting or args.mars_transfer or args.lunar_targeting
+                 or args.ground_track_hd or args.mars_orbit_hd)
+    if args.mars_orbit_hd:
+        missions = {MISSION: (('MarsOrbit', ('OFI_MarsMJ2KView',)),)}
+    elif args.ground_track_hd:
         missions = {GROUND_TRACK_MISSION: (('GroundTrack', GROUND_TRACK_TABS),)}
     elif args.lunar_targeting:
         lunar = 'Ex_LunarTransfer.script'
@@ -347,7 +359,7 @@ def main():
         elif target.startswith('linux'):
             renderer = 'Mesa software OpenGL'
 
-        if args.targeting or (args.ground_track_hd and target.startswith('linux')):
+        if target.startswith('linux') and (args.targeting or native_hd):
             environment['QT_LINUX_ACCESSIBILITY_ALWAYS_ON'] = '1'
 
         for mission_name, views in missions.items():
@@ -363,7 +375,7 @@ def main():
                     'OFI_ThreeDView.UpperLeft': '[ 0.5 0 ]',
                     'OFI_ThreeDView.Size': '[ 0.499 0.985 ]',
                 }
-            elif mac_helper and not args.mars_transfer:
+            elif mac_helper and (args.mars_targeting or args.lunar_targeting):
                 plot = views[0][1][0]
                 placements = {f'{plot}.UpperLeft': '[ 0.524 0 ]', f'{plot}.Size': '[ 0.476 1 ]'}
             # The macOS bundle stores the sample data under Resources.
@@ -412,8 +424,8 @@ def main():
                         if input_mission != mission:
                             receipt['presentation_changes'] = list(placements)
                             receipt['presented_mission_sha256'] = digest(input_mission)
-                        if args.ground_track_hd:
-                            receipt['playback'] = {'mode': 'interpolated steps', 'position': GROUND_TRACK_PLAYBACK,
+                        if native_hd and scene in PLAYBACK_CHECKPOINTS:
+                            receipt['playback'] = {'mode': 'interpolated steps', 'position': PLAYBACK_CHECKPOINTS[scene],
                                                    'range_maximum': 1000, 'paused': True}
                         if weather_file:
                             receipt['resolved_packaged_input'] = {'file': weather_file.name, 'sha256': digest(weather_file)}

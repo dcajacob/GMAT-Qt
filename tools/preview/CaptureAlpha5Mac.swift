@@ -114,18 +114,18 @@ func extendSolverTable() {
     CGWarpMouseCursorPosition(CGPoint(x: screen.frame.maxX-2, y: screen.frame.maxY-3))
 }
 
-func transferTab(_ element: AXUIElement, depth: Int = 0) -> CGRect? {
+func plotTab(_ element: AXUIElement, title: String, depth: Int = 0) -> CGRect? {
     if depth >= 16 { return nil }
     let role = attribute(element, kAXRoleAttribute) as? String
     if role == kAXRadioButtonRole,
        [kAXTitleAttribute, kAXDescriptionAttribute].contains(where: {
-           (attribute(element, $0) as? String) == "OFI_SolarSystemView"
+           (attribute(element, $0) as? String) == title
        }),
        let frame = rect(element), !frame.isEmpty { return frame }
     let property = role == kAXTabGroupRole ? kAXTabsAttribute : kAXChildrenAttribute
     let children = attribute(element, property) as? [AXUIElement] ?? []
     for child in children {
-        if let frame = transferTab(child, depth: depth+1) { return frame }
+        if let frame = plotTab(child, title: title, depth: depth+1) { return frame }
     }
     return nil
 }
@@ -143,15 +143,15 @@ func bringLunarPlotForward() {
     CGWarpMouseCursorPosition(CGPoint(x: screen.frame.maxX-2, y: screen.frame.maxY-3))
 }
 
-func showTransferView(pid: pid_t) {
+func showPlotView(pid: pid_t, title: String, fallbackX: CGFloat) {
     guard let screen = NSScreen.screens.first, screen.frame.width >= 1920 && screen.frame.height >= 1080 else {
-        fail("The transfer view needs an HD desktop")
+        fail("The plot view needs an HD desktop")
     }
     let app = AXUIElementCreateApplication(pid)
-    let frame = transferTab(app)
+    let frame = plotTab(app, title: title)
     let menuHeight = screen.frame.maxY - screen.visibleFrame.maxY
-    // In the fitted desktop, the second workspace tab is the Sun-centered view.
-    let tab = frame.map { CGPoint(x: $0.midX, y: $0.midY) } ?? CGPoint(x: 593, y: menuHeight+84)
+    // In the fitted desktop, the requested plot is in the second workspace tab.
+    let tab = frame.map { CGPoint(x: $0.midX, y: $0.midY) } ?? CGPoint(x: fallbackX, y: menuHeight+84)
     mouse(.mouseMoved, tab)
     usleep(80000)
     mouse(.leftMouseDown, tab)
@@ -195,8 +195,11 @@ func seekPausedPlayback(pid: pid_t, value: Int) {
     guard let slider = playbackSlider(app), let frame = rect(slider) else {
         fail("Global GMAT playback slider is missing")
     }
+    let wasAtCheckpoint = playbackValue(slider) == value
+    let changedFromStart = !wasAtCheckpoint ||
+        AXUIElementSetAttributeValue(slider, kAXValueAttribute as CFString, NSNumber(value: 0)) == .success
     let result = AXUIElementSetAttributeValue(slider, kAXValueAttribute as CFString, NSNumber(value: value))
-    if result != .success || playbackValue(slider) != value {
+    if !changedFromStart || result != .success || playbackValue(slider) != value {
         // The Qt Cocoa slider may expose a readable AX value only. Focus its
         // handle, return to the start, and advance by exact slider steps.
         let handle = CGPoint(x: frame.maxX-10, y: frame.midY)
@@ -207,9 +210,13 @@ func seekPausedPlayback(pid: pid_t, value: Int) {
         usleep(100000)
         key(115) // Home
         usleep(100000)
-        for _ in 0..<value {
-            key(124) // Right Arrow
-            usleep(15000)
+        if value == 1000 {
+            key(119) // End
+        } else {
+            for _ in 0..<value {
+                key(124) // Right Arrow
+                usleep(15000)
+            }
         }
     }
     usleep(400000)
@@ -228,10 +235,12 @@ if args.first == "configure" {
     extendSolverTable()
     if args.first == "lunar-solver" { bringLunarPlotForward() }
 } else if args.count == 2, args.first == "transfer", let pid = Int32(args.last!) {
-    showTransferView(pid: pid)
+    showPlotView(pid: pid, title: "OFI_SolarSystemView", fallbackX: 593)
+} else if args.count == 2, args.first == "mars-orbit", let pid = Int32(args.last!) {
+    showPlotView(pid: pid, title: "OFI_MarsMJ2KView", fallbackX: 575)
 } else if args.count == 3, args.first == "playback",
           let pid = Int32(args[args.startIndex+1]), let value = Int(args.last!), (0...1000).contains(value) {
     seekPausedPlayback(pid: pid, value: value)
 } else {
-    fail("Usage: CaptureAlpha5Mac configure | fit PID | solver | lunar-solver | transfer PID | playback PID VALUE")
+    fail("Usage: CaptureAlpha5Mac configure | fit PID | solver | lunar-solver | transfer PID | mars-orbit PID | playback PID VALUE")
 }
