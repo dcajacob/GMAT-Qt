@@ -2,7 +2,8 @@ param(
     [int]$GmatPid,
     [string]$Destination,
     [switch]$ConfigureHD,
-    [switch]$MarsTargeting
+    [switch]$MarsTargeting,
+    [switch]$MarsTransfer
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
@@ -69,7 +70,7 @@ $window = (Get-Process -Id $GmatPid).MainWindowHandle
 if ($window -eq [IntPtr]::Zero) { throw 'GMAT has no visible top-level window.' }
 [void][DesktopCapture]::ShowWindowAsync($window, 3)
 [void][DesktopCapture]::SetForegroundWindow($window)
-if ($MarsTargeting) {
+if ($MarsTargeting -or $MarsTransfer) {
     Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
     Start-Sleep -Seconds 1
     $root = [System.Windows.Automation.AutomationElement]::FromHandle($window)
@@ -77,7 +78,8 @@ if ($MarsTargeting) {
         [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
         [System.Windows.Automation.ControlType]::TabItem
     )
-    foreach ($prefix in @('OFI_MarsView', 'Solver')) {
+    $tabNames = if ($MarsTransfer) { @('OFI_SolarSystemView') } else { @('OFI_MarsView', 'Solver') }
+    foreach ($prefix in $tabNames) {
         $tabs = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $tabCondition)
         $tab = $tabs | Where-Object { $_.Current.Name.StartsWith($prefix) -and -not $_.Current.IsOffscreen } | Select-Object -First 1
         if (-not $tab) {
@@ -91,9 +93,11 @@ if ($MarsTargeting) {
         [DesktopCapture]::mouse_event(4, 0, 0, 0, [UIntPtr]::Zero)
         Start-Sleep -Milliseconds 300
     }
-    [System.Windows.Forms.SendKeys]::SendWait('%w')
-    Start-Sleep -Milliseconds 300
-    [System.Windows.Forms.SendKeys]::SendWait('t')
+    if ($MarsTargeting) {
+        [System.Windows.Forms.SendKeys]::SendWait('%w')
+        Start-Sleep -Milliseconds 300
+        [System.Windows.Forms.SendKeys]::SendWait('t')
+    }
 }
 $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
 [System.Windows.Forms.Cursor]::Position = [System.Drawing.Point]::new($bounds.Right - 2, $bounds.Bottom - 2)

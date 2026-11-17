@@ -178,7 +178,7 @@ def select_workspace_tab(pid, title):
     raise RuntimeError(f'Workspace tab is missing or hidden: {title}')
 
 
-def capture(target, process, bundle, destination, ground_track, tabs, mars_targeting, mac_helper):
+def capture(target, process, bundle, destination, ground_track, tabs, native_scene, mac_helper):
     if target.startswith('linux'):
         run('pgrep', '-x', 'xfce4-panel')
         run('wmctrl', '-lp')
@@ -204,20 +204,22 @@ def capture(target, process, bundle, destination, ground_track, tabs, mars_targe
         run('import', '-window', 'root', str(destination))
     elif target.startswith('windows'):
         script = Path(__file__).with_name('CaptureAlpha5Windows.ps1').resolve()
-        extra = ('-MarsTargeting',) if mars_targeting else ()
+        switches = {'MarsCaptureTargeting': '-MarsTargeting', 'MarsTransfer': '-MarsTransfer'}
+        extra = (switches[native_scene],) if native_scene else ()
         prefix = ('powershell.exe', '-NoProfile', '-File', str(script), '-GmatPid', str(process.pid))
         try:
             run(*prefix, '-Destination', str(destination), *extra)
         except subprocess.CalledProcessError:
-            if mars_targeting:
+            if native_scene:
                 run(*prefix, '-Destination', str(destination.with_name('diagnostic.png')))
             raise
     else:
         run('pgrep', '-x', 'Dock')
         run('pgrep', '-x', 'SystemUIServer')
         run('open', '-a', str(bundle))
-        if mars_targeting:
-            run(str(mac_helper), 'solver')
+        if native_scene:
+            action = 'transfer' if native_scene == 'MarsTransfer' else 'solver'
+            run(str(mac_helper), action)
         time.sleep(2)
         run('screencapture', '-x', '-m', str(destination))
 
@@ -230,12 +232,15 @@ def main():
     scenes.add_argument('--ground-track', action='store_true')
     scenes.add_argument('--targeting', action='store_true')
     scenes.add_argument('--mars-targeting', action='store_true')
+    scenes.add_argument('--mars-transfer', action='store_true')
     args = parser.parse_args()
     target = args.target
     if (args.ground_track or args.targeting) and target != 'linux-x86_64':
         parser.error('The additional compositions use the Linux desktop layout')
-    if args.mars_targeting:
-        missions = {'Ex_MarsBPlane.script': TARGETING_MISSIONS['Ex_MarsBPlane.script'][2][1:]}
+    native_hd = args.mars_targeting or args.mars_transfer
+    if native_hd:
+        view_index = 0 if args.mars_transfer else 1
+        missions = {'Ex_MarsBPlane.script': (TARGETING_MISSIONS['Ex_MarsBPlane.script'][2][view_index],)}
     elif args.targeting:
         missions = {name: details[2] for name, details in TARGETING_MISSIONS.items()}
     elif args.ground_track:
@@ -248,7 +253,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='gmat-desktop-') as directory:
         work = Path(directory)
         mac_helper = None
-        if args.mars_targeting:
+        if native_hd:
             if target.startswith('windows'):
                 script = Path(__file__).with_name('CaptureAlpha5Windows.ps1').resolve()
                 run('powershell.exe', '-NoProfile', '-File', str(script), '-ConfigureHD')
@@ -298,7 +303,8 @@ def main():
             session = work/mission.stem
             session.mkdir()
             discovery = session/'private-discovery'
-            input_mission = mac_presentation_script(mission, session/mission.name) if mac_helper else mission
+            input_mission = (mac_presentation_script(mission, session/mission.name)
+                             if mac_helper and args.mars_targeting else mission)
             run_options = [] if mac_helper else ['--run']
             command = [str(executable), '--settings-dir', str(session/'settings'), '--mcp-bridge',
                        '--mcp-discovery-dir', str(discovery), '--convert-views', *run_options, str(input_mission)]
@@ -317,9 +323,9 @@ def main():
                     for scene, tabs in views:
                         picture = output/f'GMAT-Qt-alpha5-{scene}-{target}.png'
                         capture(target, process, bundle, picture, args.ground_track, tabs,
-                                args.mars_targeting, mac_helper)
+                                scene if native_hd else None, mac_helper)
                         pixels = png_resolution(picture)
-                        if args.mars_targeting and (pixels[0] < 1920 or pixels[1] < 1080):
+                        if native_hd and (pixels[0] < 1920 or pixels[1] < 1080):
                             raise RuntimeError(f'Native desktop capture is below 1920x1080: {pixels}')
                         view = list(tabs) if tabs else (
                             'Linked playback with OrbitView and GroundTrackPlot' if args.ground_track
@@ -331,7 +337,7 @@ def main():
                             'view': view, 'renderer': renderer, 'run': endpoint, 'screenshot': picture.name,
                             'screenshot_sha256': digest(picture), 'pixels': pixels,
                         }
-                        if mac_helper:
+                        if input_mission != mission:
                             receipt['presentation_changes'] = ['OFI_MarsView.UpperLeft', 'OFI_MarsView.Size']
                             receipt['presented_mission_sha256'] = digest(input_mission)
                         receipt_name = f'{scene}-receipt.json' if args.targeting else 'receipt.json'

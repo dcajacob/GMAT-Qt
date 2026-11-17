@@ -18,7 +18,11 @@ jobs:
       fail-fast: false
       matrix:
         include: >-
-          ${{ fromJSON(contains(github.event.head_commit.message, '[mars-targeting-mac]') &&
+          ${{ fromJSON(contains(github.event.head_commit.message, '[mars-transfer]') &&
+          '[{"runner":"windows-2022","platform":"windows-x64","options":"--mars-transfer"},
+            {"runner":"macos-15","platform":"macos-arm64","options":"--mars-transfer"},
+            {"runner":"macos-15-intel","platform":"macos-x64","options":"--mars-transfer"}]' ||
+          contains(github.event.head_commit.message, '[mars-targeting-mac]') &&
           '[{"runner":"macos-15","platform":"macos-arm64","options":"--mars-targeting"},
             {"runner":"macos-15-intel","platform":"macos-x64","options":"--mars-targeting"}]' ||
           contains(github.event.head_commit.message, '[mars-targeting]') &&

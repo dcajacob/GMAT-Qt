@@ -114,6 +114,21 @@ func extendSolverTable() {
     CGWarpMouseCursorPosition(CGPoint(x: screen.frame.maxX-2, y: screen.frame.maxY-3))
 }
 
+func showTransferView() {
+    guard let screen = NSScreen.screens.first, screen.frame.width == 1920 && screen.frame.height == 1080 else {
+        fail("The matching transfer tab position expects the runner's 1920x1080 desktop")
+    }
+    // Fresh settings and the fitted main window place the Sun-centered
+    // view tab in this position on both macOS runner images.
+    let tab = CGPoint(x: 593, y: 109)
+    mouse(.mouseMoved, tab)
+    usleep(80000)
+    mouse(.leftMouseDown, tab)
+    mouse(.leftMouseUp, tab)
+    usleep(350000)
+    CGWarpMouseCursorPosition(CGPoint(x: screen.frame.maxX-2, y: screen.frame.maxY-3))
+}
+
 let args = CommandLine.arguments.dropFirst()
 if args.first == "configure" {
     configureFullHD()
@@ -121,6 +136,8 @@ if args.first == "configure" {
     fitMainWindow(pid: pid)
 } else if args.first == "solver" {
     extendSolverTable()
+} else if args.first == "transfer" {
+    showTransferView()
 } else {
-    fail("Usage: CaptureAlpha5Mac configure | fit PID | solver")
+    fail("Usage: CaptureAlpha5Mac configure | fit PID | solver | transfer")
 }
