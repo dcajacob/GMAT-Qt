@@ -7,6 +7,7 @@ on:
       - '.github/workflows/alpha5-desktop-screenshots.yml'
       - 'tools/preview/CaptureAlpha5Desktop.py'
       - 'tools/preview/CaptureAlpha5Windows.ps1'
+      - 'tools/preview/CaptureAlpha5Mac.swift'
 
 permissions:
   contents: read
@@ -17,7 +18,11 @@ jobs:
       fail-fast: false
       matrix:
         include: >-
-          ${{ fromJSON(contains(github.event.head_commit.message, '[targeting]') &&
+          ${{ fromJSON(contains(github.event.head_commit.message, '[mars-targeting]') &&
+          '[{"runner":"windows-2022","platform":"windows-x64","options":"--mars-targeting"},
+            {"runner":"macos-15","platform":"macos-arm64","options":"--mars-targeting"},
+            {"runner":"macos-15-intel","platform":"macos-x64","options":"--mars-targeting"}]' ||
+          contains(github.event.head_commit.message, '[targeting]') &&
           '[{"runner":"ubuntu-24.04","platform":"linux-x86_64","options":"--targeting","screen":"1920x1080x24"}]' ||
           contains(github.event.head_commit.message, '[ground-track]') &&
           '[{"runner":"ubuntu-24.04","platform":"linux-x86_64","options":"--ground-track"}]' ||
@@ -51,7 +56,7 @@ jobs:
           '
       - name: Capture the native desktop
         if: runner.os != 'Linux'
-        run: python tools/preview/CaptureAlpha5Desktop.py ${{ matrix.platform }}
+        run: python tools/preview/CaptureAlpha5Desktop.py ${{ matrix.platform }} ${{ matrix.options }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
