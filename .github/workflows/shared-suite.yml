@@ -1,6 +1,33 @@
 name: Shared targeted suite
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/shared-suite.yml'
+      - 'tools/preview/SharedSuite.json'
+      - 'tools/preview/RunSharedSuite.py'
+      - 'tools/preview/BuildPreviewPackage.py'
+      - 'CMakeLists.txt'
+      - 'src/qtgui/CMakeLists.txt'
+      - 'src/qtgui/MainWindow.*'
+      - 'src/qtgui/ResourceEditor.*'
+      - 'src/qtgui/ResourceForm.*'
+      - 'src/qtgui/SatelliteImport*'
+      - 'src/qtgui/SatelliteElementsPanel.*'
+      - 'src/qtgui/SpaceTrackAccount*'
+      - 'src/qtgui/PropagationGroupsDialog.*'
+      - 'src/qtgui/tests/Satellite*'
+      - 'src/qtgui/tests/RunTest.py'
+      - 'src/qtgui/tests/AcceptanceRuntime.py'
+      - 'src/qtgui/tests/TestSettings.hpp'
+      - 'plugins/TLEPropagatorPlugin/src/**'
+      - 'plugins/EphemPropagatorPlugin/src/base/propagator/**'
+      - 'src/gmatutil/util/CCSDSEM*'
+      - 'src/gmatutil/util/CCSDSEphemerisFile.*'
+      - 'src/gmatutil/util/CCSDSOEMReader.*'
+      - 'src/gmatutil/util/CCSDSOEMSegment.*'
+      - 'src/gmatutil/util/Ephemeris.*'
   push:
     branches: ['codex/alpha-0.1.0']
     paths:
@@ -22,8 +49,13 @@ permissions:
   contents: read
   actions: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   checks:
+    name: ${{ github.event_name == 'pull_request' && 'Satellite import' || 'Shared checks' }} (${{ matrix.platform }})
     strategy:
       fail-fast: false
       matrix:
@@ -67,9 +99,10 @@ jobs:
           sudo apt-get install -y libopenscenegraph-dev libxerces-c-dev libgl1-mesa-dev libglu1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-render-util0 libxcb-image0 libfontconfig1 xvfb xauth
       - name: Build and run shared cases
         env:
-          # Recheck the map gutter and the ground-map callers it affects.
-          # The 21-case SharedSuite.json remains the comparison contract.
-          SHARED_CASES: ${{ inputs.cases || 'QtGui.GroundTrackLayout,QtGui.GroundTrackRegionZoom,QtGui.GroundMapOverlays' }}
+          SHARED_CASES: >-
+            ${{ github.event_name == 'pull_request' &&
+            'QtGui.SatelliteImport,QtGui.SatelliteCatalog,QtGui.SatelliteWorkflow.assignments,QtGui.SatelliteWorkflow.epoch-guard,QtGui.SatelliteWorkflow.elements' ||
+            inputs.cases || 'QtGui.GroundTrackLayout,QtGui.GroundTrackRegionZoom,QtGui.GroundMapOverlays' }}
         run: python tools/preview/RunSharedSuite.py --platform ${{ matrix.platform }}
       - name: Preserve results and diagnostics
         if: always()
@@ -82,7 +115,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
       - name: Preserve native test inputs
-        if: always()
+        if: always() && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: shared-native-${{ matrix.platform }}
