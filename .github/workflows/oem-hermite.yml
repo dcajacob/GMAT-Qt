@@ -1,6 +1,42 @@
 name: OEM Hermite targeted qualification
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/oem-hermite.yml'
+      - 'tools/preview/OemHermiteSuite.json'
+      - 'tools/preview/RunSharedSuite.py'
+      - 'tools/preview/BuildPreviewPackage.py'
+      - 'CMakeLists.txt'
+      - 'src/qtgui/CMakeLists.txt'
+      - 'src/qtgui/EphemerisDialog.*'
+      - 'src/qtgui/ResourceEditor.*'
+      - 'src/qtgui/ResourceForm.*'
+      - 'src/qtgui/tests/*Oem*'
+      - 'src/qtgui/tests/NasaEphemerisDirectionTests.cpp'
+      - 'src/qtgui/tests/InterpolationSufficiencyTests.cpp'
+      - 'src/qtgui/tests/RunTest.py'
+      - 'src/qtgui/tests/AcceptanceRuntime.py'
+      - 'src/qtgui/tests/AcceptancePlatform.hpp'
+      - 'src/qtgui/tests/AcceptanceView.hpp'
+      - 'src/qtgui/tests/TestSettings.hpp'
+      - 'src/base/function/GetEphemStates.*'
+      - 'src/base/executive/Publisher.*'
+      - 'src/base/subscriber/Ephemeris*'
+      - 'src/base/subscriber/EphemWriterCCSDS.*'
+      - 'src/base/subscriber/EphemWriterWithInterpolator.*'
+      - 'src/base/subscriber/IntegrationStepSampler.hpp'
+      - 'src/gmatutil/util/CCSDSEM*'
+      - 'src/gmatutil/util/CCSDSEphemerisFile.*'
+      - 'src/gmatutil/util/CCSDSOEM*'
+      - 'src/gmatutil/util/CcsdsOem*'
+      - 'src/gmatutil/util/Ephemeris.*'
+      - 'src/gmatutil/util/interpolator/Interpolator.*'
+      - 'src/gmatutil/util/interpolator/HermiteInterpolator.*'
+      - 'src/gmatutil/util/interpolator/LagrangeInterpolator.*'
+      - 'plugins/EphemPropagatorPlugin/src/base/propagator/CcsdsEphPropagator.*'
+      - 'plugins/EphemPropagatorPlugin/src/base/propagator/EphemerisPropagator.*'
   push:
     branches: ['codex/oem-hermite']
   workflow_dispatch:
@@ -13,6 +49,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   qualify:
@@ -61,7 +101,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
       - name: Preserve matching compiled API and GUI
-        if: always() && hashFiles('build/preview-package/native-inputs-api-py312-v2-*.tar.gz') != ''
+        if: always() && github.event_name != 'pull_request' && hashFiles('build/preview-package/native-inputs-api-py312-v2-*.tar.gz') != ''
         uses: actions/upload-artifact@v4
         with:
           name: oem-hermite-native-${{ matrix.platform }}
