@@ -176,6 +176,7 @@ public:
    virtual void              AddCovarianceRecord(CovarianceRecord *rec) { covStore.push_back(rec); };
 
 protected:
+   bool ValidateMetadata(bool checkData, Integer maxLagrangeDegree);
    
    // struct to hold epochs and data
    struct EpochAndData

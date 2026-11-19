@@ -27,6 +27,7 @@
 //------------------------------------------------------------------------------
 
 #include "EphemWriterWithInterpolator.hpp"
+#include <limits>
 #include "CelestialBody.hpp"
 #include "SubscriberException.hpp"   // for exception
 #include "StringUtil.hpp"            // for ToString()
@@ -512,6 +513,7 @@ bool EphemWriterWithInterpolator::IsTimeToWrite(Real epochInSecs, const Real sta
       return false;
    }
    
+   const Real previousSample = prevEpochInSecs;
    bool retval = true;
    // If writing at specified interval step, do checking
    if (useFixedStepSize || interpolateInitialState || interpolateFinalState)
@@ -586,6 +588,9 @@ bool EphemWriterWithInterpolator::IsTimeToWrite(Real epochInSecs, const Real sta
           "waitCount=%d\n", processingLargeStep, finalEpochReached, handleFinalEpoch, waitCount);
       #endif
       
+      if (HasExplicitOemWindow())
+         return QueueOemWindow(epochInSecs, previousSample, interpolator->GetPointCount() == 1);
+
       // If step size is to large, we may miss the data points since interpolator
       // buffer size is limited. So do additional process here.
       // If user defined final epoch is reached, process data (for GMT-3342 fix)
@@ -745,6 +750,45 @@ bool EphemWriterWithInterpolator::IsTimeToWrite(Real epochInSecs, const Real sta
 }
 
 
+// Queue only epochs actually traversed in this segment. In directed seconds
+// the entry precedes the exit for both forward and backward propagation.
+bool EphemWriterWithInterpolator::QueueOemWindow(Real epoch, Real previous, bool first)
+{
+   const Real direction = currPropDirection < 0 ? -1.0 : 1.0;
+   const Real now = direction * epoch;
+   const Real entryMjd = direction > 0 ? initialEpochA1Mjd : finalEpochA1Mjd;
+   const Real exitMjd = direction > 0 ? finalEpochA1Mjd : initialEpochA1Mjd;
+   const Real entry = entryMjd == -999.999 ? -std::numeric_limits<Real>::infinity() :
+         direction * entryMjd * GmatTimeConstants::SECS_PER_DAY;
+   const Real exit = exitMjd == -999.999 ? std::numeric_limits<Real>::infinity() :
+         direction * exitMjd * GmatTimeConstants::SECS_PER_DAY;
+   if (first)
+      nextReqEpochInSecs = direction * std::max(now, entry);
+   if (useFixedStepSize)
+   {
+      Real next = direction * nextReqEpochInSecs;
+      while (next <= now + timeTolerance && next <= exit + timeTolerance)
+      {
+         AddNextEpochToWrite(direction * next, "Adding bounded OEM grid sample");
+         const Real following = next + stepSizeInSecs;
+         if (following <= next)
+            throw SubscriberException("Ephemeris output step cannot advance its epoch.");
+         next = following;
+      }
+      nextReqEpochInSecs = direction * next;
+   }
+   else
+   {
+      if (!first && direction * previous < entry && entry <= now)
+         AddNextEpochToWrite(direction * entry, "Adding OEM entry boundary");
+      if (entry <= now && now <= exit)
+         AddNextEpochToWrite(epoch, "Adding native OEM sample");
+   }
+   if (!first && direction * previous < exit && exit <= now)
+      AddNextEpochToWrite(direction * exit, "Adding OEM exit boundary");
+   return !epochsOnWaiting.empty();
+}
+
 //------------------------------------------------------------------------------
 // void WriteOrbitAt(Real reqEpochInSecs, const Real state[6],
 //                   const Real cov[21], const Real quat[4], const Real accel[3])
@@ -816,7 +860,9 @@ void EphemWriterWithInterpolator::ProcessFinalDataOnWaiting(bool canFinish)
       ("===> ProcessFinalDataOnWaiting() calling interpolator->SetForceInterpolation(true)\n");
    #endif
    interpolator->SetForceInterpolation(true);
-   ProcessEpochsOnWaiting(true, !canFinish);
+   // Window requests have already been clipped to the traversed interval.
+   // A reversal must flush its shared endpoint before clearing this stencil.
+   ProcessEpochsOnWaiting(!HasExplicitOemWindow(), !canFinish);
    #ifdef DEBUG_INTERPOLATOR_TRACE
    MessageInterface::ShowMessage
       ("===> ProcessFinalDataOnWaiting() calling interpolator->SetForceInterpolation(false)\n");
@@ -876,7 +922,10 @@ void EphemWriterWithInterpolator::ProcessFinalDataOnWaiting(bool canFinish)
          MessageInterface::ShowMessage("   finalEpochA1Mjd=%f\n", finalEpochA1Mjd);
          #endif
          // If not using user defined final epock, do more checking for the final data
-         if (finalEpochA1Mjd == -999.999)
+         const bool endpointInWindow = HasExplicitOemWindow() &&
+               (initialEpochA1Mjd == -999.999 || currEpochInDays >= initialEpochA1Mjd) &&
+               (finalEpochA1Mjd == -999.999 || currEpochInDays <= finalEpochA1Mjd);
+         if (HasExplicitOemWindow() ? endpointInWindow : finalEpochA1Mjd == -999.999)
          {
             bool writeFinalData = false;
             #ifdef DEBUG_EPHEMFILE_FINISH
@@ -1035,7 +1084,7 @@ void EphemWriterWithInterpolator::ProcessEpochsOnWaiting(bool checkFinalEpoch,
                      "reqEpochInSecs = ", reqEpochInSecs);
       #endif
       
-      if ((finalEpochA1Mjd != -999.999) && finalEpochReached &&
+      if (!HasExplicitOemWindow() && (finalEpochA1Mjd != -999.999) && finalEpochReached &&
           (((reqEpochInSecs > finalEpochA1Mjd * GmatTimeConstants::SECS_PER_DAY) && currPropDirection == 1.0) ||
            ((reqEpochInSecs < finalEpochA1Mjd * GmatTimeConstants::SECS_PER_DAY) && currPropDirection == -1.0)) )
       {

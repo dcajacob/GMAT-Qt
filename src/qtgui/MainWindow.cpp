@@ -2250,14 +2250,23 @@ FolderRunResult MainWindow::runFolderScripts(const FolderRunOptions &options,QtP
          FolderRunItem item; QString diagnostics; QScopedValueRollback<QString *> capture(folderMessages,&diagnostics); bool solverRun=false;
          if (cancel) { item.category="Interrupted"; return item; }
          QScopedValueRollback<ReportFile::OutputPathCheck> restoreCheck(ReportFile::OutputPathValidator());
+         QScopedValueRollback<EphemerisFile::OutputPathCheck> restoreEphemerisCheck(EphemerisFile::OutputPathValidator());
+         const auto protectBaseline = [&](const QString &path) {
+            for (const auto &baseline : baselines)
+               if (sameFolderRunFile(path, baseline))
+                  throw SubscriberException("Output would overwrite comparison baseline: " + baseline.toStdString());
+         };
          if (options.compare) {
+            EphemerisFile::OutputPathValidator() = [&](const std::string &destination) {
+               const auto path = QString::fromStdString(destination);
+               protectBaseline(path);
+               if (!item.ephemerisPaths.contains(path)) item.ephemerisPaths.append(path);
+            };
             ReportFile::OutputPathValidator()=[&](const std::string &destination) {
                const QString path=QString::fromStdString(destination);
                if (!item.reservedReportPaths.contains(path)) item.reservedReportPaths.append(path);
                rememberBaseline(path);
-               for (const auto &baseline:baselines)
-                  if (sameFolderRunFile(path,baseline))
-                     throw SubscriberException("Report output would overwrite comparison baseline: "+baseline.toStdString());
+               protectBaseline(path);
             };
          }
          try {
@@ -2298,12 +2307,13 @@ FolderRunResult MainWindow::runFolderScripts(const FolderRunOptions &options,QtP
                   if (options.compare) rememberBaseline(path);
                }
                if (options.compare) {
-                  for (const auto &path:item.reports) {
-                     try { ReportFile::OutputPathValidator()(path.toStdString()); }
-                     catch (SubscriberException &error) {
-                        item.category="Output error"; item.details=QString::fromStdString(error.GetFullMessage());
-                        return item;
-                     }
+                  try {
+                     for (const auto &path : item.ephemerisPaths) protectBaseline(path);
+                     for (const auto &path : item.reports)
+                        ReportFile::OutputPathValidator()(path.toStdString());
+                  } catch (SubscriberException &error) {
+                     item.category="Output error"; item.details=QString::fromStdString(error.GetFullMessage());
+                     return item;
                   }
                }
                batchListeners.missionStarted(); solverRun=true;

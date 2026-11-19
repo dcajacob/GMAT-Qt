@@ -1912,8 +1912,11 @@ bool GmatFileUtil::CompareLines(const std::string &line1, const std::string &lin
       item1 = items1[i];
       item2 = items2[i];
       
-      // Compare if item is a real number
-      if (GmatStringUtil::ToReal(item1, real1) && GmatStringUtil::ToReal(item2, real2))
+      const bool numeric1 = GmatStringUtil::ToReal(item1, real1);
+      const bool numeric2 = GmatStringUtil::ToReal(item2, real2);
+      if (numeric1 != numeric2)
+         return false;
+      if (numeric1)
       {
          diff = real1 - real2;
          if (GmatMathUtil::Abs(diff) > tol)
@@ -3182,9 +3185,18 @@ bool GmatFileUtil::GetRealColumns(const std::string &line, RealArray &cols)
    #endif
    
    StringTokenizer stk;
-   //@note ":" is for separating UTC format time
-   // Added horizontal tab (\t) to delimiter
-   stk.Set(line, " :\t");
+   // Whitespace separates fixed-width fields, but a blank CSV cell is missing data.
+   for (size_t comma = line.find(','); comma != std::string::npos; comma = line.find(',', comma + 1))
+   {
+      const size_t left = line.find_last_not_of(" \t", comma == 0 ? 0 : comma - 1);
+      const size_t right = line.find_first_not_of(" \t", comma + 1);
+      if (left == std::string::npos || right == std::string::npos || line[left] == ',' || line[right] == ',')
+      {
+         cols.clear();
+         return false;
+      }
+   }
+   stk.Set(line, " ,:\t");
    StringArray tokens = stk.GetAllTokens();
    Integer numCols = tokens.size();
    Real rval;

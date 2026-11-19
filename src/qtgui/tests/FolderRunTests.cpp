@@ -135,6 +135,26 @@ int main(int argc,char **argv)
             duringMission.items[0].details.contains("comparison baseline") && read(reference)==sentinel,
             "Mission-time ReportFile redirect overwrote a comparison baseline");
       guardedOptions.replacement="REF";
+      const auto ephemerisReference=QDir(baseline).filePath("REFgood.oem");
+      write(ephemerisReference,sentinel);
+      auto withEphemeris=good;
+      withEphemeris.replace("GMATgood.txt","GMATgood.oem");
+      withEphemeris.replace("BeginMissionSequence;", "Create Spacecraft Sat;\nCreate EphemerisFile E;\nE.Spacecraft = Sat;\nE.FileFormat = CCSDS-OEM;\nE.Filename = '"+ephemerisReference.toUtf8()+"';\nBeginMissionSequence;");
+      write(a,withEphemeris);
+      const auto ephemerisCollision=window.runFolderScripts(guardedOptions,views,cancel);
+      require(ephemerisCollision.items.size()==1 && ephemerisCollision.items[0].category!="Completed" &&
+            ephemerisCollision.items[0].details.contains("comparison baseline") && read(ephemerisReference)==sentinel,
+            "Ephemeris output overwrote a reserved ReportFile baseline");
+#ifndef Q_OS_WIN
+      FolderRunOptions copyOptions=guardedOptions;
+      copyOptions.compare=false; copyOptions.saveCopies=true; copyOptions.copyDirectory=files.filePath("linked copies");
+      require(QDir().mkpath(copyOptions.copyDirectory),"Cannot create copy directory");
+      const auto originalB=read(b);
+      require(QFile::link(b,QDir(copyOptions.copyDirectory).filePath(QFileInfo(a).fileName())),"Cannot create copy alias");
+      const auto copyCollision=window.runFolderScripts(copyOptions,views,cancel);
+      require(copyCollision.items.size()==1 && copyCollision.items[0].category=="Copy error" && read(b)==originalB,
+            "Saving a script copy overwrote a different source mission");
+#endif
       auto allowed=good;
       allowed.replace("Report R V;", "R.Filename = 'GMATnew.txt';\nReport R V;");
       write(a,allowed);

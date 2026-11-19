@@ -187,7 +187,8 @@ def build(target, qt, osg, prefix, *, extra_options=(), targets=('GmatQt',), pyt
 def production_tree():
     data = subprocess.check_output(['git', 'ls-tree', '-r', 'HEAD', '--',
         'CMakeLists.txt', 'src', 'swig', 'plugins', 'application', 'depends',
-        'build/cmake_modules', 'build/install'], cwd=REPO)
+        'build/cmake_modules', 'build/install', 'tools/preview/BuildPreviewPackage.py',
+        '.github/workflows/alpha-packages.yml'], cwd=REPO)
     return hashlib.sha256(data).hexdigest()
 
 

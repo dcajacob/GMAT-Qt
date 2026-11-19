@@ -40,7 +40,7 @@ static void checkState(const QJsonArray &row,double seconds)
    }
 }
 
-static QJsonArray oemArc(const QString &path, int start, int stop)
+static QJsonArray oemArc(const QString &path, int start, int stop, int spacing = 10)
 {
    const auto epoch = QDateTime::fromString("2000-01-01T12:00:00.000Z", Qt::ISODateWithMs);
    CCSDSEphemerisFile reader;
@@ -49,10 +49,15 @@ static QJsonArray oemArc(const QString &path, int start, int stop)
    require(raw.count("META_START") == 1, "Expected one traversal per OEM");
    QList<int> sampleTimes;
    const int direction = stop > start ? 1 : -1;
-   for (int offset = 0; offset < std::abs(stop - start); offset += 10)
+   for (int offset = 0; offset < std::abs(stop - start); offset += spacing)
       sampleTimes.append(start + direction * offset);
    sampleTimes.append(stop);
    if (direction < 0) std::reverse(sampleTimes.begin(), sampleTimes.end());
+   if (spacing == 5) {
+      sampleTimes.clear();
+      for (int t = std::min(start,stop); t <= std::max(start,stop); ++t)
+         if (t == start || t == stop || t % spacing == 0) sampleTimes.append(t);
+   }
    QJsonArray rows;
    for (const auto &line : QString::fromUtf8(raw).split('\n'))
    {
@@ -153,6 +158,27 @@ int main(int argc,char **argv)
          rig.source->setPlainText(offGrid);
          require(rig.window.buildScript(), "Off-grid reversal mission failed to build");
          run(false, 105);
+         {
+            for (const auto &step : QStringList{"10", "IntegratorSteps"}) {
+               const auto boundedPath=rig.files.filePath("bounded-"+step+".oem");
+               auto bounded=initial;
+               const auto origin=QDateTime::fromString("2000-01-01T12:00:00Z",Qt::ISODate);
+               const auto bound=[&](int seconds) {
+                  return QLocale::c().toString(origin.addSecs(seconds),"dd MMM yyyy HH:mm:ss.zzz");
+               };
+               const int lower = direction > 0 ? 21 : -71;
+               const int upper = direction > 0 ? 71 : -21;
+               bounded.replace("Export.WriteEphemeris = false;", "Export.WriteEphemeris = true;\nExport.EpochFormat = UTCGregorian;\nExport.InitialEpoch = '"+bound(lower)+"';\nExport.FinalEpoch = '"+bound(upper)+"';");
+               bounded.replace("Export.StepSize = 10;", "Export.StepSize = "+step+";");
+               bounded.replace(ephemeris,boundedPath);
+               rig.source->setPlainText(bounded);
+               require(rig.window.runMission()==MainWindow::RunResult::Completed,"Bounded reversal mission failed");
+               const auto returned=rig.files.filePath("bounded-"+step+".arc-2.oem");
+               const int spacing=step=="10" ? 10 : 5;
+               oemArc(boundedPath,lower,upper,spacing);
+               oemArc(returned,upper,lower,spacing);
+            }
+         }
       }
       const QJsonObject proof{{"checkpoint","ephemeris-direction-"+key},{"outcome","passed"},{"case",key},{"direction",direction},{"runs",runs},{"facets",QJsonArray{"actual-ephemeris-format-checkbox-apply-save-reload","code500-stops-on-reversal-or-oem-segments-monotonic-arcs","independent-report-oem-circular-orbit-values-and-recovery"}},{"scope","Selected fixed-step direction change with actual resource form and native mission. Code500 refusal is a format-specific subscriber guard; this does not prove every raw interpolator rejects bad data. Independent circular orbit checks every OEM state. Native input/platform/stress/full-build and Code500 internal Toggle gap remain open."}};
       rig.save("proof.json",QJsonDocument(proof).toJson());std::cout<<"NASA_CHECK "<<QJsonDocument(proof).toJson(QJsonDocument::Compact).constData()<<std::endl;return 0;

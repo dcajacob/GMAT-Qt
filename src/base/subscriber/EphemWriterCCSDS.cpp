@@ -408,6 +408,8 @@ void EphemWriterCCSDS::InitializeData(bool saveEpochInfo)
    #endif
    
    EphemWriterWithInterpolator::InitializeData(saveEpochInfo);
+   if (HasExplicitOemWindow())
+      finalEpochProcessed = false;
    
    continuousSegment    = false;
    firstTimeMetaData    = true;
@@ -566,11 +568,13 @@ void EphemWriterCCSDS::HandleOrbitData()
    #endif
    
    // Check user defined initial and final epoch
-   bool processData = CheckInitialAndFinalEpoch();
+   // The OEM scheduler clips each request to the interval traversed by this arc.
+   const bool boundedOem = HasExplicitOemWindow();
+   bool processData = boundedOem || CheckInitialAndFinalEpoch();
    
    // Buffer a few more (interpolationOrder + 1) data after finalEpochReached,
    // if final epoch was not already written
-   if (finalEpochReached && !finalEpochProcessed)
+   if (!boundedOem && finalEpochReached && !finalEpochProcessed)
    {
       processData = true;
       afterFinalEpochCount++;
@@ -597,6 +601,12 @@ void EphemWriterCCSDS::HandleOrbitData()
    
    // Write orbit or attitude data
    HandleCcsdsOrbitData(processData, timeToWrite);
+   if (boundedOem && epochsOnWaiting.empty())
+   {
+      const Real exit = currPropDirection < 0 ? initialEpochA1Mjd : finalEpochA1Mjd;
+      if (exit != -999.999 && std::abs(lastEpochWrote - exit * GmatTimeConstants::SECS_PER_DAY) <= timeTolerance)
+         finalEpochProcessed = true;
+   }
    
    #ifdef DEBUG_EPHEMFILE_DATA
    MessageInterface::ShowMessage
@@ -721,15 +731,11 @@ void EphemWriterCCSDS::FinishUpWriting()
             CloseEphemerisFile();
             
             // Check for user defined final epoch (GMT-4108 fix)
-            if (finalEpochA1Mjd != -999.999)
-            {
-               if (currEpochInDays < finalEpochA1Mjd)
-               {
-                  MessageInterface::ShowMessage
-                     ("*** WARNING *** Run ended at %f before the user defined final epoch of %f\n",
-                      currEpochInDays, finalEpochA1Mjd);
-               }
-            }
+            const bool reversing = fileType == CCSDS_OEM && currPropDirection < 0;
+            const Real limit = reversing ? initialEpochA1Mjd : finalEpochA1Mjd;
+            if (limit != -999.999 && (reversing ? currEpochInDays > limit : currEpochInDays < limit))
+               MessageInterface::ShowMessage("*** WARNING *** Run ended at %f before reaching the requested epoch of %f\n",
+                     currEpochInDays, limit);
          }
          
          isFinalized = true;
@@ -759,7 +765,7 @@ void EphemWriterCCSDS::HandleCcsdsOrbitData(bool writeData, bool &timeToWrite)
    // 80 min of data assuming average of 60 sec data interveval.
    // Check at least 10 min interval for large step size, since interpolater
    // buffer size is limited
-   if (!timeToWrite)
+   if (!timeToWrite && !HasExplicitOemWindow())
    {
       if ((currEpochInSecs - prevProcTime) > 600.0)
       {
@@ -819,21 +825,8 @@ void EphemWriterCCSDS::HandleCcsdsOrbitData(bool writeData, bool &timeToWrite)
 
       if (writeOrbit)
       {
-         if (!useFixedStepSize &&
-             (interpolateInitialState || interpolateFinalState))
-         {
-            // Keep native samples behind any pending explicit boundary. Writing
-            // a sample immediately can put a later-interpolated start out of order.
-            const Real initial = initialEpochA1Mjd * GmatTimeConstants::SECS_PER_DAY;
-            const Real final = finalEpochA1Mjd * GmatTimeConstants::SECS_PER_DAY;
-            if ((initialEpochA1Mjd == -999.999 || currEpochInSecs >= initial) &&
-                (finalEpochA1Mjd == -999.999 || currEpochInSecs <= final))
-               AddNextEpochToWrite(currEpochInSecs, "   Adding native sample within explicit OEM window, ");
-            // The first received step can cross both bounds, including at EOF.
-            if (finalEpochA1Mjd != -999.999 && currEpochInSecs >= final)
-               AddNextEpochToWrite(final, "   Adding explicit OEM final boundary, ");
+         if (HasExplicitOemWindow())
             ProcessEpochsOnWaiting(false, false);
-         }
          else
             HandleWriteOrbit();
       }

@@ -24,6 +24,14 @@ def executable(build_dir, name, platform):
     return paths[0]
 
 
+def ctest_status(case):
+    if case.find('failure') is not None or case.find('error') is not None:
+        return 'failed'
+    if case.find('skipped') is not None or case.get('status') in ('disabled', 'notrun'):
+        return 'skipped'
+    return 'passed' if case.get('status', 'run') == 'run' else 'failed'
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--platform', required=True,
@@ -39,9 +47,10 @@ def main():
     args = parser.parse_args()
     plan_path = args.plan.resolve()
     plan = json.loads(plan_path.read_text())
-    selected_names = set(args.cases.split(',')) if args.cases else {c['name'] for c in plan['cases']}
-    cases = [c for c in plan['cases'] if c['name'] in selected_names]
-    if len(cases) != len(selected_names):
+    available = [c for c in plan['cases'] if 'platforms' not in c or args.platform in c['platforms']]
+    selected_names = set(args.cases.split(',')) if args.cases else {c['name'] for c in available}
+    cases = [c for c in available if c['name'] in selected_names]
+    if not cases or len(cases) != len(selected_names):
         parser.error('The requested subset includes a case outside SharedSuite.json')
     targets = sorted({c['target'] for c in cases})
     args.output.mkdir(parents=True, exist_ok=True)
@@ -54,7 +63,8 @@ def main():
     source_commit = subprocess.check_output(
         ['git', 'rev-parse', args.source_ref], cwd=builder.REPO, text=True).strip()
     execution_plan = {'source_commit': source_commit, 'platform': args.platform,
-                      'graphics_profile': 'offscreen', 'cases': cases,
+                      'graphics_profile': 'offscreen + Xvfb' if any(c.get('native_x11') for c in cases) else 'offscreen',
+                      'cases': cases,
                       'build_flavor': builder.build_flavor(args.python_api),
                       'test_source_sha256': source_hashes, 'suite_sha256': sha(plan_path),
                       'assertions_and_tolerances': 'existing C++ test sources'}
@@ -116,13 +126,12 @@ def main():
         with (folder / 'ctest.log').open('w', encoding='utf-8') as log:
             result = subprocess.run(case_command, env=case_environment,
                                     stdout=log, stderr=subprocess.STDOUT)
-        for case in ET.parse(folder / 'junit.xml').iter('testcase'):
-            status = 'failed' if case.find('failure') is not None else 'passed'
-            if case.find('skipped') is not None:
-                status = 'skipped'
-            rows.append({'name': case.attrib['name'], 'status': status,
-                         'seconds': float(case.attrib.get('time', 0)),
-                         'ctest_exit': result.returncode})
+        reported = list(ET.parse(folder / 'junit.xml').iter('testcase'))
+        if len(reported) != 1 or reported[0].get('name') != selected['name']:
+            raise RuntimeError(f"Unexpected CTest result for {selected['name']}")
+        case = reported[0]
+        rows.append({'name': selected['name'], 'status': ctest_status(case),
+                     'seconds': float(case.attrib.get('time', 0)), 'ctest_exit': result.returncode})
         print(selected['name'], rows[-1]['status'], flush=True)
     if {c['name'] for c in rows} != selected_names:
         raise RuntimeError('CTest did not produce a result for every selected case')

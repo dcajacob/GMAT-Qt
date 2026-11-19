@@ -192,6 +192,19 @@ int main(int argc,char **argv)
             path->setText(oemPath); load->click();
             require(format->currentText()=="CCSDS-OEM" && !start->text().isEmpty(),
                   "OEM metadata was not populated");
+            const auto ordinalPath=scratch.filePath("ordinal.oem");
+            auto ordinal=oem;
+            ordinal.replace("2000-01-01","2024-060");
+            write(ordinalPath,ordinal);
+            path->setText(ordinalPath); load->click();
+            require(apply->isEnabled() && start->text().startsWith("2024-060"),"Ordinal OEM epoch disabled Import");
+            auto calendar=ephemeris;
+            calendar.epoch="2024-02-29T12:00:00.123456789";
+            auto dayOfYear=calendar;
+            dayOfYear.epoch="2024-060T12:00:00.123456789";
+            require(satelliteImportScript(calendar,"Sat",ordinalPath)==satelliteImportScript(dayOfYear,"Sat",ordinalPath),
+                  "Ordinal epoch changed the spacecraft start time");
+            start->setText("2023-366T00:00:00"); require(!apply->isEnabled(),"Invalid ordinal date was accepted");
             path->setText(scratch.filePath("input.tle"));
             require(start->text().isEmpty() && !apply->isEnabled(),
                   "Changing file retained the previous OEM epoch");

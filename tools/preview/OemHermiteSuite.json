@@ -36,6 +36,57 @@
       "name": "QtGui.OemPortableInterpolationPolicy",
       "target": "GmatQtOemPortablePolicyTests",
       "source": "src/qtgui/tests/InterpolationSufficiencyTests.cpp"
+    },
+    {
+      "name": "QtGui.OemSegmentFrames",
+      "target": "GmatOemSegmentCoverageTests",
+      "source": "src/qtgui/tests/OemSegmentCoverageTests.cpp"
+    },
+    {
+      "name": "QtGui.OemSegmentUsableInterval",
+      "target": "GmatOemSegmentCoverageTests",
+      "source": "src/qtgui/tests/OemSegmentCoverageTests.cpp"
+    },
+    {
+      "name": "QtGui.OemSegmentGapEndpoint",
+      "target": "GmatOemSegmentCoverageTests",
+      "source": "src/qtgui/tests/OemSegmentCoverageTests.cpp"
+    },
+    {
+      "name": "QtGui.OemSegmentOrderedSegments",
+      "target": "GmatOemSegmentCoverageTests",
+      "source": "src/qtgui/tests/OemSegmentCoverageTests.cpp"
+    },
+    {
+      "name": "QtGui.OemSegmentLagrangeOrders",
+      "target": "GmatOemSegmentCoverageTests",
+      "source": "src/qtgui/tests/OemSegmentCoverageTests.cpp"
+    },
+    {
+      "name": "QtGui.NasaOemShortWindowNarrowAtLast",
+      "target": "GmatQtNasaOemRecordSupportTests",
+      "source": "src/qtgui/tests/NasaOemRecordSupportTests.cpp",
+      "platforms": [
+        "linux-x86_64"
+      ]
+    },
+    {
+      "name": "QtGui.NativeNasaEphemerisDirectionOemForwardReverse",
+      "target": "GmatQtNasaEphemerisDirectionTests",
+      "source": "src/qtgui/tests/NasaEphemerisDirectionTests.cpp",
+      "platforms": [
+        "linux-x86_64"
+      ],
+      "native_x11": true
+    },
+    {
+      "name": "QtGui.NativeNasaEphemerisDirectionOemBackwardReverse",
+      "target": "GmatQtNasaEphemerisDirectionTests",
+      "source": "src/qtgui/tests/NasaEphemerisDirectionTests.cpp",
+      "platforms": [
+        "linux-x86_64"
+      ],
+      "native_x11": true
     }
   ]
 }

@@ -131,7 +131,7 @@ bool CCSDSOEMSegment::Validate(bool checkData)
    if (method == "HERMITE" &&
          (interpolationDegree < 0 || interpolationDegree > 9 || (interpolationDegree > 0 && interpolationDegree % 2 == 0)))
       throw UtilityException(segError + "HERMITE interpolation requires an odd degree from 1 to 9.");
-   return CCSDSEMSegment::Validate(checkData);
+   return ValidateMetadata(checkData, 10);
 }
 
 
@@ -432,7 +432,8 @@ bool CCSDSOEMSegment::GetUsableIndexRange(Integer &first, Integer &last)
       last = static_cast<Integer>(dataStore.size()) - 1;
       return true;
    }
-   if (interpolationMethod == "HERMITE" && interpolationDegree <= 1 && dataStore.size() == 1)
+   if (dataStore.size() == 1 && (interpolationDegree == 0 ||
+         (interpolationMethod == "HERMITE" && interpolationDegree == 1)))
    {
       first = last = 0;
       return true;
