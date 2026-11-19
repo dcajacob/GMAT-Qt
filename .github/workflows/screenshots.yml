@@ -1,0 +1,539 @@
+name: Marketing Screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag to capture screenshots from'
+        required: true
+        default: 'v0.1.0-alpha.5'
+        type: string
+  push:
+    branches:
+      - 'cursor/screenshots-workflow-08fd'
+
+permissions:
+  contents: read
+
+jobs:
+  screenshot-linux:
+    name: Screenshot Linux x86-64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Install desktop environment and tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            xvfb \
+            xfce4 \
+            xfce4-terminal \
+            xfwm4 \
+            scrot \
+            mesa-utils \
+            libgl1-mesa-dri \
+            libglx-mesa0 \
+            wget \
+            imagemagick \
+            wmctrl \
+            x11-utils \
+            tesseract-ocr \
+            xdotool
+          
+      - name: Download Linux release package
+        run: |
+          TAG="${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
+          VERSION="${TAG#v}"
+          wget -O gmat-qt.tar.gz \
+            "https://github.com/dcajacob/GMAT-Qt/releases/download/$TAG/GMAT-Qt-$VERSION-linux-x86_64.tar.gz"
+          
+      - name: Extract package
+        run: |
+          tar -xzf gmat-qt.tar.gz
+          ls -la
+          TAG="${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
+          VERSION="${TAG#v}"
+          echo "GMAT_DIR=GMAT-Qt-$VERSION-linux-x86_64" >> $GITHUB_ENV
+          
+      - name: Start Xvfb with XFCE desktop
+        run: |
+          # Start Xvfb with 1920x1080 resolution
+          Xvfb :99 -screen 0 1920x1080x24 &
+          export DISPLAY=:99
+          sleep 2
+          
+          # Verify resolution
+          xdpyinfo -display :99 | grep dimensions
+          
+          # Start XFCE window manager for proper window management
+          xfwm4 &
+          sleep 2
+          
+          # Start XFCE panel for desktop chrome
+          xfce4-panel &
+          sleep 3
+          
+          # Set software OpenGL
+          export LIBGL_ALWAYS_SOFTWARE=1
+          export MESA_GL_VERSION_OVERRIDE=3.3
+          
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+          echo "LIBGL_ALWAYS_SOFTWARE=1" >> $GITHUB_ENV
+          echo "MESA_GL_VERSION_OVERRIDE=3.3" >> $GITHUB_ENV
+          
+      - name: Launch GMAT-Qt and capture screenshot
+        run: |
+          cd "$GMAT_DIR"
+          
+          # Create simple native OrbitView script
+          cat > /tmp/simple_orbit.script << 'SCRIPT_EOF'
+          Create Spacecraft DefaultSC;
+          DefaultSC.DateFormat = TAIModJulian;
+          DefaultSC.Epoch = 29383.5;
+          DefaultSC.X = 7100;
+          DefaultSC.Y = 0;
+          DefaultSC.Z = 1300;
+          DefaultSC.VX = 0;
+          DefaultSC.VY = 7.35;
+          DefaultSC.VZ = 1;
+          
+          Create ForceModel DefaultProp_ForceModel;
+          DefaultProp_ForceModel.CentralBody = Earth;
+          DefaultProp_ForceModel.PointMasses = {Earth};
+          
+          Create Propagator DefaultProp;
+          DefaultProp.FM = DefaultProp_ForceModel;
+          
+          Create OrbitView DefaultOrbitView;
+          DefaultOrbitView.Add = {DefaultSC, Earth};
+          DefaultOrbitView.CoordinateSystem = EarthMJ2000Eq;
+          DefaultOrbitView.ViewPointVector = [ 30000 0 0 ];
+          DefaultOrbitView.ViewUpAxis = Z;
+          DefaultOrbitView.XYPlane = On;
+          DefaultOrbitView.Axes = On;
+          
+          Create GroundTrackPlot DefaultGroundTrackPlot;
+          DefaultGroundTrackPlot.Add = {DefaultSC};
+          
+          BeginMissionSequence;
+          Propagate DefaultProp(DefaultSC) {DefaultSC.ElapsedSecs = 12000};
+          SCRIPT_EOF
+          
+          # Launch GMAT-Qt
+          ./run-gmat /tmp/simple_orbit.script &
+          GMAT_PID=$!
+          
+          # Wait for window
+          for i in {1..30}; do
+            if xdotool search --name "GMAT" > /dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          sleep 3
+          
+          # Maximize and run
+          GMAT_WINDOW=$(xdotool search --name "GMAT" | head -1)
+          if [ -n "$GMAT_WINDOW" ]; then
+            echo "Found GMAT window: $GMAT_WINDOW"
+            xdotool windowactivate $GMAT_WINDOW
+            sleep 1
+            # Maximize via wmctrl
+            wmctrl -i -r $GMAT_WINDOW -b add,maximized_vert,maximized_horz
+            sleep 1
+            # Also resize explicitly to 1920x1080
+            xdotool windowsize $GMAT_WINDOW 1920 1080
+            sleep 2
+            # Move to 0,0 to ensure it fills screen
+            xdotool windowmove $GMAT_WINDOW 0 0
+            sleep 2
+            xdotool key F7
+            sleep 8
+            xdotool key F5
+            sleep 25
+          fi
+          
+          # Log all windows
+          echo "=== All window titles ==="
+          wmctrl -l
+          
+          # Take screenshot
+          scrot -o /tmp/screenshot-linux.png
+          
+          # OCR and save
+          tesseract /tmp/screenshot-linux.png /tmp/linux-ocr 2>/dev/null
+          cat /tmp/linux-ocr.txt
+          
+          # Strict verification  
+          OCR_TEXT=$(cat /tmp/linux-ocr.txt)
+          if echo "$OCR_TEXT" | grep -iE "Mission failed|Build failed|ERROR.*Exception|Convert OpenFrames|Build this script to update them|not permitted"; then
+            echo "FAILED: Found error text in OCR"
+            exit 1
+          fi
+          
+          # Check for success indicators
+          if ! echo "$OCR_TEXT" | grep -iE "Mission completed|Total Run Time|DefaultOrbitView|DefaultGroundTrackPlot"; then
+            echo "FAILED: No mission success indicators found"
+            exit 1
+          fi
+          
+          echo "PASSED: Strict verification"
+          
+          kill $GMAT_PID || true
+          
+      - name: Upload Linux screenshot and OCR
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-linux-x86_64
+          path: |
+            /tmp/screenshot-linux.png
+            /tmp/linux-ocr.txt
+          retention-days: 30
+
+  screenshot-windows:
+    name: Screenshot Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      
+      - name: Install tesseract OCR
+        shell: pwsh
+        run: |
+          choco install tesseract -y
+          $env:PATH = "C:\Program Files\Tesseract-OCR;$env:PATH"
+          
+      - name: Download Windows release package
+        shell: pwsh
+        run: |
+          $tag = "${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
+          $version = $tag.TrimStart('v')
+          $url = "https://github.com/dcajacob/GMAT-Qt/releases/download/$tag/GMAT-Qt-$version-windows-x64.zip"
+          Write-Host "Downloading from: $url"
+          Invoke-WebRequest -Uri $url -OutFile gmat-qt.zip
+          
+      - name: Extract package
+        shell: pwsh
+        run: |
+          Expand-Archive -Path gmat-qt.zip -DestinationPath .
+          Get-ChildItem
+          $tag = "${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
+          $version = $tag.TrimStart('v')
+          $gmatDir = "GMAT-Qt-$version-windows-x64"
+          "GMAT_DIR=$gmatDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          
+      - name: Set display resolution to 1920x1080
+        shell: pwsh
+        run: |
+          # Try to set resolution to 1920x1080
+          try {
+            Set-DisplayResolution -Width 1920 -Height 1080 -Force -ErrorAction SilentlyContinue
+            Write-Host "Set resolution to 1920x1080"
+          } catch {
+            Write-Host "Could not set resolution, using default"
+          }
+          Start-Sleep -Seconds 2
+          
+      - name: Launch GMAT-Qt and capture screenshot
+        shell: pwsh
+        run: |
+          $gmatDir = $env:GMAT_DIR
+          Set-Location $gmatDir
+          
+          # Create simple native OrbitView script (same as Linux)
+          @'
+          Create Spacecraft DefaultSC;
+          DefaultSC.DateFormat = TAIModJulian;
+          DefaultSC.Epoch = 29383.5;
+          DefaultSC.X = 7100;
+          DefaultSC.Y = 0;
+          DefaultSC.Z = 1300;
+          DefaultSC.VX = 0;
+          DefaultSC.VY = 7.35;
+          DefaultSC.VZ = 1;
+          
+          Create ForceModel DefaultProp_ForceModel;
+          DefaultProp_ForceModel.CentralBody = Earth;
+          DefaultProp_ForceModel.PointMasses = {Earth};
+          
+          Create Propagator DefaultProp;
+          DefaultProp.FM = DefaultProp_ForceModel;
+          
+          Create OrbitView DefaultOrbitView;
+          DefaultOrbitView.Add = {DefaultSC, Earth};
+          DefaultOrbitView.CoordinateSystem = EarthMJ2000Eq;
+          DefaultOrbitView.ViewPointVector = [ 30000 0 0 ];
+          DefaultOrbitView.ViewUpAxis = Z;
+          DefaultOrbitView.XYPlane = On;
+          DefaultOrbitView.Axes = On;
+          
+          Create GroundTrackPlot DefaultGroundTrackPlot;
+          DefaultGroundTrackPlot.Add = {DefaultSC};
+          
+          BeginMissionSequence;
+          Propagate DefaultProp(DefaultSC) {DefaultSC.ElapsedSecs = 12000};
+          '@ | Set-Content "$env:TEMP\simple_orbit.script"
+          
+          # Launch
+          $process = Start-Process -FilePath ".\bin\GmatQt.exe" -ArgumentList "$env:TEMP\simple_orbit.script" -PassThru -WindowStyle Maximized
+          Start-Sleep -Seconds 10
+          
+          # Send F7 and F5
+          Add-Type -AssemblyName System.Windows.Forms
+          $sig = @'
+          [DllImport("user32.dll")]
+          public static extern bool SetForegroundWindow(IntPtr hWnd);
+          '@
+          $winAPI = Add-Type -MemberDefinition $sig -Name WinAPI2 -PassThru
+          $winAPI::SetForegroundWindow($process.MainWindowHandle)
+          Start-Sleep -Seconds 2
+          [System.Windows.Forms.SendKeys]::SendWait("{F7}")
+          Start-Sleep -Seconds 8
+          [System.Windows.Forms.SendKeys]::SendWait("{F5}")
+          Start-Sleep -Seconds 25
+          
+          # Log windows
+          Write-Host "=== Window titles ==="
+          Get-Process | Where-Object {$_.MainWindowTitle} | Select-Object MainWindowTitle | Format-Table
+          
+          # Screenshot
+          Add-Type -AssemblyName System.Drawing
+          $screens = [Windows.Forms.Screen]::AllScreens
+          $screen = $screens[0]
+          $bitmap = New-Object Drawing.Bitmap $screen.Bounds.Width, $screen.Bounds.Height
+          $graphics = [Drawing.Graphics]::FromImage($bitmap)
+          $graphics.CopyFromScreen($screen.Bounds.Location, [Drawing.Point]::Empty, $screen.Bounds.Size)
+          $bitmap.Save("$env:TEMP\screenshot-windows.png")
+          $graphics.Dispose()
+          $bitmap.Dispose()
+          
+          # OCR and save
+          $env:PATH = "C:\Program Files\Tesseract-OCR;$env:PATH"
+          & tesseract "$env:TEMP\screenshot-windows.png" "$env:TEMP\windows-ocr" 2>$null
+          Get-Content "$env:TEMP\windows-ocr.txt"
+          
+          # Strict verification
+          $exitCode = 0
+          $ocrText = Get-Content "$env:TEMP\windows-ocr.txt" -Raw
+          if ($ocrText -match "(?i)(Mission failed|Build failed|ERROR.*Exception|Convert OpenFrames|Build this script to update them|not permitted)") {
+            Write-Host "FAILED: Found error text in OCR"
+            $exitCode = 1
+          }
+          
+          # Check for success indicators
+          if ($ocrText -notmatch "(?i)(Mission completed|Total Run Time|DefaultOrbitView|DefaultGroundTrackPlot)") {
+            Write-Host "FAILED: No mission success indicators found"
+            $exitCode = 1
+          }
+          
+          if ($exitCode -eq 0) {
+            Write-Host "PASSED: Strict verification"
+          }
+          
+          Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+          Move-Item "$env:TEMP\screenshot-windows.png" ..\screenshot-windows.png
+          Move-Item "$env:TEMP\windows-ocr.txt" ..\windows-ocr.txt
+          
+          exit $exitCode
+          
+      - name: Upload Windows screenshot and OCR
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-windows-x64
+          path: |
+            screenshot-windows.png
+            windows-ocr.txt
+          retention-days: 30
+      
+      - name: Commit debug screenshots on failure
+        if: failure()
+        run: |
+          mkdir -p docs/screenshots/alpha.5/debug
+          cp screenshot-windows.png docs/screenshots/alpha.5/debug/ || true
+          cp windows-ocr.txt docs/screenshots/alpha.5/debug/ || true
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots/alpha.5/debug/ || true
+          git commit -m "Debug: Windows screenshot iteration ${{ github.run_number }}" || true
+          git push || true
+
+  screenshot-macos-arm64:
+    name: Screenshot macOS Apple Silicon
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      
+      - name: Install tesseract OCR
+        run: |
+          brew install tesseract
+          
+      - name: Download macOS ARM64 release package
+        run: |
+          TAG="${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
+          VERSION="${TAG#v}"
+          curl -L -o gmat-qt.zip \
+            "https://github.com/dcajacob/GMAT-Qt/releases/download/$TAG/GMAT-Qt-$VERSION-macos-arm64.zip"
+          
+      - name: Extract package
+        run: |
+          unzip gmat-qt.zip
+          ls -la
+          TAG="${{ inputs.release_tag || 'v0.1.0-alpha.5' }}"
+          VERSION="${TAG#v}"
+          echo "GMAT_DIR=GMAT-Qt-$VERSION-macos-arm64" >> $GITHUB_ENV
+          
+      - name: Handle quarantine and signature
+        run: |
+          cd "$GMAT_DIR"
+          xattr -cr GMAT-Qt.app
+          
+      - name: Launch GMAT-Qt and capture screenshot
+        run: |
+          cd "$GMAT_DIR"
+          
+          # Create simple native OrbitView script (same as Linux/Windows)
+          cat > /tmp/simple_orbit.script << 'SCRIPT_EOF'
+          Create Spacecraft DefaultSC;
+          DefaultSC.DateFormat = TAIModJulian;
+          DefaultSC.Epoch = 29383.5;
+          DefaultSC.X = 7100;
+          DefaultSC.Y = 0;
+          DefaultSC.Z = 1300;
+          DefaultSC.VX = 0;
+          DefaultSC.VY = 7.35;
+          DefaultSC.VZ = 1;
+          
+          Create ForceModel DefaultProp_ForceModel;
+          DefaultProp_ForceModel.CentralBody = Earth;
+          DefaultProp_ForceModel.PointMasses = {Earth};
+          
+          Create Propagator DefaultProp;
+          DefaultProp.FM = DefaultProp_ForceModel;
+          
+          Create OrbitView DefaultOrbitView;
+          DefaultOrbitView.Add = {DefaultSC, Earth};
+          DefaultOrbitView.CoordinateSystem = EarthMJ2000Eq;
+          DefaultOrbitView.ViewPointVector = [ 30000 0 0 ];
+          DefaultOrbitView.ViewUpAxis = Z;
+          DefaultOrbitView.XYPlane = On;
+          DefaultOrbitView.Axes = On;
+          
+          Create GroundTrackPlot DefaultGroundTrackPlot;
+          DefaultGroundTrackPlot.Add = {DefaultSC};
+          
+          BeginMissionSequence;
+          Propagate DefaultProp(DefaultSC) {DefaultSC.ElapsedSecs = 12000};
+          SCRIPT_EOF
+          
+          # Launch
+          ./GMAT-Qt.app/Contents/MacOS/GmatQt /tmp/simple_orbit.script &
+          GMAT_PID=$!
+          
+          # Wait for window
+          for i in {1..30}; do
+            if osascript -e 'tell application "System Events" to exists (first process whose name is "GmatQt")' 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          sleep 3
+          
+          # Build and Run
+          osascript <<'EOF' || true
+          tell application "System Events"
+            set gmatProcess to first process whose name is "GmatQt"
+            set frontmost of gmatProcess to true
+            delay 2
+            key code 98
+            delay 8
+            key code 96
+            delay 25
+          end tell
+          EOF
+          
+          # Log windows
+          echo "=== Window titles ==="
+          osascript -e 'tell application "System Events" to get name of every window of (first process whose name is "GmatQt")' 2>/dev/null || true
+          
+          # Screenshot and OCR
+          screencapture -x /tmp/screenshot-macos-arm64.png
+          tesseract /tmp/screenshot-macos-arm64.png /tmp/macos-ocr 2>/dev/null
+          cat /tmp/macos-ocr.txt || true
+          
+          # Strict verification
+          EXIT_CODE=0
+          OCR_TEXT=$(cat /tmp/macos-ocr.txt || echo "")
+          if echo "$OCR_TEXT" | grep -iE "Mission failed|Build failed|ERROR.*Exception|Convert OpenFrames|Build this script to update them|not permitted"; then
+            echo "FAILED: Found error text in OCR"
+            EXIT_CODE=1
+          fi
+          
+          # Check for success indicators
+          if ! echo "$OCR_TEXT" | grep -iE "Mission completed|Total Run Time|DefaultOrbitView|DefaultGroundTrackPlot"; then
+            echo "FAILED: No mission success indicators found"
+            EXIT_CODE=1
+          fi
+          
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "PASSED: Strict verification"
+          fi
+          
+          kill $GMAT_PID 2>/dev/null || pkill -f "GmatQt" || true
+          
+          exit $EXIT_CODE
+          
+      - name: Upload macOS ARM64 screenshot and OCR
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-macos-arm64
+          path: |
+            /tmp/screenshot-macos-arm64.png
+            /tmp/macos-ocr.txt
+          retention-days: 30
+      
+      - name: Commit debug screenshots on failure
+        if: failure()
+        run: |
+          mkdir -p docs/screenshots/alpha.5/debug
+          cp /tmp/screenshot-macos-arm64.png docs/screenshots/alpha.5/debug/ || true
+          cp /tmp/macos-ocr.txt docs/screenshots/alpha.5/debug/ || true
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots/alpha.5/debug/ || true
+          git commit -m "Debug: macOS ARM64 screenshot iteration ${{ github.run_number }}" || true
+          git push || true
+
+  combine-screenshots:
+    name: Combine all screenshots
+    runs-on: ubuntu-latest
+    needs: [screenshot-linux, screenshot-windows, screenshot-macos-arm64]
+    if: always()
+    steps:
+      - name: Download all screenshots
+        uses: actions/download-artifact@v4
+        with:
+          path: screenshots
+          
+      - name: Create combined archive
+        run: |
+          cd screenshots
+          find . -name "*.png" -exec mv {} . \;
+          ls -la
+          zip -r ../screenshots-combined.zip *.png
+          
+      - name: Upload combined screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-combined
+          path: screenshots-combined.zip
+          retention-days: 30
