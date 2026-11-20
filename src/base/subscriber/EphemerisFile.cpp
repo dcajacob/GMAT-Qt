@@ -200,6 +200,12 @@ StringArray EphemerisFile::covFormatList;
 StringArray EphemerisFile::distanceUnitList;
 StringArray EphemerisFile::eventBoundariesList;
 
+EphemerisFile::OutputPathCheck &EphemerisFile::OutputPathValidator()
+{
+   static thread_local OutputPathCheck check;
+   return check;
+}
+
 const std::string
 EphemerisFile::PARAMETER_TEXT[EphemerisFileParamCount - SubscriberParamCount] =
 {
@@ -952,6 +958,7 @@ bool EphemerisFile::Initialize()
    // when it is toggled off or not writing ephemeris file in the current run.
    // On Linux an input stream can open a directory, and remove() can remove an
    // empty directory. Never replace a directory with an ephemeris output file.
+   if (OutputPathValidator()) OutputPathValidator()(fullPathFileName);
    if (!fullPathFileName.empty() &&
        GmatFileUtil::DoesDirectoryExist(fullPathFileName + "/", false))
       throw SubscriberException("Ephemeris output path is a directory: " + fullPathFileName);
@@ -1564,6 +1571,7 @@ bool EphemerisFile::SetStringParameter(const Integer id, const std::string &valu
             GetName(),value,"EPHEM_OUTPUT_FILE",false,".eph",false,true);
       ValidateEphemerisOutputPath(proposedPath);
       const std::string destination=EphemerisOutputName(proposedPath,fileFormat,true);
+      if (OutputPathValidator()) OutputPathValidator()(destination);
       ValidateEphemerisOutputPath(destination);
       const bool trial=ShouldSuppressTrialOutput(runstate);
       const std::string currentDestination=EphemerisOutputName(fullPathFileName,fileFormat,true);
@@ -1994,9 +2002,9 @@ Real EphemerisFile::ConvertInitialAndFinalEpoch()
       TimeSystemConverter::Instance()->Convert(epochFormat, dummyA1Mjd, finalEpochStr,
                                  "A1ModJulian", finalEpochA1Mjd, epochStr);
    
-   // Check if ephemeris initial epoch is before the spacecraft initial epoch
+   // A backward OEM traversal can reach an interval before the spacecraft start.
    Real satInitialEpoch = spacecraft->GetEpoch();
-   if ((initialEpochStr != "InitialSpacecraftEpoch") && initialEpochA1Mjd < satInitialEpoch)
+   if (fileFormat != "CCSDS-OEM" && initialEpochStr != "InitialSpacecraftEpoch" && initialEpochA1Mjd < satInitialEpoch)
    {
       SubscriberException se;
       se.SetDetails("Initial epoch (%f) of ephemeris file \"%s\" cannot be before "
@@ -2413,6 +2421,7 @@ void EphemerisFile::CreateEphemerisWriter()
 {
    if (ephemWriter) return;
    GetProperFileName(fileName,fileFormat,true);
+   if (OutputPathValidator()) OutputPathValidator()(fullPathFileName);
    ValidateEphemerisOutputPath(fullPathFileName);
 
    // A failed setup/open must not leave a half-configured member that causes
@@ -2897,7 +2906,8 @@ void EphemerisFile::HandlePropDirectionChange()
    if (propIndicator > 2)
    {
       //if (!firstTimeWriting && !a1MjdArray.empty())
-      if (!firstTimeWriting && !ephemWriter->IsDataEmpty())
+      if (!firstTimeWriting && (!ephemWriter->IsDataEmpty() ||
+            (fileFormat == "CCSDS-OEM" && (initialEpochStr != "InitialSpacecraftEpoch" || finalEpochStr != "FinalSpacecraftEpoch"))))
       {
          // Start new segment if CCSDS format
          if ((fileFormat == "CCSDS-OEM" || fileFormat == "CCSDS-AEM"))

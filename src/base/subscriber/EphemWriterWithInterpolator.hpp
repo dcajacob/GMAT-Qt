@@ -86,6 +86,7 @@ protected:
                                      bool saveEpochInfo,
                                      bool writeAfterData,
                                      bool ignoreBlankComments);
+   bool QueueOemWindow(Real epoch, Real previous, bool first);
    bool         IsTimeToWrite(Real epochInSecs, const Real state[6], const Real cov[21], const Real quat[4], const Real accel[3]);
    virtual void WriteOrbitAt(Real reqEpochInSecs, const Real state[6], const Real cov[21], const Real quat[4], const Real accel[3]);
    

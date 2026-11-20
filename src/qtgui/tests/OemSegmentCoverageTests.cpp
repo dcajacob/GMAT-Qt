@@ -1,5 +1,6 @@
 #include "CCSDSEphemerisFile.hpp"
 #include "CCSDSOEMReader.hpp"
+#include "CCSDSOEMWriter.hpp"
 #include "FileManager.hpp"
 #include "LeapSecsFileReader.hpp"
 #include "TimeSystemConverter.hpp"
@@ -8,6 +9,7 @@
 #include <QTemporaryDir>
 #include <cmath>
 #include <iostream>
+#include <map>
 #include <stdexcept>
 
 namespace {
@@ -122,6 +124,44 @@ void gapEndpoint(const QTemporaryDir &dir)
          file.InterpolatePoint(end.GetMjd())[0] == 7130, "Shared endpoint used the preceding segment");
 }
 
+void lagrangeOrders(const QTemporaryDir &dir)
+{
+   CCSDSEphemerisFile file;
+   CCSDSOEMReader reader;
+   for (const int end : {0, 30, 110}) {
+      const int degree = end == 110 ? 10 : 0;
+      const auto path = dir.filePath(QString("degree-%1-%2.oem").arg(degree).arg(end)).toStdString();
+      const auto epoch = [](int t) {
+         return CCSDSEMSegment::ParseEpochGT(timestamp(t).replace(".123456789", ".000").toStdString());
+      };
+      {
+         CCSDSOEMWriter writer("1.0");
+         check(writer.OpenFile(path) && writer.SetHeaderForWriting("ORIGINATOR","GMAT") &&
+               writer.WriteHeader("CCSDS_OEM_VERS"), "Cannot create Lagrange OEM");
+         for (int t = 0; t <= end; t += 10) {
+            Rvector state(6, 7000. + t, 10., 20., 1., 0., 0.);
+            check(writer.AddDataForWriting(epoch(t).GetMjd(), state), "Cannot add Lagrange record");
+         }
+         const auto start = writer.FormatEpoch(epoch(0).GetMjd()), stop = writer.FormatEpoch(epoch(end).GetMjd());
+         for (const auto &field : std::map<std::string,std::string>{
+               {"OBJECT_NAME","Test"}, {"OBJECT_ID","Test"}, {"CENTER_NAME","Earth"},
+               {"REF_FRAME","EME2000"}, {"TIME_SYSTEM","UTC"}, {"START_TIME",start}, {"STOP_TIME",stop},
+               {"USEABLE_START_TIME",start}, {"USEABLE_STOP_TIME",stop},
+               {"INTERPOLATION","LAGRANGE"}, {"INTERPOLATION_DEGREE",std::to_string(degree)}})
+            check(writer.SetMetaDataForWriting(field.first,field.second), "Cannot set Lagrange metadata");
+         check(writer.WriteMetaData() && writer.WriteDataSegment(), "Cannot write Lagrange segment");
+      }
+      check(file.OpenForRead(path, "TimePosVel"), "Cannot reopen Lagrange OEM");
+      reader.SetFile(path);
+      for (int t = 0; t <= end; ++t) {
+         const double expected = 7000 + (degree == 0 ? t - t % 10 : t);
+         check(std::abs(file.InterpolatePoint(epoch(t))[0] - expected) < 1e-5, "Incorrect Lagrange state");
+         check(std::abs(reader.GetState(epoch(t).GetMjd())[0] - expected) < 1e-5, "Incorrect direct reader state");
+      }
+      rejects([&] { file.InterpolatePoint(epoch(end+1)); }, "outside");
+   }
+}
+
 void orderedSegments(const QTemporaryDir &dir)
 {
    CCSDSOEMReader reader;
@@ -152,6 +192,7 @@ int main(int argc, char **argv)
       if (name == "Frames") frames(dir);
       else if (name == "UsableInterval") usableInterval(dir);
       else if (name == "GapEndpoint") gapEndpoint(dir);
+      else if (name == "LagrangeOrders") lagrangeOrders(dir);
       else if (name == "OrderedSegments") orderedSegments(dir);
       else throw std::runtime_error("Unknown case " + name);
       return 0;

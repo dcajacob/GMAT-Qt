@@ -28,6 +28,7 @@ on:
       - 'src/gmatutil/util/CCSDSOEMReader.*'
       - 'src/gmatutil/util/CCSDSOEMSegment.*'
       - 'src/gmatutil/util/Ephemeris.*'
+      - 'src/gmatutil/util/STKEphemerisFile.*'
   push:
     branches: ['codex/alpha-0.1.0']
     paths:

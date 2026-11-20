@@ -364,6 +364,14 @@ Rvector6 Ephemeris::InterpolatePoint(const GmatTime &forEpoch)
    if (distance == 0.0)
       return theEphem[segNo].points[index].posvel;
 
+   if (!useHermite && order == 0)
+   {
+      const auto &points = theEphem[segNo].points;
+      if (index > 0 && forEpoch < points[index].GetEpoch())
+         --index;
+      return points[index].posvel;
+   }
+
    const Integer available = theEphem[segNo].points.size();
    const Integer requestedPoints = useHermite ? (order + 1) / 2 : order + 1;
    // Here currentOrder tracks the number of intervals in the node stencil.

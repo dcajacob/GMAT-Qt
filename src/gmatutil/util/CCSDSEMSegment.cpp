@@ -432,6 +432,11 @@ CCSDSEMSegment::~CCSDSEMSegment()
 //------------------------------------------------------------------------------
 bool CCSDSEMSegment::Validate(bool checkData)
 {
+   return ValidateMetadata(checkData, 9);
+}
+
+bool CCSDSEMSegment::ValidateMetadata(bool checkData, Integer maxLagrangeDegree)
+{
    #ifdef DEBUG_EM_VALIDATE
       MessageInterface::ShowMessage("Entering EMSegment::Validate ...\n");
    #endif
@@ -513,11 +518,11 @@ bool CCSDSEMSegment::Validate(bool checkData)
    // Interpolation
    if ((interpolationMethod == "LAGRANGE") || checkLagrangeOrder)
    {
-      if ((interpolationDegree < 0) || (interpolationDegree > 9))
+      if ((interpolationDegree < 0) || (interpolationDegree > maxLagrangeDegree))
       {
          std::string errmsg = segError;
          errmsg += "Field INTERPOLATION_DEGREE is out-of-range.  For Lagrange ";
-         errmsg += "interpolation, degree must be between 0 and 9.\n";
+         errmsg += "interpolation, degree must be between 0 and " + std::to_string(maxLagrangeDegree) + ".\n";
          throw UtilityException(errmsg);
       }
    }

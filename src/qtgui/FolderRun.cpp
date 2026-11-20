@@ -9,6 +9,7 @@
 #include <QRegularExpression>
 #include <QEventLoop>
 #include <QTimer>
+#include <algorithm>
 #include <future>
 #include <filesystem>
 #include <limits>
@@ -109,7 +110,9 @@ FolderRunResult runScriptFolder(const FolderRunOptions &options,const FolderScri
       if (options.saveCopies) {
          loaded=QDir(options.copyDirectory).filePath(QFileInfo(script).fileName());
          QFile source(script);
-         if (QFileInfo(loaded).canonicalFilePath()==QFileInfo(script).canonicalFilePath()) copyError="A saved copy would overwrite a source script.";
+         const bool overwritesMission = std::any_of(allScripts.cbegin(), allScripts.cend(),
+               [&](const QString &sourcePath) { return sameFolderRunFile(loaded, sourcePath); });
+         if (overwritesMission) copyError="A saved copy would overwrite a source script.";
          else if (!source.open(QIODevice::ReadOnly)) copyError=source.errorString();
          else { const auto bytes=source.readAll(); copyError=source.error()!=QFileDevice::NoError ? source.errorString() : save(loaded,bytes); }
       }
@@ -147,7 +150,7 @@ FolderRunResult runScriptFolder(const FolderRunOptions &options,const FolderScri
          const auto reportPaths=item.reports.values()+item.reservedReportPaths;
          if (options.compare)
             for (const auto &report:reportPaths) protectedPaths.append(folderRunBaseline(options,report));
-         protectedPaths.append(item.loadedScript); protectedPaths.append(reportPaths);
+         protectedPaths.append(item.loadedScript); protectedPaths.append(reportPaths); protectedPaths.append(item.ephemerisPaths);
          if (item.category=="Interrupted" || cancel) { result.cancelled=true; break; }
       }
       if (result.cancelled) break;

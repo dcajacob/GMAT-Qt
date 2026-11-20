@@ -60,7 +60,16 @@ int main(int argc,char **argv)
       options.tolerance=0.124; require(check().different==1,"Tolerance below numeric difference was ignored");
       write(right,"new header\n1 nan\n3 4\n"); require(check().errors==1,"Non-finite numeric line was accepted");
       write(right,"new header\n1.125 2\n3 4\n5 6\n"); require(check().different==1 && read(report).contains("<end of file>"),"Trailing numeric rows were ignored");
+      write(left,"7000 7.5\n"); write(right,"7000 N/A\n");
+      require(check().different==1,"A missing numeric value compared equal");
+      write(left,"7000 N/A\n"); write(right,"7000 7.5\n");
+      require(check().different==1,"An unexpected numeric value compared equal");
       options.mode=FileCompareMode::NumericColumns; options.tolerance=0.125;
+      write(left,"7000,7.5\n"); write(right,read(left));
+      result=check(); require(result.compared==1 && !result.different && !result.errors,"Comma-delimited report could not be compared");
+      write(right,"7000,8.5\n"); require(check().different==1,"Comma-delimited column difference was hidden");
+      write(left,"1,2\n3,4\n"); write(right,"1,2\n3, ,4\n");
+      require(check().errors==1,"A missing CSV column shifted subsequent values");
       write(left,"baseline heading\n01 Jan 2000 12:00:00.000 1 2\n01 Jan 2000 12:01:00.000 3 4\n");
       write(right,"candidate heading\n\n2000-01-01T12:00:00.000 1.125 2\n2000-01-01T12:01:00.000 3 4\n");
       result=check(); require(result.compared==1 && !result.different && !result.errors && read(report).contains("0.125   no"),"UTC column conversion or maxima failed");

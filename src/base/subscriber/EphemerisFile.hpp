@@ -39,11 +39,16 @@
 #include "ODEModel.hpp"
 #include <iostream>
 #include <fstream>
+#include <functional>
 
 class GMAT_API EphemerisFile : public Subscriber
 {
 public:
    std::unique_ptr<FunctionInvocationState> SuspendFunctionBindings() override;
+#ifndef SWIG
+   using OutputPathCheck = std::function<void(const std::string &)>;
+   static OutputPathCheck &OutputPathValidator();
+#endif
    EphemerisFile(const std::string &name, const std::string &type = "EphemerisFile");
    virtual ~EphemerisFile();
    EphemerisFile(const EphemerisFile &);

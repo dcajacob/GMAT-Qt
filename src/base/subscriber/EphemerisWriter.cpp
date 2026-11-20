@@ -688,7 +688,7 @@ bool EphemerisWriter::Initialize()
    {      
       // If user defined initial epoch is the same or less than spacecraft
       // initial epoch, no interpolation is needed for the first state
-      if (initialEpochA1Mjd == satInitialEpoch)
+      if (!HasExplicitOemWindow() && initialEpochA1Mjd == satInitialEpoch)
       {
          interpolateInitialState = false;
          initialEpochA1Mjd = -999.999;
@@ -918,6 +918,12 @@ bool EphemerisWriter::IsFinalized()
 //------------------------------------------------------------------------------
 // bool CheckInitialAndFinalEpoch()
 //------------------------------------------------------------------------------
+bool EphemerisWriter::HasExplicitOemWindow() const
+{
+   return fileType == CCSDS_OEM &&
+         (initialEpochStr != "InitialSpacecraftEpoch" || finalEpochStr != "FinalSpacecraftEpoch");
+}
+
 bool EphemerisWriter::CheckInitialAndFinalEpoch()
 {
    #ifdef DEBUG_EPHEMFILE_WRITE
@@ -1206,7 +1212,7 @@ void EphemerisWriter::WriteOrbit(Real reqEpochInSecs, const Real state[6], const
 
    Real outEpochInSecs = reqEpochInSecs;
    
-   if (useFixedStepSize)
+   if (useFixedStepSize && !HasExplicitOemWindow())
       FindNextOutputEpoch(reqEpochInSecs, outEpochInSecs, stateToWrite, covToWrite, accelToWrite);
    
    WriteOrbitData(outEpochInSecs, stateToWrite, covToWrite, quatToWrite, accelToWrite);
@@ -1218,7 +1224,7 @@ void EphemerisWriter::WriteOrbit(Real reqEpochInSecs, const Real state[6], const
    lastEpochWrote = outEpochInSecs;
    
    // If user defined final epoch has been written out, finalize
-   if (finalEpochStr != "FinalSpacecraftEpoch" &&
+   if (!HasExplicitOemWindow() && finalEpochStr != "FinalSpacecraftEpoch" &&
        (lastEpochWrote >= (finalEpochA1Mjd * GmatTimeConstants::SECS_PER_DAY)))
    {
       #ifdef DEBUG_EPHEMFILE_WRITE

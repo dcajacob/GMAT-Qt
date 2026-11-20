@@ -18,7 +18,7 @@ struct FolderRunItem
    QString script,loadedScript,outputDirectory,category,details,comparison;
    int repeat=1,engineStatus=0;
    QMap<QString,QString> reports;
-   QStringList reservedReportPaths;
+   QStringList reservedReportPaths, ephemerisPaths;
 };
 struct FolderRunResult
 {

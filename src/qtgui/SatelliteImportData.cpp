@@ -57,18 +57,37 @@ bool checksum(const QByteArray &line)
    }
    return sum%10==line[68]-'0';
 }
+
+struct UtcEpoch
+{
+   QDate date;
+   QString hour, minute, second;
+};
+
+UtcEpoch parseUtcEpoch(const QString &text)
+{
+   static const QRegularExpression pattern(
+      R"(^(\d{4})-(?:(\d{2})-(\d{2})|(\d{3}))T(\d{2}):(\d{2}):(\d{2}(?:\.\d+)?)(?:Z)?$)");
+   const auto match = pattern.match(text.trimmed());
+   if (!match.hasMatch()) throw std::runtime_error("Use a UTC epoch such as 2026-11-12T12:00:00.000Z.");
+   const int year = match.captured(1).toInt();
+   QDate date(year, match.captured(2).toInt(), match.captured(3).toInt());
+   if (!match.captured(4).isEmpty()) {
+      const QDate first(year, 1, 1);
+      const int day = match.captured(4).toInt();
+      if (day >= 1 && day <= first.daysInYear()) date = first.addDays(day - 1);
+   }
+   UtcEpoch epoch{date, match.captured(5), match.captured(6), match.captured(7)};
+   if (!date.isValid() || epoch.hour.toInt()>23 || epoch.minute.toInt()>59 || epoch.second.toDouble()>=61)
+      throw std::runtime_error("The UTC epoch is invalid.");
+   return epoch;
+}
 }
 
 QString satelliteEpochGregorian(const QString &epoch)
 {
-   const auto match=QRegularExpression("^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2}(?:\\.\\d+)?)(?:Z)?$").match(epoch.trimmed());
-   if (!match.hasMatch()) throw std::runtime_error("Use a UTC epoch such as 2026-11-12T12:00:00.000Z.");
-   const QDate date(match.captured(1).toInt(),match.captured(2).toInt(),match.captured(3).toInt());
-   const int hour=match.captured(4).toInt(),minute=match.captured(5).toInt();
-   const double second=match.captured(6).toDouble();
-   if (!date.isValid() || hour>23 || minute>59 || second<0 || second>=61)
-      throw std::runtime_error("The UTC epoch is invalid.");
-   return QLocale(QLocale::English).toString(date,"dd MMM yyyy")+' '+match.captured(4)+':'+match.captured(5)+':'+match.captured(6);
+   const auto utc = parseUtcEpoch(epoch);
+   return QLocale(QLocale::English).toString(utc.date,"dd MMM yyyy")+' '+utc.hour+':'+utc.minute+':'+utc.second;
 }
 
 QVector<SatelliteImportData> parseSatelliteElements(const QByteArray &data)
@@ -131,14 +150,11 @@ QString satelliteImportScript(const SatelliteImportData &data,const QString &nam
    if (!identifier.match(name).hasMatch()) throw std::runtime_error("Use a spacecraft name starting with a letter, followed by letters, digits or underscores.");
    if (!identifier.match(data.coordinateSystem).hasMatch() || !identifier.match(data.centralBody).hasMatch())
       throw std::runtime_error("Select a configured coordinate system and central body.");
-   satelliteEpochGregorian(data.epoch);
-   const auto epoch=data.epoch.trimmed();
-   const QDate date=QDate::fromString(epoch.left(10),Qt::ISODate);
-   auto secondText=epoch.mid(17); if (secondText.endsWith('Z')) secondText.chop(1);
-   const double seconds=secondText.toDouble();
+   const auto epoch = parseUtcEpoch(data.epoch);
+   const double seconds = epoch.second.toDouble();
    if (seconds>=60) throw std::runtime_error("Leap-second epochs cannot be represented by this UTC modified-Julian input.");
-   const double utcMjd=(date.toJulianDay()-2430000LL)-.5+
-      (epoch.mid(11,2).toInt()*3600+epoch.mid(14,2).toInt()*60+seconds)/86400.;
+   const double utcMjd=(epoch.date.toJulianDay()-2430000LL)-.5+
+      (epoch.hour.toInt()*3600+epoch.minute.toInt()*60+seconds)/86400.;
    QString script="Create Spacecraft "+name+";\n";
    // GMAT's Gregorian input limits fractional seconds to milliseconds.
    // UTCModJulian retains the precision supplied by TLE/OMM records.

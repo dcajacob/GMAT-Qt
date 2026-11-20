@@ -138,6 +138,8 @@ public:
 
 protected:
 
+   bool HasExplicitOemWindow() const;
+
    //@note Should match FileType in EphemerisFile.hpp for now
    enum FileType
    {

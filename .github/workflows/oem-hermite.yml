@@ -17,12 +17,16 @@ on:
       - 'src/qtgui/tests/NasaEphemerisDirectionTests.cpp'
       - 'src/qtgui/tests/InterpolationSufficiencyTests.cpp'
       - 'src/qtgui/tests/RunTest.py'
+      - 'src/qtgui/tests/RunNativeTest.py'
+      - 'src/qtgui/tests/FormationAcceptance.hpp'
+      - 'tools/preview/tests/test_native_ci.py'
       - 'src/qtgui/tests/AcceptanceRuntime.py'
       - 'src/qtgui/tests/AcceptancePlatform.hpp'
       - 'src/qtgui/tests/AcceptanceView.hpp'
       - 'src/qtgui/tests/TestSettings.hpp'
       - 'src/base/function/GetEphemStates.*'
       - 'src/base/executive/Publisher.*'
+      - 'src/base/command/Propagate.*'
       - 'src/base/subscriber/Ephemeris*'
       - 'src/base/subscriber/EphemWriterCCSDS.*'
       - 'src/base/subscriber/EphemWriterWithInterpolator.*'
@@ -66,7 +70,8 @@ jobs:
           '[{"runner":"macos-15","platform":"macos-arm64"}]' ||
           inputs.platform == 'macos-x64' &&
           '[{"runner":"macos-15-intel","platform":"macos-x64"}]' ||
-          '[{"runner":"windows-2022","platform":"windows-x64"},
+          '[{"runner":"ubuntu-24.04","platform":"linux-x86_64"},
+          {"runner":"windows-2022","platform":"windows-x64"},
           {"runner":"macos-15","platform":"macos-arm64"},
           {"runner":"macos-15-intel","platform":"macos-x64"}]') }}
     runs-on: ${{ matrix.runner }}
@@ -87,7 +92,17 @@ jobs:
             build/preview-package/deps/osg
             C:\vcpkg\installed
           key: gmat-qt-preview-windows-2022-osg365-sdk-v1
-      - name: Build release configuration and run the six targeted cases
+      - name: Install Linux build and X11 dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y swig libopenscenegraph-dev libxerces-c-dev libgl1-mesa-dev libglu1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-image0 libfontconfig1 xvfb xauth
+      - name: Check CI result reporting and cache invalidation
+        if: runner.os == 'Linux'
+        run: |
+          python -m pip install PyYAML==6.0.3
+          python -m unittest discover -s tools/preview/tests
+      - name: Build and run the targeted OEM regressions
         run: python tools/preview/RunSharedSuite.py --platform ${{ matrix.platform }} --python-api --plan tools/preview/OemHermiteSuite.json --output build/oem-hermite-platforms/${{ matrix.platform }}
       - name: Preserve results and diagnostics
         if: always()
